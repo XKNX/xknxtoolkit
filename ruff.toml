@@ -1,3 +1,5 @@
+exclude = ["**/generated"]
+
 [lint]
 select = [
     "E",      # pycodestyle errors
