@@ -3,7 +3,9 @@ name = "xknx-models"
 version = "0.1.0"
 description = "XKNX shared models"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "xsdata>=24.0",
+]
 
 [project.optional-dependencies]
 dev = [
