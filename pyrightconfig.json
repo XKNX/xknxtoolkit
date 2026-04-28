@@ -1,0 +1,6 @@
+{
+  "include": ["packages/*/src"],
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "strict",
+  "reportMissingTypeStubs": false
+}
