@@ -6,6 +6,8 @@ requires-python = ">=3.12"
 dependencies = [
     "xknx-models",
     "xknx-product",
+    "xknx-project",
+    "xknx-keys",
 ]
 
 [dependency-groups]
