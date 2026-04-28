@@ -5,6 +5,7 @@ description = "XKNX toolkit monorepo"
 requires-python = ">=3.12"
 dependencies = [
     "xknx-models",
+    "xknx-product",
 ]
 
 [dependency-groups]
