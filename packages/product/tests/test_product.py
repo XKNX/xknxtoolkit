@@ -1,6 +1,3 @@
-import re
-
-
 def test_import():
     from xknx.product import __version__
 
