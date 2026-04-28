@@ -3,6 +3,22 @@ name = "xknxtoolkit"
 version = "0.1.0"
 description = "XKNX toolkit monorepo"
 requires-python = ">=3.12"
+dependencies = [
+    "xknx-models",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4.0",
+    "ruff>=0.4",
+    "pyright>=1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["packages"]
+asyncio_mode = "auto"
 
 [tool.uv.workspace]
 members = ["packages/*"]
