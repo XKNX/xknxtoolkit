@@ -1,5 +1,6 @@
 {
   "include": ["packages/*/src"],
+  "exclude": ["**/generated"],
   "pythonVersion": "3.12",
   "typeCheckingMode": "strict",
   "reportMissingTypeStubs": false
