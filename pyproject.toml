@@ -1,0 +1,14 @@
+[project]
+name = "xknxtoolkit"
+version = "0.1.0"
+description = "XKNX toolkit monorepo"
+requires-python = ">=3.12"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+xknx-models = { workspace = true }
+xknx-product = { workspace = true }
+xknx-project = { workspace = true }
+xknx-keys = { workspace = true }
