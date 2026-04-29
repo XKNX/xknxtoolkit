@@ -245,10 +245,14 @@ version = "0.1.0"
 source = { editable = "packages/keys" }
 dependencies = [
     { name = "xknx-models" },
+    { name = "xsdata" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "xknx-models", editable = "packages/models" }]
+requires-dist = [
+    { name = "xknx-models", editable = "packages/models" },
+    { name = "xsdata", specifier = ">=24.0" },
+]
 
 [[package]]
 name = "xknx-models"
