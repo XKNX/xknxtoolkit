@@ -1,4 +1,4 @@
-from xknx.keys.generated.knx_keyring import (
+from xknx.keyring.generated.knx_keyring import (
     Backbone,
     Devices,
     GroupAddresses,

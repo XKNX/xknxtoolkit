@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from xknx.keys.generated.knx_keyring import (
+from xknx.keyring.generated.knx_keyring import (
     Backbone,
     Devices,
     GroupAddresses,
@@ -10,7 +10,7 @@ from xknx.keys.generated.knx_keyring import (
     InterfaceType,
     Keyring,
 )
-from xknx.keys.schema import load_keyring, serialize_keyring
+from xknx.keyring.schema import load_keyring, serialize_keyring
 
 MINIMAL_KEYRING_XML = b"""\
 <?xml version="1.0" encoding="UTF-8"?>
