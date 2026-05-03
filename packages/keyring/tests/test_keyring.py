@@ -1,5 +1,5 @@
 def test_import():
-    from xknx.keys import __version__
+    from xknx.keyring import __version__
 
     assert __version__ is not None
 

@@ -7,7 +7,7 @@ dependencies = [
     "xknx-models",
     "xknx-product",
     "xknx-project",
-    "xknx-keys",
+    "xknx-keyring",
 ]
 
 [dependency-groups]
@@ -30,4 +30,4 @@ members = ["packages/*"]
 xknx-models = { workspace = true }
 xknx-product = { workspace = true }
 xknx-project = { workspace = true }
-xknx-keys = { workspace = true }
+xknx-keyring = { workspace = true }

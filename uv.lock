@@ -4,7 +4,7 @@ requires-python = ">=3.12"
 
 [manifest]
 members = [
-    "xknx-keys",
+    "xknx-keyring",
     "xknx-models",
     "xknx-product",
     "xknx-project",
@@ -240,9 +240,9 @@ wheels = [
 ]
 
 [[package]]
-name = "xknx-keys"
+name = "xknx-keyring"
 version = "0.1.0"
-source = { editable = "packages/keys" }
+source = { editable = "packages/keyring" }
 dependencies = [
     { name = "xknx-models" },
     { name = "xsdata" },
@@ -305,7 +305,7 @@ name = "xknxtoolkit"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "xknx-keys" },
+    { name = "xknx-keyring" },
     { name = "xknx-models" },
     { name = "xknx-product" },
     { name = "xknx-project" },
@@ -322,7 +322,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "xknx-keys", editable = "packages/keys" },
+    { name = "xknx-keyring", editable = "packages/keyring" },
     { name = "xknx-models", editable = "packages/models" },
     { name = "xknx-product", editable = "packages/product" },
     { name = "xknx-project", editable = "packages/project" },

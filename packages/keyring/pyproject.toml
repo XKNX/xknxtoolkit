@@ -1,7 +1,7 @@
 [project]
-name = "xknx-keys"
+name = "xknx-keyring"
 version = "0.1.0"
-description = "XKNX keys library"
+description = "XKNX keyring library"
 requires-python = ">=3.12"
 dependencies = [
     "xknx-models",
