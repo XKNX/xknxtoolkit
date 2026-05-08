@@ -497,23 +497,37 @@ class KnxGuiApp:
             if link[1] != pin_id and link[2] != pin_id
         ]
 
-    def _show_link_tooltip(self, dpt_a: DPT, dpt_b: DPT, match: DPTMatch) -> None:
+    def _show_link_tooltip(self, pin_a: int, pin_b: int) -> None:
+        dpt_a = self._pin_dpt.get(pin_a)
+        dpt_b = self._pin_dpt.get(pin_b)
+        dir_a = self._pin_dir.get(pin_a)
+        dir_b = self._pin_dir.get(pin_b)
+        if dpt_a is None or dpt_b is None or dir_a is None or dir_b is None:
+            return
+
         ed.suspend()
         imgui.begin_tooltip()
-        if match == DPTMatch.EXACT:
-            imgui.text(f"DPT {dpt_a.code} - {dpt_a.name}")
-        elif match == DPTMatch.LOOSE:
-            imgui.push_style_color(imgui.Col_.text, LINK_LOOSE_COLOR)
-            imgui.text("Warning: same byte format, different semantics")
-            imgui.pop_style_color()
-            imgui.text(f"From: DPT {dpt_a.code} - {dpt_a.name}")
-            imgui.text(f"To:   DPT {dpt_b.code} - {dpt_b.name}")
-        else:
+        if dir_a == dir_b:
             imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
-            imgui.text("Incompatible DPTs")
+            label = "outputs" if dir_a == PinDir.OUTPUT else "inputs"
+            imgui.text(f"Cannot connect two {label}")
             imgui.pop_style_color()
-            imgui.text(f"From: DPT {dpt_a.code} - {dpt_a.name}")
-            imgui.text(f"To:   DPT {dpt_b.code} - {dpt_b.name}")
+        else:
+            match = dpt_match(dpt_a, dpt_b)
+            if match == DPTMatch.EXACT:
+                imgui.text(f"DPT {dpt_a.code} - {dpt_a.name}")
+            elif match == DPTMatch.LOOSE:
+                imgui.push_style_color(imgui.Col_.text, LINK_LOOSE_COLOR)
+                imgui.text("Warning: same byte format, different semantics")
+                imgui.pop_style_color()
+                imgui.text(f"From: DPT {dpt_a.code} - {dpt_a.name}")
+                imgui.text(f"To:   DPT {dpt_b.code} - {dpt_b.name}")
+            else:
+                imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
+                imgui.text("Incompatible DPTs")
+                imgui.pop_style_color()
+                imgui.text(f"From: DPT {dpt_a.code} - {dpt_a.name}")
+                imgui.text(f"To:   DPT {dpt_b.code} - {dpt_b.name}")
         imgui.end_tooltip()
         ed.resume()
 
@@ -527,10 +541,7 @@ class KnxGuiApp:
                     new_drag_source = start_pin_id.id()
                 if start_pin_id.id() != 0 and end_pin_id.id() != 0:
                     match = self._pins_match_quality(start_pin_id.id(), end_pin_id.id())
-                    dpt_a = self._pin_dpt.get(start_pin_id.id())
-                    dpt_b = self._pin_dpt.get(end_pin_id.id())
-                    if dpt_a and dpt_b:
-                        self._show_link_tooltip(dpt_a, dpt_b, match)
+                    self._show_link_tooltip(start_pin_id.id(), end_pin_id.id())
                     if match == DPTMatch.NONE:
                         ed.reject_new_item(LINK_INVALID_COLOR, 3.0)
                     else:
