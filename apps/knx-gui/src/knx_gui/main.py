@@ -5,7 +5,13 @@ from imgui_bundle import imgui, hello_imgui, imgui_node_editor as ed
 
 NODE_PADDING = 8.0
 HEADER_INSET = 1.0
+HEADER_BOTTOM_PADDING = 4.0
 PIN_RADIUS = 5.0
+PIN_HEIGHT = PIN_RADIUS * 2 + 4
+MIN_PIN_SPACING = 20.0
+SETTINGS_LABEL_OFFSET = 120.0
+SETTINGS_CLIP_HEIGHT = 500.0
+HEADER_COLOR = (0.2, 0.4, 0.7)
 LINK_COLOR = imgui.ImVec4(0.6, 0.6, 0.6, 1.0)
 LINK_INVALID_COLOR = imgui.ImVec4(0.9, 0.2, 0.2, 1.0)
 
@@ -140,6 +146,26 @@ class Device:
     address: str
 
 
+@dataclass
+class NodeLayout:
+    node_width: float
+    in_total_w: float
+    out_total_w: float
+    mid_spacing: float
+    in_dpt_w: float
+    in_name_w: float
+    out_dpt_w: float
+    out_name_w: float
+
+
+@dataclass
+class Rect:
+    min_x: float
+    min_y: float
+    max_x: float
+    max_y: float
+
+
 class KnxGuiApp:
     def __init__(self) -> None:
         self._editor_context: ed.EditorContext | None = None
@@ -149,7 +175,6 @@ class KnxGuiApp:
         self._pin_dir: dict[int, PinDir] = {}
         self._devices: list[Device] = []
         self._show_sidebar: bool = True
-        self._settings_open: dict[int, bool] = {}
         self._init_devices()
 
     def _init_devices(self) -> None:
@@ -178,27 +203,49 @@ class KnxGuiApp:
         cursor = imgui.get_cursor_screen_pos()
         center = imgui.ImVec2(cursor.x + PIN_RADIUS, cursor.y + PIN_RADIUS + 2)
         color = color_from_vec4(DPT_COLORS[dpt])
-
         draw_list.add_circle_filled(center, PIN_RADIUS, color)
         draw_list.add_circle(center, PIN_RADIUS, color_u32(1, 1, 1, 0.3), 0, 1.5)
-        imgui.dummy(imgui.ImVec2(PIN_RADIUS * 2, PIN_RADIUS * 2 + 4))
+        imgui.dummy(imgui.ImVec2(PIN_RADIUS * 2, PIN_HEIGHT))
 
-    def _calc_row_widths(
-        self, rows: list[PinRow]
-    ) -> tuple[float, float, float, float]:
+    def _calc_node_layout(self, template: DeviceTemplate) -> NodeLayout:
         in_dpt_w = in_name_w = out_dpt_w = out_name_w = 0.0
-        for row in rows:
+        for row in template.rows:
             if row.input_pin:
                 in_dpt_w = max(in_dpt_w, imgui.calc_text_size(f"[{DPT_LABELS[row.input_pin.dpt]}]").x)
                 in_name_w = max(in_name_w, imgui.calc_text_size(row.input_pin.name).x)
             if row.output_pin:
                 out_dpt_w = max(out_dpt_w, imgui.calc_text_size(f"[{DPT_LABELS[row.output_pin.dpt]}]").x)
                 out_name_w = max(out_name_w, imgui.calc_text_size(row.output_pin.name).x)
-        return in_dpt_w, in_name_w, out_dpt_w, out_name_w
 
-    def _render_input_pin(
-        self, pin_id: int, pin: Pin, dpt_width: float, name_width: float
-    ) -> None:
+        spacing = imgui.get_style().item_spacing.x
+        in_total_w = PIN_RADIUS * 2 + in_name_w + in_dpt_w + spacing * 4 if in_name_w > 0 else 0
+        out_total_w = PIN_RADIUS * 2 + out_name_w + out_dpt_w + spacing * 4 if out_name_w > 0 else 0
+
+        tree_indent = imgui.get_style().indent_spacing
+        max_value_w = max(
+            imgui.calc_text_size(template.config.manufacturer).x,
+            imgui.calc_text_size(template.config.application).x,
+            imgui.calc_text_size(template.config.hardware).x,
+            imgui.calc_text_size(template.config.firmware).x,
+        )
+        settings_width = tree_indent + SETTINGS_LABEL_OFFSET + max_value_w
+
+        pin_row_width = in_total_w + MIN_PIN_SPACING + out_total_w
+        node_width = max(pin_row_width, settings_width)
+        mid_spacing = node_width - in_total_w - out_total_w
+
+        return NodeLayout(
+            node_width=node_width,
+            in_total_w=in_total_w,
+            out_total_w=out_total_w,
+            mid_spacing=mid_spacing,
+            in_dpt_w=in_dpt_w,
+            in_name_w=in_name_w,
+            out_dpt_w=out_dpt_w,
+            out_name_w=out_name_w,
+        )
+
+    def _render_input_pin(self, pin_id: int, pin: Pin, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.INPUT
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.input)
@@ -207,120 +254,105 @@ class KnxGuiApp:
         imgui.same_line()
         imgui.text_unformatted(pin.name)
         imgui.same_line()
-        imgui.dummy(imgui.ImVec2(name_width - imgui.calc_text_size(pin.name).x, 1))
+        imgui.dummy(imgui.ImVec2(layout.in_name_w - imgui.calc_text_size(pin.name).x, 1))
         imgui.same_line()
-        imgui.text_disabled(f"[{DPT_LABELS[pin.dpt]}]")
+        dpt_label = f"[{DPT_LABELS[pin.dpt]}]"
+        imgui.text_disabled(dpt_label)
         imgui.same_line()
-        imgui.dummy(imgui.ImVec2(dpt_width - imgui.calc_text_size(f"[{DPT_LABELS[pin.dpt]}]").x, 1))
+        imgui.dummy(imgui.ImVec2(layout.in_dpt_w - imgui.calc_text_size(dpt_label).x, 1))
         ed.end_pin()
 
-    def _render_output_pin(
-        self, pin_id: int, pin: Pin, dpt_width: float, name_width: float
-    ) -> None:
+    def _render_output_pin(self, pin_id: int, pin: Pin, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.OUTPUT
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
         ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
-        imgui.text_disabled(f"[{DPT_LABELS[pin.dpt]}]")
+        dpt_label = f"[{DPT_LABELS[pin.dpt]}]"
+        imgui.text_disabled(dpt_label)
         imgui.same_line()
-        imgui.dummy(imgui.ImVec2(dpt_width - imgui.calc_text_size(f"[{DPT_LABELS[pin.dpt]}]").x, 1))
+        imgui.dummy(imgui.ImVec2(layout.out_dpt_w - imgui.calc_text_size(dpt_label).x, 1))
         imgui.same_line()
         imgui.text_unformatted(pin.name)
         imgui.same_line()
-        imgui.dummy(imgui.ImVec2(name_width - imgui.calc_text_size(pin.name).x, 1))
+        imgui.dummy(imgui.ImVec2(layout.out_name_w - imgui.calc_text_size(pin.name).x, 1))
         imgui.same_line()
         self._draw_pin_icon(pin.dpt)
         ed.end_pin()
 
-    def _calc_settings_width(self, config: DeviceConfig) -> float:
-        tree_indent = imgui.get_style().indent_spacing
-        label_offset = 120
-        max_value_w = max(
-            imgui.calc_text_size(config.manufacturer).x,
-            imgui.calc_text_size(config.application).x,
-            imgui.calc_text_size(config.hardware).x,
-            imgui.calc_text_size(config.firmware).x,
-        )
-        return tree_indent + label_offset + max_value_w
-
-    def _render_device_node(
-        self, node_id: int, template: DeviceTemplate, address: str
-    ) -> None:
-        ed.begin_node(ed.NodeId(node_id))
-
+    def _render_node_header(self, template: DeviceTemplate, address: str) -> Rect:
         imgui.begin_group()
         imgui.text(template.name)
         imgui.same_line()
         imgui.text_disabled(f"  {address}")
         imgui.end_group()
+        rect_min = imgui.get_item_rect_min()
+        rect_max = imgui.get_item_rect_max()
+        return Rect(rect_min.x, rect_min.y, rect_max.x, rect_max.y)
 
-        header_rect_min = imgui.get_item_rect_min()
-        header_rect_max = imgui.get_item_rect_max()
-
-        imgui.spacing()
-
+    def _render_node_pins(self, node_id: int, template: DeviceTemplate, layout: NodeLayout) -> None:
         pin_base = node_id * 100
-        in_dpt_w, in_name_w, out_dpt_w, out_name_w = self._calc_row_widths(template.rows)
-
-        spacing = imgui.get_style().item_spacing.x
-        in_total_w = PIN_RADIUS * 2 + in_name_w + in_dpt_w + spacing * 4 if in_name_w > 0 else 0
-        out_total_w = PIN_RADIUS * 2 + out_name_w + out_dpt_w + spacing * 4 if out_name_w > 0 else 0
-
-        pin_row_width = in_total_w + 20 + out_total_w
-        settings_width = self._calc_settings_width(template.config)
-        node_width = max(pin_row_width, settings_width)
-        mid_spacing = node_width - in_total_w - out_total_w
-
         for i, row in enumerate(template.rows):
             if row.input_pin:
-                self._render_input_pin(pin_base + i, row.input_pin, in_dpt_w, in_name_w)
+                self._render_input_pin(pin_base + i, row.input_pin, layout)
             else:
-                imgui.dummy(imgui.ImVec2(in_total_w, PIN_RADIUS * 2 + 4))
-
-            imgui.same_line(spacing=mid_spacing)
-
+                imgui.dummy(imgui.ImVec2(layout.in_total_w, PIN_HEIGHT))
+            imgui.same_line(spacing=layout.mid_spacing)
             if row.output_pin:
-                self._render_output_pin(pin_base + 50 + i, row.output_pin, out_dpt_w, out_name_w)
+                self._render_output_pin(pin_base + 50 + i, row.output_pin, layout)
             else:
-                imgui.dummy(imgui.ImVec2(out_total_w, PIN_RADIUS * 2 + 4))
+                imgui.dummy(imgui.ImVec2(layout.out_total_w, PIN_HEIGHT))
 
-        imgui.dummy(imgui.ImVec2(node_width, 1))
-        content_rect_max = imgui.get_item_rect_max()
+    def _render_label_value(self, label: str, value: str) -> None:
+        imgui.text_disabled(label)
+        imgui.same_line(SETTINGS_LABEL_OFFSET)
+        imgui.text(value)
 
-        imgui.spacing()
-        imgui.push_clip_rect(imgui.get_cursor_screen_pos(), imgui.ImVec2(imgui.get_cursor_screen_pos().x + node_width, imgui.get_cursor_screen_pos().y + 500), True)
+    def _render_node_settings(self, node_id: int, config: DeviceConfig, width: float) -> None:
+        cursor = imgui.get_cursor_screen_pos()
+        clip_max = imgui.ImVec2(cursor.x + width, cursor.y + SETTINGS_CLIP_HEIGHT)
+        imgui.push_clip_rect(cursor, clip_max, True)
         if imgui.tree_node(f"Manufacturer##{node_id}"):
-            imgui.text_disabled("Manufacturer")
-            imgui.same_line(120)
-            imgui.text(template.config.manufacturer)
-            imgui.text_disabled("Application")
-            imgui.same_line(120)
-            imgui.text(template.config.application)
-            imgui.text_disabled("Hardware")
-            imgui.same_line(120)
-            imgui.text(template.config.hardware)
-            imgui.text_disabled("Firmware")
-            imgui.same_line(120)
-            imgui.text(template.config.firmware)
+            self._render_label_value("Manufacturer", config.manufacturer)
+            self._render_label_value("Application", config.application)
+            self._render_label_value("Hardware", config.hardware)
+            self._render_label_value("Firmware", config.firmware)
             imgui.tree_pop()
         imgui.pop_clip_rect()
 
-        ed.end_node()
-
+    def _draw_node_header_bg(self, node_id: int, header: Rect, content_max_x: float) -> None:
         draw_list = ed.get_node_background_draw_list(ed.NodeId(node_id))
-        if draw_list:
-            header_left = header_rect_min.x - NODE_PADDING + HEADER_INSET
-            header_right = content_rect_max.x + NODE_PADDING - HEADER_INSET
-            header_top = header_rect_min.y - NODE_PADDING + HEADER_INSET
-            header_bottom = header_rect_max.y + 4
+        if not draw_list:
+            return
+        left = header.min_x - NODE_PADDING + HEADER_INSET
+        right = content_max_x + NODE_PADDING - HEADER_INSET
+        top = header.min_y - NODE_PADDING + HEADER_INSET
+        bottom = header.max_y + HEADER_BOTTOM_PADDING
+        rounding = ed.get_style().node_rounding - HEADER_INSET
+        draw_list.add_rect_filled(
+            imgui.ImVec2(left, top),
+            imgui.ImVec2(right, bottom),
+            color_u32(*HEADER_COLOR),
+            rounding,
+            imgui.ImDrawFlags_.round_corners_top,
+        )
 
-            draw_list.add_rect_filled(
-                imgui.ImVec2(header_left, header_top),
-                imgui.ImVec2(header_right, header_bottom),
-                color_u32(0.2, 0.4, 0.7),
-                ed.get_style().node_rounding - HEADER_INSET,
-                imgui.ImDrawFlags_.round_corners_top,
-            )
+    def _render_device_node(self, node_id: int, template: DeviceTemplate, address: str) -> None:
+        ed.begin_node(ed.NodeId(node_id))
+
+        header = self._render_node_header(template, address)
+        imgui.spacing()
+
+        layout = self._calc_node_layout(template)
+        self._render_node_pins(node_id, template, layout)
+
+        imgui.dummy(imgui.ImVec2(layout.node_width, 1))
+        content_max_x = imgui.get_item_rect_max().x
+
+        imgui.spacing()
+        self._render_node_settings(node_id, template.config, layout.node_width)
+
+        ed.end_node()
+        self._draw_node_header_bg(node_id, header, content_max_x)
 
     def _are_pins_compatible(self, pin_a: int, pin_b: int) -> bool:
         dpt_a = self._pin_dpt.get(pin_a)
