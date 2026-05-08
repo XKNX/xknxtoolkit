@@ -1,7 +1,7 @@
 [project]
 name = "knx-gui"
 version = "0.1.0"
-description = "KNX ETS node-based GUI experiment"
+description = "XKNX Toolkit - KNX node-based GUI"
 requires-python = ">=3.12"
 dependencies = [
     "imgui-bundle>=1.92.0",

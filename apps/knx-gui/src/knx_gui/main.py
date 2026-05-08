@@ -542,7 +542,7 @@ def main() -> None:
     app = KnxGuiApp()
 
     runner_params = hello_imgui.RunnerParams()
-    runner_params.app_window_params.window_title = "KNX ETS Node Editor"
+    runner_params.app_window_params.window_title = "XKNX Toolkit"
     runner_params.app_window_params.window_geometry.size = (1280, 720)
 
     runner_params.callbacks.post_init = app.setup
