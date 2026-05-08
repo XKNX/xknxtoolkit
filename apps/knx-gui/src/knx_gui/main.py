@@ -47,64 +47,63 @@ class PinDir(Enum):
 class Pin:
     name: str
     dpt: DPT
-    direction: PinDir
+
+
+@dataclass
+class PinRow:
+    input_pin: Pin | None = None
+    output_pin: Pin | None = None
 
 
 @dataclass
 class DeviceTemplate:
     name: str
-    pins: list[Pin]
+    rows: list[PinRow]
 
 
 DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
     "switch_actuator": DeviceTemplate(
         name="Switch Actuator",
-        pins=[
-            Pin("Switch", DPT.BOOL, PinDir.INPUT),
-            Pin("Status", DPT.BOOL, PinDir.OUTPUT),
+        rows=[
+            PinRow(Pin("Switch", DPT.BOOL), Pin("Status", DPT.BOOL)),
         ],
     ),
     "dimmer_actuator": DeviceTemplate(
         name="Dimmer Actuator",
-        pins=[
-            Pin("Switch", DPT.BOOL, PinDir.INPUT),
-            Pin("Dimming", DPT.DIMMING, PinDir.INPUT),
-            Pin("Brightness", DPT.PERCENT, PinDir.INPUT),
-            Pin("Status", DPT.BOOL, PinDir.OUTPUT),
-            Pin("Value", DPT.PERCENT, PinDir.OUTPUT),
+        rows=[
+            PinRow(Pin("Switch", DPT.BOOL), Pin("Status", DPT.BOOL)),
+            PinRow(Pin("Dimming", DPT.DIMMING)),
+            PinRow(Pin("Brightness", DPT.PERCENT), Pin("Value", DPT.PERCENT)),
         ],
     ),
     "temperature_sensor": DeviceTemplate(
         name="Temperature Sensor",
-        pins=[
-            Pin("Temperature", DPT.FLOAT, PinDir.OUTPUT),
+        rows=[
+            PinRow(output_pin=Pin("Temperature", DPT.FLOAT)),
         ],
     ),
     "push_button": DeviceTemplate(
         name="Push Button",
-        pins=[
-            Pin("Press", DPT.BOOL, PinDir.OUTPUT),
-            Pin("Long Press", DPT.BOOL, PinDir.OUTPUT),
-            Pin("Scene", DPT.SCENE, PinDir.OUTPUT),
+        rows=[
+            PinRow(output_pin=Pin("Press", DPT.BOOL)),
+            PinRow(output_pin=Pin("Long Press", DPT.BOOL)),
+            PinRow(output_pin=Pin("Scene", DPT.SCENE)),
         ],
     ),
     "rgb_controller": DeviceTemplate(
         name="RGB Controller",
-        pins=[
-            Pin("Switch", DPT.BOOL, PinDir.INPUT),
-            Pin("Color", DPT.RGB, PinDir.INPUT),
-            Pin("Brightness", DPT.PERCENT, PinDir.INPUT),
-            Pin("Status", DPT.BOOL, PinDir.OUTPUT),
-            Pin("Color Status", DPT.RGB, PinDir.OUTPUT),
+        rows=[
+            PinRow(Pin("Switch", DPT.BOOL), Pin("Status", DPT.BOOL)),
+            PinRow(Pin("Color", DPT.RGB), Pin("Color Status", DPT.RGB)),
+            PinRow(Pin("Brightness", DPT.PERCENT)),
         ],
     ),
     "thermostat": DeviceTemplate(
         name="Thermostat",
-        pins=[
-            Pin("Setpoint", DPT.FLOAT, PinDir.INPUT),
-            Pin("Actual Temp", DPT.FLOAT, PinDir.OUTPUT),
-            Pin("Heating", DPT.BOOL, PinDir.OUTPUT),
-            Pin("Valve", DPT.PERCENT, PinDir.OUTPUT),
+        rows=[
+            PinRow(Pin("Setpoint", DPT.FLOAT), Pin("Actual Temp", DPT.FLOAT)),
+            PinRow(output_pin=Pin("Heating", DPT.BOOL)),
+            PinRow(output_pin=Pin("Valve", DPT.PERCENT)),
         ],
     ),
 }
@@ -147,15 +146,18 @@ class KnxGuiApp:
         draw_list.add_circle(center, PIN_RADIUS, color_u32(1, 1, 1, 0.3), 0, 1.5)
         imgui.dummy(imgui.ImVec2(PIN_RADIUS * 2, PIN_RADIUS * 2 + 4))
 
-    def _calc_pin_widths(self, pins: list[Pin]) -> tuple[float, float]:
-        max_dpt_width = 0.0
-        max_name_width = 0.0
-        for pin in pins:
-            dpt_width = imgui.calc_text_size(f"[{DPT_LABELS[pin.dpt]}]").x
-            name_width = imgui.calc_text_size(pin.name).x
-            max_dpt_width = max(max_dpt_width, dpt_width)
-            max_name_width = max(max_name_width, name_width)
-        return max_dpt_width, max_name_width
+    def _calc_row_widths(
+        self, rows: list[PinRow]
+    ) -> tuple[float, float, float, float]:
+        in_dpt_w = in_name_w = out_dpt_w = out_name_w = 0.0
+        for row in rows:
+            if row.input_pin:
+                in_dpt_w = max(in_dpt_w, imgui.calc_text_size(f"[{DPT_LABELS[row.input_pin.dpt]}]").x)
+                in_name_w = max(in_name_w, imgui.calc_text_size(row.input_pin.name).x)
+            if row.output_pin:
+                out_dpt_w = max(out_dpt_w, imgui.calc_text_size(f"[{DPT_LABELS[row.output_pin.dpt]}]").x)
+                out_name_w = max(out_name_w, imgui.calc_text_size(row.output_pin.name).x)
+        return in_dpt_w, in_name_w, out_dpt_w, out_name_w
 
     def _render_input_pin(
         self, pin_id: int, pin: Pin, dpt_width: float, name_width: float
@@ -166,10 +168,13 @@ class KnxGuiApp:
         ed.pin_pivot_alignment(imgui.ImVec2(0.0, 0.5))
         self._draw_pin_icon(pin.dpt)
         imgui.same_line()
-        imgui.set_next_item_width(name_width)
         imgui.text_unformatted(pin.name)
-        imgui.same_line(spacing=name_width - imgui.calc_text_size(pin.name).x + 8)
+        imgui.same_line()
+        imgui.dummy(imgui.ImVec2(name_width - imgui.calc_text_size(pin.name).x, 1))
+        imgui.same_line()
         imgui.text_disabled(f"[{DPT_LABELS[pin.dpt]}]")
+        imgui.same_line()
+        imgui.dummy(imgui.ImVec2(dpt_width - imgui.calc_text_size(f"[{DPT_LABELS[pin.dpt]}]").x, 1))
         ed.end_pin()
 
     def _render_output_pin(
@@ -179,12 +184,14 @@ class KnxGuiApp:
         self._pin_dir[pin_id] = PinDir.OUTPUT
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
         ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
-        imgui.set_next_item_width(dpt_width)
         imgui.text_disabled(f"[{DPT_LABELS[pin.dpt]}]")
-        imgui.same_line(spacing=dpt_width - imgui.calc_text_size(f"[{DPT_LABELS[pin.dpt]}]").x + 8)
-        imgui.set_next_item_width(name_width)
+        imgui.same_line()
+        imgui.dummy(imgui.ImVec2(dpt_width - imgui.calc_text_size(f"[{DPT_LABELS[pin.dpt]}]").x, 1))
+        imgui.same_line()
         imgui.text_unformatted(pin.name)
-        imgui.same_line(spacing=name_width - imgui.calc_text_size(pin.name).x + 8)
+        imgui.same_line()
+        imgui.dummy(imgui.ImVec2(name_width - imgui.calc_text_size(pin.name).x, 1))
+        imgui.same_line()
         self._draw_pin_icon(pin.dpt)
         ed.end_pin()
 
@@ -205,23 +212,24 @@ class KnxGuiApp:
         imgui.spacing()
 
         pin_base = node_id * 100
-        input_pins = [p for p in template.pins if p.direction == PinDir.INPUT]
-        output_pins = [p for p in template.pins if p.direction == PinDir.OUTPUT]
+        in_dpt_w, in_name_w, out_dpt_w, out_name_w = self._calc_row_widths(template.rows)
 
-        in_dpt_w, in_name_w = self._calc_pin_widths(input_pins) if input_pins else (0, 0)
-        out_dpt_w, out_name_w = self._calc_pin_widths(output_pins) if output_pins else (0, 0)
+        spacing = imgui.get_style().item_spacing.x
+        in_total_w = PIN_RADIUS * 2 + in_name_w + in_dpt_w + spacing * 4 if in_name_w > 0 else 0
+        out_total_w = PIN_RADIUS * 2 + out_name_w + out_dpt_w + spacing * 4 if out_name_w > 0 else 0
 
-        imgui.begin_group()
-        for i, pin in enumerate(input_pins):
-            self._render_input_pin(pin_base + i, pin, in_dpt_w, in_name_w)
-        imgui.end_group()
+        for i, row in enumerate(template.rows):
+            if row.input_pin:
+                self._render_input_pin(pin_base + i, row.input_pin, in_dpt_w, in_name_w)
+            else:
+                imgui.dummy(imgui.ImVec2(in_total_w, PIN_RADIUS * 2 + 4))
 
-        imgui.same_line(spacing=20)
+            imgui.same_line(spacing=20)
 
-        imgui.begin_group()
-        for i, pin in enumerate(output_pins):
-            self._render_output_pin(pin_base + 50 + i, pin, out_dpt_w, out_name_w)
-        imgui.end_group()
+            if row.output_pin:
+                self._render_output_pin(pin_base + 50 + i, row.output_pin, out_dpt_w, out_name_w)
+            else:
+                imgui.dummy(imgui.ImVec2(out_total_w, PIN_RADIUS * 2 + 4))
 
         content_rect_max = imgui.get_item_rect_max()
 
