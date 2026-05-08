@@ -257,6 +257,7 @@ class KnxGuiApp:
         self._telegrams: list[Telegram] = []
         self._selected_telegrams: set[int] = set()
         self._last_selected_telegram: int = -1
+        self._drag_source_pin: int | None = None
         self._init_devices()
         self._init_sample_telegrams()
 
@@ -295,13 +296,33 @@ class KnxGuiApp:
             ed.destroy_editor(self._editor_context)
             self._editor_context = None
 
-    def _draw_pin_icon(self, dpt: DPT) -> None:
+    def _calc_pin_highlight(self, pin: Pin, direction: PinDir) -> tuple[float, bool]:
+        if self._drag_source_pin is None:
+            return 1.0, False
+        src_dpt = self._pin_dpt.get(self._drag_source_pin)
+        src_dir = self._pin_dir.get(self._drag_source_pin)
+        if src_dpt is None or src_dir is None:
+            return 1.0, False
+        if src_dir == direction:
+            return 0.2, False
+        match = dpt_match(src_dpt, pin.dpt)
+        if match == DPTMatch.EXACT:
+            return 1.0, True
+        if match == DPTMatch.LOOSE:
+            return 0.7, False
+        return 0.2, False
+
+    def _draw_pin_icon(self, dpt: DPT, alpha: float = 1.0, glow: bool = False) -> None:
         draw_list = imgui.get_window_draw_list()
         cursor = imgui.get_cursor_screen_pos()
         center = imgui.ImVec2(cursor.x + PIN_RADIUS, cursor.y + PIN_RADIUS + 2)
-        color = color_from_vec4(dpt_color(dpt))
+        base_color = dpt_color(dpt)
+        color = color_u32(base_color.x, base_color.y, base_color.z, alpha)
+        if glow:
+            draw_list.add_circle_filled(center, PIN_RADIUS + 4, color_u32(base_color.x, base_color.y, base_color.z, 0.3))
+            draw_list.add_circle_filled(center, PIN_RADIUS + 2, color_u32(base_color.x, base_color.y, base_color.z, 0.5))
         draw_list.add_circle_filled(center, PIN_RADIUS, color)
-        draw_list.add_circle(center, PIN_RADIUS, color_u32(1, 1, 1, 0.3), 0, 1.5)
+        draw_list.add_circle(center, PIN_RADIUS, color_u32(1, 1, 1, 0.3 * alpha), 0, 1.5)
         imgui.dummy(imgui.ImVec2(PIN_RADIUS * 2, PIN_HEIGHT))
 
     def _calc_node_layout(self, template: DeviceTemplate) -> NodeLayout:
@@ -345,9 +366,10 @@ class KnxGuiApp:
     def _render_input_pin(self, pin_id: int, pin: Pin, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.INPUT
+        alpha, glow = self._calc_pin_highlight(pin, PinDir.INPUT)
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.input)
         ed.pin_pivot_alignment(imgui.ImVec2(0.0, 0.5))
-        self._draw_pin_icon(pin.dpt)
+        self._draw_pin_icon(pin.dpt, alpha, glow)
         imgui.same_line()
         imgui.text_unformatted(pin.name)
         imgui.same_line()
@@ -362,6 +384,7 @@ class KnxGuiApp:
     def _render_output_pin(self, pin_id: int, pin: Pin, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.OUTPUT
+        alpha, glow = self._calc_pin_highlight(pin, PinDir.OUTPUT)
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
         ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
         dpt_label = f"[{pin.dpt.label}]"
@@ -373,7 +396,7 @@ class KnxGuiApp:
         imgui.same_line()
         imgui.dummy(imgui.ImVec2(layout.out_name_w - imgui.calc_text_size(pin.name).x, 1))
         imgui.same_line()
-        self._draw_pin_icon(pin.dpt)
+        self._draw_pin_icon(pin.dpt, alpha, glow)
         ed.end_pin()
 
     def _render_node_header(self, template: DeviceTemplate, address: str, width: float) -> Rect:
@@ -495,10 +518,13 @@ class KnxGuiApp:
         ed.resume()
 
     def _handle_link_creation(self) -> None:
+        new_drag_source: int | None = self._drag_source_pin
         if ed.begin_create():
             start_pin_id = ed.PinId()
             end_pin_id = ed.PinId()
             if ed.query_new_link(start_pin_id, end_pin_id):
+                if start_pin_id.id() != 0:
+                    new_drag_source = start_pin_id.id()
                 if start_pin_id.id() != 0 and end_pin_id.id() != 0:
                     match = self._pins_match_quality(start_pin_id.id(), end_pin_id.id())
                     dpt_a = self._pin_dpt.get(start_pin_id.id())
@@ -516,7 +542,16 @@ class KnxGuiApp:
                                 (self._next_link_id, start_pin_id.id(), end_pin_id.id())
                             )
                             self._next_link_id += 1
+            else:
+                drag_pin_id = ed.PinId()
+                if ed.query_new_node(drag_pin_id):
+                    if drag_pin_id.id() != 0:
+                        new_drag_source = drag_pin_id.id()
+                    ed.reject_new_item()
             ed.end_create()
+        if not imgui.is_mouse_down(0):
+            new_drag_source = None
+        self._drag_source_pin = new_drag_source
 
     def _handle_link_deletion(self) -> None:
         if ed.begin_delete():
