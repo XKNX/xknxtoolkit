@@ -128,6 +128,8 @@ class KnxGuiApp:
 
     def setup(self) -> None:
         config = ed.Config()
+        config.navigate_button_index = 2
+        config.enable_smooth_zoom = True
         self._editor_context = ed.create_editor(config)
 
     def shutdown(self) -> None:
