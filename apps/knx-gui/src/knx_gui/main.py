@@ -243,6 +243,16 @@ class KnxGuiApp:
                         ed.reject_new_item(LINK_INVALID_COLOR, 3.0)
             ed.end_create()
 
+    def _handle_link_deletion(self) -> None:
+        if ed.begin_delete():
+            link_id = ed.LinkId()
+            while ed.query_deleted_link(link_id):
+                if ed.accept_deleted_item():
+                    self._links = [
+                        link for link in self._links if link[0] != link_id.id()
+                    ]
+            ed.end_delete()
+
     def _render_links(self) -> None:
         for link_id, start_pin, end_pin in self._links:
             ed.link(ed.LinkId(link_id), ed.PinId(start_pin), ed.PinId(end_pin))
@@ -264,6 +274,7 @@ class KnxGuiApp:
 
         self._render_links()
         self._handle_link_creation()
+        self._handle_link_deletion()
 
         ed.end()
 
