@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from enum import Enum
 
@@ -175,6 +176,8 @@ class KnxGuiApp:
         self._pin_dir: dict[int, PinDir] = {}
         self._devices: list[Device] = []
         self._show_sidebar: bool = True
+        self._connected: bool = False
+        self._controller_ip: str = "192.168.1.1"
         self._init_devices()
 
     def _init_devices(self) -> None:
@@ -427,6 +430,50 @@ class KnxGuiApp:
             max_width = max(max_width, width)
         return max_width + imgui.get_style().window_padding.x * 2 + 20
 
+    def _render_connection_status(self) -> None:
+        if self._connected:
+            label_text = f"Connected ({self._controller_ip})"
+            label_width = imgui.calc_text_size(label_text).x + 24
+            imgui.same_line(imgui.get_window_width() - label_width - 12)
+            draw_list = imgui.get_window_draw_list()
+            cursor = imgui.get_cursor_screen_pos()
+            center = imgui.ImVec2(cursor.x + 6, cursor.y + imgui.get_frame_height() / 2)
+            pulse = 0.5 + 0.5 * math.sin(imgui.get_time() * 3.0)
+            alpha = 0.4 + 0.6 * pulse
+            draw_list.add_circle_filled(center, 5, color_u32(0.2, 0.8, 0.3, alpha))
+            draw_list.add_circle_filled(center, 5 + pulse * 4, color_u32(0.2, 0.8, 0.3, 0.15 * (1 - pulse)))
+            imgui.dummy(imgui.ImVec2(20, 0))
+            imgui.same_line()
+            imgui.push_style_color(imgui.Col_.header_hovered, imgui.ImVec4(0, 0, 0, 0))
+            imgui.push_style_color(imgui.Col_.header_active, imgui.ImVec4(0, 0, 0, 0))
+            if imgui.menu_item(label_text, "", False)[0]:
+                imgui.open_popup("##ConnectedPopup")
+            imgui.pop_style_color(2)
+        else:
+            label_width = imgui.calc_text_size("Connect").x + 16
+            imgui.same_line(imgui.get_window_width() - label_width - 12)
+            if imgui.menu_item("Connect", "", False)[0]:
+                imgui.open_popup("##ConnectPopup")
+
+        if imgui.begin_popup("##ConnectPopup"):
+            imgui.text("KNX Controller IP")
+            imgui.spacing()
+            imgui.set_next_item_width(180)
+            _, self._controller_ip = imgui.input_text("##ip", self._controller_ip)
+            imgui.spacing()
+            if imgui.button("Connect", imgui.ImVec2(180, 0)):
+                self._connected = True
+                imgui.close_current_popup()
+            imgui.end_popup()
+
+        if imgui.begin_popup("##ConnectedPopup"):
+            imgui.text(f"Disconnect from {self._controller_ip}?")
+            imgui.spacing()
+            if imgui.button("Disconnect", imgui.ImVec2(180, 0)):
+                self._connected = False
+                imgui.close_current_popup()
+            imgui.end_popup()
+
     def _render_menu_bar(self) -> None:
         if imgui.begin_main_menu_bar():
             if imgui.begin_menu("File"):
@@ -453,6 +500,8 @@ class KnxGuiApp:
                     "Sidebar", "", self._show_sidebar
                 )
                 imgui.end_menu()
+
+            self._render_connection_status()
 
             imgui.end_main_menu_bar()
 
