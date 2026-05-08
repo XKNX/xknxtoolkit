@@ -56,9 +56,18 @@ class PinRow:
 
 
 @dataclass
+class DeviceConfig:
+    manufacturer: str
+    application: str
+    hardware: str
+    firmware: str
+
+
+@dataclass
 class DeviceTemplate:
     name: str
     rows: list[PinRow]
+    config: DeviceConfig
 
 
 DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
@@ -67,6 +76,7 @@ DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
         rows=[
             PinRow(Pin("Switch", DPT.BOOL), Pin("Status", DPT.BOOL)),
         ],
+        config=DeviceConfig("ABB", "SA/S 4.16.2.2", "2CDG110252R0011", "1.2.3"),
     ),
     "dimmer_actuator": DeviceTemplate(
         name="Dimmer Actuator",
@@ -75,12 +85,14 @@ DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
             PinRow(Pin("Dimming", DPT.DIMMING)),
             PinRow(Pin("Brightness", DPT.PERCENT), Pin("Value", DPT.PERCENT)),
         ],
+        config=DeviceConfig("ABB", "DA/S 4.230.2.1", "2CDG110198R0011", "2.1.0"),
     ),
     "temperature_sensor": DeviceTemplate(
         name="Temperature Sensor",
         rows=[
             PinRow(output_pin=Pin("Temperature", DPT.FLOAT)),
         ],
+        config=DeviceConfig("Siemens", "QMX3.P37", "5WG1258-3AB13", "3.0.1"),
     ),
     "push_button": DeviceTemplate(
         name="Push Button",
@@ -89,6 +101,7 @@ DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
             PinRow(output_pin=Pin("Long Press", DPT.BOOL)),
             PinRow(output_pin=Pin("Scene", DPT.SCENE)),
         ],
+        config=DeviceConfig("Gira", "Tastsensor 4 Plus", "2104..", "1.0.5"),
     ),
     "rgb_controller": DeviceTemplate(
         name="RGB Controller",
@@ -97,6 +110,7 @@ DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
             PinRow(Pin("Color", DPT.RGB), Pin("Color Status", DPT.RGB)),
             PinRow(Pin("Brightness", DPT.PERCENT)),
         ],
+        config=DeviceConfig("MDT", "AKD-0424R2.02", "R2.02", "1.1.0"),
     ),
     "thermostat": DeviceTemplate(
         name="Thermostat",
@@ -105,6 +119,7 @@ DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
             PinRow(output_pin=Pin("Heating", DPT.BOOL)),
             PinRow(output_pin=Pin("Valve", DPT.PERCENT)),
         ],
+        config=DeviceConfig("Theben", "RAMSES 718 P", "7189210", "2.3.1"),
     ),
 }
 
@@ -134,6 +149,7 @@ class KnxGuiApp:
         self._pin_dir: dict[int, PinDir] = {}
         self._devices: list[Device] = []
         self._show_sidebar: bool = True
+        self._settings_open: dict[int, bool] = {}
         self._init_devices()
 
     def _init_devices(self) -> None:
@@ -252,7 +268,26 @@ class KnxGuiApp:
             else:
                 imgui.dummy(imgui.ImVec2(out_total_w, PIN_RADIUS * 2 + 4))
 
+        row_width = in_total_w + 20 + out_total_w
         content_rect_max = imgui.get_item_rect_max()
+
+        imgui.spacing()
+        imgui.push_clip_rect(imgui.get_cursor_screen_pos(), imgui.ImVec2(imgui.get_cursor_screen_pos().x + row_width, imgui.get_cursor_screen_pos().y + 500), True)
+        if imgui.tree_node(f"Settings##{node_id}"):
+            imgui.text_disabled("Manufacturer")
+            imgui.same_line(100)
+            imgui.text(template.config.manufacturer)
+            imgui.text_disabled("Application")
+            imgui.same_line(100)
+            imgui.text(template.config.application)
+            imgui.text_disabled("Hardware")
+            imgui.same_line(100)
+            imgui.text(template.config.hardware)
+            imgui.text_disabled("Firmware")
+            imgui.same_line(100)
+            imgui.text(template.config.firmware)
+            imgui.tree_pop()
+        imgui.pop_clip_rect()
 
         ed.end_node()
 
