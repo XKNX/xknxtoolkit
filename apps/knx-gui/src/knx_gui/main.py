@@ -144,25 +144,42 @@ class KnxGuiApp:
         draw_list.add_circle(center, PIN_RADIUS, color_u32(1, 1, 1, 0.3), 0, 1.5)
         imgui.dummy(imgui.ImVec2(PIN_RADIUS * 2, PIN_RADIUS * 2 + 4))
 
-    def _render_input_pin(self, pin_id: int, pin: Pin) -> None:
+    def _calc_pin_widths(self, pins: list[Pin]) -> tuple[float, float]:
+        max_dpt_width = 0.0
+        max_name_width = 0.0
+        for pin in pins:
+            dpt_width = imgui.calc_text_size(f"[{DPT_LABELS[pin.dpt]}]").x
+            name_width = imgui.calc_text_size(pin.name).x
+            max_dpt_width = max(max_dpt_width, dpt_width)
+            max_name_width = max(max_name_width, name_width)
+        return max_dpt_width, max_name_width
+
+    def _render_input_pin(
+        self, pin_id: int, pin: Pin, dpt_width: float, name_width: float
+    ) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.input)
         ed.pin_pivot_alignment(imgui.ImVec2(0.0, 0.5))
         self._draw_pin_icon(pin.dpt)
         imgui.same_line()
+        imgui.set_next_item_width(name_width)
         imgui.text_unformatted(pin.name)
-        imgui.same_line()
+        imgui.same_line(spacing=name_width - imgui.calc_text_size(pin.name).x + 8)
         imgui.text_disabled(f"[{DPT_LABELS[pin.dpt]}]")
         ed.end_pin()
 
-    def _render_output_pin(self, pin_id: int, pin: Pin) -> None:
+    def _render_output_pin(
+        self, pin_id: int, pin: Pin, dpt_width: float, name_width: float
+    ) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
         ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
+        imgui.set_next_item_width(dpt_width)
         imgui.text_disabled(f"[{DPT_LABELS[pin.dpt]}]")
-        imgui.same_line()
+        imgui.same_line(spacing=dpt_width - imgui.calc_text_size(f"[{DPT_LABELS[pin.dpt]}]").x + 8)
+        imgui.set_next_item_width(name_width)
         imgui.text_unformatted(pin.name)
-        imgui.same_line()
+        imgui.same_line(spacing=name_width - imgui.calc_text_size(pin.name).x + 8)
         self._draw_pin_icon(pin.dpt)
         ed.end_pin()
 
@@ -186,16 +203,19 @@ class KnxGuiApp:
         input_pins = [p for p in template.pins if p.direction == PinDir.INPUT]
         output_pins = [p for p in template.pins if p.direction == PinDir.OUTPUT]
 
+        in_dpt_w, in_name_w = self._calc_pin_widths(input_pins) if input_pins else (0, 0)
+        out_dpt_w, out_name_w = self._calc_pin_widths(output_pins) if output_pins else (0, 0)
+
         imgui.begin_group()
         for i, pin in enumerate(input_pins):
-            self._render_input_pin(pin_base + i, pin)
+            self._render_input_pin(pin_base + i, pin, in_dpt_w, in_name_w)
         imgui.end_group()
 
         imgui.same_line(spacing=20)
 
         imgui.begin_group()
         for i, pin in enumerate(output_pins):
-            self._render_output_pin(pin_base + 50 + i, pin)
+            self._render_output_pin(pin_base + 50 + i, pin, out_dpt_w, out_name_w)
         imgui.end_group()
 
         content_rect_max = imgui.get_item_rect_max()
@@ -224,6 +244,12 @@ class KnxGuiApp:
             return False
         return dpt_a == dpt_b
 
+    def _remove_links_for_pin(self, pin_id: int) -> None:
+        self._links = [
+            link for link in self._links
+            if link[1] != pin_id and link[2] != pin_id
+        ]
+
     def _handle_link_creation(self) -> None:
         if ed.begin_create():
             start_pin_id = ed.PinId()
@@ -235,6 +261,8 @@ class KnxGuiApp:
                     )
                     if compatible:
                         if ed.accept_new_item(LINK_COLOR, 2.0):
+                            self._remove_links_for_pin(start_pin_id.id())
+                            self._remove_links_for_pin(end_pin_id.id())
                             self._links.append(
                                 (self._next_link_id, start_pin_id.id(), end_pin_id.id())
                             )
