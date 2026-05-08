@@ -714,13 +714,17 @@ class KnxGuiApp:
             imgui.separator()
             tree = self._build_address_tree()
             for area in sorted(tree.keys()):
-                area_flags = imgui.TreeNodeFlags_.default_open
+                area_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
                 if imgui.tree_node_ex(f"Area {area}", area_flags):
                     for line in sorted(tree[area].keys()):
-                        line_flags = imgui.TreeNodeFlags_.default_open
+                        line_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
                         if imgui.tree_node_ex(f"Line {area}.{line}", line_flags):
                             for device in tree[area][line]:
-                                flags = imgui.TreeNodeFlags_.leaf | imgui.TreeNodeFlags_.no_tree_push_on_open
+                                flags = (
+                                    imgui.TreeNodeFlags_.leaf
+                                    | imgui.TreeNodeFlags_.no_tree_push_on_open
+                                    | imgui.TreeNodeFlags_.span_avail_width
+                                )
                                 imgui.tree_node_ex(f"{device.name} ({device.address})", flags)
                                 if imgui.is_item_clicked():
                                     ed.select_node(ed.NodeId(device.node_id), False)
