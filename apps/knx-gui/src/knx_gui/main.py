@@ -1,4 +1,5 @@
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 
@@ -15,6 +16,10 @@ SETTINGS_CLIP_HEIGHT = 500.0
 HEADER_COLOR = (0.2, 0.4, 0.7)
 LINK_COLOR = imgui.ImVec4(0.6, 0.6, 0.6, 1.0)
 LINK_INVALID_COLOR = imgui.ImVec4(0.9, 0.2, 0.2, 1.0)
+
+TELEGRAM_PANE_HEIGHT = 200
+TELEGRAM_HEADER_BUTTONS_WIDTH = 100
+NAVIGATE_TO_NODE_DURATION = 0.3
 
 
 class DPT(Enum):
@@ -155,6 +160,24 @@ class Telegram:
     service: str
     dpt: str
     value: str
+
+
+@dataclass
+class TelegramColumn:
+    name: str
+    getter: Callable[[Telegram], str]
+    stretch: bool = False
+    disabled: bool = False
+
+
+TELEGRAM_COLUMNS: list[TelegramColumn] = [
+    TelegramColumn("Time", lambda t: t.timestamp),
+    TelegramColumn("Source", lambda t: t.source),
+    TelegramColumn("Destination", lambda t: t.destination),
+    TelegramColumn("Service", lambda t: t.service),
+    TelegramColumn("DPT", lambda t: t.dpt, disabled=True),
+    TelegramColumn("Value", lambda t: t.value, stretch=True),
+]
 
 
 @dataclass
@@ -536,46 +559,58 @@ class KnxGuiApp:
         for device in self._devices:
             if device.address == address:
                 ed.select_node(ed.NodeId(device.node_id), False)
-                ed.navigate_to_selection(False, 0.3)
+                ed.navigate_to_selection(False, NAVIGATE_TO_NODE_DURATION)
                 return
+
+    def _telegram_to_row(self, telegram: Telegram) -> str:
+        return "\t".join(col.getter(telegram) for col in TELEGRAM_COLUMNS)
 
     def _copy_selected_telegrams(self) -> None:
         if not self._selected_telegrams:
             return
-        lines = ["Time\tSource\tDestination\tService\tDPT\tValue"]
-        for i in sorted(self._selected_telegrams):
-            t = self._telegrams[i]
-            lines.append(f"{t.timestamp}\t{t.source}\t{t.destination}\t{t.service}\t{t.dpt}\t{t.value}")
-        imgui.set_clipboard_text("\n".join(lines))
+        header = "\t".join(col.name for col in TELEGRAM_COLUMNS)
+        rows = [self._telegram_to_row(self._telegrams[i]) for i in sorted(self._selected_telegrams)]
+        imgui.set_clipboard_text("\n".join([header, *rows]))
 
-    def _handle_telegram_selection(self, index: int) -> None:
+    def _select_telegram_range(self, start: int, end: int, additive: bool) -> None:
+        if not additive:
+            self._selected_telegrams.clear()
+        lo, hi = min(start, end), max(start, end)
+        self._selected_telegrams.update(range(lo, hi + 1))
+
+    def _toggle_telegram(self, index: int) -> None:
+        self._selected_telegrams.symmetric_difference_update({index})
+        self._last_selected_telegram = index
+
+    def _select_single_telegram(self, index: int) -> None:
+        self._selected_telegrams = {index}
+        self._last_selected_telegram = index
+        self._focus_device_by_address(self._telegrams[index].source)
+
+    def _handle_telegram_click(self, index: int) -> None:
         io = imgui.get_io()
         ctrl = io.key_ctrl or io.key_super
         shift = io.key_shift
         if shift and self._last_selected_telegram >= 0:
-            start = min(self._last_selected_telegram, index)
-            end = max(self._last_selected_telegram, index)
-            if not ctrl:
-                self._selected_telegrams.clear()
-            for i in range(start, end + 1):
-                self._selected_telegrams.add(i)
+            self._select_telegram_range(self._last_selected_telegram, index, additive=ctrl)
         elif ctrl:
-            if index in self._selected_telegrams:
-                self._selected_telegrams.remove(index)
-            else:
-                self._selected_telegrams.add(index)
-            self._last_selected_telegram = index
+            self._toggle_telegram(index)
         else:
-            self._selected_telegrams = {index}
-            self._last_selected_telegram = index
-            self._focus_device_by_address(self._telegrams[index].source)
+            self._select_single_telegram(index)
 
-    def _render_telegrams_pane(self) -> None:
-        imgui.begin_child("##TelegramsPane", imgui.ImVec2(0, 0), imgui.ChildFlags_.borders)
+    def _handle_telegrams_shortcuts(self) -> None:
+        if not imgui.is_window_focused():
+            return
+        io = imgui.get_io()
+        if (io.key_ctrl or io.key_super) and imgui.is_key_pressed(imgui.Key.c):
+            self._copy_selected_telegrams()
+
+    def _render_telegrams_header(self) -> None:
         imgui.text("Telegrams")
-        imgui.same_line()
-        imgui.text_disabled(f"  ({len(self._selected_telegrams)} selected)" if self._selected_telegrams else "")
-        imgui.same_line(imgui.get_window_width() - 100)
+        if self._selected_telegrams:
+            imgui.same_line()
+            imgui.text_disabled(f"  ({len(self._selected_telegrams)} selected)")
+        imgui.same_line(imgui.get_window_width() - TELEGRAM_HEADER_BUTTONS_WIDTH)
         if imgui.small_button("Copy"):
             self._copy_selected_telegrams()
         imgui.same_line()
@@ -583,41 +618,43 @@ class KnxGuiApp:
             self._selected_telegrams.clear()
         imgui.separator()
 
-        if imgui.is_window_focused() and (imgui.get_io().key_ctrl or imgui.get_io().key_super) and imgui.is_key_pressed(imgui.Key.c):
-            self._copy_selected_telegrams()
+    def _render_telegram_row(self, index: int, telegram: Telegram) -> None:
+        imgui.table_next_row()
+        imgui.table_set_column_index(0)
+        selected = index in self._selected_telegrams
+        flags = imgui.SelectableFlags_.span_all_columns | imgui.SelectableFlags_.allow_overlap
+        if imgui.selectable(f"{telegram.timestamp}##row{index}", selected, flags)[0]:
+            self._handle_telegram_click(index)
+        for col_index, column in enumerate(TELEGRAM_COLUMNS[1:], start=1):
+            imgui.table_set_column_index(col_index)
+            text = column.getter(telegram)
+            if column.disabled:
+                imgui.text_disabled(text)
+            else:
+                imgui.text(text)
 
-        table_flags = (
+    def _render_telegrams_table(self) -> None:
+        flags = (
             imgui.TableFlags_.borders_inner_h
             | imgui.TableFlags_.row_bg
             | imgui.TableFlags_.scroll_y
             | imgui.TableFlags_.sizing_fixed_fit
         )
-        if imgui.begin_table("##telegrams_table", 6, table_flags):
-            imgui.table_setup_column("Time")
-            imgui.table_setup_column("Source")
-            imgui.table_setup_column("Destination")
-            imgui.table_setup_column("Service")
-            imgui.table_setup_column("DPT")
-            imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_stretch)
-            imgui.table_headers_row()
-            for i, telegram in enumerate(self._telegrams):
-                imgui.table_next_row()
-                imgui.table_set_column_index(0)
-                selected = i in self._selected_telegrams
-                flags = imgui.SelectableFlags_.span_all_columns | imgui.SelectableFlags_.allow_overlap
-                if imgui.selectable(f"{telegram.timestamp}##row{i}", selected, flags)[0]:
-                    self._handle_telegram_selection(i)
-                imgui.table_set_column_index(1)
-                imgui.text(telegram.source)
-                imgui.table_set_column_index(2)
-                imgui.text(telegram.destination)
-                imgui.table_set_column_index(3)
-                imgui.text(telegram.service)
-                imgui.table_set_column_index(4)
-                imgui.text_disabled(telegram.dpt)
-                imgui.table_set_column_index(5)
-                imgui.text(telegram.value)
-            imgui.end_table()
+        if not imgui.begin_table("##telegrams_table", len(TELEGRAM_COLUMNS), flags):
+            return
+        for column in TELEGRAM_COLUMNS:
+            col_flags = imgui.TableColumnFlags_.width_stretch if column.stretch else imgui.TableColumnFlags_.none
+            imgui.table_setup_column(column.name, col_flags)
+        imgui.table_headers_row()
+        for i, telegram in enumerate(self._telegrams):
+            self._render_telegram_row(i, telegram)
+        imgui.end_table()
+
+    def _render_telegrams_pane(self) -> None:
+        imgui.begin_child("##TelegramsPane", imgui.ImVec2(0, 0), imgui.ChildFlags_.borders)
+        self._render_telegrams_header()
+        self._handle_telegrams_shortcuts()
+        self._render_telegrams_table()
         imgui.end_child()
 
     def _render_bottom_bar(self) -> None:
@@ -691,7 +728,7 @@ class KnxGuiApp:
 
         imgui.begin_child("##RightArea", imgui.ImVec2(0, 0))
 
-        telegram_pane_height = 200 if self._show_telegrams else 0
+        telegram_pane_height = TELEGRAM_PANE_HEIGHT if self._show_telegrams else 0
         editor_height = imgui.get_content_region_avail().y - telegram_pane_height
 
         ed.set_current_editor(self._editor_context)
