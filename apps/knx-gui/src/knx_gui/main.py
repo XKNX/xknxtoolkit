@@ -124,6 +124,7 @@ class KnxGuiApp:
         self._links: list[tuple[int, int, int]] = []
         self._next_link_id: int = 1000
         self._pin_dpt: dict[int, DPT] = {}
+        self._pin_dir: dict[int, PinDir] = {}
 
     def setup(self) -> None:
         config = ed.Config()
@@ -158,6 +159,7 @@ class KnxGuiApp:
         self, pin_id: int, pin: Pin, dpt_width: float, name_width: float
     ) -> None:
         self._pin_dpt[pin_id] = pin.dpt
+        self._pin_dir[pin_id] = PinDir.INPUT
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.input)
         ed.pin_pivot_alignment(imgui.ImVec2(0.0, 0.5))
         self._draw_pin_icon(pin.dpt)
@@ -172,6 +174,7 @@ class KnxGuiApp:
         self, pin_id: int, pin: Pin, dpt_width: float, name_width: float
     ) -> None:
         self._pin_dpt[pin_id] = pin.dpt
+        self._pin_dir[pin_id] = PinDir.OUTPUT
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
         ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
         imgui.set_next_item_width(dpt_width)
@@ -240,9 +243,13 @@ class KnxGuiApp:
     def _are_pins_compatible(self, pin_a: int, pin_b: int) -> bool:
         dpt_a = self._pin_dpt.get(pin_a)
         dpt_b = self._pin_dpt.get(pin_b)
-        if dpt_a is None or dpt_b is None:
+        dir_a = self._pin_dir.get(pin_a)
+        dir_b = self._pin_dir.get(pin_b)
+        if dpt_a is None or dpt_b is None or dir_a is None or dir_b is None:
             return False
-        return dpt_a == dpt_b
+        if dpt_a != dpt_b:
+            return False
+        return dir_a != dir_b
 
     def _remove_links_for_pin(self, pin_id: int) -> None:
         self._links = [
