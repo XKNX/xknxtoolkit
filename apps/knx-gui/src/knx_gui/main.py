@@ -117,6 +117,14 @@ def color_from_vec4(c: imgui.ImVec4) -> int:
     return imgui.get_color_u32(c)
 
 
+@dataclass
+class Device:
+    node_id: int
+    name: str
+    template: DeviceTemplate
+    address: str
+
+
 class KnxGuiApp:
     def __init__(self) -> None:
         self._editor_context: ed.EditorContext | None = None
@@ -124,6 +132,19 @@ class KnxGuiApp:
         self._next_link_id: int = 1000
         self._pin_dpt: dict[int, DPT] = {}
         self._pin_dir: dict[int, PinDir] = {}
+        self._devices: list[Device] = []
+        self._show_sidebar: bool = True
+        self._init_devices()
+
+    def _init_devices(self) -> None:
+        self._devices = [
+            Device(1, "Living Room Light", DEVICE_TEMPLATES["switch_actuator"], "1.1.1"),
+            Device(2, "Kitchen Dimmer", DEVICE_TEMPLATES["dimmer_actuator"], "1.1.2"),
+            Device(3, "Bedroom Temp", DEVICE_TEMPLATES["temperature_sensor"], "1.1.3"),
+            Device(4, "Entry Button", DEVICE_TEMPLATES["push_button"], "1.2.1"),
+            Device(5, "Living Room Thermo", DEVICE_TEMPLATES["thermostat"], "1.2.2"),
+            Device(6, "RGB Strip", DEVICE_TEMPLATES["rgb_controller"], "2.1.1"),
+        ]
 
     def setup(self) -> None:
         config = ed.Config()
@@ -302,26 +323,132 @@ class KnxGuiApp:
         for link_id, start_pin, end_pin in self._links:
             ed.link(ed.LinkId(link_id), ed.PinId(start_pin), ed.PinId(end_pin))
 
+    def _build_address_tree(self) -> dict[int, dict[int, list[Device]]]:
+        tree: dict[int, dict[int, list[Device]]] = {}
+        for device in self._devices:
+            parts = device.address.split(".")
+            area, line = int(parts[0]), int(parts[1])
+            if area not in tree:
+                tree[area] = {}
+            if line not in tree[area]:
+                tree[area][line] = []
+            tree[area][line].append(device)
+        return tree
+
+    def _calc_sidebar_width(self) -> float:
+        indent = imgui.get_style().indent_spacing
+        max_width = imgui.calc_text_size("Devices").x
+        for device in self._devices:
+            text = f"{device.name} ({device.address})"
+            width = imgui.calc_text_size(text).x + indent * 3
+            max_width = max(max_width, width)
+        return max_width + imgui.get_style().window_padding.x * 2 + 20
+
+    def _render_menu_bar(self) -> None:
+        if imgui.begin_main_menu_bar():
+            if imgui.begin_menu("File"):
+                if imgui.menu_item("New Project", "", False)[0]:
+                    pass
+                if imgui.menu_item("Open Project", "", False)[0]:
+                    pass
+                if imgui.menu_item("Save Project", "", False)[0]:
+                    pass
+                imgui.separator()
+                if imgui.menu_item("Exit", "", False)[0]:
+                    pass
+                imgui.end_menu()
+
+            if imgui.begin_menu("Edit"):
+                if imgui.menu_item("Undo", "Ctrl+Z", False)[0]:
+                    pass
+                if imgui.menu_item("Redo", "Ctrl+Y", False)[0]:
+                    pass
+                imgui.end_menu()
+
+            if imgui.begin_menu("View"):
+                clicked, self._show_sidebar = imgui.menu_item(
+                    "Sidebar", "", self._show_sidebar
+                )
+                imgui.end_menu()
+
+            imgui.end_main_menu_bar()
+
+    def _render_bottom_bar(self) -> None:
+        bar_height = 30
+        viewport = imgui.get_main_viewport()
+        imgui.set_next_window_pos(
+            imgui.ImVec2(viewport.pos.x, viewport.pos.y + viewport.size.y - bar_height)
+        )
+        imgui.set_next_window_size(imgui.ImVec2(viewport.size.x, bar_height))
+        imgui.push_style_var(imgui.StyleVar_.window_padding, imgui.ImVec2(8, 4))
+        flags = (
+            imgui.WindowFlags_.no_decoration
+            | imgui.WindowFlags_.no_move
+            | imgui.WindowFlags_.no_saved_settings
+        )
+        imgui.begin("##BottomBar", None, flags)
+
+        _, self._show_sidebar = imgui.checkbox("Sidebar", self._show_sidebar)
+        imgui.same_line(spacing=40)
+        imgui.text(f"Devices: {len(self._devices)} | Links: {len(self._links)}")
+
+        imgui.end()
+        imgui.pop_style_var()
 
     def render(self) -> None:
         if not self._editor_context:
             return
 
-        ed.set_current_editor(self._editor_context)
-        ed.begin("KNX Node Editor", imgui.ImVec2(0, 0))
+        self._render_menu_bar()
+        self._render_bottom_bar()
 
-        self._render_device_node(1, DEVICE_TEMPLATES["switch_actuator"], "1.1.1")
-        self._render_device_node(2, DEVICE_TEMPLATES["dimmer_actuator"], "1.1.2")
-        self._render_device_node(3, DEVICE_TEMPLATES["temperature_sensor"], "1.1.3")
-        self._render_device_node(4, DEVICE_TEMPLATES["push_button"], "1.1.4")
-        self._render_device_node(5, DEVICE_TEMPLATES["thermostat"], "1.1.5")
-        self._render_device_node(6, DEVICE_TEMPLATES["rgb_controller"], "1.1.6")
+        menu_bar_height = imgui.get_frame_height()
+        bottom_bar_height = 30
+        viewport = imgui.get_main_viewport()
+
+        imgui.set_next_window_pos(imgui.ImVec2(viewport.pos.x, viewport.pos.y + menu_bar_height))
+        imgui.set_next_window_size(imgui.ImVec2(viewport.size.x, viewport.size.y - menu_bar_height - bottom_bar_height))
+        imgui.push_style_var(imgui.StyleVar_.window_border_size, 0.0)
+        main_flags = imgui.WindowFlags_.no_move | imgui.WindowFlags_.no_resize | imgui.WindowFlags_.no_title_bar
+        imgui.begin("##MainArea", None, main_flags)
+        imgui.pop_style_var()
+
+        if self._show_sidebar:
+            sidebar_width = self._calc_sidebar_width()
+            imgui.begin_child("##Sidebar", imgui.ImVec2(sidebar_width, 0), imgui.ChildFlags_.borders)
+            imgui.text("Devices")
+            imgui.separator()
+            tree = self._build_address_tree()
+            for area in sorted(tree.keys()):
+                area_flags = imgui.TreeNodeFlags_.default_open
+                if imgui.tree_node_ex(f"Area {area}", area_flags):
+                    for line in sorted(tree[area].keys()):
+                        line_flags = imgui.TreeNodeFlags_.default_open
+                        if imgui.tree_node_ex(f"Line {area}.{line}", line_flags):
+                            for device in tree[area][line]:
+                                flags = imgui.TreeNodeFlags_.leaf | imgui.TreeNodeFlags_.no_tree_push_on_open
+                                imgui.tree_node_ex(f"{device.name} ({device.address})", flags)
+                                if imgui.is_item_clicked():
+                                    ed.select_node(ed.NodeId(device.node_id), False)
+                                    ed.navigate_to_selection(False, 0.3)
+                            imgui.tree_pop()
+                    imgui.tree_pop()
+            imgui.end_child()
+            imgui.same_line()
+
+        ed.set_current_editor(self._editor_context)
+        ed.begin("##NodeEditorCanvas", imgui.ImVec2(0, 0))
+
+        for device in self._devices:
+            self._render_device_node(device.node_id, device.template, device.address)
 
         self._render_links()
         self._handle_link_creation()
         self._handle_link_deletion()
 
         ed.end()
+
+        imgui.end()
 
 
 def main() -> None:
