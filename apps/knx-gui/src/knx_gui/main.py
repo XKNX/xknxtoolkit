@@ -390,8 +390,11 @@ class KnxGuiApp:
         imgui.begin("##BottomBar", None, flags)
 
         _, self._show_sidebar = imgui.checkbox("Sidebar", self._show_sidebar)
-        imgui.same_line(spacing=40)
-        imgui.text(f"Devices: {len(self._devices)} | Links: {len(self._links)}")
+
+        stats_text = f"Devices: {len(self._devices)} | Links: {len(self._links)}"
+        text_width = imgui.calc_text_size(stats_text).x
+        imgui.same_line(imgui.get_window_width() - text_width - 12)
+        imgui.text(stats_text)
 
         imgui.end()
         imgui.pop_style_var(2)
