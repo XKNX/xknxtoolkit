@@ -380,7 +380,8 @@ class KnxGuiApp:
             imgui.ImVec2(viewport.pos.x, viewport.pos.y + viewport.size.y - bar_height)
         )
         imgui.set_next_window_size(imgui.ImVec2(viewport.size.x, bar_height))
-        imgui.push_style_var(imgui.StyleVar_.window_padding, imgui.ImVec2(8, 4))
+        imgui.push_style_var(imgui.StyleVar_.window_padding, imgui.ImVec2(12, 4))
+        imgui.push_style_var(imgui.StyleVar_.window_border_size, 0.0)
         flags = (
             imgui.WindowFlags_.no_decoration
             | imgui.WindowFlags_.no_move
@@ -393,7 +394,7 @@ class KnxGuiApp:
         imgui.text(f"Devices: {len(self._devices)} | Links: {len(self._links)}")
 
         imgui.end()
-        imgui.pop_style_var()
+        imgui.pop_style_var(2)
 
     def render(self) -> None:
         if not self._editor_context:
@@ -403,7 +404,7 @@ class KnxGuiApp:
         self._render_bottom_bar()
 
         menu_bar_height = imgui.get_frame_height()
-        bottom_bar_height = 30
+        bottom_bar_height = 26
         viewport = imgui.get_main_viewport()
 
         imgui.set_next_window_pos(imgui.ImVec2(viewport.pos.x, viewport.pos.y + menu_bar_height))
