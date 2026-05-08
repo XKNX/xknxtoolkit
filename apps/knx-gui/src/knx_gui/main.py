@@ -289,7 +289,7 @@ class KnxGuiApp:
 
         imgui.spacing()
         imgui.push_clip_rect(imgui.get_cursor_screen_pos(), imgui.ImVec2(imgui.get_cursor_screen_pos().x + node_width, imgui.get_cursor_screen_pos().y + 500), True)
-        if imgui.tree_node(f"Settings##{node_id}"):
+        if imgui.tree_node(f"Manufacturer##{node_id}"):
             imgui.text_disabled("Manufacturer")
             imgui.same_line(120)
             imgui.text(template.config.manufacturer)
