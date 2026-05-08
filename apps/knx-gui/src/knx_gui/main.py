@@ -148,6 +148,16 @@ class Device:
 
 
 @dataclass
+class Telegram:
+    timestamp: str
+    source: str
+    destination: str
+    service: str
+    dpt: str
+    value: str
+
+
+@dataclass
 class NodeLayout:
     node_width: float
     in_total_w: float
@@ -178,7 +188,12 @@ class KnxGuiApp:
         self._show_sidebar: bool = True
         self._connected: bool = False
         self._controller_ip: str = "192.168.1.1"
+        self._show_telegrams: bool = False
+        self._telegrams: list[Telegram] = []
+        self._selected_telegrams: set[int] = set()
+        self._last_selected_telegram: int = -1
         self._init_devices()
+        self._init_sample_telegrams()
 
     def _init_devices(self) -> None:
         self._devices = [
@@ -188,6 +203,18 @@ class KnxGuiApp:
             Device(4, "Entry Button", DEVICE_TEMPLATES["push_button"], "1.2.1"),
             Device(5, "Living Room Thermo", DEVICE_TEMPLATES["thermostat"], "1.2.2"),
             Device(6, "RGB Strip", DEVICE_TEMPLATES["rgb_controller"], "2.1.1"),
+        ]
+
+    def _init_sample_telegrams(self) -> None:
+        self._telegrams = [
+            Telegram("12:34:01.123", "1.1.1", "1/0/1", "GroupValueWrite", "1.001", "On"),
+            Telegram("12:34:01.456", "1.1.1", "1/0/2", "GroupValueResponse", "1.001", "Off"),
+            Telegram("12:34:02.001", "1.2.1", "2/0/1", "GroupValueWrite", "5.001", "75%"),
+            Telegram("12:34:02.345", "1.1.3", "3/0/1", "GroupValueWrite", "9.001", "21.5°C"),
+            Telegram("12:34:03.012", "1.2.2", "4/0/1", "GroupValueRead", "1.001", ""),
+            Telegram("12:34:03.234", "1.2.2", "4/0/1", "GroupValueResponse", "1.001", "On"),
+            Telegram("12:34:04.567", "2.1.1", "5/0/1", "GroupValueWrite", "232.600", "#FF8800"),
+            Telegram("12:34:05.123", "1.1.2", "1/1/1", "GroupValueWrite", "3.007", "Up"),
         ]
 
     def setup(self) -> None:
@@ -505,6 +532,94 @@ class KnxGuiApp:
 
             imgui.end_main_menu_bar()
 
+    def _focus_device_by_address(self, address: str) -> None:
+        for device in self._devices:
+            if device.address == address:
+                ed.select_node(ed.NodeId(device.node_id), False)
+                ed.navigate_to_selection(False, 0.3)
+                return
+
+    def _copy_selected_telegrams(self) -> None:
+        if not self._selected_telegrams:
+            return
+        lines = ["Time\tSource\tDestination\tService\tDPT\tValue"]
+        for i in sorted(self._selected_telegrams):
+            t = self._telegrams[i]
+            lines.append(f"{t.timestamp}\t{t.source}\t{t.destination}\t{t.service}\t{t.dpt}\t{t.value}")
+        imgui.set_clipboard_text("\n".join(lines))
+
+    def _handle_telegram_selection(self, index: int) -> None:
+        io = imgui.get_io()
+        ctrl = io.key_ctrl or io.key_super
+        shift = io.key_shift
+        if shift and self._last_selected_telegram >= 0:
+            start = min(self._last_selected_telegram, index)
+            end = max(self._last_selected_telegram, index)
+            if not ctrl:
+                self._selected_telegrams.clear()
+            for i in range(start, end + 1):
+                self._selected_telegrams.add(i)
+        elif ctrl:
+            if index in self._selected_telegrams:
+                self._selected_telegrams.remove(index)
+            else:
+                self._selected_telegrams.add(index)
+            self._last_selected_telegram = index
+        else:
+            self._selected_telegrams = {index}
+            self._last_selected_telegram = index
+            self._focus_device_by_address(self._telegrams[index].source)
+
+    def _render_telegrams_pane(self) -> None:
+        imgui.begin_child("##TelegramsPane", imgui.ImVec2(0, 0), imgui.ChildFlags_.borders)
+        imgui.text("Telegrams")
+        imgui.same_line()
+        imgui.text_disabled(f"  ({len(self._selected_telegrams)} selected)" if self._selected_telegrams else "")
+        imgui.same_line(imgui.get_window_width() - 100)
+        if imgui.small_button("Copy"):
+            self._copy_selected_telegrams()
+        imgui.same_line()
+        if imgui.small_button("Clear"):
+            self._selected_telegrams.clear()
+        imgui.separator()
+
+        if imgui.is_window_focused() and (imgui.get_io().key_ctrl or imgui.get_io().key_super) and imgui.is_key_pressed(imgui.Key.c):
+            self._copy_selected_telegrams()
+
+        table_flags = (
+            imgui.TableFlags_.borders_inner_h
+            | imgui.TableFlags_.row_bg
+            | imgui.TableFlags_.scroll_y
+            | imgui.TableFlags_.sizing_fixed_fit
+        )
+        if imgui.begin_table("##telegrams_table", 6, table_flags):
+            imgui.table_setup_column("Time")
+            imgui.table_setup_column("Source")
+            imgui.table_setup_column("Destination")
+            imgui.table_setup_column("Service")
+            imgui.table_setup_column("DPT")
+            imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_stretch)
+            imgui.table_headers_row()
+            for i, telegram in enumerate(self._telegrams):
+                imgui.table_next_row()
+                imgui.table_set_column_index(0)
+                selected = i in self._selected_telegrams
+                flags = imgui.SelectableFlags_.span_all_columns | imgui.SelectableFlags_.allow_overlap
+                if imgui.selectable(f"{telegram.timestamp}##row{i}", selected, flags)[0]:
+                    self._handle_telegram_selection(i)
+                imgui.table_set_column_index(1)
+                imgui.text(telegram.source)
+                imgui.table_set_column_index(2)
+                imgui.text(telegram.destination)
+                imgui.table_set_column_index(3)
+                imgui.text(telegram.service)
+                imgui.table_set_column_index(4)
+                imgui.text_disabled(telegram.dpt)
+                imgui.table_set_column_index(5)
+                imgui.text(telegram.value)
+            imgui.end_table()
+        imgui.end_child()
+
     def _render_bottom_bar(self) -> None:
         bar_height = 30
         viewport = imgui.get_main_viewport()
@@ -522,6 +637,8 @@ class KnxGuiApp:
         imgui.begin("##BottomBar", None, flags)
 
         _, self._show_sidebar = imgui.checkbox("Sidebar", self._show_sidebar)
+        imgui.same_line(spacing=20)
+        _, self._show_telegrams = imgui.checkbox("Telegrams", self._show_telegrams)
 
         stats_text = f"Devices: {len(self._devices)} | Links: {len(self._links)}"
         text_width = imgui.calc_text_size(stats_text).x
@@ -572,8 +689,13 @@ class KnxGuiApp:
             imgui.end_child()
             imgui.same_line()
 
+        imgui.begin_child("##RightArea", imgui.ImVec2(0, 0))
+
+        telegram_pane_height = 200 if self._show_telegrams else 0
+        editor_height = imgui.get_content_region_avail().y - telegram_pane_height
+
         ed.set_current_editor(self._editor_context)
-        ed.begin("##NodeEditorCanvas", imgui.ImVec2(0, 0))
+        ed.begin("##NodeEditorCanvas", imgui.ImVec2(0, editor_height))
 
         for device in self._devices:
             self._render_device_node(device.node_id, device.template, device.address)
@@ -583,6 +705,11 @@ class KnxGuiApp:
         self._handle_link_deletion()
 
         ed.end()
+
+        if self._show_telegrams:
+            self._render_telegrams_pane()
+
+        imgui.end_child()
 
         imgui.end()
 
