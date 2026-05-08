@@ -491,11 +491,11 @@ class KnxGuiApp:
     def _are_pins_compatible(self, pin_a: int, pin_b: int) -> bool:
         return self._pins_match_quality(pin_a, pin_b) != DPTMatch.NONE
 
-    def _remove_links_for_pin(self, pin_id: int) -> None:
-        self._links = [
-            link for link in self._links
-            if link[1] != pin_id and link[2] != pin_id
-        ]
+    def _link_exists(self, pin_a: int, pin_b: int) -> bool:
+        for _, start, end in self._links:
+            if (start == pin_a and end == pin_b) or (start == pin_b and end == pin_a):
+                return True
+        return False
 
     def _show_link_tooltip(self, pin_a: int, pin_b: int) -> None:
         dpt_a = self._pin_dpt.get(pin_a)
@@ -541,14 +541,13 @@ class KnxGuiApp:
                     new_drag_source = start_pin_id.id()
                 if start_pin_id.id() != 0 and end_pin_id.id() != 0:
                     match = self._pins_match_quality(start_pin_id.id(), end_pin_id.id())
+                    duplicate = self._link_exists(start_pin_id.id(), end_pin_id.id())
                     self._show_link_tooltip(start_pin_id.id(), end_pin_id.id())
-                    if match == DPTMatch.NONE:
+                    if match == DPTMatch.NONE or duplicate:
                         ed.reject_new_item(LINK_INVALID_COLOR, 3.0)
                     else:
                         preview_color = LINK_COLOR if match == DPTMatch.EXACT else LINK_LOOSE_COLOR
                         if ed.accept_new_item(preview_color, 2.0):
-                            self._remove_links_for_pin(start_pin_id.id())
-                            self._remove_links_for_pin(end_pin_id.id())
                             self._links.append(
                                 (self._next_link_id, start_pin_id.id(), end_pin_id.id())
                             )
