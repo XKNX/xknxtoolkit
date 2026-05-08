@@ -565,11 +565,15 @@ class KnxGuiApp:
     def _telegram_to_row(self, telegram: Telegram) -> str:
         return "\t".join(col.getter(telegram) for col in TELEGRAM_COLUMNS)
 
-    def _copy_selected_telegrams(self) -> None:
-        if not self._selected_telegrams:
+    def _copy_telegrams(self) -> None:
+        if self._selected_telegrams:
+            indices = sorted(self._selected_telegrams)
+        else:
+            indices = range(len(self._telegrams))
+        if not indices:
             return
         header = "\t".join(col.name for col in TELEGRAM_COLUMNS)
-        rows = [self._telegram_to_row(self._telegrams[i]) for i in sorted(self._selected_telegrams)]
+        rows = [self._telegram_to_row(self._telegrams[i]) for i in indices]
         imgui.set_clipboard_text("\n".join([header, *rows]))
 
     def _select_telegram_range(self, start: int, end: int, additive: bool) -> None:
@@ -603,7 +607,7 @@ class KnxGuiApp:
             return
         io = imgui.get_io()
         if (io.key_ctrl or io.key_super) and imgui.is_key_pressed(imgui.Key.c):
-            self._copy_selected_telegrams()
+            self._copy_telegrams()
 
     def _render_telegrams_header(self) -> None:
         imgui.text("Telegrams")
@@ -612,7 +616,7 @@ class KnxGuiApp:
             imgui.text_disabled(f"  ({len(self._selected_telegrams)} selected)")
         imgui.same_line(imgui.get_window_width() - TELEGRAM_HEADER_BUTTONS_WIDTH)
         if imgui.small_button("Copy"):
-            self._copy_selected_telegrams()
+            self._copy_telegrams()
         imgui.same_line()
         if imgui.small_button("Clear"):
             self._selected_telegrams.clear()
