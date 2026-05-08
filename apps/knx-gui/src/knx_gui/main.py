@@ -232,6 +232,17 @@ class KnxGuiApp:
         self._draw_pin_icon(pin.dpt)
         ed.end_pin()
 
+    def _calc_settings_width(self, config: DeviceConfig) -> float:
+        tree_indent = imgui.get_style().indent_spacing
+        label_offset = 120
+        max_value_w = max(
+            imgui.calc_text_size(config.manufacturer).x,
+            imgui.calc_text_size(config.application).x,
+            imgui.calc_text_size(config.hardware).x,
+            imgui.calc_text_size(config.firmware).x,
+        )
+        return tree_indent + label_offset + max_value_w
+
     def _render_device_node(
         self, node_id: int, template: DeviceTemplate, address: str
     ) -> None:
@@ -255,24 +266,29 @@ class KnxGuiApp:
         in_total_w = PIN_RADIUS * 2 + in_name_w + in_dpt_w + spacing * 4 if in_name_w > 0 else 0
         out_total_w = PIN_RADIUS * 2 + out_name_w + out_dpt_w + spacing * 4 if out_name_w > 0 else 0
 
+        pin_row_width = in_total_w + 20 + out_total_w
+        settings_width = self._calc_settings_width(template.config)
+        node_width = max(pin_row_width, settings_width)
+        mid_spacing = node_width - in_total_w - out_total_w
+
         for i, row in enumerate(template.rows):
             if row.input_pin:
                 self._render_input_pin(pin_base + i, row.input_pin, in_dpt_w, in_name_w)
             else:
                 imgui.dummy(imgui.ImVec2(in_total_w, PIN_RADIUS * 2 + 4))
 
-            imgui.same_line(spacing=20)
+            imgui.same_line(spacing=mid_spacing)
 
             if row.output_pin:
                 self._render_output_pin(pin_base + 50 + i, row.output_pin, out_dpt_w, out_name_w)
             else:
                 imgui.dummy(imgui.ImVec2(out_total_w, PIN_RADIUS * 2 + 4))
 
-        row_width = in_total_w + 20 + out_total_w
+        imgui.dummy(imgui.ImVec2(node_width, 1))
         content_rect_max = imgui.get_item_rect_max()
 
         imgui.spacing()
-        imgui.push_clip_rect(imgui.get_cursor_screen_pos(), imgui.ImVec2(imgui.get_cursor_screen_pos().x + row_width, imgui.get_cursor_screen_pos().y + 500), True)
+        imgui.push_clip_rect(imgui.get_cursor_screen_pos(), imgui.ImVec2(imgui.get_cursor_screen_pos().x + node_width, imgui.get_cursor_screen_pos().y + 500), True)
         if imgui.tree_node(f"Settings##{node_id}"):
             imgui.text_disabled("Manufacturer")
             imgui.same_line(120)
@@ -294,7 +310,7 @@ class KnxGuiApp:
         draw_list = ed.get_node_background_draw_list(ed.NodeId(node_id))
         if draw_list:
             header_left = header_rect_min.x - NODE_PADDING + HEADER_INSET
-            header_right = max(header_rect_max.x, content_rect_max.x) + NODE_PADDING - HEADER_INSET
+            header_right = content_rect_max.x + NODE_PADDING - HEADER_INSET
             header_top = header_rect_min.y - NODE_PADDING + HEADER_INSET
             header_bottom = header_rect_max.y + 4
 
