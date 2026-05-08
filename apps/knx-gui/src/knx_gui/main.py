@@ -332,11 +332,14 @@ class KnxGuiApp:
         self._draw_pin_icon(pin.dpt)
         ed.end_pin()
 
-    def _render_node_header(self, template: DeviceTemplate, address: str) -> Rect:
+    def _render_node_header(self, template: DeviceTemplate, address: str, width: float) -> Rect:
+        cursor_x = imgui.get_cursor_pos_x()
         imgui.begin_group()
         imgui.text(template.name)
         imgui.same_line()
-        imgui.text_disabled(f"  {address}")
+        address_width = imgui.calc_text_size(address).x
+        imgui.set_cursor_pos_x(cursor_x + width - address_width)
+        imgui.text_disabled(address)
         imgui.end_group()
         rect_min = imgui.get_item_rect_min()
         rect_max = imgui.get_item_rect_max()
@@ -392,10 +395,10 @@ class KnxGuiApp:
     def _render_device_node(self, node_id: int, template: DeviceTemplate, address: str) -> None:
         ed.begin_node(ed.NodeId(node_id))
 
-        header = self._render_node_header(template, address)
+        layout = self._calc_node_layout(template)
+        header = self._render_node_header(template, address, layout.node_width)
         imgui.spacing()
 
-        layout = self._calc_node_layout(template)
         self._render_node_pins(node_id, template, layout)
 
         imgui.dummy(imgui.ImVec2(layout.node_width, 1))
