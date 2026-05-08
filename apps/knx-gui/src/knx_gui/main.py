@@ -15,6 +15,7 @@ SETTINGS_LABEL_OFFSET = 120.0
 SETTINGS_CLIP_HEIGHT = 500.0
 HEADER_COLOR = (0.2, 0.4, 0.7)
 LINK_COLOR = imgui.ImVec4(0.6, 0.6, 0.6, 1.0)
+LINK_LOOSE_COLOR = imgui.ImVec4(0.9, 0.7, 0.2, 1.0)
 LINK_INVALID_COLOR = imgui.ImVec4(0.9, 0.2, 0.2, 1.0)
 
 TELEGRAM_PANE_HEIGHT = 200
@@ -22,32 +23,56 @@ TELEGRAM_HEADER_BUTTONS_WIDTH = 100
 NAVIGATE_TO_NODE_DURATION = 0.3
 
 
-class DPT(Enum):
-    BOOL = "1"
-    DIMMING = "3"
-    PERCENT = "5"
-    FLOAT = "9"
-    SCENE = "17"
-    RGB = "232"
+@dataclass(frozen=True)
+class DPT:
+    major: int
+    minor: int
+    name: str
+    label: str
+
+    @property
+    def code(self) -> str:
+        return f"{self.major}.{self.minor:03d}"
 
 
-DPT_COLORS: dict[DPT, imgui.ImVec4] = {
-    DPT.BOOL: imgui.ImVec4(0.9, 0.3, 0.3, 1.0),
-    DPT.DIMMING: imgui.ImVec4(0.9, 0.6, 0.2, 1.0),
-    DPT.PERCENT: imgui.ImVec4(0.2, 0.8, 0.4, 1.0),
-    DPT.FLOAT: imgui.ImVec4(0.2, 0.6, 0.9, 1.0),
-    DPT.SCENE: imgui.ImVec4(0.7, 0.3, 0.9, 1.0),
-    DPT.RGB: imgui.ImVec4(0.9, 0.2, 0.6, 1.0),
+DPT_SWITCH = DPT(1, 1, "Switch", "switch")
+DPT_BOOL = DPT(1, 2, "Boolean", "bool")
+DPT_UP_DOWN = DPT(1, 8, "Up/Down", "up/down")
+DPT_OPEN_CLOSE = DPT(1, 9, "Open/Close", "open/close")
+DPT_STOP = DPT(1, 10, "Start/Stop", "start/stop")
+DPT_DIMMING = DPT(3, 7, "Dimming", "dim")
+DPT_PERCENT = DPT(5, 1, "Percent", "%")
+DPT_TEMPERATURE = DPT(9, 1, "Temperature", "°C")
+DPT_SCENE = DPT(17, 1, "Scene", "scene")
+DPT_RGB = DPT(232, 600, "RGB", "rgb")
+
+
+DPT_MAJOR_COLORS: dict[int, imgui.ImVec4] = {
+    1: imgui.ImVec4(0.9, 0.3, 0.3, 1.0),
+    3: imgui.ImVec4(0.9, 0.6, 0.2, 1.0),
+    5: imgui.ImVec4(0.2, 0.8, 0.4, 1.0),
+    9: imgui.ImVec4(0.2, 0.6, 0.9, 1.0),
+    17: imgui.ImVec4(0.7, 0.3, 0.9, 1.0),
+    232: imgui.ImVec4(0.9, 0.2, 0.6, 1.0),
 }
 
-DPT_LABELS: dict[DPT, str] = {
-    DPT.BOOL: "bool",
-    DPT.DIMMING: "dim",
-    DPT.PERCENT: "%",
-    DPT.FLOAT: "°C",
-    DPT.SCENE: "scene",
-    DPT.RGB: "rgb",
-}
+
+def dpt_color(dpt: DPT) -> imgui.ImVec4:
+    return DPT_MAJOR_COLORS.get(dpt.major, imgui.ImVec4(0.5, 0.5, 0.5, 1.0))
+
+
+class DPTMatch(Enum):
+    NONE = "none"
+    LOOSE = "loose"
+    EXACT = "exact"
+
+
+def dpt_match(a: DPT, b: DPT) -> DPTMatch:
+    if a.major != b.major:
+        return DPTMatch.NONE
+    if a.minor == b.minor:
+        return DPTMatch.EXACT
+    return DPTMatch.LOOSE
 
 
 class PinDir(Enum):
@@ -86,50 +111,67 @@ DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
     "switch_actuator": DeviceTemplate(
         name="Switch Actuator",
         rows=[
-            PinRow(Pin("Switch", DPT.BOOL), Pin("Status", DPT.BOOL)),
+            PinRow(Pin("Switch", DPT_SWITCH), Pin("Status", DPT_SWITCH)),
         ],
         config=DeviceConfig("ABB", "SA/S 4.16.2.2", "2CDG110252R0011", "1.2.3"),
     ),
     "dimmer_actuator": DeviceTemplate(
         name="Dimmer Actuator",
         rows=[
-            PinRow(Pin("Switch", DPT.BOOL), Pin("Status", DPT.BOOL)),
-            PinRow(Pin("Dimming", DPT.DIMMING)),
-            PinRow(Pin("Brightness", DPT.PERCENT), Pin("Value", DPT.PERCENT)),
+            PinRow(Pin("Switch", DPT_SWITCH), Pin("Status", DPT_SWITCH)),
+            PinRow(Pin("Dimming", DPT_DIMMING)),
+            PinRow(Pin("Brightness", DPT_PERCENT), Pin("Value", DPT_PERCENT)),
         ],
         config=DeviceConfig("ABB", "DA/S 4.230.2.1", "2CDG110198R0011", "2.1.0"),
     ),
     "temperature_sensor": DeviceTemplate(
         name="Temperature Sensor",
         rows=[
-            PinRow(output_pin=Pin("Temperature", DPT.FLOAT)),
+            PinRow(output_pin=Pin("Temperature", DPT_TEMPERATURE)),
         ],
         config=DeviceConfig("Siemens", "QMX3.P37", "5WG1258-3AB13", "3.0.1"),
     ),
     "push_button": DeviceTemplate(
         name="Push Button",
         rows=[
-            PinRow(output_pin=Pin("Press", DPT.BOOL)),
-            PinRow(output_pin=Pin("Long Press", DPT.BOOL)),
-            PinRow(output_pin=Pin("Scene", DPT.SCENE)),
+            PinRow(output_pin=Pin("Press", DPT_SWITCH)),
+            PinRow(output_pin=Pin("Long Press", DPT_SWITCH)),
+            PinRow(output_pin=Pin("Scene", DPT_SCENE)),
         ],
         config=DeviceConfig("Gira", "Tastsensor 4 Plus", "2104..", "1.0.5"),
+    ),
+    "blinds_actuator": DeviceTemplate(
+        name="Blinds Actuator",
+        rows=[
+            PinRow(Pin("Move", DPT_UP_DOWN), Pin("Position", DPT_PERCENT)),
+            PinRow(Pin("Stop", DPT_STOP)),
+            PinRow(Pin("Slat", DPT_PERCENT), Pin("Slat Pos", DPT_PERCENT)),
+        ],
+        config=DeviceConfig("MDT", "JAL-0410M.02", "JAL-0410M", "2.5.1"),
+    ),
+    "shutter_button": DeviceTemplate(
+        name="Shutter Button",
+        rows=[
+            PinRow(output_pin=Pin("Up/Down", DPT_UP_DOWN)),
+            PinRow(output_pin=Pin("Stop", DPT_STOP)),
+        ],
+        config=DeviceConfig("Gira", "Jalousie Button", "2104J", "1.0.2"),
     ),
     "rgb_controller": DeviceTemplate(
         name="RGB Controller",
         rows=[
-            PinRow(Pin("Switch", DPT.BOOL), Pin("Status", DPT.BOOL)),
-            PinRow(Pin("Color", DPT.RGB), Pin("Color Status", DPT.RGB)),
-            PinRow(Pin("Brightness", DPT.PERCENT)),
+            PinRow(Pin("Switch", DPT_SWITCH), Pin("Status", DPT_SWITCH)),
+            PinRow(Pin("Color", DPT_RGB), Pin("Color Status", DPT_RGB)),
+            PinRow(Pin("Brightness", DPT_PERCENT)),
         ],
         config=DeviceConfig("MDT", "AKD-0424R2.02", "R2.02", "1.1.0"),
     ),
     "thermostat": DeviceTemplate(
         name="Thermostat",
         rows=[
-            PinRow(Pin("Setpoint", DPT.FLOAT), Pin("Actual Temp", DPT.FLOAT)),
-            PinRow(output_pin=Pin("Heating", DPT.BOOL)),
-            PinRow(output_pin=Pin("Valve", DPT.PERCENT)),
+            PinRow(Pin("Setpoint", DPT_TEMPERATURE), Pin("Actual Temp", DPT_TEMPERATURE)),
+            PinRow(output_pin=Pin("Heating", DPT_SWITCH)),
+            PinRow(output_pin=Pin("Valve", DPT_PERCENT)),
         ],
         config=DeviceConfig("Theben", "RAMSES 718 P", "7189210", "2.3.1"),
     ),
@@ -226,6 +268,8 @@ class KnxGuiApp:
             Device(4, "Entry Button", DEVICE_TEMPLATES["push_button"], "1.2.1"),
             Device(5, "Living Room Thermo", DEVICE_TEMPLATES["thermostat"], "1.2.2"),
             Device(6, "RGB Strip", DEVICE_TEMPLATES["rgb_controller"], "2.1.1"),
+            Device(7, "Bedroom Blinds", DEVICE_TEMPLATES["blinds_actuator"], "1.2.3"),
+            Device(8, "Shutter Button", DEVICE_TEMPLATES["shutter_button"], "1.2.4"),
         ]
 
     def _init_sample_telegrams(self) -> None:
@@ -255,7 +299,7 @@ class KnxGuiApp:
         draw_list = imgui.get_window_draw_list()
         cursor = imgui.get_cursor_screen_pos()
         center = imgui.ImVec2(cursor.x + PIN_RADIUS, cursor.y + PIN_RADIUS + 2)
-        color = color_from_vec4(DPT_COLORS[dpt])
+        color = color_from_vec4(dpt_color(dpt))
         draw_list.add_circle_filled(center, PIN_RADIUS, color)
         draw_list.add_circle(center, PIN_RADIUS, color_u32(1, 1, 1, 0.3), 0, 1.5)
         imgui.dummy(imgui.ImVec2(PIN_RADIUS * 2, PIN_HEIGHT))
@@ -264,10 +308,10 @@ class KnxGuiApp:
         in_dpt_w = in_name_w = out_dpt_w = out_name_w = 0.0
         for row in template.rows:
             if row.input_pin:
-                in_dpt_w = max(in_dpt_w, imgui.calc_text_size(f"[{DPT_LABELS[row.input_pin.dpt]}]").x)
+                in_dpt_w = max(in_dpt_w, imgui.calc_text_size(f"[{row.input_pin.dpt.label}]").x)
                 in_name_w = max(in_name_w, imgui.calc_text_size(row.input_pin.name).x)
             if row.output_pin:
-                out_dpt_w = max(out_dpt_w, imgui.calc_text_size(f"[{DPT_LABELS[row.output_pin.dpt]}]").x)
+                out_dpt_w = max(out_dpt_w, imgui.calc_text_size(f"[{row.output_pin.dpt.label}]").x)
                 out_name_w = max(out_name_w, imgui.calc_text_size(row.output_pin.name).x)
 
         spacing = imgui.get_style().item_spacing.x
@@ -309,7 +353,7 @@ class KnxGuiApp:
         imgui.same_line()
         imgui.dummy(imgui.ImVec2(layout.in_name_w - imgui.calc_text_size(pin.name).x, 1))
         imgui.same_line()
-        dpt_label = f"[{DPT_LABELS[pin.dpt]}]"
+        dpt_label = f"[{pin.dpt.label}]"
         imgui.text_disabled(dpt_label)
         imgui.same_line()
         imgui.dummy(imgui.ImVec2(layout.in_dpt_w - imgui.calc_text_size(dpt_label).x, 1))
@@ -320,7 +364,7 @@ class KnxGuiApp:
         self._pin_dir[pin_id] = PinDir.OUTPUT
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
         ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
-        dpt_label = f"[{DPT_LABELS[pin.dpt]}]"
+        dpt_label = f"[{pin.dpt.label}]"
         imgui.text_disabled(dpt_label)
         imgui.same_line()
         imgui.dummy(imgui.ImVec2(layout.out_dpt_w - imgui.calc_text_size(dpt_label).x, 1))
@@ -410,16 +454,19 @@ class KnxGuiApp:
         ed.end_node()
         self._draw_node_header_bg(node_id, header, content_max_x)
 
-    def _are_pins_compatible(self, pin_a: int, pin_b: int) -> bool:
+    def _pins_match_quality(self, pin_a: int, pin_b: int) -> DPTMatch:
         dpt_a = self._pin_dpt.get(pin_a)
         dpt_b = self._pin_dpt.get(pin_b)
         dir_a = self._pin_dir.get(pin_a)
         dir_b = self._pin_dir.get(pin_b)
         if dpt_a is None or dpt_b is None or dir_a is None or dir_b is None:
-            return False
-        if dpt_a != dpt_b:
-            return False
-        return dir_a != dir_b
+            return DPTMatch.NONE
+        if dir_a == dir_b:
+            return DPTMatch.NONE
+        return dpt_match(dpt_a, dpt_b)
+
+    def _are_pins_compatible(self, pin_a: int, pin_b: int) -> bool:
+        return self._pins_match_quality(pin_a, pin_b) != DPTMatch.NONE
 
     def _remove_links_for_pin(self, pin_id: int) -> None:
         self._links = [
@@ -427,25 +474,48 @@ class KnxGuiApp:
             if link[1] != pin_id and link[2] != pin_id
         ]
 
+    def _show_link_tooltip(self, dpt_a: DPT, dpt_b: DPT, match: DPTMatch) -> None:
+        ed.suspend()
+        imgui.begin_tooltip()
+        if match == DPTMatch.EXACT:
+            imgui.text(f"DPT {dpt_a.code} - {dpt_a.name}")
+        elif match == DPTMatch.LOOSE:
+            imgui.push_style_color(imgui.Col_.text, LINK_LOOSE_COLOR)
+            imgui.text("Warning: same byte format, different semantics")
+            imgui.pop_style_color()
+            imgui.text(f"From: DPT {dpt_a.code} - {dpt_a.name}")
+            imgui.text(f"To:   DPT {dpt_b.code} - {dpt_b.name}")
+        else:
+            imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
+            imgui.text("Incompatible DPTs")
+            imgui.pop_style_color()
+            imgui.text(f"From: DPT {dpt_a.code} - {dpt_a.name}")
+            imgui.text(f"To:   DPT {dpt_b.code} - {dpt_b.name}")
+        imgui.end_tooltip()
+        ed.resume()
+
     def _handle_link_creation(self) -> None:
         if ed.begin_create():
             start_pin_id = ed.PinId()
             end_pin_id = ed.PinId()
             if ed.query_new_link(start_pin_id, end_pin_id):
                 if start_pin_id.id() != 0 and end_pin_id.id() != 0:
-                    compatible = self._are_pins_compatible(
-                        start_pin_id.id(), end_pin_id.id()
-                    )
-                    if compatible:
-                        if ed.accept_new_item(LINK_COLOR, 2.0):
+                    match = self._pins_match_quality(start_pin_id.id(), end_pin_id.id())
+                    dpt_a = self._pin_dpt.get(start_pin_id.id())
+                    dpt_b = self._pin_dpt.get(end_pin_id.id())
+                    if dpt_a and dpt_b:
+                        self._show_link_tooltip(dpt_a, dpt_b, match)
+                    if match == DPTMatch.NONE:
+                        ed.reject_new_item(LINK_INVALID_COLOR, 3.0)
+                    else:
+                        preview_color = LINK_COLOR if match == DPTMatch.EXACT else LINK_LOOSE_COLOR
+                        if ed.accept_new_item(preview_color, 2.0):
                             self._remove_links_for_pin(start_pin_id.id())
                             self._remove_links_for_pin(end_pin_id.id())
                             self._links.append(
                                 (self._next_link_id, start_pin_id.id(), end_pin_id.id())
                             )
                             self._next_link_id += 1
-                    else:
-                        ed.reject_new_item(LINK_INVALID_COLOR, 3.0)
             ed.end_create()
 
     def _handle_link_deletion(self) -> None:
@@ -460,7 +530,9 @@ class KnxGuiApp:
 
     def _render_links(self) -> None:
         for link_id, start_pin, end_pin in self._links:
-            ed.link(ed.LinkId(link_id), ed.PinId(start_pin), ed.PinId(end_pin))
+            match = self._pins_match_quality(start_pin, end_pin)
+            color = LINK_LOOSE_COLOR if match == DPTMatch.LOOSE else LINK_COLOR
+            ed.link(ed.LinkId(link_id), ed.PinId(start_pin), ed.PinId(end_pin), color)
 
     def _build_address_tree(self) -> dict[int, dict[int, list[Device]]]:
         tree: dict[int, dict[int, list[Device]]] = {}
