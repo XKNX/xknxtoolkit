@@ -655,7 +655,7 @@ class KnxGuiApp:
             self._render_label_value("Hardware", config.hardware)
             self._render_label_value("Firmware", config.firmware)
             imgui.tree_pop()
-        if imgui.tree_node(f"Com Objects##{device.node_id}"):
+        if imgui.tree_node(f"Com Flags##{device.node_id}"):
             self._render_node_com_objects(device)
             imgui.tree_pop()
         imgui.pop_clip_rect()
