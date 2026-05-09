@@ -4,6 +4,7 @@ requires-python = ">=3.12"
 
 [manifest]
 members = [
+    "knx-gui",
     "xknx-keyring",
     "xknx-models",
     "xknx-product",
@@ -105,6 +106,35 @@ wheels = [
 ]
 
 [[package]]
+name = "imgui-bundle"
+version = "1.92.700"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/70/8643e459bf814af02d6d76ba14e1af5e2119d81fc7e63f90ffc76d5e2d78/imgui_bundle-1.92.700.tar.gz", hash = "sha256:66150d0ee3bf2bfadb66dd7917b357b7916b15d423383ac2e8309a1d1a13cd07", size = 44549344, upload-time = "2026-04-26T23:36:31.814Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a5/92/f36bbdd72eef8aacc28fad66c08378bf94ae1f81014e7124fd2aa2cd50bc/imgui_bundle-1.92.700-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:535aacb67804ea22c9618403e6e73ae6092d08c82a74a45b35a3744ebb85375d", size = 9890710, upload-time = "2026-04-26T23:35:48.248Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/2b/5b6fb174e195979c52bc03dc70c555ce7a4e27ca1ab98775d82a0f49a9be/imgui_bundle-1.92.700-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:6d67ccc30562327114a2ade018ec9030b537370ff2ea27e5374f7541bf806103", size = 11976793, upload-time = "2026-04-26T23:35:50.169Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/98/c848bebd578c74024ff916b34494eeed63cefbb6c969cce2be7347b29fc7/imgui_bundle-1.92.700-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:08f00f6bb2a9e36cf2796401f0567617a67d941560d480542c8a0c865ccd1b26", size = 13065630, upload-time = "2026-04-26T23:35:52.378Z" },
+    { url = "https://files.pythonhosted.org/packages/29/c2/d4527b80fdccc4384d3cf74661687f17fe7ffc6c076b23278597bd5edab6/imgui_bundle-1.92.700-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:223ba292730bf64e8fe168bf7e7032d27c1a5db61c8def7f412e7d2905bfdb86", size = 13025665, upload-time = "2026-04-26T23:35:54.44Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/e4/5461bb587ecc1354847a20277639de189428e99efbe7fc1fd4878618882f/imgui_bundle-1.92.700-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:6e8ce88dc5baab0c40b34fc9b476147b61dc617a288152b04988d9cd80fd7392", size = 13926106, upload-time = "2026-04-26T23:35:56.809Z" },
+    { url = "https://files.pythonhosted.org/packages/71/68/d4aa16e5a8df3e1c9bcaa5b1dfad5d65dbf44f75fc03ce6f48fb5ef65dac/imgui_bundle-1.92.700-cp312-cp312-win_amd64.whl", hash = "sha256:6fb99cca86a6328a177c6358ae2aa0ba0326a20e1ba82ae70cad3f4825acfe1a", size = 10830173, upload-time = "2026-04-26T23:35:58.768Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/ae/bb7e3d463fcf4f906ca379851992d763c81b1f044966907377f176a00167/imgui_bundle-1.92.700-cp312-cp312-win_arm64.whl", hash = "sha256:8c65a0f30234f30530f2e6e0dc52fbe5446df7ff05875f3294b1b95e39552988", size = 10452942, upload-time = "2026-04-26T23:36:00.498Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/5c/1f5de383c343ccfc959ea759c30ff2d719434ae973337529356e9a329993/imgui_bundle-1.92.700-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:97bdebc798a755ae0a8f0a7de28aa3b887065b34a7f84ab8fef2b433b4b8d6ad", size = 9890705, upload-time = "2026-04-26T23:36:02.526Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/4e/8092fe29c36d58fe6761e276ba54ea0f44a5e5ea0ed9996d8dbb20f868bd/imgui_bundle-1.92.700-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:b432b682f1f0e07f046c9122dd119ad349a5fda61f6522087eb9d65e19cd381d", size = 11975252, upload-time = "2026-04-26T23:36:04.668Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/78/7abb656164ae12784521688505b6f1f0fe82a9b704730cafac662d951873/imgui_bundle-1.92.700-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:58cca68145dbf8d445edc87fa82990eab424a0950988bff7ee5313fe96107262", size = 13065869, upload-time = "2026-04-26T23:36:07.186Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/ed/cda1304fe9493284504452c6edb7389372edeb9265901abf9ec567e14cd5/imgui_bundle-1.92.700-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:57c5fac2e6296abbdbd746d2e9a99319299058851c2ad4dfafa8317ca225fec7", size = 13026096, upload-time = "2026-04-26T23:36:09.384Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/7a/726eaa052f6b1644d5b8ffc1ebcc4fd6066bca0172d927b2568cd285969e/imgui_bundle-1.92.700-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:6155fa9468021cdad5e656fe234af35faad765ec034cd77fc1217f9d93f3649e", size = 13925931, upload-time = "2026-04-26T23:36:11.55Z" },
+    { url = "https://files.pythonhosted.org/packages/b3/c2/2058420e25f8812726ad172c7be880b0a3ad7f14e1811d82865becfeca9c/imgui_bundle-1.92.700-cp313-cp313-win_amd64.whl", hash = "sha256:742d1832b841de856d3d471c6a37e0b39f01988fe4d15cb7717dbaad3f9211a1", size = 10829896, upload-time = "2026-04-26T23:36:13.377Z" },
+    { url = "https://files.pythonhosted.org/packages/71/f1/b5746c60a980d7ff628e377df2586d73fb14776bc1ee7e4755a903ddd27d/imgui_bundle-1.92.700-cp313-cp313-win_arm64.whl", hash = "sha256:425f59648618c897357ce3025227b8c27f37608e1ea83eb07713251caaa9d182", size = 10452642, upload-time = "2026-04-26T23:36:15.145Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/74/57c0e1bd5b9b74d8694ed6bcd6a2e8109860bb152496500f2c031d3c34fb/imgui_bundle-1.92.700-cp314-cp314-macosx_14_0_arm64.whl", hash = "sha256:532a0ee390f0611b7871a416650c55d30d3556e1e6a92d2f3af6f416facb198f", size = 9893642, upload-time = "2026-04-26T23:36:17.039Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/36/173754c66655290b3d505936178d69a9b0ea043ef9f39683bbce7c767506/imgui_bundle-1.92.700-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:c2aaa5ec27e64f056a7429f5b66afe54a1800f2108257846495f343f4b91cc05", size = 11978586, upload-time = "2026-04-26T23:36:19.134Z" },
+    { url = "https://files.pythonhosted.org/packages/64/c2/1442e313b7349cd6ed702cf8f9eef85e875a11af29b023d848eb4b043fe5/imgui_bundle-1.92.700-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:9321ad5332b4fd29bb2e585822be95c44b287ac6705f00264e969d5fc7d6ccd7", size = 13067923, upload-time = "2026-04-26T23:36:21.427Z" },
+    { url = "https://files.pythonhosted.org/packages/58/98/cfe66ea72339b8b5e4475193bf11ed246b5b24a97efe5dd2c011921c9b0a/imgui_bundle-1.92.700-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:47ae46048c34265162bfe4b5c5c36c59d18fbf9e155eb6458c956ae0b79c5a62", size = 13029483, upload-time = "2026-04-26T23:36:23.771Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/8c/0d212d9dfc51e197f3a2bc755704345004a2938a7f62cc4bd6b67537e752/imgui_bundle-1.92.700-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:dcbb2b4f34cfcebef9f9168a493a0a8103096637b298ce725f7e6356e322a27b", size = 13928014, upload-time = "2026-04-26T23:36:25.637Z" },
+    { url = "https://files.pythonhosted.org/packages/54/d8/b6f5a92b04be2afa3f051a26403d0b4dafe402e987b1bed9555c5333088c/imgui_bundle-1.92.700-cp314-cp314-win_amd64.whl", hash = "sha256:eb6200640c78c553da9a08fbb67124578aa6bc0c1132b409f5fa4450e7e30cee", size = 11014755, upload-time = "2026-04-26T23:36:27.819Z" },
+    { url = "https://files.pythonhosted.org/packages/df/ae/3ce9f3db2a6802a8644e13dcca3474e6867178a476b8f67bcd379e15c697/imgui_bundle-1.92.700-cp314-cp314-win_arm64.whl", hash = "sha256:1afa31d125e3dc127527d0c87137013ef19757429c3b91696ceda295f609b6ba", size = 10654888, upload-time = "2026-04-26T23:36:29.722Z" },
+]
+
+[[package]]
 name = "iniconfig"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -112,6 +142,32 @@ sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
 ]
+
+[[package]]
+name = "knx-gui"
+version = "0.1.0"
+source = { editable = "apps/knx-gui" }
+dependencies = [
+    { name = "imgui-bundle" },
+    { name = "xknx-models" },
+    { name = "xknx-product" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pyright" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "imgui-bundle", specifier = ">=1.92.0" },
+    { name = "pyright", marker = "extra == 'dev'" },
+    { name = "ruff", marker = "extra == 'dev'" },
+    { name = "xknx-models", editable = "packages/models" },
+    { name = "xknx-product", editable = "packages/product" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "nodeenv"
