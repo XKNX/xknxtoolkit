@@ -31,17 +31,22 @@ def _flag_enabled(value: Any) -> bool:
 
 
 def _dpt_code(value: Any) -> str | None:
-    if not value:
+    if value is None:
         return None
-    token = str(value).strip().split()[0]
-    parts = token.split("-")
-    if len(parts) >= 2 and parts[0] in {"DPT", "DPST"}:
+    if isinstance(value, list):
+        tokens = [str(v) for v in value if v]
+    else:
+        tokens = str(value).strip().split()
+    for token in tokens:
+        parts = token.split("-")
+        if len(parts) < 2 or parts[0] not in {"DPT", "DPST"}:
+            continue
         try:
             major = int(parts[1])
             minor = int(parts[2]) if len(parts) >= 3 else 0
-            return f"{major}.{minor}"
         except ValueError:
-            return None
+            continue
+        return f"{major}.{minor}"
     return None
 
 
