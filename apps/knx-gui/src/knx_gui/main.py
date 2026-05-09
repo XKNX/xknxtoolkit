@@ -152,7 +152,7 @@ def com_object_has_input(co: ComObject) -> bool:
 
 
 def com_object_has_output(co: ComObject) -> bool:
-    return co.flags.transmit
+    return co.flags.transmit or co.flags.read
 
 
 @dataclass
