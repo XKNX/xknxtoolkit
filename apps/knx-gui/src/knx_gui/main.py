@@ -83,6 +83,9 @@ DPT_VALUE_1_UCOUNT = DPT(5, 10, "Counter (uint8)", "count")
 # 8-bit signed (major 6)
 DPT_VALUE_1_COUNT = DPT(6, 10, "Counter (int8)", "i8")
 
+# 16-bit unsigned (major 7)
+DPT_COLOR_TEMP_KELVIN = DPT(7, 600, "Color Temperature", "K")
+
 # Time / Date (majors 10, 11, 19)
 DPT_TIME_OF_DAY = DPT(10, 1, "Time of Day", "time")
 DPT_DATE = DPT(11, 1, "Date", "date")
@@ -107,8 +110,9 @@ DPT_POWER = DPT(9, 24, "Power", "kW")
 DPT_SCENE = DPT(17, 1, "Scene", "scene")
 DPT_SCENE_CONTROL = DPT(18, 1, "Scene Control", "scene ctrl")
 
-# Color (major 232)
+# Color (major 232 / 249)
 DPT_RGB = DPT(232, 600, "RGB", "rgb")
+DPT_BRIGHTNESS_COLOR_TEMP_TRANSITION = DPT(249, 600, "Brightness/Color Temp/Transition", "bri/K/t")
 
 
 KNOWN_DPTS: dict[tuple[int, int], DPT] = {
@@ -122,12 +126,13 @@ KNOWN_DPTS: dict[tuple[int, int], DPT] = {
         DPT_DIMMING, DPT_BLINDS,
         DPT_PERCENT, DPT_ANGLE, DPT_PERCENT_U8, DPT_DECIMAL_FACTOR, DPT_TARIFF, DPT_VALUE_1_UCOUNT,
         DPT_VALUE_1_COUNT,
+        DPT_COLOR_TEMP_KELVIN,
         DPT_TIME_OF_DAY, DPT_DATE, DPT_DATE_TIME,
         DPT_TEMPERATURE, DPT_TEMPERATURE_DELTA, DPT_LUX, DPT_WIND_SPEED, DPT_PRESSURE,
         DPT_HUMIDITY, DPT_PARTS_PER_MILLION, DPT_TIME_DIFF, DPT_VOLT, DPT_CURRENT,
         DPT_POWER_DENSITY, DPT_KELVIN, DPT_POWER,
         DPT_SCENE, DPT_SCENE_CONTROL,
-        DPT_RGB,
+        DPT_RGB, DPT_BRIGHTNESS_COLOR_TEMP_TRANSITION,
     ]
 }
 
@@ -153,9 +158,16 @@ DPT_MAJOR_COLORS: dict[int, imgui.ImVec4] = {
     1: imgui.ImVec4(0.9, 0.3, 0.3, 1.0),
     3: imgui.ImVec4(0.9, 0.6, 0.2, 1.0),
     5: imgui.ImVec4(0.2, 0.8, 0.4, 1.0),
+    6: imgui.ImVec4(0.2, 0.7, 0.5, 1.0),
+    7: imgui.ImVec4(0.6, 0.8, 0.9, 1.0),
     9: imgui.ImVec4(0.2, 0.6, 0.9, 1.0),
+    10: imgui.ImVec4(0.7, 0.7, 0.5, 1.0),
+    11: imgui.ImVec4(0.7, 0.7, 0.5, 1.0),
     17: imgui.ImVec4(0.7, 0.3, 0.9, 1.0),
+    18: imgui.ImVec4(0.7, 0.3, 0.9, 1.0),
+    19: imgui.ImVec4(0.7, 0.7, 0.5, 1.0),
     232: imgui.ImVec4(0.9, 0.2, 0.6, 1.0),
+    249: imgui.ImVec4(0.95, 0.4, 0.7, 1.0),
 }
 
 
