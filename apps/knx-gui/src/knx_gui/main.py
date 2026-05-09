@@ -81,9 +81,62 @@ class PinDir(Enum):
 
 
 @dataclass
+class ComObjectFlags:
+    communication: bool = True
+    read: bool = False
+    write: bool = False
+    transmit: bool = False
+    update: bool = False
+    read_on_init: bool = False
+
+    @classmethod
+    def default_input(cls) -> "ComObjectFlags":
+        return cls(communication=True, write=True)
+
+    @classmethod
+    def default_output(cls) -> "ComObjectFlags":
+        return cls(communication=True, read=True, transmit=True)
+
+
+def default_flags_for(direction: PinDir) -> ComObjectFlags:
+    if direction == PinDir.INPUT:
+        return ComObjectFlags.default_input()
+    return ComObjectFlags.default_output()
+
+
+def is_default_flags(flags: ComObjectFlags, direction: PinDir) -> bool:
+    return flags == default_flags_for(direction)
+
+
+@dataclass
 class Pin:
     name: str
     dpt: DPT
+    flags: ComObjectFlags | None = None
+
+
+def resolve_pin_flags(pin: Pin, direction: PinDir) -> ComObjectFlags:
+    return pin.flags if pin.flags is not None else default_flags_for(direction)
+
+
+FLAG_LABELS = [
+    ("communication", "C", "Communication"),
+    ("read", "R", "Read"),
+    ("write", "W", "Write"),
+    ("transmit", "T", "Transmit"),
+    ("update", "U", "Update"),
+    ("read_on_init", "I", "Read on Init"),
+]
+
+
+def flag_diff_letters(flags: ComObjectFlags, direction: PinDir) -> list[tuple[str, bool]]:
+    """Returns letters where the flag differs from the default. (letter, is_set)"""
+    default = default_flags_for(direction)
+    diffs = []
+    for attr, letter, _ in FLAG_LABELS:
+        if getattr(flags, attr) != getattr(default, attr):
+            diffs.append((letter, getattr(flags, attr)))
+    return diffs
 
 
 @dataclass
@@ -169,8 +222,19 @@ DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
     "thermostat": DeviceTemplate(
         name="Thermostat",
         rows=[
-            PinRow(Pin("Setpoint", DPT_TEMPERATURE), Pin("Actual Temp", DPT_TEMPERATURE)),
-            PinRow(output_pin=Pin("Heating", DPT_SWITCH)),
+            PinRow(
+                Pin(
+                    "Setpoint",
+                    DPT_TEMPERATURE,
+                    ComObjectFlags(communication=True, write=True, read_on_init=True),
+                ),
+                Pin("Actual Temp", DPT_TEMPERATURE),
+            ),
+            PinRow(output_pin=Pin(
+                "Heating",
+                DPT_SWITCH,
+                ComObjectFlags(communication=True, transmit=True),
+            )),
             PinRow(output_pin=Pin("Valve", DPT_PERCENT)),
         ],
         config=DeviceConfig("Theben", "RAMSES 718 P", "7189210", "2.3.1"),
@@ -258,6 +322,7 @@ class KnxGuiApp:
         self._selected_telegrams: set[int] = set()
         self._last_selected_telegram: int = -1
         self._drag_source_pin: int | None = None
+        self._pin_flags: dict[int, ComObjectFlags] = {}
         self._init_devices()
         self._init_sample_telegrams()
 
@@ -289,12 +354,46 @@ class KnxGuiApp:
         config = ed.Config()
         config.navigate_button_index = 2
         config.enable_smooth_zoom = True
+        config.force_window_content_width_to_node_width = True
         self._editor_context = ed.create_editor(config)
 
     def shutdown(self) -> None:
         if self._editor_context:
             ed.destroy_editor(self._editor_context)
             self._editor_context = None
+
+    def _draw_flag_badges(self, flags: ComObjectFlags, direction: PinDir) -> None:
+        diffs = flag_diff_letters(flags, direction)
+        if not diffs:
+            return
+        for letter, is_set in diffs:
+            color = imgui.ImVec4(0.4, 0.7, 0.3, 1.0) if is_set else imgui.ImVec4(0.7, 0.3, 0.3, 1.0)
+            imgui.push_style_color(imgui.Col_.text, color)
+            imgui.text(letter if is_set else f"!{letter}")
+            imgui.pop_style_color()
+            if imgui.is_item_hovered():
+                self._show_flags_tooltip(flags, direction)
+            imgui.same_line()
+
+    def _show_flags_tooltip(self, flags: ComObjectFlags, direction: PinDir) -> None:
+        ed.suspend()
+        imgui.begin_tooltip()
+        imgui.text(f"Default for {direction.value}:")
+        default = default_flags_for(direction)
+        for attr, letter, name in FLAG_LABELS:
+            current = getattr(flags, attr)
+            default_val = getattr(default, attr)
+            symbol = "✓" if current else "✗"
+            label = f"{symbol} {letter}  {name}"
+            if current != default_val:
+                color = imgui.ImVec4(0.4, 0.7, 0.3, 1.0) if current else imgui.ImVec4(0.7, 0.3, 0.3, 1.0)
+                imgui.push_style_color(imgui.Col_.text, color)
+                imgui.text(label + "  (modified)")
+                imgui.pop_style_color()
+            else:
+                imgui.text_disabled(label)
+        imgui.end_tooltip()
+        ed.resume()
 
     def _calc_pin_highlight(self, pin: Pin, direction: PinDir) -> tuple[float, bool]:
         if self._drag_source_pin is None:
@@ -346,7 +445,24 @@ class KnxGuiApp:
             imgui.calc_text_size(template.config.hardware).x,
             imgui.calc_text_size(template.config.firmware).x,
         )
-        settings_width = tree_indent + SETTINGS_LABEL_OFFSET + max_value_w
+        manufacturer_width = tree_indent + SETTINGS_LABEL_OFFSET + max_value_w
+
+        max_pin_name_w = imgui.calc_text_size("Object").x
+        for row in template.rows:
+            if row.input_pin:
+                max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(row.input_pin.name).x)
+            if row.output_pin:
+                max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(row.output_pin.name).x)
+        item_spacing = imgui.get_style().item_spacing.x
+        checkbox_w = imgui.get_frame_height()
+        com_objects_width = (
+            tree_indent
+            + max_pin_name_w
+            + 8
+            + len(FLAG_LABELS) * (checkbox_w + item_spacing)
+        )
+
+        settings_width = max(manufacturer_width, com_objects_width)
 
         pin_row_width = in_total_w + MIN_PIN_SPACING + out_total_w
         node_width = max(pin_row_width, settings_width)
@@ -363,9 +479,14 @@ class KnxGuiApp:
             out_name_w=out_name_w,
         )
 
+    def _ensure_pin_flags(self, pin_id: int, pin: Pin, direction: PinDir) -> None:
+        if pin_id not in self._pin_flags:
+            self._pin_flags[pin_id] = resolve_pin_flags(pin, direction)
+
     def _render_input_pin(self, pin_id: int, pin: Pin, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.INPUT
+        self._ensure_pin_flags(pin_id, pin, PinDir.INPUT)
         alpha, glow = self._calc_pin_highlight(pin, PinDir.INPUT)
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.input)
         ed.pin_pivot_alignment(imgui.ImVec2(0.0, 0.5))
@@ -384,6 +505,7 @@ class KnxGuiApp:
     def _render_output_pin(self, pin_id: int, pin: Pin, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.OUTPUT
+        self._ensure_pin_flags(pin_id, pin, PinDir.OUTPUT)
         alpha, glow = self._calc_pin_highlight(pin, PinDir.OUTPUT)
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
         ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
@@ -430,15 +552,52 @@ class KnxGuiApp:
         imgui.same_line(SETTINGS_LABEL_OFFSET)
         imgui.text(value)
 
-    def _render_node_settings(self, node_id: int, config: DeviceConfig, width: float) -> None:
+    def _render_com_object_row(self, pin_id: int, name: str) -> None:
+        flags = self._pin_flags.get(pin_id)
+        if flags is None:
+            return
+        imgui.table_next_row()
+        imgui.table_set_column_index(0)
+        imgui.text(name)
+        for col, (attr, _letter, full_name) in enumerate(FLAG_LABELS, start=1):
+            imgui.table_set_column_index(col)
+            current = getattr(flags, attr)
+            changed, new_value = imgui.checkbox(f"##{pin_id}_{attr}", current)
+            if changed:
+                setattr(flags, attr, new_value)
+            if imgui.is_item_hovered():
+                imgui.set_tooltip(full_name)
+
+    def _render_node_com_objects(self, node_id: int, template: DeviceTemplate) -> None:
+        flags = imgui.TableFlags_.borders_inner | imgui.TableFlags_.sizing_fixed_fit
+        if not imgui.begin_table(f"##com_objs_{node_id}", 1 + len(FLAG_LABELS), flags):
+            return
+        imgui.table_setup_column("Name")
+        for _attr, letter, _name in FLAG_LABELS:
+            imgui.table_setup_column(letter)
+        imgui.table_headers_row()
+        pin_base = node_id * 100
+        for i, row in enumerate(template.rows):
+            if row.input_pin:
+                self._render_com_object_row(pin_base + i, row.input_pin.name)
+            if row.output_pin:
+                self._render_com_object_row(pin_base + 50 + i, row.output_pin.name)
+        imgui.end_table()
+
+    def _render_node_settings(
+        self, node_id: int, template: DeviceTemplate, width: float
+    ) -> None:
         cursor = imgui.get_cursor_screen_pos()
         clip_max = imgui.ImVec2(cursor.x + width, cursor.y + SETTINGS_CLIP_HEIGHT)
         imgui.push_clip_rect(cursor, clip_max, True)
         if imgui.tree_node(f"Manufacturer##{node_id}"):
-            self._render_label_value("Manufacturer", config.manufacturer)
-            self._render_label_value("Application", config.application)
-            self._render_label_value("Hardware", config.hardware)
-            self._render_label_value("Firmware", config.firmware)
+            self._render_label_value("Manufacturer", template.config.manufacturer)
+            self._render_label_value("Application", template.config.application)
+            self._render_label_value("Hardware", template.config.hardware)
+            self._render_label_value("Firmware", template.config.firmware)
+            imgui.tree_pop()
+        if imgui.tree_node(f"Com Objects##{node_id}"):
+            self._render_node_com_objects(node_id, template)
             imgui.tree_pop()
         imgui.pop_clip_rect()
 
@@ -472,7 +631,7 @@ class KnxGuiApp:
         content_max_x = imgui.get_item_rect_max().x
 
         imgui.spacing()
-        self._render_node_settings(node_id, template.config, layout.node_width)
+        self._render_node_settings(node_id, template, layout.node_width)
 
         ed.end_node()
         self._draw_node_header_bg(node_id, header, content_max_x)
