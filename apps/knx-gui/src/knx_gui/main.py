@@ -6,8 +6,9 @@ from enum import Enum
 
 from imgui_bundle import imgui, hello_imgui, imgui_node_editor as ed, portable_file_dialogs as pfd
 
-from xknx.product.archive import ProductArchive
 from xknx.product.errors import ArchiveError
+
+from knx_gui.knxprod_loader import ParsedComObject, ParsedDeviceCandidate, parse_archive
 
 NODE_PADDING = 8.0
 HEADER_INSET = 1.0
@@ -49,6 +50,41 @@ DPT_PERCENT = DPT(5, 1, "Percent", "%")
 DPT_TEMPERATURE = DPT(9, 1, "Temperature", "°C")
 DPT_SCENE = DPT(17, 1, "Scene", "scene")
 DPT_RGB = DPT(232, 600, "RGB", "rgb")
+DPT_UNKNOWN = DPT(0, 0, "Unknown", "?")
+
+
+KNOWN_DPTS: dict[tuple[int, int], DPT] = {
+    (d.major, d.minor): d
+    for d in [
+        DPT_SWITCH,
+        DPT_BOOL,
+        DPT_UP_DOWN,
+        DPT_OPEN_CLOSE,
+        DPT_STOP,
+        DPT_DIMMING,
+        DPT_PERCENT,
+        DPT_TEMPERATURE,
+        DPT_SCENE,
+        DPT_RGB,
+    ]
+}
+
+
+def lookup_or_make_dpt(code: str | None) -> DPT:
+    if not code:
+        return DPT_UNKNOWN
+    parts = code.split(".")
+    if len(parts) != 2:
+        return DPT_UNKNOWN
+    try:
+        major = int(parts[0])
+        minor = int(parts[1])
+    except ValueError:
+        return DPT_UNKNOWN
+    known = KNOWN_DPTS.get((major, minor))
+    if known is not None:
+        return known
+    return DPT(major, minor, f"DPT {major}.{minor:03d}", code)
 
 
 DPT_MAJOR_COLORS: dict[int, imgui.ImVec4] = {
@@ -389,7 +425,8 @@ class KnxGuiApp:
         self._last_selected_telegram: int = -1
         self._drag_source_pin: int | None = None
         self._open_file_dialog: pfd.open_file | None = None
-        self._loaded_archive_info: str | None = None
+        self._archive_candidates: list[ParsedDeviceCandidate] = []
+        self._archive_path: str | None = None
         self._archive_load_error: str | None = None
         self._show_archive_popup: bool = False
         self._init_devices()
@@ -598,10 +635,11 @@ class KnxGuiApp:
         cursor_x = imgui.get_cursor_pos_x()
         imgui.begin_group()
         imgui.text(template.name)
-        imgui.same_line()
-        address_width = imgui.calc_text_size(address).x
-        imgui.set_cursor_pos_x(cursor_x + width - address_width)
-        imgui.text_disabled(address)
+        if address:
+            imgui.same_line()
+            address_width = imgui.calc_text_size(address).x
+            imgui.set_cursor_pos_x(cursor_x + width - address_width)
+            imgui.text_disabled(address)
         imgui.end_group()
         rect_min = imgui.get_item_rect_min()
         rect_max = imgui.get_item_rect_max()
@@ -804,24 +842,35 @@ class KnxGuiApp:
             color = LINK_LOOSE_COLOR if match == DPTMatch.LOOSE else LINK_COLOR
             ed.link(ed.LinkId(link_id), ed.PinId(start_pin), ed.PinId(end_pin), color)
 
-    def _build_address_tree(self) -> dict[int, dict[int, list[Device]]]:
+    def _build_address_tree(self) -> tuple[dict[int, dict[int, list[Device]]], list[Device]]:
         tree: dict[int, dict[int, list[Device]]] = {}
+        unassigned: list[Device] = []
         for device in self._devices:
+            if not device.address:
+                unassigned.append(device)
+                continue
             parts = device.address.split(".")
-            area, line = int(parts[0]), int(parts[1])
+            if len(parts) < 2:
+                unassigned.append(device)
+                continue
+            try:
+                area, line = int(parts[0]), int(parts[1])
+            except ValueError:
+                unassigned.append(device)
+                continue
             if area not in tree:
                 tree[area] = {}
             if line not in tree[area]:
                 tree[area][line] = []
             tree[area][line].append(device)
-        return tree
+        return tree, unassigned
 
     def _calc_sidebar_width(self) -> float:
         indent = imgui.get_style().indent_spacing
         max_width = imgui.calc_text_size("Devices").x
         for device in self._devices:
-            text = f"{device.name} ({device.address})"
-            width = imgui.calc_text_size(text).x + indent * 3
+            label = f"{device.name} ({device.address})" if device.address else device.name
+            width = imgui.calc_text_size(label).x + indent * 3
             max_width = max(max_width, width)
         return max_width + imgui.get_style().window_padding.x * 2 + 20
 
@@ -882,22 +931,56 @@ class KnxGuiApp:
 
     def _load_knxprod(self, path: str) -> None:
         self._archive_load_error = None
-        self._loaded_archive_info = None
+        self._archive_candidates = []
+        self._archive_path = path
         try:
-            with ProductArchive(path) as archive:
-                manufacturer_ids = sorted(archive.manufacturer_ids)
-                lines = [f"File: {path}"]
-                for mfr in manufacturer_ids:
-                    apps = archive.get_application_xmls(mfr)
-                    lines.append(f"Manufacturer {mfr}: {len(apps)} application(s)")
-                self._loaded_archive_info = "\n".join(lines)
-                self._show_archive_popup = True
+            self._archive_candidates = parse_archive(path)
         except ArchiveError as e:
             self._archive_load_error = str(e)
-            self._show_archive_popup = True
         except (OSError, ValueError) as e:
             self._archive_load_error = f"{type(e).__name__}: {e}"
-            self._show_archive_popup = True
+        self._show_archive_popup = True
+
+    def _candidate_to_template(self, candidate: ParsedDeviceCandidate) -> DeviceTemplate:
+        com_objects: list[ComObject] = []
+        for co in candidate.raw_com_objects:
+            flags = ComObjectFlags(
+                communication=co.flags["communication"],
+                read=co.flags["read"],
+                write=co.flags["write"],
+                transmit=co.flags["transmit"],
+                update=co.flags["update"],
+                read_on_init=co.flags["read_on_init"],
+            )
+            com_objects.append(
+                ComObject(
+                    name=co.name,
+                    dpt=lookup_or_make_dpt(co.dpt_code),
+                    flags=flags,
+                )
+            )
+        return DeviceTemplate(
+            name=candidate.name,
+            com_objects=com_objects,
+            config=DeviceConfig(
+                manufacturer=candidate.manufacturer_id,
+                application=candidate.application_id,
+                hardware="",
+                firmware="",
+            ),
+        )
+
+    def _add_candidate_as_device(self, candidate: ParsedDeviceCandidate) -> None:
+        template = self._candidate_to_template(candidate)
+        next_id = max((d.node_id for d in self._devices), default=0) + 1
+        self._devices.append(
+            Device(
+                node_id=next_id,
+                name=candidate.name,
+                template=template,
+                address="",
+            )
+        )
 
     def _render_archive_popup(self) -> None:
         if self._show_archive_popup:
@@ -905,17 +988,24 @@ class KnxGuiApp:
             self._show_archive_popup = False
         center = imgui.get_main_viewport().get_center()
         imgui.set_next_window_pos(center, imgui.Cond_.appearing, imgui.ImVec2(0.5, 0.5))
+        imgui.set_next_window_size_constraints(imgui.ImVec2(400, 0), imgui.ImVec2(800, 600))
         if imgui.begin_popup("##ArchivePopup"):
             if self._archive_load_error:
                 imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
                 imgui.text("Failed to load archive")
                 imgui.pop_style_color()
                 imgui.text(self._archive_load_error)
-            elif self._loaded_archive_info:
-                imgui.text("Archive loaded")
+            else:
+                imgui.text(f"Loaded: {self._archive_path}")
+                imgui.text(f"Found {len(self._archive_candidates)} application(s)")
                 imgui.separator()
-                for line in self._loaded_archive_info.splitlines():
-                    imgui.text(line)
+                for i, candidate in enumerate(self._archive_candidates):
+                    imgui.text(candidate.name)
+                    imgui.same_line()
+                    imgui.text_disabled(f"  ({len(candidate.raw_com_objects)} com objects)")
+                    imgui.same_line()
+                    if imgui.small_button(f"Add##{i}"):
+                        self._add_candidate_as_device(candidate)
             imgui.spacing()
             if imgui.button("Close", imgui.ImVec2(120, 0)):
                 imgui.close_current_popup()
@@ -1118,7 +1208,12 @@ class KnxGuiApp:
             imgui.begin_child("##Sidebar", imgui.ImVec2(sidebar_width, 0), imgui.ChildFlags_.borders)
             imgui.text("Devices")
             imgui.separator()
-            tree = self._build_address_tree()
+            tree, unassigned = self._build_address_tree()
+            leaf_flags = (
+                imgui.TreeNodeFlags_.leaf
+                | imgui.TreeNodeFlags_.no_tree_push_on_open
+                | imgui.TreeNodeFlags_.span_avail_width
+            )
             for area in sorted(tree.keys()):
                 area_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
                 if imgui.tree_node_ex(f"Area {area}", area_flags):
@@ -1126,16 +1221,20 @@ class KnxGuiApp:
                         line_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
                         if imgui.tree_node_ex(f"Line {area}.{line}", line_flags):
                             for device in tree[area][line]:
-                                flags = (
-                                    imgui.TreeNodeFlags_.leaf
-                                    | imgui.TreeNodeFlags_.no_tree_push_on_open
-                                    | imgui.TreeNodeFlags_.span_avail_width
-                                )
-                                imgui.tree_node_ex(f"{device.name} ({device.address})", flags)
+                                imgui.tree_node_ex(f"{device.name} ({device.address})", leaf_flags)
                                 if imgui.is_item_clicked():
                                     ed.select_node(ed.NodeId(device.node_id), False)
                                     ed.navigate_to_selection(False, 0.3)
                             imgui.tree_pop()
+                    imgui.tree_pop()
+            if unassigned:
+                unassigned_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
+                if imgui.tree_node_ex(f"Unassigned ({len(unassigned)})", unassigned_flags):
+                    for device in unassigned:
+                        imgui.tree_node_ex(device.name, leaf_flags)
+                        if imgui.is_item_clicked():
+                            ed.select_node(ed.NodeId(device.node_id), False)
+                            ed.navigate_to_selection(False, 0.3)
                     imgui.tree_pop()
             imgui.end_child()
             imgui.same_line()
