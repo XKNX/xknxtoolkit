@@ -12,7 +12,7 @@ class ParsedComObject:
     id: str
     name: str
     number: int
-    dpt_code: str | None
+    dpt_codes: list[str]
     flags: dict[str, bool]
 
 
@@ -30,13 +30,14 @@ def _flag_enabled(value: Any) -> bool:
     return str(value).split(".")[-1].lower() == "enabled"
 
 
-def _dpt_code(value: Any) -> str | None:
+def _dpt_codes(value: Any) -> list[str]:
     if value is None:
-        return None
+        return []
     if isinstance(value, list):
         tokens = [str(v) for v in value if v]
     else:
         tokens = str(value).strip().split()
+    codes: list[str] = []
     for token in tokens:
         parts = token.split("-")
         if len(parts) < 2 or parts[0] not in {"DPT", "DPST"}:
@@ -46,8 +47,8 @@ def _dpt_code(value: Any) -> str | None:
             minor = int(parts[2]) if len(parts) >= 3 else 0
         except ValueError:
             continue
-        return f"{major}.{minor}"
-    return None
+        codes.append(f"{major}.{minor}")
+    return codes
 
 
 def _extract_com_objects(application_program: Any) -> list[ParsedComObject]:
@@ -65,7 +66,7 @@ def _extract_com_objects(application_program: Any) -> list[ParsedComObject]:
                 id=getattr(co, "id", "") or "",
                 name=getattr(co, "text", None) or getattr(co, "name", None) or "Unnamed",
                 number=int(getattr(co, "number", 0) or 0),
-                dpt_code=_dpt_code(getattr(co, "datapoint_type", None)),
+                dpt_codes=_dpt_codes(getattr(co, "datapoint_type", None)),
                 flags={
                     "communication": _flag_enabled(getattr(co, "communication_flag", None)),
                     "read": _flag_enabled(getattr(co, "read_flag", None)),

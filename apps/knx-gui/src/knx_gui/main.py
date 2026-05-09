@@ -40,31 +40,87 @@ class DPT:
         return f"{self.major}.{self.minor:03d}"
 
 
+DPT_UNKNOWN = DPT(0, 0, "Unknown", "?")
+
+# 1-bit (major 1) - boolean concepts
 DPT_SWITCH = DPT(1, 1, "Switch", "switch")
 DPT_BOOL = DPT(1, 2, "Boolean", "bool")
+DPT_ENABLE = DPT(1, 3, "Enable", "enable")
+DPT_RAMP = DPT(1, 4, "Ramp", "ramp")
+DPT_ALARM = DPT(1, 5, "Alarm", "alarm")
+DPT_BINARY_VALUE = DPT(1, 6, "Binary Value", "binary")
+DPT_STEP = DPT(1, 7, "Step", "step")
 DPT_UP_DOWN = DPT(1, 8, "Up/Down", "up/down")
 DPT_OPEN_CLOSE = DPT(1, 9, "Open/Close", "open/close")
 DPT_STOP = DPT(1, 10, "Start/Stop", "start/stop")
+DPT_STATE = DPT(1, 11, "State", "state")
+DPT_INVERT = DPT(1, 12, "Invert", "invert")
+DPT_DIM_SEND_STYLE = DPT(1, 13, "Dim Send Style", "dim style")
+DPT_INPUT_SOURCE = DPT(1, 14, "Input Source", "src")
+DPT_RESET = DPT(1, 15, "Reset", "reset")
+DPT_ACK = DPT(1, 16, "Acknowledge", "ack")
+DPT_TRIGGER = DPT(1, 17, "Trigger", "trigger")
+DPT_OCCUPANCY = DPT(1, 18, "Occupancy", "occupancy")
+DPT_WINDOW_DOOR = DPT(1, 19, "Window/Door", "win/door")
+DPT_LOGICAL_FUNCTION = DPT(1, 21, "Logical Function", "logic")
+DPT_SCENE_AB = DPT(1, 22, "Scene A/B", "scene a/b")
+DPT_SHUTTER_BLINDS_MODE = DPT(1, 23, "Shutter/Blinds Mode", "blinds mode")
+DPT_DAY_NIGHT = DPT(1, 24, "Day/Night", "day/night")
+DPT_HEAT_COOL = DPT(1, 100, "Heat/Cool", "heat/cool")
+
+# 4-bit dimming
 DPT_DIMMING = DPT(3, 7, "Dimming", "dim")
+DPT_BLINDS = DPT(3, 8, "Blinds", "blinds")
+
+# 8-bit unsigned (major 5)
 DPT_PERCENT = DPT(5, 1, "Percent", "%")
+DPT_ANGLE = DPT(5, 3, "Angle", "°")
+DPT_PERCENT_U8 = DPT(5, 4, "Percent (uint8)", "%u8")
+DPT_DECIMAL_FACTOR = DPT(5, 5, "Decimal Factor", "factor")
+DPT_TARIFF = DPT(5, 6, "Tariff", "tariff")
+DPT_VALUE_1_UCOUNT = DPT(5, 10, "Counter (uint8)", "count")
+
+# 8-bit signed (major 6)
+DPT_VALUE_1_COUNT = DPT(6, 10, "Counter (int8)", "i8")
+
+# 16-bit float (major 9) - common physical quantities
 DPT_TEMPERATURE = DPT(9, 1, "Temperature", "°C")
+DPT_TEMPERATURE_DELTA = DPT(9, 2, "Temperature Delta", "ΔK")
+DPT_LUX = DPT(9, 4, "Illuminance", "lux")
+DPT_WIND_SPEED = DPT(9, 5, "Wind Speed", "m/s")
+DPT_PRESSURE = DPT(9, 6, "Pressure", "Pa")
+DPT_HUMIDITY = DPT(9, 7, "Humidity", "%RH")
+DPT_PARTS_PER_MILLION = DPT(9, 8, "ppm", "ppm")
+DPT_TIME_DIFF = DPT(9, 10, "Time Difference (s)", "s")
+DPT_VOLT = DPT(9, 20, "Voltage", "mV")
+DPT_CURRENT = DPT(9, 21, "Current", "mA")
+DPT_POWER_DENSITY = DPT(9, 22, "Power Density", "W/m²")
+DPT_KELVIN = DPT(9, 23, "Kelvin/%", "K/%")
+DPT_POWER = DPT(9, 24, "Power", "kW")
+
+# Scenes / control
 DPT_SCENE = DPT(17, 1, "Scene", "scene")
+DPT_SCENE_CONTROL = DPT(18, 1, "Scene Control", "scene ctrl")
+
+# Color (major 232)
 DPT_RGB = DPT(232, 600, "RGB", "rgb")
-DPT_UNKNOWN = DPT(0, 0, "Unknown", "?")
 
 
 KNOWN_DPTS: dict[tuple[int, int], DPT] = {
     (d.major, d.minor): d
     for d in [
-        DPT_SWITCH,
-        DPT_BOOL,
-        DPT_UP_DOWN,
-        DPT_OPEN_CLOSE,
-        DPT_STOP,
-        DPT_DIMMING,
-        DPT_PERCENT,
-        DPT_TEMPERATURE,
-        DPT_SCENE,
+        DPT_SWITCH, DPT_BOOL, DPT_ENABLE, DPT_RAMP, DPT_ALARM, DPT_BINARY_VALUE,
+        DPT_STEP, DPT_UP_DOWN, DPT_OPEN_CLOSE, DPT_STOP, DPT_STATE, DPT_INVERT,
+        DPT_DIM_SEND_STYLE, DPT_INPUT_SOURCE, DPT_RESET, DPT_ACK, DPT_TRIGGER,
+        DPT_OCCUPANCY, DPT_WINDOW_DOOR, DPT_LOGICAL_FUNCTION, DPT_SCENE_AB,
+        DPT_SHUTTER_BLINDS_MODE, DPT_DAY_NIGHT, DPT_HEAT_COOL,
+        DPT_DIMMING, DPT_BLINDS,
+        DPT_PERCENT, DPT_ANGLE, DPT_PERCENT_U8, DPT_DECIMAL_FACTOR, DPT_TARIFF, DPT_VALUE_1_UCOUNT,
+        DPT_VALUE_1_COUNT,
+        DPT_TEMPERATURE, DPT_TEMPERATURE_DELTA, DPT_LUX, DPT_WIND_SPEED, DPT_PRESSURE,
+        DPT_HUMIDITY, DPT_PARTS_PER_MILLION, DPT_TIME_DIFF, DPT_VOLT, DPT_CURRENT,
+        DPT_POWER_DENSITY, DPT_KELVIN, DPT_POWER,
+        DPT_SCENE, DPT_SCENE_CONTROL,
         DPT_RGB,
     ]
 }
@@ -153,20 +209,31 @@ class ComObject:
     name: str
     dpt: DPT
     flags: ComObjectFlags
+    supported_dpts: list[DPT] = field(default_factory=list)
 
 
-def listen_obj(name: str, dpt: DPT, **flag_overrides: bool) -> ComObject:
+def listen_obj(
+    name: str,
+    dpt: DPT,
+    supported: list[DPT] | None = None,
+    **flag_overrides: bool,
+) -> ComObject:
     flags = ComObjectFlags.default_input()
     for key, value in flag_overrides.items():
         setattr(flags, key, value)
-    return ComObject(name, dpt, flags)
+    return ComObject(name, dpt, flags, supported_dpts=supported or [])
 
 
-def send_obj(name: str, dpt: DPT, **flag_overrides: bool) -> ComObject:
+def send_obj(
+    name: str,
+    dpt: DPT,
+    supported: list[DPT] | None = None,
+    **flag_overrides: bool,
+) -> ComObject:
     flags = ComObjectFlags.default_output()
     for key, value in flag_overrides.items():
         setattr(flags, key, value)
-    return ComObject(name, dpt, flags)
+    return ComObject(name, dpt, flags, supported_dpts=supported or [])
 
 
 def bidirectional_obj(name: str, dpt: DPT, **flag_overrides: bool) -> ComObject:
@@ -322,6 +389,27 @@ DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
         ],
         config=DeviceConfig("MDT", "AKD-0424R2.02", "R2.02", "1.1.0"),
     ),
+    "logic_gate": DeviceTemplate(
+        name="Logic Gate",
+        com_objects=[
+            listen_obj(
+                "Input A",
+                DPT_SWITCH,
+                supported=[DPT_SWITCH, DPT_BOOL, DPT_UP_DOWN, DPT_OPEN_CLOSE],
+            ),
+            listen_obj(
+                "Input B",
+                DPT_SWITCH,
+                supported=[DPT_SWITCH, DPT_BOOL, DPT_UP_DOWN, DPT_OPEN_CLOSE],
+            ),
+            send_obj(
+                "Output",
+                DPT_SWITCH,
+                supported=[DPT_SWITCH, DPT_BOOL, DPT_UP_DOWN, DPT_OPEN_CLOSE],
+            ),
+        ],
+        config=DeviceConfig("MDT", "Logic AKK-04UP.03", "AKK-04UP", "1.0.0"),
+    ),
     "thermostat": DeviceTemplate(
         name="Thermostat",
         com_objects=[
@@ -429,6 +517,8 @@ class KnxGuiApp:
         self._archive_path: str | None = None
         self._archive_load_error: str | None = None
         self._show_archive_popup: bool = False
+        self._dpt_popup_target: ComObject | None = None
+        self._dpt_popup_request: ComObject | None = None
         self._init_devices()
         self._init_sample_telegrams()
 
@@ -442,6 +532,7 @@ class KnxGuiApp:
             Device(6, "RGB Strip", DEVICE_TEMPLATES["rgb_controller"], "2.1.1"),
             Device(7, "Bedroom Blinds", DEVICE_TEMPLATES["blinds_actuator"], "1.2.3"),
             Device(8, "Shutter Button", DEVICE_TEMPLATES["shutter_button"], "1.2.4"),
+            Device(9, "Logic AND", DEVICE_TEMPLATES["logic_gate"], "1.3.1"),
         ]
 
     def _init_sample_telegrams(self) -> None:
@@ -583,6 +674,41 @@ class KnxGuiApp:
             out_name_w=out_name_w,
         )
 
+    def _render_dpt_label(self, pin: ComObject, pin_id: int) -> None:
+        label = f"[{pin.dpt.label}]"
+        if len(pin.supported_dpts) > 1:
+            text_size = imgui.calc_text_size(label)
+            imgui.push_style_color(imgui.Col_.text, imgui.get_style().color_(imgui.Col_.text_disabled))
+            clicked = imgui.selectable(
+                f"{label}##dpt_{pin_id}",
+                False,
+                imgui.SelectableFlags_.no_auto_close_popups,
+                imgui.ImVec2(text_size.x, 0),
+            )[0]
+            imgui.pop_style_color()
+            if clicked:
+                self._dpt_popup_request = pin
+        else:
+            imgui.text_disabled(label)
+
+    def _render_dpt_popup(self) -> None:
+        if self._dpt_popup_request is not None:
+            self._dpt_popup_target = self._dpt_popup_request
+            self._dpt_popup_request = None
+            imgui.open_popup("##DptPopup")
+        if imgui.begin_popup("##DptPopup"):
+            target = self._dpt_popup_target
+            if target is not None:
+                imgui.text_disabled("Select DPT")
+                imgui.separator()
+                for dpt in target.supported_dpts:
+                    selected = dpt.major == target.dpt.major and dpt.minor == target.dpt.minor
+                    if imgui.menu_item(f"{dpt.code}  {dpt.name}", "", selected)[0]:
+                        target.dpt = dpt
+            imgui.end_popup()
+        else:
+            self._dpt_popup_target = None
+
     def _render_input_pin(self, pin_id: int, pin: ComObject, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.INPUT
@@ -600,12 +726,12 @@ class KnxGuiApp:
             imgui.text_disabled(pin.name)
         imgui.same_line()
         imgui.dummy(imgui.ImVec2(layout.in_name_w - imgui.calc_text_size(pin.name).x, 1))
+        ed.end_pin()
         imgui.same_line()
         dpt_label = f"[{pin.dpt.label}]"
-        imgui.text_disabled(dpt_label)
+        self._render_dpt_label(pin, pin_id)
         imgui.same_line()
         imgui.dummy(imgui.ImVec2(layout.in_dpt_w - imgui.calc_text_size(dpt_label).x, 1))
-        ed.end_pin()
 
     def _render_output_pin(self, pin_id: int, pin: ComObject, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
@@ -614,13 +740,13 @@ class KnxGuiApp:
         if not pin.flags.communication:
             alpha *= 0.4
             glow = False
-        ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
-        ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
         dpt_label = f"[{pin.dpt.label}]"
-        imgui.text_disabled(dpt_label)
+        self._render_dpt_label(pin, pin_id)
         imgui.same_line()
         imgui.dummy(imgui.ImVec2(layout.out_dpt_w - imgui.calc_text_size(dpt_label).x, 1))
         imgui.same_line()
+        ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
+        ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
         if pin.flags.communication:
             imgui.text_unformatted(pin.name)
         else:
@@ -952,11 +1078,22 @@ class KnxGuiApp:
                 update=co.flags["update"],
                 read_on_init=co.flags["read_on_init"],
             )
+            supported = [lookup_or_make_dpt(code) for code in co.dpt_codes]
+            seen: set[tuple[int, int]] = set()
+            unique_supported: list[DPT] = []
+            for dpt in supported:
+                key = (dpt.major, dpt.minor)
+                if key in seen:
+                    continue
+                seen.add(key)
+                unique_supported.append(dpt)
+            primary = unique_supported[0] if unique_supported else DPT_UNKNOWN
             com_objects.append(
                 ComObject(
                     name=co.name,
-                    dpt=lookup_or_make_dpt(co.dpt_code),
+                    dpt=primary,
                     flags=flags,
+                    supported_dpts=unique_supported,
                 )
             )
         return DeviceTemplate(
@@ -1255,6 +1392,7 @@ class KnxGuiApp:
         self._handle_link_deletion()
 
         ed.end()
+        self._render_dpt_popup()
 
         if self._show_telegrams:
             self._render_telegrams_pane()
