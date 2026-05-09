@@ -4,7 +4,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 
-from imgui_bundle import imgui, hello_imgui, imgui_node_editor as ed
+from imgui_bundle import imgui, hello_imgui, imgui_node_editor as ed, portable_file_dialogs as pfd
+
+from xknx.product.archive import ProductArchive
+from xknx.product.errors import ArchiveError
 
 NODE_PADDING = 8.0
 HEADER_INSET = 1.0
@@ -385,6 +388,10 @@ class KnxGuiApp:
         self._selected_telegrams: set[int] = set()
         self._last_selected_telegram: int = -1
         self._drag_source_pin: int | None = None
+        self._open_file_dialog: pfd.open_file | None = None
+        self._loaded_archive_info: str | None = None
+        self._archive_load_error: str | None = None
+        self._show_archive_popup: bool = False
         self._init_devices()
         self._init_sample_telegrams()
 
@@ -862,6 +869,58 @@ class KnxGuiApp:
                 imgui.close_current_popup()
             imgui.end_popup()
 
+    def _poll_open_file_dialog(self) -> None:
+        if self._open_file_dialog is None:
+            return
+        if not self._open_file_dialog.ready():
+            return
+        result = self._open_file_dialog.result()
+        self._open_file_dialog = None
+        if not result:
+            return
+        self._load_knxprod(result[0])
+
+    def _load_knxprod(self, path: str) -> None:
+        self._archive_load_error = None
+        self._loaded_archive_info = None
+        try:
+            with ProductArchive(path) as archive:
+                manufacturer_ids = sorted(archive.manufacturer_ids)
+                lines = [f"File: {path}"]
+                for mfr in manufacturer_ids:
+                    apps = archive.get_application_xmls(mfr)
+                    lines.append(f"Manufacturer {mfr}: {len(apps)} application(s)")
+                self._loaded_archive_info = "\n".join(lines)
+                self._show_archive_popup = True
+        except ArchiveError as e:
+            self._archive_load_error = str(e)
+            self._show_archive_popup = True
+        except (OSError, ValueError) as e:
+            self._archive_load_error = f"{type(e).__name__}: {e}"
+            self._show_archive_popup = True
+
+    def _render_archive_popup(self) -> None:
+        if self._show_archive_popup:
+            imgui.open_popup("##ArchivePopup")
+            self._show_archive_popup = False
+        center = imgui.get_main_viewport().get_center()
+        imgui.set_next_window_pos(center, imgui.Cond_.appearing, imgui.ImVec2(0.5, 0.5))
+        if imgui.begin_popup("##ArchivePopup"):
+            if self._archive_load_error:
+                imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
+                imgui.text("Failed to load archive")
+                imgui.pop_style_color()
+                imgui.text(self._archive_load_error)
+            elif self._loaded_archive_info:
+                imgui.text("Archive loaded")
+                imgui.separator()
+                for line in self._loaded_archive_info.splitlines():
+                    imgui.text(line)
+            imgui.spacing()
+            if imgui.button("Close", imgui.ImVec2(120, 0)):
+                imgui.close_current_popup()
+            imgui.end_popup()
+
     def _render_menu_bar(self) -> None:
         if imgui.begin_main_menu_bar():
             if imgui.begin_menu("File"):
@@ -871,6 +930,13 @@ class KnxGuiApp:
                     pass
                 if imgui.menu_item("Save Project", "", False)[0]:
                     pass
+                imgui.separator()
+                if imgui.menu_item("Load .knxprod...", "", False)[0]:
+                    self._open_file_dialog = pfd.open_file(
+                        "Open KNX product archive",
+                        "",
+                        ["KNX product (*.knxprod)", "*.knxprod", "All files", "*"],
+                    )
                 imgui.separator()
                 if imgui.menu_item("Exit", "", False)[0]:
                     pass
@@ -1032,6 +1098,8 @@ class KnxGuiApp:
             return
 
         self._render_menu_bar()
+        self._poll_open_file_dialog()
+        self._render_archive_popup()
         self._render_bottom_bar()
 
         menu_bar_height = imgui.get_frame_height()
