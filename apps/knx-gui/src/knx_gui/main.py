@@ -83,6 +83,11 @@ DPT_VALUE_1_UCOUNT = DPT(5, 10, "Counter (uint8)", "count")
 # 8-bit signed (major 6)
 DPT_VALUE_1_COUNT = DPT(6, 10, "Counter (int8)", "i8")
 
+# Time / Date (majors 10, 11, 19)
+DPT_TIME_OF_DAY = DPT(10, 1, "Time of Day", "time")
+DPT_DATE = DPT(11, 1, "Date", "date")
+DPT_DATE_TIME = DPT(19, 1, "Date/Time", "datetime")
+
 # 16-bit float (major 9) - common physical quantities
 DPT_TEMPERATURE = DPT(9, 1, "Temperature", "°C")
 DPT_TEMPERATURE_DELTA = DPT(9, 2, "Temperature Delta", "ΔK")
@@ -117,6 +122,7 @@ KNOWN_DPTS: dict[tuple[int, int], DPT] = {
         DPT_DIMMING, DPT_BLINDS,
         DPT_PERCENT, DPT_ANGLE, DPT_PERCENT_U8, DPT_DECIMAL_FACTOR, DPT_TARIFF, DPT_VALUE_1_UCOUNT,
         DPT_VALUE_1_COUNT,
+        DPT_TIME_OF_DAY, DPT_DATE, DPT_DATE_TIME,
         DPT_TEMPERATURE, DPT_TEMPERATURE_DELTA, DPT_LUX, DPT_WIND_SPEED, DPT_PRESSURE,
         DPT_HUMIDITY, DPT_PARTS_PER_MILLION, DPT_TIME_DIFF, DPT_VOLT, DPT_CURRENT,
         DPT_POWER_DENSITY, DPT_KELVIN, DPT_POWER,
