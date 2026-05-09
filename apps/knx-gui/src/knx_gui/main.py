@@ -1,6 +1,7 @@
+import copy
 import math
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 from imgui_bundle import imgui, hello_imgui, imgui_node_editor as ed
@@ -269,6 +270,11 @@ class Device:
     name: str
     template: DeviceTemplate
     address: str
+    rows: list[PinRow] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if not self.rows:
+            self.rows = copy.deepcopy(self.template.rows)
 
 
 @dataclass
@@ -335,7 +341,6 @@ class KnxGuiApp:
         self._selected_telegrams: set[int] = set()
         self._last_selected_telegram: int = -1
         self._drag_source_pin: int | None = None
-        self._pin_flags: dict[int, ComObjectFlags] = {}
         self._init_devices()
         self._init_sample_telegrams()
 
@@ -437,13 +442,13 @@ class KnxGuiApp:
         draw_list.add_circle(center, PIN_RADIUS, color_u32(1, 1, 1, 0.3 * alpha), 0, 1.5)
         imgui.dummy(imgui.ImVec2(PIN_RADIUS * 2, PIN_HEIGHT))
 
-    def _calc_node_layout(self, template: DeviceTemplate) -> NodeLayout:
+    def _calc_node_layout(self, device: "Device") -> NodeLayout:
         in_dpt_w = in_name_w = out_dpt_w = out_name_w = 0.0
-        for row in template.rows:
-            if row.left:
+        for row in device.rows:
+            if row.left and com_object_has_input(row.left):
                 in_dpt_w = max(in_dpt_w, imgui.calc_text_size(f"[{row.left.dpt.label}]").x)
                 in_name_w = max(in_name_w, imgui.calc_text_size(row.left.name).x)
-            if row.right:
+            if row.right and com_object_has_output(row.right):
                 out_dpt_w = max(out_dpt_w, imgui.calc_text_size(f"[{row.right.dpt.label}]").x)
                 out_name_w = max(out_name_w, imgui.calc_text_size(row.right.name).x)
 
@@ -451,20 +456,21 @@ class KnxGuiApp:
         in_total_w = PIN_RADIUS * 2 + in_name_w + in_dpt_w + spacing * 4 if in_name_w > 0 else 0
         out_total_w = PIN_RADIUS * 2 + out_name_w + out_dpt_w + spacing * 4 if out_name_w > 0 else 0
 
+        config = device.template.config
         tree_indent = imgui.get_style().indent_spacing
         max_value_w = max(
-            imgui.calc_text_size(template.config.manufacturer).x,
-            imgui.calc_text_size(template.config.application).x,
-            imgui.calc_text_size(template.config.hardware).x,
-            imgui.calc_text_size(template.config.firmware).x,
+            imgui.calc_text_size(config.manufacturer).x,
+            imgui.calc_text_size(config.application).x,
+            imgui.calc_text_size(config.hardware).x,
+            imgui.calc_text_size(config.firmware).x,
         )
         manufacturer_width = tree_indent + SETTINGS_LABEL_OFFSET + max_value_w
 
         max_pin_name_w = imgui.calc_text_size("Object").x
-        for row in template.rows:
+        for row in device.rows:
             if row.left:
                 max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(row.left.name).x)
-            if row.right:
+            if row.right and row.right is not row.left:
                 max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(row.right.name).x)
         item_spacing = imgui.get_style().item_spacing.x
         checkbox_w = imgui.get_frame_height()
@@ -492,20 +498,21 @@ class KnxGuiApp:
             out_name_w=out_name_w,
         )
 
-    def _ensure_pin_flags(self, pin_id: int, com_object: ComObject) -> None:
-        if pin_id not in self._pin_flags:
-            self._pin_flags[pin_id] = com_object.flags
-
     def _render_input_pin(self, pin_id: int, pin: ComObject, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.INPUT
-        self._ensure_pin_flags(pin_id, pin)
         alpha, glow = self._calc_pin_highlight(pin, PinDir.INPUT)
+        if not pin.flags.communication:
+            alpha *= 0.4
+            glow = False
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.input)
         ed.pin_pivot_alignment(imgui.ImVec2(0.0, 0.5))
         self._draw_pin_icon(pin.dpt, alpha, glow)
         imgui.same_line()
-        imgui.text_unformatted(pin.name)
+        if pin.flags.communication:
+            imgui.text_unformatted(pin.name)
+        else:
+            imgui.text_disabled(pin.name)
         imgui.same_line()
         imgui.dummy(imgui.ImVec2(layout.in_name_w - imgui.calc_text_size(pin.name).x, 1))
         imgui.same_line()
@@ -518,8 +525,10 @@ class KnxGuiApp:
     def _render_output_pin(self, pin_id: int, pin: ComObject, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.OUTPUT
-        self._ensure_pin_flags(pin_id, pin)
         alpha, glow = self._calc_pin_highlight(pin, PinDir.OUTPUT)
+        if not pin.flags.communication:
+            alpha *= 0.4
+            glow = False
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
         ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
         dpt_label = f"[{pin.dpt.label}]"
@@ -527,7 +536,10 @@ class KnxGuiApp:
         imgui.same_line()
         imgui.dummy(imgui.ImVec2(layout.out_dpt_w - imgui.calc_text_size(dpt_label).x, 1))
         imgui.same_line()
-        imgui.text_unformatted(pin.name)
+        if pin.flags.communication:
+            imgui.text_unformatted(pin.name)
+        else:
+            imgui.text_disabled(pin.name)
         imgui.same_line()
         imgui.dummy(imgui.ImVec2(layout.out_name_w - imgui.calc_text_size(pin.name).x, 1))
         imgui.same_line()
@@ -547,15 +559,15 @@ class KnxGuiApp:
         rect_max = imgui.get_item_rect_max()
         return Rect(rect_min.x, rect_min.y, rect_max.x, rect_max.y)
 
-    def _render_node_pins(self, node_id: int, template: DeviceTemplate, layout: NodeLayout) -> None:
-        pin_base = node_id * 100
-        for i, row in enumerate(template.rows):
-            if row.left:
+    def _render_node_pins(self, device: "Device", layout: NodeLayout) -> None:
+        pin_base = device.node_id * 100
+        for i, row in enumerate(device.rows):
+            if row.left and com_object_has_input(row.left):
                 self._render_input_pin(pin_base + i, row.left, layout)
             else:
                 imgui.dummy(imgui.ImVec2(layout.in_total_w, PIN_HEIGHT))
             imgui.same_line(spacing=layout.mid_spacing)
-            if row.right:
+            if row.right and com_object_has_output(row.right):
                 self._render_output_pin(pin_base + 50 + i, row.right, layout)
             else:
                 imgui.dummy(imgui.ImVec2(layout.out_total_w, PIN_HEIGHT))
@@ -565,52 +577,49 @@ class KnxGuiApp:
         imgui.same_line(SETTINGS_LABEL_OFFSET)
         imgui.text(value)
 
-    def _render_com_object_row(self, pin_id: int, name: str) -> None:
-        flags = self._pin_flags.get(pin_id)
-        if flags is None:
-            return
+    def _render_com_object_row(self, com_object: ComObject, row_id: str) -> None:
         imgui.table_next_row()
         imgui.table_set_column_index(0)
-        imgui.text(name)
+        imgui.text(com_object.name)
         for col, (attr, _letter, full_name) in enumerate(FLAG_LABELS, start=1):
             imgui.table_set_column_index(col)
-            current = getattr(flags, attr)
-            changed, new_value = imgui.checkbox(f"##{pin_id}_{attr}", current)
+            current = getattr(com_object.flags, attr)
+            changed, new_value = imgui.checkbox(f"##{row_id}_{attr}", current)
             if changed:
-                setattr(flags, attr, new_value)
+                setattr(com_object.flags, attr, new_value)
             if imgui.is_item_hovered():
                 imgui.set_tooltip(full_name)
 
-    def _render_node_com_objects(self, node_id: int, template: DeviceTemplate) -> None:
+    def _render_node_com_objects(self, device: "Device") -> None:
         flags = imgui.TableFlags_.borders_inner | imgui.TableFlags_.sizing_fixed_fit
-        if not imgui.begin_table(f"##com_objs_{node_id}", 1 + len(FLAG_LABELS), flags):
+        if not imgui.begin_table(f"##com_objs_{device.node_id}", 1 + len(FLAG_LABELS), flags):
             return
         imgui.table_setup_column("Name")
         for _attr, letter, _name in FLAG_LABELS:
             imgui.table_setup_column(letter)
         imgui.table_headers_row()
-        pin_base = node_id * 100
-        for i, row in enumerate(template.rows):
-            if row.left:
-                self._render_com_object_row(pin_base + i, row.left.name)
-            if row.right:
-                self._render_com_object_row(pin_base + 50 + i, row.right.name)
+        seen: set[int] = set()
+        for i, row in enumerate(device.rows):
+            for slot, com_obj in (("L", row.left), ("R", row.right)):
+                if com_obj is None or id(com_obj) in seen:
+                    continue
+                seen.add(id(com_obj))
+                self._render_com_object_row(com_obj, f"{device.node_id}_{i}_{slot}")
         imgui.end_table()
 
-    def _render_node_settings(
-        self, node_id: int, template: DeviceTemplate, width: float
-    ) -> None:
+    def _render_node_settings(self, device: "Device", width: float) -> None:
         cursor = imgui.get_cursor_screen_pos()
         clip_max = imgui.ImVec2(cursor.x + width, cursor.y + SETTINGS_CLIP_HEIGHT)
         imgui.push_clip_rect(cursor, clip_max, True)
-        if imgui.tree_node(f"Manufacturer##{node_id}"):
-            self._render_label_value("Manufacturer", template.config.manufacturer)
-            self._render_label_value("Application", template.config.application)
-            self._render_label_value("Hardware", template.config.hardware)
-            self._render_label_value("Firmware", template.config.firmware)
+        config = device.template.config
+        if imgui.tree_node(f"Manufacturer##{device.node_id}"):
+            self._render_label_value("Manufacturer", config.manufacturer)
+            self._render_label_value("Application", config.application)
+            self._render_label_value("Hardware", config.hardware)
+            self._render_label_value("Firmware", config.firmware)
             imgui.tree_pop()
-        if imgui.tree_node(f"Com Objects##{node_id}"):
-            self._render_node_com_objects(node_id, template)
+        if imgui.tree_node(f"Com Objects##{device.node_id}"):
+            self._render_node_com_objects(device)
             imgui.tree_pop()
         imgui.pop_clip_rect()
 
@@ -631,23 +640,23 @@ class KnxGuiApp:
             imgui.ImDrawFlags_.round_corners_top,
         )
 
-    def _render_device_node(self, node_id: int, template: DeviceTemplate, address: str) -> None:
-        ed.begin_node(ed.NodeId(node_id))
+    def _render_device_node(self, device: "Device") -> None:
+        ed.begin_node(ed.NodeId(device.node_id))
 
-        layout = self._calc_node_layout(template)
-        header = self._render_node_header(template, address, layout.node_width)
+        layout = self._calc_node_layout(device)
+        header = self._render_node_header(device.template, device.address, layout.node_width)
         imgui.spacing()
 
-        self._render_node_pins(node_id, template, layout)
+        self._render_node_pins(device, layout)
 
         imgui.dummy(imgui.ImVec2(layout.node_width, 1))
         content_max_x = imgui.get_item_rect_max().x
 
         imgui.spacing()
-        self._render_node_settings(node_id, template, layout.node_width)
+        self._render_node_settings(device, layout.node_width)
 
         ed.end_node()
-        self._draw_node_header_bg(node_id, header, content_max_x)
+        self._draw_node_header_bg(device.node_id, header, content_max_x)
 
     def _pins_match_quality(self, pin_a: int, pin_b: int) -> DPTMatch:
         dpt_a = self._pin_dpt.get(pin_a)
@@ -1035,7 +1044,7 @@ class KnxGuiApp:
         ed.begin("##NodeEditorCanvas", imgui.ImVec2(0, editor_height))
 
         for device in self._devices:
-            self._render_device_node(device.node_id, device.template, device.address)
+            self._render_device_node(device)
 
         self._render_links()
         self._handle_link_creation()
