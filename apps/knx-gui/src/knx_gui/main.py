@@ -157,7 +157,7 @@ def com_object_has_output(co: ComObject) -> bool:
 
 @dataclass
 class PinRow:
-    """A visual row containing 1 or 2 com objects.
+    """A computed visual row containing 1 or 2 com objects.
 
     - Single bidirectional com object: left and right reference the same instance.
     - Single input-only or output-only: only one of left/right is set.
@@ -165,6 +165,41 @@ class PinRow:
     """
     left: ComObject | None = None
     right: ComObject | None = None
+
+
+def generate_rows(com_objects: list[ComObject]) -> list[PinRow]:
+    """Pair com objects into visual rows based on their current flag state.
+
+    Walks the list in order:
+    - Bidirectional (both input + output): own row, same instance both sides
+    - Input-only: tries to pair with the next output-only encountered
+    - Output-only: tries to pair with a pending input-only
+    - No pins: skipped (still shown in com object table)
+    """
+    rows: list[PinRow] = []
+    pending_input: ComObject | None = None
+
+    for co in com_objects:
+        has_in = com_object_has_input(co)
+        has_out = com_object_has_output(co)
+        if has_in and has_out:
+            if pending_input is not None:
+                rows.append(PinRow(left=pending_input))
+                pending_input = None
+            rows.append(PinRow(left=co, right=co))
+        elif has_in:
+            if pending_input is not None:
+                rows.append(PinRow(left=pending_input))
+            pending_input = co
+        elif has_out:
+            if pending_input is not None:
+                rows.append(PinRow(left=pending_input, right=co))
+                pending_input = None
+            else:
+                rows.append(PinRow(right=co))
+    if pending_input is not None:
+        rows.append(PinRow(left=pending_input))
+    return rows
 
 
 @dataclass
@@ -178,78 +213,83 @@ class DeviceConfig:
 @dataclass
 class DeviceTemplate:
     name: str
-    rows: list[PinRow]
+    com_objects: list[ComObject]
     config: DeviceConfig
 
 
 DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
     "switch_actuator": DeviceTemplate(
         name="Switch Actuator",
-        rows=[
-            PinRow(left=listen_obj("Switch", DPT_SWITCH), right=send_obj("Status", DPT_SWITCH)),
+        com_objects=[
+            listen_obj("Switch", DPT_SWITCH),
+            send_obj("Status", DPT_SWITCH),
         ],
         config=DeviceConfig("ABB", "SA/S 4.16.2.2", "2CDG110252R0011", "1.2.3"),
     ),
     "dimmer_actuator": DeviceTemplate(
         name="Dimmer Actuator",
-        rows=[
-            PinRow(left=listen_obj("Switch", DPT_SWITCH), right=send_obj("Status", DPT_SWITCH)),
-            PinRow(left=listen_obj("Dimming", DPT_DIMMING)),
-            PinRow(left=listen_obj("Brightness", DPT_PERCENT), right=send_obj("Value", DPT_PERCENT)),
+        com_objects=[
+            listen_obj("Switch", DPT_SWITCH),
+            send_obj("Status", DPT_SWITCH),
+            listen_obj("Dimming", DPT_DIMMING),
+            listen_obj("Brightness", DPT_PERCENT),
+            send_obj("Value", DPT_PERCENT),
         ],
         config=DeviceConfig("ABB", "DA/S 4.230.2.1", "2CDG110198R0011", "2.1.0"),
     ),
     "temperature_sensor": DeviceTemplate(
         name="Temperature Sensor",
-        rows=[
-            PinRow(right=send_obj("Temperature", DPT_TEMPERATURE)),
+        com_objects=[
+            send_obj("Temperature", DPT_TEMPERATURE),
         ],
         config=DeviceConfig("Siemens", "QMX3.P37", "5WG1258-3AB13", "3.0.1"),
     ),
     "push_button": DeviceTemplate(
         name="Push Button",
-        rows=[
-            PinRow(right=send_obj("Press", DPT_SWITCH)),
-            PinRow(right=send_obj("Long Press", DPT_SWITCH)),
-            PinRow(right=send_obj("Scene", DPT_SCENE)),
+        com_objects=[
+            send_obj("Press", DPT_SWITCH),
+            send_obj("Long Press", DPT_SWITCH),
+            send_obj("Scene", DPT_SCENE),
         ],
         config=DeviceConfig("Gira", "Tastsensor 4 Plus", "2104..", "1.0.5"),
     ),
     "blinds_actuator": DeviceTemplate(
         name="Blinds Actuator",
-        rows=[
-            PinRow(left=listen_obj("Move", DPT_UP_DOWN), right=send_obj("Position", DPT_PERCENT)),
-            PinRow(left=listen_obj("Stop", DPT_STOP)),
-            PinRow(left=listen_obj("Slat", DPT_PERCENT), right=send_obj("Slat Pos", DPT_PERCENT)),
+        com_objects=[
+            listen_obj("Move", DPT_UP_DOWN),
+            send_obj("Position", DPT_PERCENT),
+            listen_obj("Stop", DPT_STOP),
+            listen_obj("Slat", DPT_PERCENT),
+            send_obj("Slat Pos", DPT_PERCENT),
         ],
         config=DeviceConfig("MDT", "JAL-0410M.02", "JAL-0410M", "2.5.1"),
     ),
     "shutter_button": DeviceTemplate(
         name="Shutter Button",
-        rows=[
-            PinRow(right=send_obj("Up/Down", DPT_UP_DOWN)),
-            PinRow(right=send_obj("Stop", DPT_STOP)),
+        com_objects=[
+            send_obj("Up/Down", DPT_UP_DOWN),
+            send_obj("Stop", DPT_STOP),
         ],
         config=DeviceConfig("Gira", "Jalousie Button", "2104J", "1.0.2"),
     ),
     "rgb_controller": DeviceTemplate(
         name="RGB Controller",
-        rows=[
-            PinRow(left=listen_obj("Switch", DPT_SWITCH), right=send_obj("Status", DPT_SWITCH)),
-            PinRow(left=listen_obj("Color", DPT_RGB), right=send_obj("Color Status", DPT_RGB)),
-            PinRow(left=listen_obj("Brightness", DPT_PERCENT)),
+        com_objects=[
+            listen_obj("Switch", DPT_SWITCH),
+            send_obj("Status", DPT_SWITCH),
+            listen_obj("Color", DPT_RGB),
+            send_obj("Color Status", DPT_RGB),
+            listen_obj("Brightness", DPT_PERCENT),
         ],
         config=DeviceConfig("MDT", "AKD-0424R2.02", "R2.02", "1.1.0"),
     ),
     "thermostat": DeviceTemplate(
         name="Thermostat",
-        rows=[
-            PinRow(
-                left=listen_obj("Setpoint", DPT_TEMPERATURE, read_on_init=True),
-                right=send_obj("Actual Temp", DPT_TEMPERATURE),
-            ),
-            PinRow(right=send_obj("Heating", DPT_SWITCH, read=False)),
-            PinRow(right=send_obj("Valve", DPT_PERCENT)),
+        com_objects=[
+            listen_obj("Setpoint", DPT_TEMPERATURE, read_on_init=True),
+            send_obj("Actual Temp", DPT_TEMPERATURE),
+            send_obj("Heating", DPT_SWITCH, read=False),
+            send_obj("Valve", DPT_PERCENT),
         ],
         config=DeviceConfig("Theben", "RAMSES 718 P", "7189210", "2.3.1"),
     ),
@@ -270,11 +310,15 @@ class Device:
     name: str
     template: DeviceTemplate
     address: str
-    rows: list[PinRow] = field(default_factory=list)
+    com_objects: list[ComObject] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        if not self.rows:
-            self.rows = copy.deepcopy(self.template.rows)
+        if not self.com_objects:
+            self.com_objects = copy.deepcopy(self.template.com_objects)
+
+    @property
+    def rows(self) -> list[PinRow]:
+        return generate_rows(self.com_objects)
 
 
 @dataclass
@@ -467,11 +511,8 @@ class KnxGuiApp:
         manufacturer_width = tree_indent + SETTINGS_LABEL_OFFSET + max_value_w
 
         max_pin_name_w = imgui.calc_text_size("Object").x
-        for row in device.rows:
-            if row.left:
-                max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(row.left.name).x)
-            if row.right and row.right is not row.left:
-                max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(row.right.name).x)
+        for co in device.com_objects:
+            max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(co.name).x)
         item_spacing = imgui.get_style().item_spacing.x
         checkbox_w = imgui.get_frame_height()
         com_objects_width = (
@@ -561,14 +602,15 @@ class KnxGuiApp:
 
     def _render_node_pins(self, device: "Device", layout: NodeLayout) -> None:
         pin_base = device.node_id * 100
-        for i, row in enumerate(device.rows):
+        co_indices = {id(co): idx for idx, co in enumerate(device.com_objects)}
+        for row in device.rows:
             if row.left and com_object_has_input(row.left):
-                self._render_input_pin(pin_base + i, row.left, layout)
+                self._render_input_pin(pin_base + co_indices[id(row.left)], row.left, layout)
             else:
                 imgui.dummy(imgui.ImVec2(layout.in_total_w, PIN_HEIGHT))
             imgui.same_line(spacing=layout.mid_spacing)
             if row.right and com_object_has_output(row.right):
-                self._render_output_pin(pin_base + 50 + i, row.right, layout)
+                self._render_output_pin(pin_base + 50 + co_indices[id(row.right)], row.right, layout)
             else:
                 imgui.dummy(imgui.ImVec2(layout.out_total_w, PIN_HEIGHT))
 
@@ -598,13 +640,8 @@ class KnxGuiApp:
         for _attr, letter, _name in FLAG_LABELS:
             imgui.table_setup_column(letter)
         imgui.table_headers_row()
-        seen: set[int] = set()
-        for i, row in enumerate(device.rows):
-            for slot, com_obj in (("L", row.left), ("R", row.right)):
-                if com_obj is None or id(com_obj) in seen:
-                    continue
-                seen.add(id(com_obj))
-                self._render_com_object_row(com_obj, f"{device.node_id}_{i}_{slot}")
+        for i, com_obj in enumerate(device.com_objects):
+            self._render_com_object_row(com_obj, f"{device.node_id}_{i}")
         imgui.end_table()
 
     def _render_node_settings(self, device: "Device", width: float) -> None:
