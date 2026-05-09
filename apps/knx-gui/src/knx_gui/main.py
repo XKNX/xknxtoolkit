@@ -109,14 +109,31 @@ def is_default_flags(flags: ComObjectFlags, direction: PinDir) -> bool:
 
 
 @dataclass
-class Pin:
+class ComObject:
     name: str
     dpt: DPT
-    flags: ComObjectFlags | None = None
+    flags: ComObjectFlags
 
 
-def resolve_pin_flags(pin: Pin, direction: PinDir) -> ComObjectFlags:
-    return pin.flags if pin.flags is not None else default_flags_for(direction)
+def listen_obj(name: str, dpt: DPT, **flag_overrides: bool) -> ComObject:
+    flags = ComObjectFlags.default_input()
+    for key, value in flag_overrides.items():
+        setattr(flags, key, value)
+    return ComObject(name, dpt, flags)
+
+
+def send_obj(name: str, dpt: DPT, **flag_overrides: bool) -> ComObject:
+    flags = ComObjectFlags.default_output()
+    for key, value in flag_overrides.items():
+        setattr(flags, key, value)
+    return ComObject(name, dpt, flags)
+
+
+def bidirectional_obj(name: str, dpt: DPT, **flag_overrides: bool) -> ComObject:
+    flags = ComObjectFlags(communication=True, read=True, write=True, transmit=True)
+    for key, value in flag_overrides.items():
+        setattr(flags, key, value)
+    return ComObject(name, dpt, flags)
 
 
 FLAG_LABELS = [
@@ -129,20 +146,24 @@ FLAG_LABELS = [
 ]
 
 
-def flag_diff_letters(flags: ComObjectFlags, direction: PinDir) -> list[tuple[str, bool]]:
-    """Returns letters where the flag differs from the default. (letter, is_set)"""
-    default = default_flags_for(direction)
-    diffs = []
-    for attr, letter, _ in FLAG_LABELS:
-        if getattr(flags, attr) != getattr(default, attr):
-            diffs.append((letter, getattr(flags, attr)))
-    return diffs
+def com_object_has_input(co: ComObject) -> bool:
+    return co.flags.write or co.flags.update
+
+
+def com_object_has_output(co: ComObject) -> bool:
+    return co.flags.transmit
 
 
 @dataclass
 class PinRow:
-    input_pin: Pin | None = None
-    output_pin: Pin | None = None
+    """A visual row containing 1 or 2 com objects.
+
+    - Single bidirectional com object: left and right reference the same instance.
+    - Single input-only or output-only: only one of left/right is set.
+    - Two com objects (input-only + output-only): left and right reference different instances.
+    """
+    left: ComObject | None = None
+    right: ComObject | None = None
 
 
 @dataclass
@@ -164,58 +185,58 @@ DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
     "switch_actuator": DeviceTemplate(
         name="Switch Actuator",
         rows=[
-            PinRow(Pin("Switch", DPT_SWITCH), Pin("Status", DPT_SWITCH)),
+            PinRow(left=listen_obj("Switch", DPT_SWITCH), right=send_obj("Status", DPT_SWITCH)),
         ],
         config=DeviceConfig("ABB", "SA/S 4.16.2.2", "2CDG110252R0011", "1.2.3"),
     ),
     "dimmer_actuator": DeviceTemplate(
         name="Dimmer Actuator",
         rows=[
-            PinRow(Pin("Switch", DPT_SWITCH), Pin("Status", DPT_SWITCH)),
-            PinRow(Pin("Dimming", DPT_DIMMING)),
-            PinRow(Pin("Brightness", DPT_PERCENT), Pin("Value", DPT_PERCENT)),
+            PinRow(left=listen_obj("Switch", DPT_SWITCH), right=send_obj("Status", DPT_SWITCH)),
+            PinRow(left=listen_obj("Dimming", DPT_DIMMING)),
+            PinRow(left=listen_obj("Brightness", DPT_PERCENT), right=send_obj("Value", DPT_PERCENT)),
         ],
         config=DeviceConfig("ABB", "DA/S 4.230.2.1", "2CDG110198R0011", "2.1.0"),
     ),
     "temperature_sensor": DeviceTemplate(
         name="Temperature Sensor",
         rows=[
-            PinRow(output_pin=Pin("Temperature", DPT_TEMPERATURE)),
+            PinRow(right=send_obj("Temperature", DPT_TEMPERATURE)),
         ],
         config=DeviceConfig("Siemens", "QMX3.P37", "5WG1258-3AB13", "3.0.1"),
     ),
     "push_button": DeviceTemplate(
         name="Push Button",
         rows=[
-            PinRow(output_pin=Pin("Press", DPT_SWITCH)),
-            PinRow(output_pin=Pin("Long Press", DPT_SWITCH)),
-            PinRow(output_pin=Pin("Scene", DPT_SCENE)),
+            PinRow(right=send_obj("Press", DPT_SWITCH)),
+            PinRow(right=send_obj("Long Press", DPT_SWITCH)),
+            PinRow(right=send_obj("Scene", DPT_SCENE)),
         ],
         config=DeviceConfig("Gira", "Tastsensor 4 Plus", "2104..", "1.0.5"),
     ),
     "blinds_actuator": DeviceTemplate(
         name="Blinds Actuator",
         rows=[
-            PinRow(Pin("Move", DPT_UP_DOWN), Pin("Position", DPT_PERCENT)),
-            PinRow(Pin("Stop", DPT_STOP)),
-            PinRow(Pin("Slat", DPT_PERCENT), Pin("Slat Pos", DPT_PERCENT)),
+            PinRow(left=listen_obj("Move", DPT_UP_DOWN), right=send_obj("Position", DPT_PERCENT)),
+            PinRow(left=listen_obj("Stop", DPT_STOP)),
+            PinRow(left=listen_obj("Slat", DPT_PERCENT), right=send_obj("Slat Pos", DPT_PERCENT)),
         ],
         config=DeviceConfig("MDT", "JAL-0410M.02", "JAL-0410M", "2.5.1"),
     ),
     "shutter_button": DeviceTemplate(
         name="Shutter Button",
         rows=[
-            PinRow(output_pin=Pin("Up/Down", DPT_UP_DOWN)),
-            PinRow(output_pin=Pin("Stop", DPT_STOP)),
+            PinRow(right=send_obj("Up/Down", DPT_UP_DOWN)),
+            PinRow(right=send_obj("Stop", DPT_STOP)),
         ],
         config=DeviceConfig("Gira", "Jalousie Button", "2104J", "1.0.2"),
     ),
     "rgb_controller": DeviceTemplate(
         name="RGB Controller",
         rows=[
-            PinRow(Pin("Switch", DPT_SWITCH), Pin("Status", DPT_SWITCH)),
-            PinRow(Pin("Color", DPT_RGB), Pin("Color Status", DPT_RGB)),
-            PinRow(Pin("Brightness", DPT_PERCENT)),
+            PinRow(left=listen_obj("Switch", DPT_SWITCH), right=send_obj("Status", DPT_SWITCH)),
+            PinRow(left=listen_obj("Color", DPT_RGB), right=send_obj("Color Status", DPT_RGB)),
+            PinRow(left=listen_obj("Brightness", DPT_PERCENT)),
         ],
         config=DeviceConfig("MDT", "AKD-0424R2.02", "R2.02", "1.1.0"),
     ),
@@ -223,19 +244,11 @@ DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
         name="Thermostat",
         rows=[
             PinRow(
-                Pin(
-                    "Setpoint",
-                    DPT_TEMPERATURE,
-                    ComObjectFlags(communication=True, write=True, read_on_init=True),
-                ),
-                Pin("Actual Temp", DPT_TEMPERATURE),
+                left=listen_obj("Setpoint", DPT_TEMPERATURE, read_on_init=True),
+                right=send_obj("Actual Temp", DPT_TEMPERATURE),
             ),
-            PinRow(output_pin=Pin(
-                "Heating",
-                DPT_SWITCH,
-                ComObjectFlags(communication=True, transmit=True),
-            )),
-            PinRow(output_pin=Pin("Valve", DPT_PERCENT)),
+            PinRow(right=send_obj("Heating", DPT_SWITCH, read=False)),
+            PinRow(right=send_obj("Valve", DPT_PERCENT)),
         ],
         config=DeviceConfig("Theben", "RAMSES 718 P", "7189210", "2.3.1"),
     ),
@@ -395,7 +408,7 @@ class KnxGuiApp:
         imgui.end_tooltip()
         ed.resume()
 
-    def _calc_pin_highlight(self, pin: Pin, direction: PinDir) -> tuple[float, bool]:
+    def _calc_pin_highlight(self, pin: ComObject, direction: PinDir) -> tuple[float, bool]:
         if self._drag_source_pin is None:
             return 1.0, False
         src_dpt = self._pin_dpt.get(self._drag_source_pin)
@@ -427,12 +440,12 @@ class KnxGuiApp:
     def _calc_node_layout(self, template: DeviceTemplate) -> NodeLayout:
         in_dpt_w = in_name_w = out_dpt_w = out_name_w = 0.0
         for row in template.rows:
-            if row.input_pin:
-                in_dpt_w = max(in_dpt_w, imgui.calc_text_size(f"[{row.input_pin.dpt.label}]").x)
-                in_name_w = max(in_name_w, imgui.calc_text_size(row.input_pin.name).x)
-            if row.output_pin:
-                out_dpt_w = max(out_dpt_w, imgui.calc_text_size(f"[{row.output_pin.dpt.label}]").x)
-                out_name_w = max(out_name_w, imgui.calc_text_size(row.output_pin.name).x)
+            if row.left:
+                in_dpt_w = max(in_dpt_w, imgui.calc_text_size(f"[{row.left.dpt.label}]").x)
+                in_name_w = max(in_name_w, imgui.calc_text_size(row.left.name).x)
+            if row.right:
+                out_dpt_w = max(out_dpt_w, imgui.calc_text_size(f"[{row.right.dpt.label}]").x)
+                out_name_w = max(out_name_w, imgui.calc_text_size(row.right.name).x)
 
         spacing = imgui.get_style().item_spacing.x
         in_total_w = PIN_RADIUS * 2 + in_name_w + in_dpt_w + spacing * 4 if in_name_w > 0 else 0
@@ -449,10 +462,10 @@ class KnxGuiApp:
 
         max_pin_name_w = imgui.calc_text_size("Object").x
         for row in template.rows:
-            if row.input_pin:
-                max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(row.input_pin.name).x)
-            if row.output_pin:
-                max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(row.output_pin.name).x)
+            if row.left:
+                max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(row.left.name).x)
+            if row.right:
+                max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(row.right.name).x)
         item_spacing = imgui.get_style().item_spacing.x
         checkbox_w = imgui.get_frame_height()
         com_objects_width = (
@@ -479,14 +492,14 @@ class KnxGuiApp:
             out_name_w=out_name_w,
         )
 
-    def _ensure_pin_flags(self, pin_id: int, pin: Pin, direction: PinDir) -> None:
+    def _ensure_pin_flags(self, pin_id: int, com_object: ComObject) -> None:
         if pin_id not in self._pin_flags:
-            self._pin_flags[pin_id] = resolve_pin_flags(pin, direction)
+            self._pin_flags[pin_id] = com_object.flags
 
-    def _render_input_pin(self, pin_id: int, pin: Pin, layout: NodeLayout) -> None:
+    def _render_input_pin(self, pin_id: int, pin: ComObject, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.INPUT
-        self._ensure_pin_flags(pin_id, pin, PinDir.INPUT)
+        self._ensure_pin_flags(pin_id, pin)
         alpha, glow = self._calc_pin_highlight(pin, PinDir.INPUT)
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.input)
         ed.pin_pivot_alignment(imgui.ImVec2(0.0, 0.5))
@@ -502,10 +515,10 @@ class KnxGuiApp:
         imgui.dummy(imgui.ImVec2(layout.in_dpt_w - imgui.calc_text_size(dpt_label).x, 1))
         ed.end_pin()
 
-    def _render_output_pin(self, pin_id: int, pin: Pin, layout: NodeLayout) -> None:
+    def _render_output_pin(self, pin_id: int, pin: ComObject, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.OUTPUT
-        self._ensure_pin_flags(pin_id, pin, PinDir.OUTPUT)
+        self._ensure_pin_flags(pin_id, pin)
         alpha, glow = self._calc_pin_highlight(pin, PinDir.OUTPUT)
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
         ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
@@ -537,13 +550,13 @@ class KnxGuiApp:
     def _render_node_pins(self, node_id: int, template: DeviceTemplate, layout: NodeLayout) -> None:
         pin_base = node_id * 100
         for i, row in enumerate(template.rows):
-            if row.input_pin:
-                self._render_input_pin(pin_base + i, row.input_pin, layout)
+            if row.left:
+                self._render_input_pin(pin_base + i, row.left, layout)
             else:
                 imgui.dummy(imgui.ImVec2(layout.in_total_w, PIN_HEIGHT))
             imgui.same_line(spacing=layout.mid_spacing)
-            if row.output_pin:
-                self._render_output_pin(pin_base + 50 + i, row.output_pin, layout)
+            if row.right:
+                self._render_output_pin(pin_base + 50 + i, row.right, layout)
             else:
                 imgui.dummy(imgui.ImVec2(layout.out_total_w, PIN_HEIGHT))
 
@@ -578,10 +591,10 @@ class KnxGuiApp:
         imgui.table_headers_row()
         pin_base = node_id * 100
         for i, row in enumerate(template.rows):
-            if row.input_pin:
-                self._render_com_object_row(pin_base + i, row.input_pin.name)
-            if row.output_pin:
-                self._render_com_object_row(pin_base + 50 + i, row.output_pin.name)
+            if row.left:
+                self._render_com_object_row(pin_base + i, row.left.name)
+            if row.right:
+                self._render_com_object_row(pin_base + 50 + i, row.right.name)
         imgui.end_table()
 
     def _render_node_settings(
