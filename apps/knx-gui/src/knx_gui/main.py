@@ -68,6 +68,9 @@ DPT_SHUTTER_BLINDS_MODE = DPT(1, 23, "Shutter/Blinds Mode", "blinds mode")
 DPT_DAY_NIGHT = DPT(1, 24, "Day/Night", "day/night")
 DPT_HEAT_COOL = DPT(1, 100, "Heat/Cool", "heat/cool")
 
+# 1-bit controlled (major 2)
+DPT_SWITCH_CONTROL = DPT(2, 1, "Switch Control", "switch ctrl")
+
 # 4-bit dimming
 DPT_DIMMING = DPT(3, 7, "Dimming", "dim")
 DPT_BLINDS = DPT(3, 8, "Blinds", "blinds")
@@ -90,6 +93,9 @@ DPT_COLOR_TEMP_KELVIN = DPT(7, 600, "Color Temperature", "K")
 DPT_TIME_OF_DAY = DPT(10, 1, "Time of Day", "time")
 DPT_DATE = DPT(11, 1, "Date", "date")
 DPT_DATE_TIME = DPT(19, 1, "Date/Time", "datetime")
+
+# 14-byte string (major 16)
+DPT_STRING_LATIN1 = DPT(16, 1, "String (ISO 8859-1)", "string")
 
 # 16-bit float (major 9) - common physical quantities
 DPT_TEMPERATURE = DPT(9, 1, "Temperature", "°C")
@@ -123,11 +129,13 @@ KNOWN_DPTS: dict[tuple[int, int], DPT] = {
         DPT_DIM_SEND_STYLE, DPT_INPUT_SOURCE, DPT_RESET, DPT_ACK, DPT_TRIGGER,
         DPT_OCCUPANCY, DPT_WINDOW_DOOR, DPT_LOGICAL_FUNCTION, DPT_SCENE_AB,
         DPT_SHUTTER_BLINDS_MODE, DPT_DAY_NIGHT, DPT_HEAT_COOL,
+        DPT_SWITCH_CONTROL,
         DPT_DIMMING, DPT_BLINDS,
         DPT_PERCENT, DPT_ANGLE, DPT_PERCENT_U8, DPT_DECIMAL_FACTOR, DPT_TARIFF, DPT_VALUE_1_UCOUNT,
         DPT_VALUE_1_COUNT,
         DPT_COLOR_TEMP_KELVIN,
         DPT_TIME_OF_DAY, DPT_DATE, DPT_DATE_TIME,
+        DPT_STRING_LATIN1,
         DPT_TEMPERATURE, DPT_TEMPERATURE_DELTA, DPT_LUX, DPT_WIND_SPEED, DPT_PRESSURE,
         DPT_HUMIDITY, DPT_PARTS_PER_MILLION, DPT_TIME_DIFF, DPT_VOLT, DPT_CURRENT,
         DPT_POWER_DENSITY, DPT_KELVIN, DPT_POWER,
@@ -156,6 +164,7 @@ def lookup_or_make_dpt(code: str | None) -> DPT:
 
 DPT_MAJOR_COLORS: dict[int, imgui.ImVec4] = {
     1: imgui.ImVec4(0.9, 0.3, 0.3, 1.0),
+    2: imgui.ImVec4(0.9, 0.5, 0.5, 1.0),
     3: imgui.ImVec4(0.9, 0.6, 0.2, 1.0),
     5: imgui.ImVec4(0.2, 0.8, 0.4, 1.0),
     6: imgui.ImVec4(0.2, 0.7, 0.5, 1.0),
@@ -163,6 +172,7 @@ DPT_MAJOR_COLORS: dict[int, imgui.ImVec4] = {
     9: imgui.ImVec4(0.2, 0.6, 0.9, 1.0),
     10: imgui.ImVec4(0.7, 0.7, 0.5, 1.0),
     11: imgui.ImVec4(0.7, 0.7, 0.5, 1.0),
+    16: imgui.ImVec4(0.5, 0.8, 0.8, 1.0),
     17: imgui.ImVec4(0.7, 0.3, 0.9, 1.0),
     18: imgui.ImVec4(0.7, 0.3, 0.9, 1.0),
     19: imgui.ImVec4(0.7, 0.7, 0.5, 1.0),
