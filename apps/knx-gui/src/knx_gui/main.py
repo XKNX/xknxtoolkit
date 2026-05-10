@@ -573,6 +573,8 @@ class KnxGuiApp:
         self._show_archive_popup: bool = False
         self._dpt_popup_target: ComObject | None = None
         self._dpt_popup_request: ComObject | None = None
+        self._enum_popup_target: Parameter | None = None
+        self._enum_popup_request: Parameter | None = None
         self._init_devices()
         self._init_sample_telegrams()
 
@@ -763,6 +765,22 @@ class KnxGuiApp:
         else:
             self._dpt_popup_target = None
 
+    def _render_enum_popup(self) -> None:
+        if self._enum_popup_request is not None:
+            self._enum_popup_target = self._enum_popup_request
+            self._enum_popup_request = None
+            imgui.open_popup("##EnumPopup")
+        if imgui.begin_popup("##EnumPopup"):
+            target = self._enum_popup_target
+            if target is not None and target.param_type is not None:
+                for opt in target.param_type.options:
+                    selected = opt.value == target.value
+                    if imgui.menu_item(opt.text, "", selected)[0]:
+                        target.value = opt.value
+            imgui.end_popup()
+        else:
+            self._enum_popup_target = None
+
     def _render_input_pin(self, pin_id: int, pin: ComObject, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.INPUT
@@ -903,14 +921,8 @@ class KnxGuiApp:
                     current_idx = i
                     break
             preview = pt.options[current_idx].text if pt.options else param.value
-            if imgui.begin_combo(f"##{param.id}", preview):
-                for i, opt in enumerate(pt.options):
-                    selected = i == current_idx
-                    if imgui.selectable(opt.text, selected)[0]:
-                        param.value = opt.value
-                    if selected:
-                        imgui.set_item_default_focus()
-                imgui.end_combo()
+            if imgui.button(f"{preview}##{param.id}", imgui.ImVec2(-1, 0)):
+                self._enum_popup_request = param
         elif pt.kind == ParamTypeKind.CHECKBOX:
             checked = param.value == "1"
             changed, new_checked = imgui.checkbox(f"##{param.id}", checked)
@@ -1589,6 +1601,7 @@ class KnxGuiApp:
         ed.end()
         print("[render] ed.end() returned")
         self._render_dpt_popup()
+        self._render_enum_popup()
         print("[render] dpt popup done")
 
         if self._show_telegrams:
