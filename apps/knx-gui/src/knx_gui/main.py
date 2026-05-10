@@ -490,14 +490,40 @@ class Device:
     template: DeviceTemplate
     address: str
     com_objects: list[ComObject] = field(default_factory=list)
+    app: DeviceApplication | None = None
+    _param_values: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.com_objects:
             self.com_objects = copy.deepcopy(self.template.com_objects)
+        if self.app is not None:
+            for p in self.app.parameters:
+                self._param_values[p.id] = p.value
+        else:
+            for p in self.template.parameters:
+                self._param_values[p.id] = p.value
 
     @property
     def rows(self) -> list[PinRow]:
         return generate_rows(self.com_objects)
+
+    def get_visible_parameters(self) -> list[Parameter]:
+        if self.app is None:
+            return self.template.parameters
+        visible_knx = self.app.visible_parameters(self._param_values)
+        return [
+            Parameter(
+                id=p.id,
+                name=p.name,
+                text=p.text,
+                value=self._param_values.get(p.id, p.value),
+                param_type=p.param_type,
+            )
+            for p in visible_knx
+        ]
+
+    def set_param_value(self, param_id: str, value: str) -> None:
+        self._param_values[param_id] = value
 
 
 @dataclass
@@ -575,6 +601,7 @@ class KnxGuiApp:
         self._dpt_popup_request: ComObject | None = None
         self._enum_popup_target: Parameter | None = None
         self._enum_popup_request: Parameter | None = None
+        self._enum_popup_device: Device | None = None
         self._init_devices()
         self._init_sample_telegrams()
 
@@ -772,14 +799,16 @@ class KnxGuiApp:
             imgui.open_popup("##EnumPopup")
         if imgui.begin_popup("##EnumPopup"):
             target = self._enum_popup_target
-            if target is not None and target.param_type is not None:
+            device = self._enum_popup_device
+            if target is not None and target.param_type is not None and device is not None:
                 for opt in target.param_type.options:
                     selected = opt.value == target.value
                     if imgui.menu_item(opt.text, "", selected)[0]:
-                        target.value = opt.value
+                        device.set_param_value(target.id, opt.value)
             imgui.end_popup()
         else:
             self._enum_popup_target = None
+            self._enum_popup_device = None
 
     def _render_input_pin(self, pin_id: int, pin: ComObject, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
@@ -906,12 +935,12 @@ class KnxGuiApp:
             groups[prefix].append(param)
         return groups
 
-    def _render_param_widget(self, param: Parameter) -> None:
+    def _render_param_widget(self, param: Parameter, device: "Device") -> None:
         pt = param.param_type
         if pt is None:
             changed, new_value = imgui.input_text(f"##{param.id}", param.value)
             if changed:
-                param.value = new_value
+                device.set_param_value(param.id, new_value)
             return
 
         if pt.kind == ParamTypeKind.ENUM:
@@ -923,11 +952,12 @@ class KnxGuiApp:
             preview = pt.options[current_idx].text if pt.options else param.value
             if imgui.button(f"{preview}##{param.id}", imgui.ImVec2(-1, 0)):
                 self._enum_popup_request = param
+                self._enum_popup_device = device
         elif pt.kind == ParamTypeKind.CHECKBOX:
             checked = param.value == "1"
             changed, new_checked = imgui.checkbox(f"##{param.id}", checked)
             if changed:
-                param.value = "1" if new_checked else "0"
+                device.set_param_value(param.id, "1" if new_checked else "0")
         elif pt.kind == ParamTypeKind.NUMBER:
             try:
                 int_val = int(param.value)
@@ -937,7 +967,7 @@ class KnxGuiApp:
             max_v = pt.max_value if pt.max_value is not None else 65535
             changed, new_val = imgui.drag_int(f"##{param.id}", int_val, 1.0, min_v, max_v)
             if changed:
-                param.value = str(new_val)
+                device.set_param_value(param.id, str(new_val))
         elif pt.kind == ParamTypeKind.TIME:
             try:
                 int_val = int(param.value)
@@ -947,20 +977,20 @@ class KnxGuiApp:
             max_v = pt.max_value if pt.max_value is not None else 86400
             changed, new_val = imgui.drag_int(f"##{param.id}", int_val, 1.0, min_v, max_v)
             if changed:
-                param.value = str(new_val)
+                device.set_param_value(param.id, str(new_val))
         elif pt.kind == ParamTypeKind.TEXT:
             changed, new_value = imgui.input_text(f"##{param.id}", param.value)
             if changed:
-                param.value = new_value
+                device.set_param_value(param.id, new_value)
         elif pt.kind == ParamTypeKind.PICTURE:
             imgui.text_disabled("(image)")
         else:
             changed, new_value = imgui.input_text(f"##{param.id}", param.value)
             if changed:
-                param.value = new_value
+                device.set_param_value(param.id, new_value)
 
     def _render_node_parameters(self, device: "Device") -> None:
-        params = device.template.parameters
+        params = device.get_visible_parameters()
         if not params:
             return
         groups = self._group_parameters(params)
@@ -978,7 +1008,7 @@ class KnxGuiApp:
                         imgui.text(display_text)
                         imgui.table_set_column_index(1)
                         imgui.set_next_item_width(-1)
-                        self._render_param_widget(param)
+                        self._render_param_widget(param, device)
                     imgui.end_table()
                 imgui.tree_pop()
 
@@ -1264,6 +1294,7 @@ class KnxGuiApp:
                 name=app.name,
                 template=template,
                 address="",
+                app=app,
             )
         )
         print(f"[knxprod] device added; total devices: {len(self._devices)}")
