@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 
 from knx_gui.knxprod import parse_archive, ParamTypeKind
+from knx_gui.knxprod.parser import _substitute_template
 
 
 MDT_ARCHIVE = Path("/Users/user/Documents/projects/personal/xknxproduct/tests/resources/MDT/MDT_AKD-02x0CC-02_KP_V31.knxprod")
@@ -57,3 +58,37 @@ class TestParseArchive:
         visible_lon = [p for p in app.visible_parameters() if "ongitud" in p.text.lower()]
 
         assert len(visible_lon) < len(all_lon)
+
+
+class TestTemplateSubstitution:
+    def test_substitutes_function_text(self):
+        result = _substitute_template("Channel: {{0}}", "Switch", {})
+        assert result == "Channel: Switch"
+
+    def test_substitutes_text_args(self):
+        result = _substitute_template("Channel {{ChNo}}: Test", None, {"ChNo": "A"})
+        assert result == "Channel A: Test"
+
+    def test_substitutes_both(self):
+        result = _substitute_template("Channel {{ChNo}}: {{0}}", "Dimming", {"ChNo": "B"})
+        assert result == "Channel B: Dimming"
+
+    def test_removes_unresolved_placeholders(self):
+        result = _substitute_template("{{Unknown}} Channel {{ChNo}}", None, {"ChNo": "A"})
+        assert result == "Channel A"
+
+    def test_handles_no_placeholders(self):
+        result = _substitute_template("Plain text", "Unused", {"ChNo": "A"})
+        assert result == "Plain text"
+
+    def test_handles_empty_text_args(self):
+        result = _substitute_template("Channel {{ChNo}}: {{0}}", "Switch", {})
+        assert result == "Channel : Switch"
+
+    def test_collapses_multiple_spaces(self):
+        result = _substitute_template("A {{X}}  {{Y}} B", None, {})
+        assert result == "A B"
+
+    def test_strips_whitespace(self):
+        result = _substitute_template("  {{0}}  ", "Test", {})
+        assert result == "Test"
