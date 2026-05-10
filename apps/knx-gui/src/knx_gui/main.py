@@ -8,10 +8,10 @@ from imgui_bundle import hello_imgui, imgui
 from imgui_bundle import imgui_node_editor as ed
 from imgui_bundle import portable_file_dialogs as pfd
 
-from knx_gui.knxprod_loader import (
+from knx_gui.knxprod import (
+    DeviceApplication,
+    ParamType,
     ParamTypeKind,
-    ParsedDeviceCandidate,
-    ParsedParamType,
     parse_archive,
 )
 from xknx.product.errors import ArchiveError
@@ -364,7 +364,7 @@ class Parameter:
     name: str
     text: str
     value: str
-    param_type: ParsedParamType | None = None
+    param_type: ParamType | None = None
 
 
 @dataclass
@@ -567,7 +567,7 @@ class KnxGuiApp:
         self._last_selected_telegram: int = -1
         self._drag_source_pin: int | None = None
         self._open_file_dialog: pfd.open_file | None = None
-        self._archive_candidates: list[ParsedDeviceCandidate] = []
+        self._archive_candidates: list[DeviceApplication] = []
         self._archive_path: str | None = None
         self._archive_load_error: str | None = None
         self._show_archive_popup: bool = False
@@ -1233,7 +1233,7 @@ class KnxGuiApp:
             self._archive_candidates = parse_archive(path)
             print(f"[knxprod] parsed {len(self._archive_candidates)} candidate(s)")
             for c in self._archive_candidates:
-                print(f"[knxprod]   {c.name}: {len(c.raw_com_objects)} com objects, {len(c.raw_parameters)} parameters")
+                print(f"[knxprod]   {c.name}: {len(c.com_objects)} com objects, {len(c.parameters)} parameters")
         except ArchiveError as e:
             print(f"[knxprod] archive error: {e}")
             self._archive_load_error = str(e)
@@ -1242,30 +1242,30 @@ class KnxGuiApp:
             self._archive_load_error = f"{type(e).__name__}: {e}"
         self._show_archive_popup = True
 
-    def _add_candidate_as_device(self, candidate: ParsedDeviceCandidate) -> None:
-        print(f"[knxprod] adding {candidate.name} ({len(candidate.raw_com_objects)} com objects)")
-        template = self._candidate_to_template(candidate)
+    def _add_candidate_as_device(self, app: DeviceApplication) -> None:
+        print(f"[knxprod] adding {app.name} ({len(app.com_objects)} com objects)")
+        template = self._app_to_template(app)
         next_id = max((d.node_id for d in self._devices), default=0) + 1
         self._devices.append(
             Device(
                 node_id=next_id,
-                name=candidate.name,
+                name=app.name,
                 template=template,
                 address="",
             )
         )
         print(f"[knxprod] device added; total devices: {len(self._devices)}")
 
-    def _candidate_to_template(self, candidate: ParsedDeviceCandidate) -> DeviceTemplate:
+    def _app_to_template(self, app: DeviceApplication) -> DeviceTemplate:
         com_objects: list[ComObject] = []
-        for co in candidate.raw_com_objects:
+        for co in app.com_objects:
             flags = ComObjectFlags(
-                communication=co.flags["communication"],
-                read=co.flags["read"],
-                write=co.flags["write"],
-                transmit=co.flags["transmit"],
-                update=co.flags["update"],
-                read_on_init=co.flags["read_on_init"],
+                communication=co.flags.communication,
+                read=co.flags.read,
+                write=co.flags.write,
+                transmit=co.flags.transmit,
+                update=co.flags.update,
+                read_on_init=co.flags.read_on_init,
             )
             supported = [lookup_or_make_dpt(code) for code in co.dpt_codes]
             seen: set[tuple[int, int]] = set()
@@ -1285,6 +1285,7 @@ class KnxGuiApp:
                     supported_dpts=unique_supported,
                 )
             )
+        visible_params = app.visible_parameters()
         parameters = [
             Parameter(
                 id=p.id,
@@ -1293,14 +1294,14 @@ class KnxGuiApp:
                 value=p.value,
                 param_type=p.param_type,
             )
-            for p in candidate.raw_parameters
+            for p in visible_params
         ]
         return DeviceTemplate(
-            name=candidate.name,
+            name=app.name,
             com_objects=com_objects,
             config=DeviceConfig(
-                manufacturer=candidate.manufacturer_id,
-                application=candidate.application_id,
+                manufacturer=app.manufacturer_id,
+                application=app.application_id,
                 hardware="",
                 firmware="",
             ),
@@ -1327,7 +1328,7 @@ class KnxGuiApp:
                 for i, candidate in enumerate(self._archive_candidates):
                     imgui.text(candidate.name)
                     imgui.same_line()
-                    imgui.text_disabled(f"  ({len(candidate.raw_com_objects)} com objects)")
+                    imgui.text_disabled(f"  ({len(candidate.com_objects)} com objects)")
                     imgui.same_line()
                     if imgui.small_button(f"Add##{i}"):
                         self._add_candidate_as_device(candidate)
