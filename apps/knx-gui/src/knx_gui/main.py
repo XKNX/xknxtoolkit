@@ -867,9 +867,7 @@ class KnxGuiApp:
         for param in params:
             text = param.text if param.text else param.name
             if " - " in text:
-                prefix = text.split(" - ")[0]
-            elif ":" in text:
-                prefix = text.split(":")[0]
+                prefix = text.split(" - ")[0].strip()
             else:
                 prefix = "General"
             if prefix not in groups:
@@ -885,10 +883,10 @@ class KnxGuiApp:
         for group_name, group_params in sorted(groups.items()):
             group_label = f"{group_name} ({len(group_params)})##{device.node_id}_{group_name}"
             if imgui.tree_node(group_label):
-                table_flags = imgui.TableFlags_.sizing_fixed_fit | imgui.TableFlags_.no_saved_settings
+                table_flags = imgui.TableFlags_.no_saved_settings
                 if imgui.begin_table(f"##params_{device.node_id}_{group_name}", 2, table_flags):
-                    imgui.table_setup_column("Name")
-                    imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_fixed, 100)
+                    imgui.table_setup_column("Name", imgui.TableColumnFlags_.width_stretch)
+                    imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_fixed, 80)
                     for param in group_params:
                         imgui.table_next_row()
                         imgui.table_set_column_index(0)
