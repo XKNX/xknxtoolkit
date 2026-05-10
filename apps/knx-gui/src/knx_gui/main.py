@@ -1,5 +1,4 @@
 import copy
-import math
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
@@ -28,7 +27,6 @@ LINK_COLOR = imgui.ImVec4(0.6, 0.6, 0.6, 1.0)
 LINK_LOOSE_COLOR = imgui.ImVec4(0.9, 0.7, 0.2, 1.0)
 LINK_INVALID_COLOR = imgui.ImVec4(0.9, 0.2, 0.2, 1.0)
 
-TELEGRAM_PANE_HEIGHT = 200
 TELEGRAM_HEADER_BUTTONS_WIDTH = 100
 NAVIGATE_TO_NODE_DURATION = 0.3
 
@@ -637,10 +635,8 @@ class KnxGuiApp:
         self._pin_dpt: dict[int, DPT] = {}
         self._pin_dir: dict[int, PinDir] = {}
         self._devices: list[Device] = []
-        self._show_sidebar: bool = True
         self._connected: bool = False
         self._controller_ip: str = "192.168.1.1"
-        self._show_telegrams: bool = False
         self._telegrams: list[Telegram] = []
         self._selected_telegrams: set[int] = set()
         self._last_selected_telegram: int = -1
@@ -1326,59 +1322,6 @@ class KnxGuiApp:
             tree[area][line].append(device)
         return tree, unassigned
 
-    def _calc_sidebar_width(self) -> float:
-        indent = imgui.get_style().indent_spacing
-        max_width = imgui.calc_text_size("Devices").x
-        for device in self._devices:
-            label = f"{device.name} ({device.address})" if device.address else device.name
-            width = imgui.calc_text_size(label).x + indent * 3
-            max_width = max(max_width, width)
-        return max_width + imgui.get_style().window_padding.x * 2 + 20
-
-    def _render_connection_status(self) -> None:
-        if self._connected:
-            label_text = f"Connected ({self._controller_ip})"
-            label_width = imgui.calc_text_size(label_text).x + 24
-            imgui.same_line(imgui.get_window_width() - label_width - 12)
-            draw_list = imgui.get_window_draw_list()
-            cursor = imgui.get_cursor_screen_pos()
-            center = imgui.ImVec2(cursor.x + 6, cursor.y + imgui.get_frame_height() / 2)
-            pulse = 0.5 + 0.5 * math.sin(imgui.get_time() * 3.0)
-            alpha = 0.4 + 0.6 * pulse
-            draw_list.add_circle_filled(center, 5, color_u32(0.2, 0.8, 0.3, alpha))
-            draw_list.add_circle_filled(center, 5 + pulse * 4, color_u32(0.2, 0.8, 0.3, 0.15 * (1 - pulse)))
-            imgui.dummy(imgui.ImVec2(20, 0))
-            imgui.same_line()
-            imgui.push_style_color(imgui.Col_.header_hovered, imgui.ImVec4(0, 0, 0, 0))
-            imgui.push_style_color(imgui.Col_.header_active, imgui.ImVec4(0, 0, 0, 0))
-            if imgui.menu_item(label_text, "", False)[0]:
-                imgui.open_popup("##ConnectedPopup")
-            imgui.pop_style_color(2)
-        else:
-            label_width = imgui.calc_text_size("Connect").x + 16
-            imgui.same_line(imgui.get_window_width() - label_width - 12)
-            if imgui.menu_item("Connect", "", False)[0]:
-                imgui.open_popup("##ConnectPopup")
-
-        if imgui.begin_popup("##ConnectPopup"):
-            imgui.text("KNX Controller IP")
-            imgui.spacing()
-            imgui.set_next_item_width(180)
-            _, self._controller_ip = imgui.input_text("##ip", self._controller_ip)
-            imgui.spacing()
-            if imgui.button("Connect", imgui.ImVec2(180, 0)):
-                self._connected = True
-                imgui.close_current_popup()
-            imgui.end_popup()
-
-        if imgui.begin_popup("##ConnectedPopup"):
-            imgui.text(f"Disconnect from {self._controller_ip}?")
-            imgui.spacing()
-            if imgui.button("Disconnect", imgui.ImVec2(180, 0)):
-                self._connected = False
-                imgui.close_current_popup()
-            imgui.end_popup()
-
     def _poll_open_file_dialog(self) -> None:
         if self._open_file_dialog is None:
             return
@@ -1511,44 +1454,6 @@ class KnxGuiApp:
                 imgui.close_current_popup()
             imgui.end_popup()
 
-    def _render_menu_bar(self) -> None:
-        if imgui.begin_main_menu_bar():
-            if imgui.begin_menu("File"):
-                if imgui.menu_item("New Project", "", False)[0]:
-                    pass
-                if imgui.menu_item("Open Project", "", False)[0]:
-                    pass
-                if imgui.menu_item("Save Project", "", False)[0]:
-                    pass
-                imgui.separator()
-                if imgui.menu_item("Load .knxprod...", "", False)[0]:
-                    self._open_file_dialog = pfd.open_file(
-                        "Open KNX product archive",
-                        "",
-                        ["KNX product (*.knxprod)", "*.knxprod", "All files", "*"],
-                    )
-                imgui.separator()
-                if imgui.menu_item("Exit", "", False)[0]:
-                    pass
-                imgui.end_menu()
-
-            if imgui.begin_menu("Edit"):
-                if imgui.menu_item("Undo", "Ctrl+Z", False)[0]:
-                    pass
-                if imgui.menu_item("Redo", "Ctrl+Y", False)[0]:
-                    pass
-                imgui.end_menu()
-
-            if imgui.begin_menu("View"):
-                clicked, self._show_sidebar = imgui.menu_item(
-                    "Sidebar", "", self._show_sidebar
-                )
-                imgui.end_menu()
-
-            self._render_connection_status()
-
-            imgui.end_main_menu_bar()
-
     def _focus_device_by_address(self, address: str) -> None:
         for device in self._devices:
             if device.address == address:
@@ -1648,103 +1553,91 @@ class KnxGuiApp:
             self._render_telegram_row(i, telegram)
         imgui.end_table()
 
-    def _render_telegrams_pane(self) -> None:
-        imgui.begin_child("##TelegramsPane", imgui.ImVec2(0, 0), imgui.ChildFlags_.borders)
-        self._render_telegrams_header()
-        self._handle_telegrams_shortcuts()
-        self._render_telegrams_table()
-        imgui.end_child()
+    def gui_status_bar(self) -> None:
+        imgui.text(f"Devices: {len(self._devices)} | Links: {len(self._links)}")
+        if self._connected:
+            imgui.same_line()
+            imgui.text_disabled(f"| Connected: {self._controller_ip}")
 
-    def _render_bottom_bar(self) -> None:
-        bar_height = 30
-        viewport = imgui.get_main_viewport()
-        imgui.set_next_window_pos(
-            imgui.ImVec2(viewport.pos.x, viewport.pos.y + viewport.size.y - bar_height)
+    def gui_menu(self) -> None:
+        if imgui.begin_menu("File"):
+            if imgui.menu_item("New Project", "", False)[0]:
+                pass
+            if imgui.menu_item("Open Project", "", False)[0]:
+                pass
+            if imgui.menu_item("Save Project", "", False)[0]:
+                pass
+            imgui.separator()
+            if imgui.menu_item("Load .knxprod...", "", False)[0]:
+                self._open_file_dialog = pfd.open_file(
+                    "Open KNX product archive",
+                    "",
+                    ["KNX product (*.knxprod)", "*.knxprod", "All files", "*"],
+                )
+            imgui.separator()
+            if imgui.menu_item("Exit", "", False)[0]:
+                hello_imgui.get_runner_params().app_shall_exit = True
+            imgui.end_menu()
+
+        if imgui.begin_menu("Edit"):
+            if imgui.menu_item("Undo", "Ctrl+Z", False)[0]:
+                pass
+            if imgui.menu_item("Redo", "Ctrl+Y", False)[0]:
+                pass
+            imgui.end_menu()
+
+        if imgui.begin_menu("Connection"):
+            if self._connected:
+                imgui.text(f"Connected to {self._controller_ip}")
+                if imgui.menu_item("Disconnect", "", False)[0]:
+                    self._connected = False
+            else:
+                imgui.set_next_item_width(180)
+                _, self._controller_ip = imgui.input_text("IP", self._controller_ip)
+                if imgui.menu_item("Connect", "", False)[0]:
+                    self._connected = True
+            imgui.end_menu()
+
+        self._poll_open_file_dialog()
+
+    def gui_devices(self) -> None:
+        tree, unassigned = self._build_address_tree()
+        leaf_flags = (
+            imgui.TreeNodeFlags_.leaf
+            | imgui.TreeNodeFlags_.no_tree_push_on_open
+            | imgui.TreeNodeFlags_.span_avail_width
         )
-        imgui.set_next_window_size(imgui.ImVec2(viewport.size.x, bar_height))
-        imgui.push_style_var(imgui.StyleVar_.window_padding, imgui.ImVec2(12, 4))
-        imgui.push_style_var(imgui.StyleVar_.window_border_size, 0.0)
-        flags = (
-            imgui.WindowFlags_.no_decoration
-            | imgui.WindowFlags_.no_move
-            | imgui.WindowFlags_.no_saved_settings
-        )
-        imgui.begin("##BottomBar", None, flags)
+        for area in sorted(tree.keys()):
+            area_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
+            if imgui.tree_node_ex(f"Area {area}", area_flags):
+                for line in sorted(tree[area].keys()):
+                    line_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
+                    if imgui.tree_node_ex(f"Line {area}.{line}", line_flags):
+                        for device in tree[area][line]:
+                            imgui.tree_node_ex(f"{device.name} ({device.address})", leaf_flags)
+                            if imgui.is_item_clicked():
+                                ed.set_current_editor(self._editor_context)
+                                ed.select_node(ed.NodeId(device.node_id), False)
+                                ed.navigate_to_selection(False, 0.3)
+                        imgui.tree_pop()
+                imgui.tree_pop()
+        if unassigned:
+            unassigned_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
+            if imgui.tree_node_ex(f"Unassigned ({len(unassigned)})", unassigned_flags):
+                for device in unassigned:
+                    imgui.tree_node_ex(device.name, leaf_flags)
+                    if imgui.is_item_clicked():
+                        ed.set_current_editor(self._editor_context)
+                        ed.select_node(ed.NodeId(device.node_id), False)
+                        ed.navigate_to_selection(False, 0.3)
+                imgui.tree_pop()
 
-        _, self._show_sidebar = imgui.checkbox("Sidebar", self._show_sidebar)
-        imgui.same_line(spacing=20)
-        _, self._show_telegrams = imgui.checkbox("Telegrams", self._show_telegrams)
-
-        stats_text = f"Devices: {len(self._devices)} | Links: {len(self._links)}"
-        text_width = imgui.calc_text_size(stats_text).x
-        imgui.same_line(imgui.get_window_width() - text_width - 12)
-        imgui.text(stats_text)
-
-        imgui.end()
-        imgui.pop_style_var(2)
-
-    def render(self) -> None:
+    def gui_node_editor(self) -> None:
         if not self._editor_context:
             return
-        self._render_menu_bar()
-        self._poll_open_file_dialog()
-        self._render_archive_popup()
-        self._render_bottom_bar()
-
-        menu_bar_height = imgui.get_frame_height()
-        bottom_bar_height = 26
-        viewport = imgui.get_main_viewport()
-
-        imgui.set_next_window_pos(imgui.ImVec2(viewport.pos.x, viewport.pos.y + menu_bar_height))
-        imgui.set_next_window_size(imgui.ImVec2(viewport.size.x, viewport.size.y - menu_bar_height - bottom_bar_height))
-        imgui.push_style_var(imgui.StyleVar_.window_border_size, 0.0)
-        main_flags = imgui.WindowFlags_.no_move | imgui.WindowFlags_.no_resize | imgui.WindowFlags_.no_title_bar
-        imgui.begin("##MainArea", None, main_flags)
-        imgui.pop_style_var()
-
-        if self._show_sidebar:
-            sidebar_width = self._calc_sidebar_width()
-            imgui.begin_child("##Sidebar", imgui.ImVec2(sidebar_width, 0), imgui.ChildFlags_.borders)
-            imgui.text("Devices")
-            imgui.separator()
-            tree, unassigned = self._build_address_tree()
-            leaf_flags = (
-                imgui.TreeNodeFlags_.leaf
-                | imgui.TreeNodeFlags_.no_tree_push_on_open
-                | imgui.TreeNodeFlags_.span_avail_width
-            )
-            for area in sorted(tree.keys()):
-                area_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
-                if imgui.tree_node_ex(f"Area {area}", area_flags):
-                    for line in sorted(tree[area].keys()):
-                        line_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
-                        if imgui.tree_node_ex(f"Line {area}.{line}", line_flags):
-                            for device in tree[area][line]:
-                                imgui.tree_node_ex(f"{device.name} ({device.address})", leaf_flags)
-                                if imgui.is_item_clicked():
-                                    ed.select_node(ed.NodeId(device.node_id), False)
-                                    ed.navigate_to_selection(False, 0.3)
-                            imgui.tree_pop()
-                    imgui.tree_pop()
-            if unassigned:
-                unassigned_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
-                if imgui.tree_node_ex(f"Unassigned ({len(unassigned)})", unassigned_flags):
-                    for device in unassigned:
-                        imgui.tree_node_ex(device.name, leaf_flags)
-                        if imgui.is_item_clicked():
-                            ed.select_node(ed.NodeId(device.node_id), False)
-                            ed.navigate_to_selection(False, 0.3)
-                    imgui.tree_pop()
-            imgui.end_child()
-            imgui.same_line()
-
-        imgui.begin_child("##RightArea", imgui.ImVec2(0, 0))
-
-        telegram_pane_height = TELEGRAM_PANE_HEIGHT if self._show_telegrams else 0
-        editor_height = imgui.get_content_region_avail().y - telegram_pane_height
 
         ed.set_current_editor(self._editor_context)
-        ed.begin("##NodeEditorCanvas", imgui.ImVec2(0, editor_height))
+        ed.begin("##NodeEditorCanvas", imgui.ImVec2(0, 0))
 
         for device in self._devices:
             self._render_device_node(device)
@@ -1754,16 +1647,51 @@ class KnxGuiApp:
         self._handle_link_deletion()
 
         ed.end()
+
+        self._render_archive_popup()
         self._render_dpt_popup()
         self._render_enum_popup()
         self._render_link_warning_popup()
 
-        if self._show_telegrams:
-            self._render_telegrams_pane()
+    def gui_telegrams(self) -> None:
+        self._render_telegrams_header()
+        self._handle_telegrams_shortcuts()
+        self._render_telegrams_table()
 
-        imgui.end_child()
 
-        imgui.end()
+def create_docking_splits() -> list[hello_imgui.DockingSplit]:
+    split_left = hello_imgui.DockingSplit()
+    split_left.initial_dock = "MainDockSpace"
+    split_left.new_dock = "LeftSpace"
+    split_left.direction = imgui.Dir.left
+    split_left.ratio = 0.2
+
+    split_bottom = hello_imgui.DockingSplit()
+    split_bottom.initial_dock = "MainDockSpace"
+    split_bottom.new_dock = "BottomSpace"
+    split_bottom.direction = imgui.Dir.down
+    split_bottom.ratio = 0.25
+
+    return [split_left, split_bottom]
+
+
+def create_dockable_windows(app: "KnxGuiApp") -> list[hello_imgui.DockableWindow]:
+    devices_window = hello_imgui.DockableWindow()
+    devices_window.label = "Devices"
+    devices_window.dock_space_name = "LeftSpace"
+    devices_window.gui_function = app.gui_devices
+
+    editor_window = hello_imgui.DockableWindow()
+    editor_window.label = "Node Editor"
+    editor_window.dock_space_name = "MainDockSpace"
+    editor_window.gui_function = app.gui_node_editor
+
+    telegrams_window = hello_imgui.DockableWindow()
+    telegrams_window.label = "Telegrams"
+    telegrams_window.dock_space_name = "BottomSpace"
+    telegrams_window.gui_function = app.gui_telegrams
+
+    return [devices_window, editor_window, telegrams_window]
 
 
 def main() -> None:
@@ -1772,10 +1700,26 @@ def main() -> None:
     runner_params = hello_imgui.RunnerParams()
     runner_params.app_window_params.window_title = "XKNX Toolkit"
     runner_params.app_window_params.window_geometry.size = (1280, 720)
+    runner_params.app_window_params.restore_previous_geometry = True
+
+    runner_params.imgui_window_params.default_imgui_window_type = (
+        hello_imgui.DefaultImGuiWindowType.provide_full_screen_dock_space
+    )
+    runner_params.imgui_window_params.enable_viewports = True
+
+    runner_params.imgui_window_params.show_menu_bar = True
+    runner_params.imgui_window_params.show_menu_app = False
+    runner_params.imgui_window_params.show_menu_view = True
+    runner_params.callbacks.show_menus = app.gui_menu
+
+    runner_params.imgui_window_params.show_status_bar = True
+    runner_params.callbacks.show_status = app.gui_status_bar
+
+    runner_params.docking_params.docking_splits = create_docking_splits()
+    runner_params.docking_params.dockable_windows = create_dockable_windows(app)
 
     runner_params.callbacks.post_init = app.setup
     runner_params.callbacks.before_exit = app.shutdown
-    runner_params.callbacks.show_gui = app.render
 
     hello_imgui.run(runner_params)
 
