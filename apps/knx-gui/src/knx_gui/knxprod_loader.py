@@ -51,32 +51,101 @@ def _dpt_codes(value: Any) -> list[str]:
     return codes
 
 
+def _resolve(*values: Any) -> Any:
+    for v in values:
+        if v is not None:
+            return v
+    return None
+
+
+def _resolve_dpt_codes(*values: Any) -> list[str]:
+    for v in values:
+        if v is None:
+            continue
+        codes = _dpt_codes(v)
+        if codes:
+            return codes
+    return []
+
+
+def _to_com_object(ref: Any, base: Any | None) -> ParsedComObject:
+    """Build a ParsedComObject by merging a ComObjectRef with its underlying ComObject.
+
+    ComObjectRef values take precedence; fall back to the ComObject template.
+    `ref` may be the bare ComObject when no ref is present.
+    """
+    name = (
+        _resolve(getattr(ref, "text", None), getattr(base, "text", None) if base else None)
+        or _resolve(getattr(ref, "name", None), getattr(base, "name", None) if base else None)
+        or "Unnamed"
+    )
+    number_raw = _resolve(
+        getattr(ref, "number", None) if hasattr(ref, "number") else None,
+        getattr(base, "number", None) if base else None,
+    )
+    return ParsedComObject(
+        id=getattr(ref, "id", "") or "",
+        name=str(name),
+        number=int(number_raw or 0),
+        dpt_codes=_resolve_dpt_codes(
+            getattr(ref, "datapoint_type", None),
+            getattr(base, "datapoint_type", None) if base else None,
+        ),
+        flags={
+            "communication": _flag_enabled(_resolve(
+                getattr(ref, "communication_flag", None),
+                getattr(base, "communication_flag", None) if base else None,
+            )),
+            "read": _flag_enabled(_resolve(
+                getattr(ref, "read_flag", None),
+                getattr(base, "read_flag", None) if base else None,
+            )),
+            "write": _flag_enabled(_resolve(
+                getattr(ref, "write_flag", None),
+                getattr(base, "write_flag", None) if base else None,
+            )),
+            "transmit": _flag_enabled(_resolve(
+                getattr(ref, "transmit_flag", None),
+                getattr(base, "transmit_flag", None) if base else None,
+            )),
+            "update": _flag_enabled(_resolve(
+                getattr(ref, "update_flag", None),
+                getattr(base, "update_flag", None) if base else None,
+            )),
+            "read_on_init": _flag_enabled(_resolve(
+                getattr(ref, "read_on_init_flag", None),
+                getattr(base, "read_on_init_flag", None) if base else None,
+            )),
+        },
+    )
+
+
 def _extract_com_objects(application_program: Any) -> list[ParsedComObject]:
     static = getattr(application_program, "static", None)
     if static is None:
         return []
+
     com_object_table = getattr(static, "com_object_table", None)
-    if com_object_table is None:
-        return []
-    raw_com_objects: list[Any] = list(getattr(com_object_table, "com_object", []) or [])
+    bases: list[Any] = list(getattr(com_object_table, "com_object", []) or []) if com_object_table else []
+    base_by_id: dict[str, Any] = {}
+    for co in bases:
+        co_id = getattr(co, "id", None)
+        if co_id:
+            base_by_id[co_id] = co
+
+    com_object_refs = getattr(static, "com_object_refs", None)
+    refs: list[Any] = list(getattr(com_object_refs, "com_object_ref", []) or []) if com_object_refs else []
+
     parsed: list[ParsedComObject] = []
-    for co in raw_com_objects:
-        parsed.append(
-            ParsedComObject(
-                id=getattr(co, "id", "") or "",
-                name=getattr(co, "text", None) or getattr(co, "name", None) or "Unnamed",
-                number=int(getattr(co, "number", 0) or 0),
-                dpt_codes=_dpt_codes(getattr(co, "datapoint_type", None)),
-                flags={
-                    "communication": _flag_enabled(getattr(co, "communication_flag", None)),
-                    "read": _flag_enabled(getattr(co, "read_flag", None)),
-                    "write": _flag_enabled(getattr(co, "write_flag", None)),
-                    "transmit": _flag_enabled(getattr(co, "transmit_flag", None)),
-                    "update": _flag_enabled(getattr(co, "update_flag", None)),
-                    "read_on_init": _flag_enabled(getattr(co, "read_on_init_flag", None)),
-                },
-            )
-        )
+    if refs:
+        for ref in refs:
+            ref_id = getattr(ref, "ref_id", None)
+            base = base_by_id.get(ref_id) if ref_id else None
+            parsed.append(_to_com_object(ref, base))
+    else:
+        for co in bases:
+            parsed.append(_to_com_object(co, None))
+
     parsed.sort(key=lambda c: c.number)
     return parsed
 
