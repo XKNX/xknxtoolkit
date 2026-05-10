@@ -492,6 +492,8 @@ class Device:
     com_objects: list[ComObject] = field(default_factory=list)
     app: DeviceApplication | None = None
     _param_values: dict[str, str] = field(default_factory=dict)
+    _cached_visible_params: list[Parameter] = field(default_factory=list)
+    _params_dirty: bool = True
 
     def __post_init__(self) -> None:
         if not self.com_objects:
@@ -508,22 +510,33 @@ class Device:
         return generate_rows(self.com_objects)
 
     def get_visible_parameters(self) -> list[Parameter]:
+        if not self._params_dirty:
+            return self._cached_visible_params
         if self.app is None:
-            return self.template.parameters
-        visible_knx = self.app.visible_parameters(self._param_values)
-        return [
-            Parameter(
-                id=p.id,
-                name=p.name,
-                text=p.text,
-                value=self._param_values.get(p.id, p.value),
-                param_type=p.param_type,
-            )
-            for p in visible_knx
-        ]
+            self._cached_visible_params = self.template.parameters
+        else:
+            visible_knx = self.app.visible_parameters(self._param_values)
+            self._cached_visible_params = [
+                Parameter(
+                    id=p.id,
+                    name=p.name,
+                    text=p.text,
+                    value=self._param_values.get(p.id, p.value),
+                    param_type=p.param_type,
+                )
+                for p in visible_knx
+            ]
+        self._params_dirty = False
+        return self._cached_visible_params
 
     def set_param_value(self, param_id: str, value: str) -> None:
-        self._param_values[param_id] = value
+        if self._param_values.get(param_id) != value:
+            self._param_values[param_id] = value
+            self._params_dirty = True
+            for p in self._cached_visible_params:
+                if p.id == param_id:
+                    p.value = value
+                    break
 
 
 @dataclass
@@ -880,7 +893,6 @@ class KnxGuiApp:
         return self._pin_ids[key]
 
     def _render_node_pins(self, device: "Device", layout: NodeLayout) -> None:
-        print(f"[render]   pins for {device.node_id}: {len(device.rows)} rows")
         co_indices = {id(co): idx for idx, co in enumerate(device.com_objects)}
         for row in device.rows:
             if row.left and com_object_has_input(row.left):
@@ -995,8 +1007,11 @@ class KnxGuiApp:
             return
         groups = self._group_parameters(params)
         for group_name, group_params in sorted(groups.items()):
-            group_label = f"{group_name} ({len(group_params)})##{device.node_id}_{group_name}"
-            if imgui.tree_node(group_label):
+            group_label = f"{group_name}##{device.node_id}_{group_name}"
+            is_open = imgui.tree_node(group_label)
+            imgui.same_line()
+            imgui.text_disabled(f"({len(group_params)})")
+            if is_open:
                 table_flags = imgui.TableFlags_.no_saved_settings
                 if imgui.begin_table(f"##params_{device.node_id}_{group_name}", 2, table_flags):
                     imgui.table_setup_column("Name", imgui.TableColumnFlags_.width_stretch)
@@ -1013,33 +1028,24 @@ class KnxGuiApp:
                 imgui.tree_pop()
 
     def _render_node_settings(self, device: "Device", width: float) -> None:
-        print(f"[render]   settings for {device.node_id} - start")
         config = device.template.config
-        print(f"[render]   settings {device.node_id} - manufacturer tree begin")
         if imgui.tree_node(f"Manufacturer##{device.node_id}"):
-            print(f"[render]   settings {device.node_id} - manufacturer expanded")
             self._render_label_value("Manufacturer", config.manufacturer)
             self._render_label_value("Application", config.application)
             self._render_label_value("Hardware", config.hardware)
             self._render_label_value("Firmware", config.firmware)
             imgui.tree_pop()
-        params = device.template.parameters
-        print(f"[render]   settings {device.node_id} - params count: {len(params)}")
+        params = device.get_visible_parameters()
         if params:
-            param_label = f"Parameters ({len(params)})##{device.node_id}"
-            print(f"[render]   settings {device.node_id} - rendering params tree node")
-            if imgui.tree_node(param_label):
-                print(f"[render]   settings {device.node_id} - params tree expanded, calling render")
+            is_open = imgui.tree_node(f"Parameters##{device.node_id}")
+            imgui.same_line()
+            imgui.text_disabled(f"({len(params)})")
+            if is_open:
                 self._render_node_parameters(device)
-                print(f"[render]   settings {device.node_id} - params render done")
                 imgui.tree_pop()
-        print(f"[render]   settings {device.node_id} - com flags tree begin")
         if imgui.tree_node(f"Com Flags##{device.node_id}"):
-            print(f"[render]   settings {device.node_id} - com flags expanded, rendering table")
             self._render_node_com_objects(device)
-            print(f"[render]   settings {device.node_id} - com flags table done")
             imgui.tree_pop()
-        print(f"[render]   settings {device.node_id} - end")
 
     def _draw_node_header_bg(self, node_id: int, header: Rect, content_max_x: float) -> None:
         draw_list = ed.get_node_background_draw_list(ed.NodeId(node_id))
@@ -1059,7 +1065,6 @@ class KnxGuiApp:
         )
 
     def _render_device_node(self, device: "Device") -> None:
-        print(f"[render] device {device.node_id} {device.name} ({len(device.com_objects)} co)")
         ed.begin_node(ed.NodeId(device.node_id))
 
         layout = self._calc_node_layout(device)
@@ -1556,7 +1561,6 @@ class KnxGuiApp:
     def render(self) -> None:
         if not self._editor_context:
             return
-        print("[render] frame begin")
         self._render_menu_bar()
         self._poll_open_file_dialog()
         self._render_archive_popup()
@@ -1619,21 +1623,14 @@ class KnxGuiApp:
 
         for device in self._devices:
             self._render_device_node(device)
-        print(f"[render] all device nodes done ({len(self._devices)} devices)")
 
         self._render_links()
-        print(f"[render] links done ({len(self._links)} links)")
         self._handle_link_creation()
-        print("[render] link create handled")
         self._handle_link_deletion()
-        print("[render] link delete handled")
 
-        print("[render] calling ed.end()")
         ed.end()
-        print("[render] ed.end() returned")
         self._render_dpt_popup()
         self._render_enum_popup()
-        print("[render] dpt popup done")
 
         if self._show_telegrams:
             self._render_telegrams_pane()
