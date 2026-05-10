@@ -37,6 +37,11 @@ class ComObjectFlags:
     transmit: bool = False
     update: bool = False
     read_on_init: bool = False
+    read_locked: bool = False
+    write_locked: bool = False
+    transmit_locked: bool = False
+    update_locked: bool = False
+    read_on_init_locked: bool = False
 
 
 @dataclass
