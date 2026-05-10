@@ -528,6 +528,8 @@ class KnxGuiApp:
         self._editor_context: ed.EditorContext | None = None
         self._links: list[tuple[int, int, int]] = []
         self._next_link_id: int = 1000
+        self._next_pin_id: int = 100000
+        self._pin_ids: dict[tuple[int, int, str], int] = {}
         self._pin_dpt: dict[int, DPT] = {}
         self._pin_dir: dict[int, PinDir] = {}
         self._devices: list[Device] = []
@@ -798,17 +800,26 @@ class KnxGuiApp:
         rect_max = imgui.get_item_rect_max()
         return Rect(rect_min.x, rect_min.y, rect_max.x, rect_max.y)
 
+    def _get_pin_id(self, device_id: int, co_index: int, direction: str) -> int:
+        key = (device_id, co_index, direction)
+        if key not in self._pin_ids:
+            self._pin_ids[key] = self._next_pin_id
+            self._next_pin_id += 1
+        return self._pin_ids[key]
+
     def _render_node_pins(self, device: "Device", layout: NodeLayout) -> None:
-        pin_base = device.node_id * 100
+        print(f"[render]   pins for {device.node_id}: {len(device.rows)} rows")
         co_indices = {id(co): idx for idx, co in enumerate(device.com_objects)}
         for row in device.rows:
             if row.left and com_object_has_input(row.left):
-                self._render_input_pin(pin_base + co_indices[id(row.left)], row.left, layout)
+                pin_id = self._get_pin_id(device.node_id, co_indices[id(row.left)], "in")
+                self._render_input_pin(pin_id, row.left, layout)
             else:
                 imgui.dummy(imgui.ImVec2(layout.in_total_w, PIN_HEIGHT))
             imgui.same_line(spacing=layout.mid_spacing)
             if row.right and com_object_has_output(row.right):
-                self._render_output_pin(pin_base + 50 + co_indices[id(row.right)], row.right, layout)
+                pin_id = self._get_pin_id(device.node_id, co_indices[id(row.right)], "out")
+                self._render_output_pin(pin_id, row.right, layout)
             else:
                 imgui.dummy(imgui.ImVec2(layout.out_total_w, PIN_HEIGHT))
 
@@ -843,16 +854,23 @@ class KnxGuiApp:
         imgui.end_table()
 
     def _render_node_settings(self, device: "Device", width: float) -> None:
+        print(f"[render]   settings for {device.node_id} - start")
         config = device.template.config
+        print(f"[render]   settings {device.node_id} - manufacturer tree begin")
         if imgui.tree_node(f"Manufacturer##{device.node_id}"):
+            print(f"[render]   settings {device.node_id} - manufacturer expanded")
             self._render_label_value("Manufacturer", config.manufacturer)
             self._render_label_value("Application", config.application)
             self._render_label_value("Hardware", config.hardware)
             self._render_label_value("Firmware", config.firmware)
             imgui.tree_pop()
+        print(f"[render]   settings {device.node_id} - com flags tree begin")
         if imgui.tree_node(f"Com Flags##{device.node_id}"):
+            print(f"[render]   settings {device.node_id} - com flags expanded, rendering table")
             self._render_node_com_objects(device)
+            print(f"[render]   settings {device.node_id} - com flags table done")
             imgui.tree_pop()
+        print(f"[render]   settings {device.node_id} - end")
 
     def _draw_node_header_bg(self, node_id: int, header: Rect, content_max_x: float) -> None:
         draw_list = ed.get_node_background_draw_list(ed.NodeId(node_id))
@@ -872,6 +890,7 @@ class KnxGuiApp:
         )
 
     def _render_device_node(self, device: "Device") -> None:
+        print(f"[render] device {device.node_id} {device.name} ({len(device.com_objects)} co)")
         ed.begin_node(ed.NodeId(device.node_id))
 
         layout = self._calc_node_layout(device)
@@ -1082,13 +1101,33 @@ class KnxGuiApp:
         self._archive_load_error = None
         self._archive_candidates = []
         self._archive_path = path
+        print(f"[knxprod] parsing {path}")
         try:
             self._archive_candidates = parse_archive(path)
+            print(f"[knxprod] parsed {len(self._archive_candidates)} candidate(s)")
+            for c in self._archive_candidates:
+                print(f"[knxprod]   {c.name}: {len(c.raw_com_objects)} com objects")
         except ArchiveError as e:
+            print(f"[knxprod] archive error: {e}")
             self._archive_load_error = str(e)
         except (OSError, ValueError) as e:
+            print(f"[knxprod] error: {type(e).__name__}: {e}")
             self._archive_load_error = f"{type(e).__name__}: {e}"
         self._show_archive_popup = True
+
+    def _add_candidate_as_device(self, candidate: ParsedDeviceCandidate) -> None:
+        print(f"[knxprod] adding {candidate.name} ({len(candidate.raw_com_objects)} com objects)")
+        template = self._candidate_to_template(candidate)
+        next_id = max((d.node_id for d in self._devices), default=0) + 1
+        self._devices.append(
+            Device(
+                node_id=next_id,
+                name=candidate.name,
+                template=template,
+                address="",
+            )
+        )
+        print(f"[knxprod] device added; total devices: {len(self._devices)}")
 
     def _candidate_to_template(self, candidate: ParsedDeviceCandidate) -> DeviceTemplate:
         com_objects: list[ComObject] = []
@@ -1130,18 +1169,6 @@ class KnxGuiApp:
             ),
         )
 
-    def _add_candidate_as_device(self, candidate: ParsedDeviceCandidate) -> None:
-        template = self._candidate_to_template(candidate)
-        next_id = max((d.node_id for d in self._devices), default=0) + 1
-        self._devices.append(
-            Device(
-                node_id=next_id,
-                name=candidate.name,
-                template=template,
-                address="",
-            )
-        )
-
     def _render_archive_popup(self) -> None:
         if self._show_archive_popup:
             imgui.open_popup("##ArchivePopup")
@@ -1166,6 +1193,7 @@ class KnxGuiApp:
                     imgui.same_line()
                     if imgui.small_button(f"Add##{i}"):
                         self._add_candidate_as_device(candidate)
+                        imgui.close_current_popup()
             imgui.spacing()
             if imgui.button("Close", imgui.ImVec2(120, 0)):
                 imgui.close_current_popup()
@@ -1346,7 +1374,7 @@ class KnxGuiApp:
     def render(self) -> None:
         if not self._editor_context:
             return
-
+        print("[render] frame begin")
         self._render_menu_bar()
         self._poll_open_file_dialog()
         self._render_archive_popup()
@@ -1409,13 +1437,20 @@ class KnxGuiApp:
 
         for device in self._devices:
             self._render_device_node(device)
+        print(f"[render] all device nodes done ({len(self._devices)} devices)")
 
         self._render_links()
+        print(f"[render] links done ({len(self._links)} links)")
         self._handle_link_creation()
+        print("[render] link create handled")
         self._handle_link_deletion()
+        print("[render] link delete handled")
 
+        print("[render] calling ed.end()")
         ed.end()
+        print("[render] ed.end() returned")
         self._render_dpt_popup()
+        print("[render] dpt popup done")
 
         if self._show_telegrams:
             self._render_telegrams_pane()
