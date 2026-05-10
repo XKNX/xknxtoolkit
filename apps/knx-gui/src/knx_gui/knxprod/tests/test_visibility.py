@@ -1,6 +1,8 @@
 import pytest
 
 from knx_gui.knxprod.types import (
+    ComObject,
+    ComObjectFlags,
     DeviceApplication,
     DynamicChoose,
     DynamicElement,
@@ -18,6 +20,16 @@ def make_param(id: str, value: str = "", text: str = "Test") -> Parameter:
         value=value,
         param_type_id="",
         param_type=None,
+    )
+
+
+def make_com_object(id: str, name: str = "Test CO") -> ComObject:
+    return ComObject(
+        id=id,
+        name=name,
+        number=0,
+        dpt_codes=[],
+        flags=ComObjectFlags(),
     )
 
 
@@ -261,3 +273,87 @@ class TestVisibilityEvaluation:
 
         result = app.visible_parameters()
         assert {p.id for p in result} == {"always"}
+
+
+class TestComObjectVisibility:
+    def test_no_dynamic_returns_all_com_objects(self):
+        com_objects = [make_com_object("co1"), make_com_object("co2"), make_com_object("co3")]
+        app = DeviceApplication(
+            application_id="test",
+            name="Test",
+            manufacturer_id="M-TEST",
+            com_objects=com_objects,
+            parameters=[],
+            dynamic=None,
+        )
+
+        result = app.visible_com_objects()
+        assert len(result) == 3
+        assert {co.id for co in result} == {"co1", "co2", "co3"}
+
+    def test_choose_filters_com_objects_by_param_value(self):
+        selector = make_param("selector", value="1")
+        co_a = make_com_object("co_a", "Object A")
+        co_b = make_com_object("co_b", "Object B")
+
+        dynamic = DynamicElement(
+            chooses=[
+                DynamicChoose(
+                    param_ref_id="selector",
+                    conditions=[
+                        DynamicWhen(
+                            test_values=["0"],
+                            content=DynamicElement(com_object_ref_ids=["co_a"]),
+                        ),
+                        DynamicWhen(
+                            test_values=["1"],
+                            content=DynamicElement(com_object_ref_ids=["co_b"]),
+                        ),
+                    ],
+                )
+            ]
+        )
+
+        app = DeviceApplication(
+            application_id="test",
+            name="Test",
+            manufacturer_id="M-TEST",
+            com_objects=[co_a, co_b],
+            parameters=[selector],
+            dynamic=dynamic,
+        )
+
+        result = app.visible_com_objects()
+        assert {co.id for co in result} == {"co_b"}
+
+    def test_direct_co_refs_always_visible(self):
+        selector = make_param("selector", value="0")
+        always_visible = make_com_object("always", "Always Visible")
+        conditional = make_com_object("conditional", "Conditional")
+
+        dynamic = DynamicElement(
+            com_object_ref_ids=["always"],
+            chooses=[
+                DynamicChoose(
+                    param_ref_id="selector",
+                    conditions=[
+                        DynamicWhen(
+                            test_values=["1"],
+                            content=DynamicElement(com_object_ref_ids=["conditional"]),
+                        ),
+                    ],
+                )
+            ],
+        )
+
+        app = DeviceApplication(
+            application_id="test",
+            name="Test",
+            manufacturer_id="M-TEST",
+            com_objects=[always_visible, conditional],
+            parameters=[selector],
+            dynamic=dynamic,
+        )
+
+        result = app.visible_com_objects()
+        assert {co.id for co in result} == {"always"}

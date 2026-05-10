@@ -374,10 +374,12 @@ def parse_archive(path: str) -> list[DeviceApplication]:
                                     param_types.update(md_param_types)
 
                     parameters = _extract_parameters(static, param_types)
+                    com_objects = _extract_com_objects(static)
                     for md in module_defs.values():
                         md_static = getattr(md, "static", None)
                         if md_static:
                             parameters.extend(_extract_parameters(md_static, param_types))
+                            com_objects.extend(_extract_com_objects(md_static))
 
                     dynamic_tree = _parse_dynamic_element(dynamic, module_defs) if dynamic else None
 
@@ -386,7 +388,7 @@ def parse_archive(path: str) -> list[DeviceApplication]:
                             application_id=app_id,
                             name=name,
                             manufacturer_id=manufacturer_id,
-                            com_objects=_extract_com_objects(static),
+                            com_objects=com_objects,
                             parameters=parameters,
                             dynamic=dynamic_tree,
                         )
