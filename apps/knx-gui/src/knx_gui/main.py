@@ -1,4 +1,5 @@
 import copy
+import math
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
@@ -1554,10 +1555,25 @@ class KnxGuiApp:
         imgui.end_table()
 
     def gui_status_bar(self) -> None:
-        imgui.text(f"Devices: {len(self._devices)} | Links: {len(self._links)}")
+        draw_list = imgui.get_window_draw_list()
+        cursor = imgui.get_cursor_screen_pos()
+        text_height = imgui.get_text_line_height()
+        center = imgui.ImVec2(cursor.x + 5, cursor.y + text_height / 2)
         if self._connected:
+            pulse = 0.5 + 0.5 * math.sin(imgui.get_time() * 3.0)
+            alpha = 0.4 + 0.6 * pulse
+            draw_list.add_circle_filled(center, 4, color_u32(0.2, 0.8, 0.3, alpha))
+            draw_list.add_circle_filled(center, 4 + pulse * 3, color_u32(0.2, 0.8, 0.3, 0.15 * (1 - pulse)))
+            imgui.dummy(imgui.ImVec2(12, 0))
             imgui.same_line()
-            imgui.text_disabled(f"| Connected: {self._controller_ip}")
+            imgui.text(f"Connected: {self._controller_ip}")
+        else:
+            draw_list.add_circle_filled(center, 4, color_u32(0.5, 0.5, 0.5, 1.0))
+            imgui.dummy(imgui.ImVec2(12, 0))
+            imgui.same_line()
+            imgui.text_disabled("Disconnected")
+        imgui.same_line()
+        imgui.text(f"| Devices: {len(self._devices)} | Links: {len(self._links)}")
 
     def gui_menu(self) -> None:
         if imgui.begin_menu("File"):
