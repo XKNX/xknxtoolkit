@@ -1258,7 +1258,7 @@ class KnxGuiApp:
 
     def _app_to_template(self, app: DeviceApplication) -> DeviceTemplate:
         com_objects: list[ComObject] = []
-        for co in app.com_objects:
+        for co in app.visible_com_objects():
             flags = ComObjectFlags(
                 communication=co.flags.communication,
                 read=co.flags.read,

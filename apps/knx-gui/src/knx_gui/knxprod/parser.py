@@ -124,7 +124,12 @@ def _parse_com_object(ref: Any, base: Any | None) -> ComObject:
 
 def _extract_com_objects(static: Any) -> list[ComObject]:
     com_object_table = getattr(static, "com_object_table", None)
-    bases: list[Any] = list(getattr(com_object_table, "com_object", []) or []) if com_object_table else []
+    com_objects_container = getattr(static, "com_objects", None)
+    bases: list[Any] = []
+    if com_object_table:
+        bases = list(getattr(com_object_table, "com_object", []) or [])
+    elif com_objects_container:
+        bases = list(getattr(com_objects_container, "com_object", []) or [])
     base_by_id: dict[str, Any] = {}
     for co in bases:
         co_id = getattr(co, "id", None)
