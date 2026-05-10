@@ -17,11 +17,22 @@ class ParsedComObject:
 
 
 @dataclass
+class ParsedParameter:
+    id: str
+    ref_id: str
+    name: str
+    text: str
+    value: str
+    parameter_type: str
+
+
+@dataclass
 class ParsedDeviceCandidate:
     application_id: str
     name: str
     manufacturer_id: str
     raw_com_objects: list[ParsedComObject]
+    raw_parameters: list[ParsedParameter]
 
 
 def _flag_enabled(value: Any) -> bool:
@@ -150,6 +161,53 @@ def _extract_com_objects(application_program: Any) -> list[ParsedComObject]:
     return parsed
 
 
+def _extract_parameters(application_program: Any) -> list[ParsedParameter]:
+    static = getattr(application_program, "static", None)
+    if static is None:
+        return []
+
+    parameters = getattr(static, "parameters", None)
+    if parameters is None:
+        return []
+
+    base_params: list[Any] = list(getattr(parameters, "parameter", []) or [])
+    base_by_id: dict[str, Any] = {}
+    for p in base_params:
+        p_id = getattr(p, "id", None)
+        if p_id:
+            base_by_id[p_id] = p
+
+    param_refs_container = getattr(static, "parameter_refs", None)
+    refs: list[Any] = list(getattr(param_refs_container, "parameter_ref", []) or []) if param_refs_container else []
+
+    parsed: list[ParsedParameter] = []
+    for ref in refs:
+        ref_id = getattr(ref, "ref_id", None) or ""
+        base = base_by_id.get(ref_id)
+        name = _resolve(
+            getattr(ref, "name", None),
+            getattr(base, "name", None) if base else None,
+        ) or ""
+        text = _resolve(
+            getattr(ref, "text", None),
+            getattr(base, "text", None) if base else None,
+        ) or name
+        value = _resolve(
+            getattr(ref, "value", None),
+            getattr(base, "value", None) if base else None,
+        ) or ""
+        param_type = getattr(base, "parameter_type", "") if base else ""
+        parsed.append(ParsedParameter(
+            id=getattr(ref, "id", "") or "",
+            ref_id=ref_id,
+            name=str(name),
+            text=str(text),
+            value=str(value),
+            parameter_type=str(param_type),
+        ))
+    return parsed
+
+
 def _walk_application_programs(knx: Any) -> list[Any]:
     apps: list[Any] = []
     manufacturer_data = getattr(knx, "manufacturer_data", None)
@@ -178,6 +236,7 @@ def parse_archive(path: str) -> list[ParsedDeviceCandidate]:
                             name=name,
                             manufacturer_id=manufacturer_id,
                             raw_com_objects=_extract_com_objects(app_program),
+                            raw_parameters=_extract_parameters(app_program),
                         )
                     )
     return candidates
