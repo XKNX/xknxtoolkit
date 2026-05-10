@@ -141,6 +141,11 @@ def _parse_com_object(
                     getattr(base, "read_on_init_flag", None) if base else None,
                 )
             ),
+            read_locked=bool(getattr(base, "read_flag_locked", False) if base else False),
+            write_locked=bool(getattr(base, "write_flag_locked", False) if base else False),
+            transmit_locked=bool(getattr(base, "transmit_flag_locked", False) if base else False),
+            update_locked=bool(getattr(base, "update_flag_locked", False) if base else False),
+            read_on_init_locked=bool(getattr(base, "read_on_init_flag_locked", False) if base else False),
         ),
     )
 

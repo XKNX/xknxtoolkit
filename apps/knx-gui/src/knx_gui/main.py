@@ -217,6 +217,11 @@ class ComObjectFlags:
     transmit: bool = False
     update: bool = False
     read_on_init: bool = False
+    read_locked: bool = False
+    write_locked: bool = False
+    transmit_locked: bool = False
+    update_locked: bool = False
+    read_on_init_locked: bool = False
 
     @classmethod
     def default_input(cls) -> "ComObjectFlags":
@@ -995,11 +1000,18 @@ class KnxGuiApp:
         for col, (attr, _letter, full_name) in enumerate(FLAG_LABELS, start=1):
             imgui.table_set_column_index(col)
             current = getattr(com_object.flags, attr)
+            locked_attr = f"{attr}_locked"
+            is_locked = getattr(com_object.flags, locked_attr, False) if attr != "communication" else False
+            if is_locked:
+                imgui.begin_disabled()
             changed, new_value = imgui.checkbox(f"##{row_id}_{attr}", current)
-            if changed:
+            if changed and not is_locked:
                 setattr(com_object.flags, attr, new_value)
-            if imgui.is_item_hovered():
-                imgui.set_tooltip(full_name)
+            if is_locked:
+                imgui.end_disabled()
+            if imgui.is_item_hovered(imgui.HoveredFlags_.allow_when_disabled):
+                tooltip = f"{full_name} (locked)" if is_locked else full_name
+                imgui.set_tooltip(tooltip)
 
     def _render_node_com_objects(self, device: "Device") -> None:
         flags = imgui.TableFlags_.borders_inner | imgui.TableFlags_.sizing_fixed_fit
@@ -1421,6 +1433,11 @@ class KnxGuiApp:
                 transmit=co.flags.transmit,
                 update=co.flags.update,
                 read_on_init=co.flags.read_on_init,
+                read_locked=co.flags.read_locked,
+                write_locked=co.flags.write_locked,
+                transmit_locked=co.flags.transmit_locked,
+                update_locked=co.flags.update_locked,
+                read_on_init_locked=co.flags.read_on_init_locked,
             )
             supported = [lookup_or_make_dpt(code) for code in co.dpt_codes]
             seen: set[tuple[int, int]] = set()
