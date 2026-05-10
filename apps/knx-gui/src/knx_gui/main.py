@@ -1021,8 +1021,8 @@ class KnxGuiApp:
         for _attr, letter, _name in FLAG_LABELS:
             imgui.table_setup_column(letter)
         imgui.table_headers_row()
-        for i, com_obj in enumerate(device.com_objects):
-            self._render_com_object_row(com_obj, f"{device.node_id}_{i}")
+        for i, com_obj in enumerate(device.get_visible_com_objects()):
+            self._render_com_object_row(com_obj, f"{device.node_id}_{com_obj.id}")
         imgui.end_table()
 
     def _group_parameters(self, params: list[Parameter]) -> dict[str, list[Parameter]]:
