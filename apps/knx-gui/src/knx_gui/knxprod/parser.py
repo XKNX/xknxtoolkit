@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from xknx.product.archive import ProductArchive
@@ -63,12 +64,34 @@ def _resolve_dpt_codes(*values: Any) -> list[str]:
     return []
 
 
-def _parse_com_object(ref: Any, base: Any | None) -> ComObject:
-    name = (
+def _substitute_template(text: str, function_text: str | None, text_args: dict[str, str]) -> str:
+    import re
+    result = text
+    if function_text:
+        result = result.replace("{{0}}", function_text)
+    for arg_name, arg_value in text_args.items():
+        result = result.replace(f"{{{{{arg_name}}}}}", arg_value)
+    result = re.sub(r"\{\{[^}]+\}\}", "", result)
+    result = re.sub(r"\s+", " ", result)
+    return result.strip()
+
+
+def _parse_com_object(
+    ref: Any, base: Any | None, text_args: dict[str, str] | None = None
+) -> ComObject:
+    raw_name = (
         _resolve(getattr(ref, "text", None), getattr(base, "text", None) if base else None)
         or _resolve(getattr(ref, "name", None), getattr(base, "name", None) if base else None)
         or "Unnamed"
     )
+    function_text = _resolve(
+        getattr(ref, "function_text", None),
+        getattr(base, "function_text", None) if base else None,
+    )
+    if text_args:
+        name = _substitute_template(str(raw_name), function_text, text_args)
+    else:
+        name = str(raw_name)
     number_raw = _resolve(
         getattr(ref, "number", None) if hasattr(ref, "number") else None,
         getattr(base, "number", None) if base else None,
@@ -122,7 +145,9 @@ def _parse_com_object(ref: Any, base: Any | None) -> ComObject:
     )
 
 
-def _extract_com_objects(static: Any) -> list[ComObject]:
+def _extract_com_objects(
+    static: Any, text_args: dict[str, str] | None = None
+) -> list[ComObject]:
     com_object_table = getattr(static, "com_object_table", None)
     com_objects_container = getattr(static, "com_objects", None)
     bases: list[Any] = []
@@ -144,10 +169,10 @@ def _extract_com_objects(static: Any) -> list[ComObject]:
         for ref in refs:
             ref_id = getattr(ref, "ref_id", None)
             base = base_by_id.get(ref_id) if ref_id else None
-            parsed.append(_parse_com_object(ref, base))
+            parsed.append(_parse_com_object(ref, base, text_args))
     else:
         for co in bases:
-            parsed.append(_parse_com_object(co, None))
+            parsed.append(_parse_com_object(co, None, text_args))
 
     parsed.sort(key=lambda c: c.number)
     return parsed
@@ -267,6 +292,70 @@ def _extract_parameters(static: Any, param_types: dict[str, ParamType]) -> list[
     return parsed
 
 
+@dataclass
+class ModuleInstance:
+    ref_id: str
+    text_args: dict[str, str]
+
+
+def _extract_module_instances(raw: Any) -> list[ModuleInstance]:
+    instances: list[ModuleInstance] = []
+
+    for module_ref in list(getattr(raw, "module", []) or []):
+        ref_id = getattr(module_ref, "ref_id", None)
+        if not ref_id:
+            continue
+        text_args: dict[str, str] = {}
+        for text_arg in list(getattr(module_ref, "text_arg", []) or []):
+            arg_ref_id = getattr(text_arg, "ref_id", "")
+            arg_value = getattr(text_arg, "value", "")
+            if arg_ref_id and arg_value:
+                parts = arg_ref_id.rsplit("_A-", 1)
+                if len(parts) == 2:
+                    arg_num = parts[1]
+                    for md_arg_name in _get_arg_names_from_module_def(ref_id, arg_ref_id):
+                        text_args[md_arg_name] = arg_value
+                else:
+                    text_args[arg_ref_id] = arg_value
+        instances.append(ModuleInstance(ref_id=ref_id, text_args=text_args))
+
+    for child_type in ["parameter_block", "channel"]:
+        for child in list(getattr(raw, child_type, []) or []):
+            instances.extend(_extract_module_instances(child))
+
+    for choose in list(getattr(raw, "choose", []) or []):
+        for when in list(getattr(choose, "when", []) or []):
+            instances.extend(_extract_module_instances(when))
+
+    return instances
+
+
+_module_def_arg_names: dict[str, dict[str, str]] = {}
+
+
+def _get_arg_names_from_module_def(module_def_id: str, arg_ref_id: str) -> list[str]:
+    if module_def_id in _module_def_arg_names:
+        name = _module_def_arg_names[module_def_id].get(arg_ref_id)
+        return [name] if name else []
+    return []
+
+
+def _register_module_def_args(module_def: Any) -> None:
+    md_id = getattr(module_def, "id", None)
+    if not md_id:
+        return
+    args = getattr(module_def, "arguments", None)
+    if not args:
+        return
+    arg_map: dict[str, str] = {}
+    for arg in list(getattr(args, "argument", []) or []):
+        arg_id = getattr(arg, "id", None)
+        arg_name = getattr(arg, "name", None)
+        if arg_id and arg_name:
+            arg_map[arg_id] = arg_name
+    _module_def_arg_names[md_id] = arg_map
+
+
 def _parse_dynamic_element(raw: Any, module_defs: dict[str, Any] | None = None) -> DynamicElement:
     if module_defs is None:
         module_defs = {}
@@ -373,6 +462,7 @@ def parse_archive(path: str) -> list[DeviceApplication]:
                             md_id = getattr(md, "id", None)
                             if md_id:
                                 module_defs[md_id] = md
+                                _register_module_def_args(md)
                                 md_static = getattr(md, "static", None)
                                 if md_static:
                                     md_param_types = _extract_param_types(md_static)
@@ -380,7 +470,20 @@ def parse_archive(path: str) -> list[DeviceApplication]:
 
                     parameters = _extract_parameters(static, param_types)
                     com_objects = _extract_com_objects(static)
-                    for md in module_defs.values():
+
+                    module_instances = _extract_module_instances(dynamic) if dynamic else []
+                    for instance in module_instances:
+                        md = module_defs.get(instance.ref_id)
+                        if md:
+                            md_static = getattr(md, "static", None)
+                            if md_static:
+                                parameters.extend(_extract_parameters(md_static, param_types))
+                                com_objects.extend(_extract_com_objects(md_static, instance.text_args))
+
+                    for md_id, md in module_defs.items():
+                        has_instance = any(i.ref_id == md_id for i in module_instances)
+                        if has_instance:
+                            continue
                         md_static = getattr(md, "static", None)
                         if md_static:
                             parameters.extend(_extract_parameters(md_static, param_types))
