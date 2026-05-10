@@ -17,7 +17,6 @@ PIN_RADIUS = 5.0
 PIN_HEIGHT = PIN_RADIUS * 2 + 4
 MIN_PIN_SPACING = 20.0
 SETTINGS_LABEL_OFFSET = 120.0
-SETTINGS_CLIP_HEIGHT = 500.0
 HEADER_COLOR = (0.2, 0.4, 0.7)
 LINK_COLOR = imgui.ImVec4(0.6, 0.6, 0.6, 1.0)
 LINK_LOOSE_COLOR = imgui.ImVec4(0.9, 0.7, 0.2, 1.0)
@@ -844,9 +843,6 @@ class KnxGuiApp:
         imgui.end_table()
 
     def _render_node_settings(self, device: "Device", width: float) -> None:
-        cursor = imgui.get_cursor_screen_pos()
-        clip_max = imgui.ImVec2(cursor.x + width, cursor.y + SETTINGS_CLIP_HEIGHT)
-        imgui.push_clip_rect(cursor, clip_max, True)
         config = device.template.config
         if imgui.tree_node(f"Manufacturer##{device.node_id}"):
             self._render_label_value("Manufacturer", config.manufacturer)
@@ -857,7 +853,6 @@ class KnxGuiApp:
         if imgui.tree_node(f"Com Flags##{device.node_id}"):
             self._render_node_com_objects(device)
             imgui.tree_pop()
-        imgui.pop_clip_rect()
 
     def _draw_node_header_bg(self, node_id: int, header: Rect, content_max_x: float) -> None:
         draw_list = ed.get_node_background_draw_list(ed.NodeId(node_id))
