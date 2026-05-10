@@ -239,41 +239,53 @@ def is_default_flags(flags: ComObjectFlags, direction: PinDir) -> bool:
 
 @dataclass
 class ComObject:
+    id: str
     name: str
     dpt: DPT
     flags: ComObjectFlags
     supported_dpts: list[DPT] = field(default_factory=list)
 
 
+_co_id_counter = 0
+
+
+def _next_co_id() -> str:
+    global _co_id_counter
+    _co_id_counter += 1
+    return f"co_{_co_id_counter}"
+
+
 def listen_obj(
     name: str,
     dpt: DPT,
     supported: list[DPT] | None = None,
+    co_id: str | None = None,
     **flag_overrides: bool,
 ) -> ComObject:
     flags = ComObjectFlags.default_input()
     for key, value in flag_overrides.items():
         setattr(flags, key, value)
-    return ComObject(name, dpt, flags, supported_dpts=supported or [])
+    return ComObject(co_id or _next_co_id(), name, dpt, flags, supported_dpts=supported or [])
 
 
 def send_obj(
     name: str,
     dpt: DPT,
     supported: list[DPT] | None = None,
+    co_id: str | None = None,
     **flag_overrides: bool,
 ) -> ComObject:
     flags = ComObjectFlags.default_output()
     for key, value in flag_overrides.items():
         setattr(flags, key, value)
-    return ComObject(name, dpt, flags, supported_dpts=supported or [])
+    return ComObject(co_id or _next_co_id(), name, dpt, flags, supported_dpts=supported or [])
 
 
-def bidirectional_obj(name: str, dpt: DPT, **flag_overrides: bool) -> ComObject:
+def bidirectional_obj(name: str, dpt: DPT, co_id: str | None = None, **flag_overrides: bool) -> ComObject:
     flags = ComObjectFlags(communication=True, read=True, write=True, transmit=True)
     for key, value in flag_overrides.items():
         setattr(flags, key, value)
-    return ComObject(name, dpt, flags)
+    return ComObject(co_id or _next_co_id(), name, dpt, flags)
 
 
 FLAG_LABELS = [
@@ -494,6 +506,8 @@ class Device:
     _param_values: dict[str, str] = field(default_factory=dict)
     _cached_visible_params: list[Parameter] = field(default_factory=list)
     _params_dirty: bool = True
+    _cached_visible_cos: list[ComObject] = field(default_factory=list)
+    _cos_dirty: bool = True
 
     def __post_init__(self) -> None:
         if not self.com_objects:
@@ -507,7 +521,18 @@ class Device:
 
     @property
     def rows(self) -> list[PinRow]:
-        return generate_rows(self.com_objects)
+        return generate_rows(self.get_visible_com_objects())
+
+    def get_visible_com_objects(self) -> list[ComObject]:
+        if not self._cos_dirty:
+            return self._cached_visible_cos
+        if self.app is None:
+            self._cached_visible_cos = self.com_objects
+        else:
+            visible_ids = {co.id for co in self.app.visible_com_objects(self._param_values)}
+            self._cached_visible_cos = [co for co in self.com_objects if co.id in visible_ids]
+        self._cos_dirty = False
+        return self._cached_visible_cos
 
     def get_visible_parameters(self) -> list[Parameter]:
         if not self._params_dirty:
@@ -529,10 +554,20 @@ class Device:
         self._params_dirty = False
         return self._cached_visible_params
 
+    def would_hide_com_objects(self, param_id: str, value: str) -> list[ComObject]:
+        if self.app is None:
+            return []
+        test_values = dict(self._param_values)
+        test_values[param_id] = value
+        new_visible_ids = {co.id for co in self.app.visible_com_objects(test_values)}
+        current_visible = self.get_visible_com_objects()
+        return [co for co in current_visible if co.id not in new_visible_ids]
+
     def set_param_value(self, param_id: str, value: str) -> None:
         if self._param_values.get(param_id) != value:
             self._param_values[param_id] = value
             self._params_dirty = True
+            self._cos_dirty = True
             for p in self._cached_visible_params:
                 if p.id == param_id:
                     p.value = value
@@ -615,6 +650,10 @@ class KnxGuiApp:
         self._enum_popup_target: Parameter | None = None
         self._enum_popup_request: Parameter | None = None
         self._enum_popup_device: Device | None = None
+        self._pending_param_change: tuple[Device, str, str] | None = None
+        self._pending_hidden_cos: list[ComObject] = []
+        self._pending_removed_links: list[tuple[int, int, int]] = []
+        self._show_link_warning: bool = False
         self._init_devices()
         self._init_sample_telegrams()
 
@@ -817,11 +856,48 @@ class KnxGuiApp:
                 for opt in target.param_type.options:
                     selected = opt.value == target.value
                     if imgui.menu_item(opt.text, "", selected)[0]:
-                        device.set_param_value(target.id, opt.value)
+                        self._try_set_param_value(device, target.id, opt.value)
             imgui.end_popup()
         else:
             self._enum_popup_target = None
             self._enum_popup_device = None
+
+    def _render_link_warning_popup(self) -> None:
+        if self._show_link_warning:
+            imgui.open_popup("##LinkWarning")
+            self._show_link_warning = False
+        center = imgui.get_main_viewport().get_center()
+        imgui.set_next_window_pos(center, imgui.Cond_.appearing, imgui.ImVec2(0.5, 0.5))
+        if imgui.begin_popup_modal("##LinkWarning", None, imgui.WindowFlags_.always_auto_resize)[0]:
+            imgui.text("This change will hide the following communication objects:")
+            imgui.spacing()
+            for co in self._pending_hidden_cos:
+                imgui.bullet_text(co.name)
+            imgui.spacing()
+            imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
+            imgui.text(f"{len(self._pending_removed_links)} link(s) will be removed.")
+            imgui.pop_style_color()
+            imgui.spacing()
+            imgui.separator()
+            imgui.spacing()
+            if imgui.button("Remove Links", imgui.ImVec2(120, 0)):
+                if self._pending_param_change:
+                    device, param_id, value = self._pending_param_change
+                    for link in self._pending_removed_links:
+                        if link in self._links:
+                            self._links.remove(link)
+                    device.set_param_value(param_id, value)
+                self._pending_param_change = None
+                self._pending_hidden_cos = []
+                self._pending_removed_links = []
+                imgui.close_current_popup()
+            imgui.same_line()
+            if imgui.button("Cancel", imgui.ImVec2(120, 0)):
+                self._pending_param_change = None
+                self._pending_hidden_cos = []
+                self._pending_removed_links = []
+                imgui.close_current_popup()
+            imgui.end_popup()
 
     def _render_input_pin(self, pin_id: int, pin: ComObject, layout: NodeLayout) -> None:
         self._pin_dpt[pin_id] = pin.dpt
@@ -947,12 +1023,26 @@ class KnxGuiApp:
             groups[prefix].append(param)
         return groups
 
+    def _try_set_param_value(self, device: Device, param_id: str, value: str) -> None:
+        hidden_cos = device.would_hide_com_objects(param_id, value)
+        if not hidden_cos:
+            device.set_param_value(param_id, value)
+            return
+        affected_links = self._find_links_for_com_objects(device, hidden_cos)
+        if not affected_links:
+            device.set_param_value(param_id, value)
+            return
+        self._pending_param_change = (device, param_id, value)
+        self._pending_hidden_cos = hidden_cos
+        self._pending_removed_links = affected_links
+        self._show_link_warning = True
+
     def _render_param_widget(self, param: Parameter, device: "Device") -> None:
         pt = param.param_type
         if pt is None:
             changed, new_value = imgui.input_text(f"##{param.id}", param.value)
             if changed:
-                device.set_param_value(param.id, new_value)
+                self._try_set_param_value(device, param.id, new_value)
             return
 
         if pt.kind == ParamTypeKind.ENUM:
@@ -969,7 +1059,7 @@ class KnxGuiApp:
             checked = param.value == "1"
             changed, new_checked = imgui.checkbox(f"##{param.id}", checked)
             if changed:
-                device.set_param_value(param.id, "1" if new_checked else "0")
+                self._try_set_param_value(device, param.id, "1" if new_checked else "0")
         elif pt.kind == ParamTypeKind.NUMBER:
             try:
                 int_val = int(param.value)
@@ -979,7 +1069,7 @@ class KnxGuiApp:
             max_v = pt.max_value if pt.max_value is not None else 65535
             changed, new_val = imgui.drag_int(f"##{param.id}", int_val, 1.0, min_v, max_v)
             if changed:
-                device.set_param_value(param.id, str(new_val))
+                self._try_set_param_value(device, param.id, str(new_val))
         elif pt.kind == ParamTypeKind.TIME:
             try:
                 int_val = int(param.value)
@@ -989,17 +1079,17 @@ class KnxGuiApp:
             max_v = pt.max_value if pt.max_value is not None else 86400
             changed, new_val = imgui.drag_int(f"##{param.id}", int_val, 1.0, min_v, max_v)
             if changed:
-                device.set_param_value(param.id, str(new_val))
+                self._try_set_param_value(device, param.id, str(new_val))
         elif pt.kind == ParamTypeKind.TEXT:
             changed, new_value = imgui.input_text(f"##{param.id}", param.value)
             if changed:
-                device.set_param_value(param.id, new_value)
+                self._try_set_param_value(device, param.id, new_value)
         elif pt.kind == ParamTypeKind.PICTURE:
             imgui.text_disabled("(image)")
         else:
             changed, new_value = imgui.input_text(f"##{param.id}", param.value)
             if changed:
-                device.set_param_value(param.id, new_value)
+                self._try_set_param_value(device, param.id, new_value)
 
     def _render_node_parameters(self, device: "Device") -> None:
         params = device.get_visible_parameters()
@@ -1101,6 +1191,23 @@ class KnxGuiApp:
             if (start == pin_a and end == pin_b) or (start == pin_b and end == pin_a):
                 return True
         return False
+
+    def _find_links_for_com_objects(self, device: Device, cos: list[ComObject]) -> list[tuple[int, int, int]]:
+        co_to_idx = {id(co): idx for idx, co in enumerate(device.com_objects)}
+        pin_ids: set[int] = set()
+        for co in cos:
+            idx = co_to_idx.get(id(co))
+            if idx is not None:
+                for direction in ("in", "out"):
+                    key = (device.node_id, idx, direction)
+                    if key in self._pin_ids:
+                        pin_ids.add(self._pin_ids[key])
+        affected: list[tuple[int, int, int]] = []
+        for link in self._links:
+            link_id, start, end = link
+            if start in pin_ids or end in pin_ids:
+                affected.append(link)
+        return affected
 
     def _show_link_tooltip(self, pin_a: int, pin_b: int) -> None:
         dpt_a = self._pin_dpt.get(pin_a)
@@ -1306,7 +1413,7 @@ class KnxGuiApp:
 
     def _app_to_template(self, app: DeviceApplication) -> DeviceTemplate:
         com_objects: list[ComObject] = []
-        for co in app.visible_com_objects():
+        for co in app.com_objects:
             flags = ComObjectFlags(
                 communication=co.flags.communication,
                 read=co.flags.read,
@@ -1327,6 +1434,7 @@ class KnxGuiApp:
             primary = unique_supported[0] if unique_supported else DPT_UNKNOWN
             com_objects.append(
                 ComObject(
+                    id=co.id,
                     name=co.name,
                     dpt=primary,
                     flags=flags,
@@ -1631,6 +1739,7 @@ class KnxGuiApp:
         ed.end()
         self._render_dpt_popup()
         self._render_enum_popup()
+        self._render_link_warning_popup()
 
         if self._show_telegrams:
             self._render_telegrams_pane()
