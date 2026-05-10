@@ -4,11 +4,17 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 
-from imgui_bundle import imgui, hello_imgui, imgui_node_editor as ed, portable_file_dialogs as pfd
+from imgui_bundle import hello_imgui, imgui
+from imgui_bundle import imgui_node_editor as ed
+from imgui_bundle import portable_file_dialogs as pfd
 
+from knx_gui.knxprod_loader import (
+    ParamTypeKind,
+    ParsedDeviceCandidate,
+    ParsedParamType,
+    parse_archive,
+)
 from xknx.product.errors import ArchiveError
-
-from knx_gui.knxprod_loader import ParsedComObject, ParsedDeviceCandidate, ParsedParameter, parse_archive
 
 NODE_PADDING = 8.0
 HEADER_INSET = 1.0
@@ -280,6 +286,15 @@ FLAG_LABELS = [
 ]
 
 
+def flag_diff_letters(flags: ComObjectFlags, direction: PinDir) -> list[tuple[str, bool]]:
+    default = default_flags_for(direction)
+    diffs = []
+    for attr, letter, _ in FLAG_LABELS:
+        if getattr(flags, attr) != getattr(default, attr):
+            diffs.append((letter, getattr(flags, attr)))
+    return diffs
+
+
 def com_object_has_input(co: ComObject) -> bool:
     return co.flags.write or co.flags.update
 
@@ -349,6 +364,7 @@ class Parameter:
     name: str
     text: str
     value: str
+    param_type: ParsedParamType | None = None
 
 
 @dataclass
@@ -866,14 +882,70 @@ class KnxGuiApp:
         groups: dict[str, list[Parameter]] = {}
         for param in params:
             text = param.text if param.text else param.name
-            if " - " in text:
-                prefix = text.split(" - ")[0].strip()
-            else:
-                prefix = "General"
+            prefix = text.split(" - ")[0].strip() if " - " in text else "General"
             if prefix not in groups:
                 groups[prefix] = []
             groups[prefix].append(param)
         return groups
+
+    def _render_param_widget(self, param: Parameter) -> None:
+        pt = param.param_type
+        if pt is None:
+            changed, new_value = imgui.input_text(f"##{param.id}", param.value)
+            if changed:
+                param.value = new_value
+            return
+
+        if pt.kind == ParamTypeKind.ENUM:
+            current_idx = 0
+            for i, opt in enumerate(pt.options):
+                if opt.value == param.value:
+                    current_idx = i
+                    break
+            preview = pt.options[current_idx].text if pt.options else param.value
+            if imgui.begin_combo(f"##{param.id}", preview):
+                for i, opt in enumerate(pt.options):
+                    selected = i == current_idx
+                    if imgui.selectable(opt.text, selected)[0]:
+                        param.value = opt.value
+                    if selected:
+                        imgui.set_item_default_focus()
+                imgui.end_combo()
+        elif pt.kind == ParamTypeKind.CHECKBOX:
+            checked = param.value == "1"
+            changed, new_checked = imgui.checkbox(f"##{param.id}", checked)
+            if changed:
+                param.value = "1" if new_checked else "0"
+        elif pt.kind == ParamTypeKind.NUMBER:
+            try:
+                int_val = int(param.value)
+            except ValueError:
+                int_val = pt.min_value or 0
+            min_v = pt.min_value if pt.min_value is not None else 0
+            max_v = pt.max_value if pt.max_value is not None else 65535
+            changed, new_val = imgui.drag_int(f"##{param.id}", int_val, 1.0, min_v, max_v)
+            if changed:
+                param.value = str(new_val)
+        elif pt.kind == ParamTypeKind.TIME:
+            try:
+                int_val = int(param.value)
+            except ValueError:
+                int_val = pt.min_value or 0
+            min_v = pt.min_value if pt.min_value is not None else 0
+            max_v = pt.max_value if pt.max_value is not None else 86400
+            changed, new_val = imgui.drag_int(f"##{param.id}", int_val, 1.0, min_v, max_v)
+            if changed:
+                param.value = str(new_val)
+        elif pt.kind == ParamTypeKind.TEXT:
+            changed, new_value = imgui.input_text(f"##{param.id}", param.value)
+            if changed:
+                param.value = new_value
+        elif pt.kind == ParamTypeKind.PICTURE:
+            imgui.text_disabled("(image)")
+        else:
+            changed, new_value = imgui.input_text(f"##{param.id}", param.value)
+            if changed:
+                param.value = new_value
 
     def _render_node_parameters(self, device: "Device") -> None:
         params = device.template.parameters
@@ -886,7 +958,7 @@ class KnxGuiApp:
                 table_flags = imgui.TableFlags_.no_saved_settings
                 if imgui.begin_table(f"##params_{device.node_id}_{group_name}", 2, table_flags):
                     imgui.table_setup_column("Name", imgui.TableColumnFlags_.width_stretch)
-                    imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_fixed, 80)
+                    imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_fixed, 120)
                     for param in group_params:
                         imgui.table_next_row()
                         imgui.table_set_column_index(0)
@@ -894,9 +966,7 @@ class KnxGuiApp:
                         imgui.text(display_text)
                         imgui.table_set_column_index(1)
                         imgui.set_next_item_width(-1)
-                        changed, new_value = imgui.input_text(f"##{param.id}", param.value)
-                        if changed:
-                            param.value = new_value
+                        self._render_param_widget(param)
                     imgui.end_table()
                 imgui.tree_pop()
 
@@ -1221,6 +1291,7 @@ class KnxGuiApp:
                 name=p.name,
                 text=p.text,
                 value=p.value,
+                param_type=p.param_type,
             )
             for p in candidate.raw_parameters
         ]

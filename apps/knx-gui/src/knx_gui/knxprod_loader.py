@@ -1,10 +1,36 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 from xknx.product.archive import ProductArchive
 from xknx.product.data import load_archive
+
+
+class ParamTypeKind(Enum):
+    ENUM = "enum"
+    NUMBER = "number"
+    TEXT = "text"
+    TIME = "time"
+    CHECKBOX = "checkbox"
+    PICTURE = "picture"
+    UNKNOWN = "unknown"
+
+
+@dataclass
+class EnumOption:
+    value: str
+    text: str
+
+
+@dataclass
+class ParsedParamType:
+    kind: ParamTypeKind
+    options: list[EnumOption] = field(default_factory=list)
+    min_value: int | None = None
+    max_value: int | None = None
+    size_bits: int | None = None
 
 
 @dataclass
@@ -23,7 +49,8 @@ class ParsedParameter:
     name: str
     text: str
     value: str
-    parameter_type: str
+    parameter_type_id: str
+    param_type: ParsedParamType | None = None
 
 
 @dataclass
@@ -161,7 +188,76 @@ def _extract_com_objects(application_program: Any) -> list[ParsedComObject]:
     return parsed
 
 
-def _extract_parameters(application_program: Any) -> list[ParsedParameter]:
+def _parse_param_type(pt: Any) -> ParsedParamType:
+    restrict = getattr(pt, "type_restriction", None)
+    if restrict:
+        enums = list(getattr(restrict, "enumeration", []) or [])
+        if enums:
+            options = [
+                EnumOption(value=str(getattr(e, "value", "")), text=str(getattr(e, "text", "")))
+                for e in enums
+            ]
+            return ParsedParamType(kind=ParamTypeKind.ENUM, options=options)
+
+    type_number = getattr(pt, "type_number", None)
+    if type_number:
+        uihint = getattr(type_number, "uihint", None)
+        if uihint and "checkbox" in str(uihint).lower():
+            return ParsedParamType(kind=ParamTypeKind.CHECKBOX)
+        min_val = getattr(type_number, "min_inclusive", None)
+        max_val = getattr(type_number, "max_inclusive", None)
+        size_bits = getattr(type_number, "size_in_bit", None)
+        return ParsedParamType(
+            kind=ParamTypeKind.NUMBER,
+            min_value=int(min_val) if min_val is not None else None,
+            max_value=int(max_val) if max_val is not None else None,
+            size_bits=int(size_bits) if size_bits is not None else None,
+        )
+
+    type_text = getattr(pt, "type_text", None)
+    if type_text:
+        size_bits = getattr(type_text, "size_in_bit", None)
+        return ParsedParamType(
+            kind=ParamTypeKind.TEXT,
+            size_bits=int(size_bits) if size_bits is not None else None,
+        )
+
+    type_time = getattr(pt, "type_time", None)
+    if type_time:
+        min_val = getattr(type_time, "min_inclusive", None)
+        max_val = getattr(type_time, "max_inclusive", None)
+        return ParsedParamType(
+            kind=ParamTypeKind.TIME,
+            min_value=int(min_val) if min_val is not None else None,
+            max_value=int(max_val) if max_val is not None else None,
+        )
+
+    type_picture = getattr(pt, "type_picture", None)
+    if type_picture:
+        return ParsedParamType(kind=ParamTypeKind.PICTURE)
+
+    return ParsedParamType(kind=ParamTypeKind.UNKNOWN)
+
+
+def _extract_param_types(application_program: Any) -> dict[str, ParsedParamType]:
+    static = getattr(application_program, "static", None)
+    if static is None:
+        return {}
+
+    param_types = getattr(static, "parameter_types", None)
+    if param_types is None:
+        return {}
+
+    types_list = list(getattr(param_types, "parameter_type", []) or [])
+    result: dict[str, ParsedParamType] = {}
+    for pt in types_list:
+        pt_id = getattr(pt, "id", None)
+        if pt_id:
+            result[pt_id] = _parse_param_type(pt)
+    return result
+
+
+def _extract_parameters(application_program: Any, param_types: dict[str, ParsedParamType]) -> list[ParsedParameter]:
     static = getattr(application_program, "static", None)
     if static is None:
         return []
@@ -191,19 +287,23 @@ def _extract_parameters(application_program: Any) -> list[ParsedParameter]:
         text = _resolve(
             getattr(ref, "text", None),
             getattr(base, "text", None) if base else None,
-        ) or name
+        ) or ""
+        if not text:
+            continue
         value = _resolve(
             getattr(ref, "value", None),
             getattr(base, "value", None) if base else None,
         ) or ""
-        param_type = getattr(base, "parameter_type", "") if base else ""
+        param_type_id = str(getattr(base, "parameter_type", "") if base else "")
+        param_type = param_types.get(param_type_id)
         parsed.append(ParsedParameter(
             id=getattr(ref, "id", "") or "",
             ref_id=ref_id,
             name=str(name),
             text=str(text),
             value=str(value),
-            parameter_type=str(param_type),
+            parameter_type_id=param_type_id,
+            param_type=param_type,
         ))
     return parsed
 
@@ -230,13 +330,14 @@ def parse_archive(path: str) -> list[ParsedDeviceCandidate]:
                 for app_program in _walk_application_programs(knx_app):
                     app_id = getattr(app_program, "id", "") or ""
                     name = getattr(app_program, "name", None) or app_id
+                    param_types = _extract_param_types(app_program)
                     candidates.append(
                         ParsedDeviceCandidate(
                             application_id=app_id,
                             name=name,
                             manufacturer_id=manufacturer_id,
                             raw_com_objects=_extract_com_objects(app_program),
-                            raw_parameters=_extract_parameters(app_program),
+                            raw_parameters=_extract_parameters(app_program, param_types),
                         )
                     )
     return candidates
