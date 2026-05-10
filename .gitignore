@@ -34,3 +34,4 @@ htmlcov/
 *.swo
 .DS_Store
 NodeEditor.json
+XKNX_Toolkit.ini
