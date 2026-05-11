@@ -36,7 +36,7 @@ from knx_gui.types import (
     Device,
     color_u32,
 )
-from xknx.product.errors import ArchiveError
+from xknxmono.product.errors import ArchiveError
 
 NAVIGATE_TO_NODE_DURATION = 0.3
 

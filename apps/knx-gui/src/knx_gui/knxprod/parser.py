@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from xknx.product.archive import ProductArchive
-from xknx.product.data import load_archive
+from xknxmono.product.archive import ProductArchive
+from xknxmono.product.data import load_archive
 
 from .types import (
     ComObject,
@@ -494,7 +494,7 @@ def _walk_application_programs(knx: Any) -> list[Any]:
 def parse_application_xml(
     xml_bytes: bytes, manufacturer_id: str
 ) -> list[DeviceApplication]:
-    from xknx.models import load_xml
+    from xknxmono.models import load_xml
 
     knx_app = load_xml(xml_bytes)
     return _parse_applications(knx_app, manufacturer_id)
