@@ -34,6 +34,18 @@ class AppState:
         self.devices.append(device)
         return device
 
+    def add_device_with_id(
+        self, template: DeviceTemplate, node_id: int, address: str = ""
+    ) -> Device:
+        device = Device(
+            node_id=node_id,
+            name=template.name,
+            template=template,
+            address=address,
+        )
+        self.devices.append(device)
+        return device
+
     def find_device_by_address(self, address: str) -> Device | None:
         for device in self.devices:
             if device.address == address:

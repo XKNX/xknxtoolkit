@@ -488,84 +488,91 @@ def _walk_application_programs(knx: Any) -> list[Any]:
     return apps
 
 
+def parse_application_xml(
+    xml_bytes: bytes, manufacturer_id: str
+) -> list[DeviceApplication]:
+    from xknx.models import load_xml
+
+    knx_app = load_xml(xml_bytes)
+    return _parse_applications(knx_app, manufacturer_id)
+
+
+def _parse_applications(knx_app: Any, manufacturer_id: str) -> list[DeviceApplication]:
+    applications: list[DeviceApplication] = []
+    for app_program in _walk_application_programs(knx_app):
+        app_id = getattr(app_program, "id", "") or ""
+        name = getattr(app_program, "name", None) or app_id
+
+        static = getattr(app_program, "static", None)
+        dynamic = getattr(app_program, "dynamic", None)
+
+        if static is None:
+            continue
+
+        param_types = _extract_param_types(static)
+
+        module_defs_raw = getattr(app_program, "module_defs", None)
+        module_defs: dict[str, Any] = {}
+        if module_defs_raw:
+            for md in list(getattr(module_defs_raw, "module_def", []) or []):
+                md_id = getattr(md, "id", None)
+                if md_id:
+                    module_defs[md_id] = md
+                    _register_module_def_args(md)
+                    md_static = getattr(md, "static", None)
+                    if md_static:
+                        md_param_types = _extract_param_types(md_static)
+                        param_types.update(md_param_types)
+
+        parameters = _extract_parameters(static, param_types)
+        com_objects = _extract_com_objects(static)
+
+        for md in module_defs.values():
+            md_static = getattr(md, "static", None)
+            if md_static:
+                parameters.extend(_extract_parameters(md_static, param_types))
+
+        module_instances = _extract_module_instances(dynamic) if dynamic else []
+        instantiated_md_ids: set[str] = set()
+        for instance in module_instances:
+            instantiated_md_ids.add(instance.ref_id)
+            md = module_defs.get(instance.ref_id)
+            if md:
+                md_static = getattr(md, "static", None)
+                if md_static:
+                    com_objects.extend(
+                        _extract_com_objects(md_static, instance.text_args)
+                    )
+
+        for md_id, md in module_defs.items():
+            if md_id in instantiated_md_ids:
+                continue
+            md_static = getattr(md, "static", None)
+            if md_static:
+                com_objects.extend(_extract_com_objects(md_static))
+
+        dynamic_tree = (
+            _parse_dynamic_element(dynamic, module_defs) if dynamic else None
+        )
+
+        applications.append(
+            DeviceApplication(
+                application_id=app_id,
+                name=name,
+                manufacturer_id=manufacturer_id,
+                com_objects=com_objects,
+                parameters=parameters,
+                dynamic=dynamic_tree,
+            )
+        )
+    return applications
+
+
 def parse_archive(path: str) -> list[DeviceApplication]:
     applications: list[DeviceApplication] = []
     with ProductArchive(path) as archive:
         for manufacturer_id in sorted(archive.manufacturer_ids):
             data = load_archive(archive, manufacturer_id)
             for knx_app in data.applications:
-                for app_program in _walk_application_programs(knx_app):
-                    app_id = getattr(app_program, "id", "") or ""
-                    name = getattr(app_program, "name", None) or app_id
-
-                    static = getattr(app_program, "static", None)
-                    dynamic = getattr(app_program, "dynamic", None)
-
-                    if static is None:
-                        continue
-
-                    param_types = _extract_param_types(static)
-
-                    module_defs_raw = getattr(app_program, "module_defs", None)
-                    module_defs: dict[str, Any] = {}
-                    if module_defs_raw:
-                        for md in list(
-                            getattr(module_defs_raw, "module_def", []) or []
-                        ):
-                            md_id = getattr(md, "id", None)
-                            if md_id:
-                                module_defs[md_id] = md
-                                _register_module_def_args(md)
-                                md_static = getattr(md, "static", None)
-                                if md_static:
-                                    md_param_types = _extract_param_types(md_static)
-                                    param_types.update(md_param_types)
-
-                    parameters = _extract_parameters(static, param_types)
-                    com_objects = _extract_com_objects(static)
-
-                    for md in module_defs.values():
-                        md_static = getattr(md, "static", None)
-                        if md_static:
-                            parameters.extend(
-                                _extract_parameters(md_static, param_types)
-                            )
-
-                    module_instances = (
-                        _extract_module_instances(dynamic) if dynamic else []
-                    )
-                    instantiated_md_ids: set[str] = set()
-                    for instance in module_instances:
-                        instantiated_md_ids.add(instance.ref_id)
-                        md = module_defs.get(instance.ref_id)
-                        if md:
-                            md_static = getattr(md, "static", None)
-                            if md_static:
-                                com_objects.extend(
-                                    _extract_com_objects(md_static, instance.text_args)
-                                )
-
-                    for md_id, md in module_defs.items():
-                        if md_id in instantiated_md_ids:
-                            continue
-                        md_static = getattr(md, "static", None)
-                        if md_static:
-                            com_objects.extend(_extract_com_objects(md_static))
-
-                    dynamic_tree = (
-                        _parse_dynamic_element(dynamic, module_defs)
-                        if dynamic
-                        else None
-                    )
-
-                    applications.append(
-                        DeviceApplication(
-                            application_id=app_id,
-                            name=name,
-                            manufacturer_id=manufacturer_id,
-                            com_objects=com_objects,
-                            parameters=parameters,
-                            dynamic=dynamic_tree,
-                        )
-                    )
+                applications.extend(_parse_applications(knx_app, manufacturer_id))
     return applications

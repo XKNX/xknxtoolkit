@@ -1,4 +1,5 @@
 *.ini
+*.xknxcatalog
 NodeEditor.json
 .venv/
 plan.md

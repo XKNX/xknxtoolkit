@@ -55,14 +55,23 @@ class DeviceAdded(Event):
     parameters: list[tuple[str, str]] = field(default_factory=list)
     com_objects: list[dict[str, Any]] = field(default_factory=list)
 
-    def apply(self, session: Session) -> None:
-        device = DeviceModel(
-            id=self.device_id,
-            address=self.address,
-            template_id=self.template_id,
-            name=self.name,
-        )
+    def apply(self, session: Session) -> int:
+        if self.device_id:
+            device = DeviceModel(
+                id=self.device_id,
+                address=self.address,
+                template_id=self.template_id,
+                name=self.name,
+            )
+        else:
+            device = DeviceModel(
+                address=self.address,
+                template_id=self.template_id,
+                name=self.name,
+            )
         session.add(device)
+        session.flush()
+        self.device_id = device.id
         for param_id, value in self.parameters:
             param = ParameterModel(device=device, param_id=param_id, value=value)
             session.add(param)
@@ -79,6 +88,7 @@ class DeviceAdded(Event):
                 flag_update=co_data.get("flag_update", False),
             )
             session.add(com_obj)
+        return device.id
 
     def revert(self, session: Session) -> None:
         device = session.get(DeviceModel, self.device_id)
