@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -77,7 +76,9 @@ def listen_obj(
     flags = ComObjectFlags.default_input()
     for key, value in flag_overrides.items():
         setattr(flags, key, value)
-    return ComObject(co_id or _next_co_id(), name, dpt, flags, supported_dpts=supported or [])
+    return ComObject(
+        co_id or _next_co_id(), name, dpt, flags, supported_dpts=supported or []
+    )
 
 
 def send_obj(
@@ -90,10 +91,14 @@ def send_obj(
     flags = ComObjectFlags.default_output()
     for key, value in flag_overrides.items():
         setattr(flags, key, value)
-    return ComObject(co_id or _next_co_id(), name, dpt, flags, supported_dpts=supported or [])
+    return ComObject(
+        co_id or _next_co_id(), name, dpt, flags, supported_dpts=supported or []
+    )
 
 
-def bidirectional_obj(name: str, dpt: DPT, co_id: str | None = None, **flag_overrides: bool) -> ComObject:
+def bidirectional_obj(
+    name: str, dpt: DPT, co_id: str | None = None, **flag_overrides: bool
+) -> ComObject:
     flags = ComObjectFlags(communication=True, read=True, write=True, transmit=True)
     for key, value in flag_overrides.items():
         setattr(flags, key, value)
@@ -110,7 +115,9 @@ FLAG_LABELS = [
 ]
 
 
-def flag_diff_letters(flags: ComObjectFlags, direction: PinDir) -> list[tuple[str, bool]]:
+def flag_diff_letters(
+    flags: ComObjectFlags, direction: PinDir
+) -> list[tuple[str, bool]]:
     default = default_flags_for(direction)
     diffs = []
     for attr, letter, _ in FLAG_LABELS:
@@ -219,8 +226,12 @@ class Device:
         if self.app is None:
             self._cached_visible_cos = self.com_objects
         else:
-            visible_ids = {co.id for co in self.app.visible_com_objects(self._param_values)}
-            self._cached_visible_cos = [co for co in self.com_objects if co.id in visible_ids]
+            visible_ids = {
+                co.id for co in self.app.visible_com_objects(self._param_values)
+            }
+            self._cached_visible_cos = [
+                co for co in self.com_objects if co.id in visible_ids
+            ]
         self._cos_dirty = False
         return self._cached_visible_cos
 

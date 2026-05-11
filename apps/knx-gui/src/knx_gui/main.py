@@ -1,13 +1,10 @@
 import math
 
 from imgui_bundle import hello_imgui, imgui
-from imgui_bundle import imgui_node_editor as ed
 from imgui_bundle import portable_file_dialogs as pfd
 
 from knx_gui.constants import LINK_INVALID_COLOR
 from knx_gui.dpt import DPT_UNKNOWN, lookup_or_make_dpt
-
-NAVIGATE_TO_NODE_DURATION = 0.3
 from knx_gui.knxprod import DeviceApplication, parse_archive
 from knx_gui.panels import (
     CatalogPanel,
@@ -28,6 +25,8 @@ from knx_gui.types import (
     color_u32,
 )
 from xknx.product.errors import ArchiveError
+
+NAVIGATE_TO_NODE_DURATION = 0.3
 
 
 class KnxGuiApp:
@@ -76,7 +75,9 @@ class KnxGuiApp:
 
     def _init_devices(self) -> None:
         self._devices = [
-            Device(1, "Living Room Light", DEVICE_TEMPLATES["switch_actuator"], "1.1.1"),
+            Device(
+                1, "Living Room Light", DEVICE_TEMPLATES["switch_actuator"], "1.1.1"
+            ),
             Device(2, "Kitchen Dimmer", DEVICE_TEMPLATES["dimmer_actuator"], "1.1.2"),
             Device(3, "Bedroom Temp", DEVICE_TEMPLATES["temperature_sensor"], "1.1.3"),
             Device(4, "Entry Button", DEVICE_TEMPLATES["push_button"], "1.2.1"),
@@ -89,14 +90,33 @@ class KnxGuiApp:
 
     def _init_sample_telegrams(self) -> None:
         self._telegrams = [
-            Telegram("12:34:01.123", "1.1.1", "1/0/1", "GroupValueWrite", "1.001", "On"),
-            Telegram("12:34:01.456", "1.1.1", "1/0/2", "GroupValueResponse", "1.001", "Off"),
-            Telegram("12:34:02.001", "1.2.1", "2/0/1", "GroupValueWrite", "5.001", "75%"),
-            Telegram("12:34:02.345", "1.1.3", "3/0/1", "GroupValueWrite", "9.001", "21.5°C"),
+            Telegram(
+                "12:34:01.123", "1.1.1", "1/0/1", "GroupValueWrite", "1.001", "On"
+            ),
+            Telegram(
+                "12:34:01.456", "1.1.1", "1/0/2", "GroupValueResponse", "1.001", "Off"
+            ),
+            Telegram(
+                "12:34:02.001", "1.2.1", "2/0/1", "GroupValueWrite", "5.001", "75%"
+            ),
+            Telegram(
+                "12:34:02.345", "1.1.3", "3/0/1", "GroupValueWrite", "9.001", "21.5°C"
+            ),
             Telegram("12:34:03.012", "1.2.2", "4/0/1", "GroupValueRead", "1.001", ""),
-            Telegram("12:34:03.234", "1.2.2", "4/0/1", "GroupValueResponse", "1.001", "On"),
-            Telegram("12:34:04.567", "2.1.1", "5/0/1", "GroupValueWrite", "232.600", "#FF8800"),
-            Telegram("12:34:05.123", "1.1.2", "1/1/1", "GroupValueWrite", "3.007", "Up"),
+            Telegram(
+                "12:34:03.234", "1.2.2", "4/0/1", "GroupValueResponse", "1.001", "On"
+            ),
+            Telegram(
+                "12:34:04.567",
+                "2.1.1",
+                "5/0/1",
+                "GroupValueWrite",
+                "232.600",
+                "#FF8800",
+            ),
+            Telegram(
+                "12:34:05.123", "1.1.2", "1/1/1", "GroupValueWrite", "3.007", "Up"
+            ),
         ]
 
     def _add_link(self, start_pin: int, end_pin: int) -> int:
@@ -108,7 +128,9 @@ class KnxGuiApp:
     def _remove_link(self, link_id: int) -> None:
         self._links = [link for link in self._links if link[0] != link_id]
 
-    def _check_param_change(self, device: Device, param_id: str, value: str) -> list[ComObject]:
+    def _check_param_change(
+        self, device: Device, param_id: str, value: str
+    ) -> list[ComObject]:
         return device.would_hide_com_objects(param_id, value)
 
     def _select_and_navigate_to_device(self, device: Device) -> None:
@@ -120,7 +142,9 @@ class KnxGuiApp:
         self._selected_device = device
         self._node_editor_panel.select_node(device.node_id, False)
 
-    def _on_config_param_change(self, device: Device, param_id: str, value: str) -> None:
+    def _on_config_param_change(
+        self, device: Device, param_id: str, value: str
+    ) -> None:
         device.set_param_value(param_id, value)
 
     def _focus_device_by_address(self, address: str) -> None:
@@ -128,7 +152,9 @@ class KnxGuiApp:
             if device.address == address:
                 self._selected_device = device
                 self._node_editor_panel.select_node(device.node_id, False)
-                self._node_editor_panel.navigate_to_selection(False, NAVIGATE_TO_NODE_DURATION)
+                self._node_editor_panel.navigate_to_selection(
+                    False, NAVIGATE_TO_NODE_DURATION
+                )
                 return
 
     def _add_device_from_template(self, key: str, template: DeviceTemplate) -> None:
@@ -180,7 +206,9 @@ class KnxGuiApp:
             self._archive_candidates = parse_archive(path)
             print(f"[knxprod] parsed {len(self._archive_candidates)} candidate(s)")
             for c in self._archive_candidates:
-                print(f"[knxprod]   {c.name}: {len(c.com_objects)} com objects, {len(c.parameters)} parameters")
+                print(
+                    f"[knxprod]   {c.name}: {len(c.com_objects)} com objects, {len(c.parameters)} parameters"
+                )
         except ArchiveError as e:
             print(f"[knxprod] archive error: {e}")
             self._archive_load_error = str(e)
@@ -268,7 +296,9 @@ class KnxGuiApp:
             self._show_archive_popup = False
         center = imgui.get_main_viewport().get_center()
         imgui.set_next_window_pos(center, imgui.Cond_.appearing, imgui.ImVec2(0.5, 0.5))
-        imgui.set_next_window_size_constraints(imgui.ImVec2(400, 0), imgui.ImVec2(800, 600))
+        imgui.set_next_window_size_constraints(
+            imgui.ImVec2(400, 0), imgui.ImVec2(800, 600)
+        )
         if imgui.begin_popup("##ArchivePopup"):
             if self._archive_load_error:
                 imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
@@ -301,7 +331,9 @@ class KnxGuiApp:
             pulse = 0.5 + 0.5 * math.sin(imgui.get_time() * 3.0)
             alpha = 0.4 + 0.6 * pulse
             draw_list.add_circle_filled(center, 4, color_u32(0.2, 0.8, 0.3, alpha))
-            draw_list.add_circle_filled(center, 4 + pulse * 3, color_u32(0.2, 0.8, 0.3, 0.15 * (1 - pulse)))
+            draw_list.add_circle_filled(
+                center, 4 + pulse * 3, color_u32(0.2, 0.8, 0.3, 0.15 * (1 - pulse))
+            )
             imgui.dummy(imgui.ImVec2(12, 0))
             imgui.same_line()
             imgui.text(f"Connected: {self._controller_ip}")
@@ -420,7 +452,13 @@ def create_dockable_windows(app: KnxGuiApp) -> list[hello_imgui.DockableWindow]:
     configure_window.dock_space_name = "RightSpace"
     configure_window.gui_function = app.gui_configure
 
-    return [devices_window, catalog_window, editor_window, telegrams_window, configure_window]
+    return [
+        devices_window,
+        catalog_window,
+        editor_window,
+        telegrams_window,
+        configure_window,
+    ]
 
 
 def main() -> None:

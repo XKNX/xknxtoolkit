@@ -20,8 +20,8 @@ __all__ = [
     "DynamicElement",
     "DynamicWhen",
     "EnumOption",
-    "Parameter",
     "ParamType",
     "ParamTypeKind",
+    "Parameter",
     "parse_archive",
 ]

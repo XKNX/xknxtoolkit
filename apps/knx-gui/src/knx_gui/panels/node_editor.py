@@ -6,6 +6,20 @@ from imgui_bundle import imgui_node_editor as ed
 
 from knx_gui.constants import LINK_INVALID_COLOR
 from knx_gui.dpt import DPT, DPTMatch, dpt_color, dpt_match
+from knx_gui.knxprod import ParamTypeKind
+from knx_gui.types import (
+    FLAG_LABELS,
+    ComObject,
+    ComObjectFlags,
+    Device,
+    Parameter,
+    PinDir,
+    color_u32,
+    com_object_has_input,
+    com_object_has_output,
+    default_flags_for,
+    flag_diff_letters,
+)
 
 NODE_PADDING = 8.0
 HEADER_INSET = 1.0
@@ -17,21 +31,6 @@ SETTINGS_LABEL_OFFSET = 120.0
 HEADER_COLOR = (0.2, 0.4, 0.7)
 LINK_COLOR = imgui.ImVec4(0.6, 0.6, 0.6, 1.0)
 LINK_LOOSE_COLOR = imgui.ImVec4(0.9, 0.7, 0.2, 1.0)
-from knx_gui.knxprod import ParamTypeKind
-from knx_gui.types import (
-    ComObject,
-    ComObjectFlags,
-    Device,
-    FLAG_LABELS,
-    Parameter,
-    PinDir,
-    PinRow,
-    color_u32,
-    com_object_has_input,
-    com_object_has_output,
-    default_flags_for,
-    flag_diff_letters,
-)
 
 
 @dataclass
@@ -128,7 +127,9 @@ class NodeEditorPanel:
             ed.set_current_editor(self._editor_context)
             ed.select_node(ed.NodeId(node_id), clear_selection)
 
-    def navigate_to_selection(self, zoom_in: bool = False, duration: float = 0.3) -> None:
+    def navigate_to_selection(
+        self, zoom_in: bool = False, duration: float = 0.3
+    ) -> None:
         if self._editor_context:
             ed.navigate_to_selection(zoom_in, duration)
 
@@ -146,7 +147,9 @@ class NodeEditorPanel:
             self._next_pin_id += 1
         return self._pin_ids[key]
 
-    def _calc_pin_highlight(self, pin: ComObject, direction: PinDir) -> tuple[float, bool]:
+    def _calc_pin_highlight(
+        self, pin: ComObject, direction: PinDir
+    ) -> tuple[float, bool]:
         if self._drag_source_pin is None:
             return 1.0, False
         src_dpt = self._pin_dpt.get(self._drag_source_pin)
@@ -169,10 +172,20 @@ class NodeEditorPanel:
         base_color = dpt_color(dpt)
         color = color_u32(base_color.x, base_color.y, base_color.z, alpha)
         if glow:
-            draw_list.add_circle_filled(center, PIN_RADIUS + 4, color_u32(base_color.x, base_color.y, base_color.z, 0.3))
-            draw_list.add_circle_filled(center, PIN_RADIUS + 2, color_u32(base_color.x, base_color.y, base_color.z, 0.5))
+            draw_list.add_circle_filled(
+                center,
+                PIN_RADIUS + 4,
+                color_u32(base_color.x, base_color.y, base_color.z, 0.3),
+            )
+            draw_list.add_circle_filled(
+                center,
+                PIN_RADIUS + 2,
+                color_u32(base_color.x, base_color.y, base_color.z, 0.5),
+            )
         draw_list.add_circle_filled(center, PIN_RADIUS, color)
-        draw_list.add_circle(center, PIN_RADIUS, color_u32(1, 1, 1, 0.3 * alpha), 0, 1.5)
+        draw_list.add_circle(
+            center, PIN_RADIUS, color_u32(1, 1, 1, 0.3 * alpha), 0, 1.5
+        )
         imgui.dummy(imgui.ImVec2(PIN_RADIUS * 2, PIN_HEIGHT))
 
     def _draw_flag_badges(self, flags: ComObjectFlags, direction: PinDir) -> None:
@@ -180,7 +193,11 @@ class NodeEditorPanel:
         if not diffs:
             return
         for letter, is_set in diffs:
-            color = imgui.ImVec4(0.4, 0.7, 0.3, 1.0) if is_set else imgui.ImVec4(0.7, 0.3, 0.3, 1.0)
+            color = (
+                imgui.ImVec4(0.4, 0.7, 0.3, 1.0)
+                if is_set
+                else imgui.ImVec4(0.7, 0.3, 0.3, 1.0)
+            )
             imgui.push_style_color(imgui.Col_.text, color)
             imgui.text(letter if is_set else f"!{letter}")
             imgui.pop_style_color()
@@ -199,7 +216,11 @@ class NodeEditorPanel:
             symbol = "✓" if current else "✗"
             label = f"{symbol} {letter}  {name}"
             if current != default_val:
-                color = imgui.ImVec4(0.4, 0.7, 0.3, 1.0) if current else imgui.ImVec4(0.7, 0.3, 0.3, 1.0)
+                color = (
+                    imgui.ImVec4(0.4, 0.7, 0.3, 1.0)
+                    if current
+                    else imgui.ImVec4(0.7, 0.3, 0.3, 1.0)
+                )
                 imgui.push_style_color(imgui.Col_.text, color)
                 imgui.text(label + "  (modified)")
                 imgui.pop_style_color()
@@ -212,15 +233,25 @@ class NodeEditorPanel:
         in_dpt_w = in_name_w = out_dpt_w = out_name_w = 0.0
         for row in device.rows:
             if row.left and com_object_has_input(row.left):
-                in_dpt_w = max(in_dpt_w, imgui.calc_text_size(f"[{row.left.dpt.label}]").x)
+                in_dpt_w = max(
+                    in_dpt_w, imgui.calc_text_size(f"[{row.left.dpt.label}]").x
+                )
                 in_name_w = max(in_name_w, imgui.calc_text_size(row.left.name).x)
             if row.right and com_object_has_output(row.right):
-                out_dpt_w = max(out_dpt_w, imgui.calc_text_size(f"[{row.right.dpt.label}]").x)
+                out_dpt_w = max(
+                    out_dpt_w, imgui.calc_text_size(f"[{row.right.dpt.label}]").x
+                )
                 out_name_w = max(out_name_w, imgui.calc_text_size(row.right.name).x)
 
         spacing = imgui.get_style().item_spacing.x
-        in_total_w = PIN_RADIUS * 2 + in_name_w + in_dpt_w + spacing * 4 if in_name_w > 0 else 0
-        out_total_w = PIN_RADIUS * 2 + out_name_w + out_dpt_w + spacing * 4 if out_name_w > 0 else 0
+        in_total_w = (
+            PIN_RADIUS * 2 + in_name_w + in_dpt_w + spacing * 4 if in_name_w > 0 else 0
+        )
+        out_total_w = (
+            PIN_RADIUS * 2 + out_name_w + out_dpt_w + spacing * 4
+            if out_name_w > 0
+            else 0
+        )
 
         config = device.template.config
         tree_indent = imgui.get_style().indent_spacing
@@ -264,7 +295,9 @@ class NodeEditorPanel:
         label = f"[{pin.dpt.label}]"
         if len(pin.supported_dpts) > 1:
             text_size = imgui.calc_text_size(label)
-            imgui.push_style_color(imgui.Col_.text, imgui.get_style().color_(imgui.Col_.text_disabled))
+            imgui.push_style_color(
+                imgui.Col_.text, imgui.get_style().color_(imgui.Col_.text_disabled)
+            )
             clicked = imgui.selectable(
                 f"{label}##dpt_{pin_id}",
                 False,
@@ -288,7 +321,9 @@ class NodeEditorPanel:
                 imgui.text_disabled("Select DPT")
                 imgui.separator()
                 for dpt in target.supported_dpts:
-                    selected = dpt.major == target.dpt.major and dpt.minor == target.dpt.minor
+                    selected = (
+                        dpt.major == target.dpt.major and dpt.minor == target.dpt.minor
+                    )
                     if imgui.menu_item(f"{dpt.code}  {dpt.name}", "", selected)[0]:
                         target.dpt = dpt
             imgui.end_popup()
@@ -303,7 +338,11 @@ class NodeEditorPanel:
         if imgui.begin_popup("##EnumPopup"):
             target = self._enum_popup_target
             device = self._enum_popup_device
-            if target is not None and target.param_type is not None and device is not None:
+            if (
+                target is not None
+                and target.param_type is not None
+                and device is not None
+            ):
                 for opt in target.param_type.options:
                     selected = opt.value == target.value
                     if imgui.menu_item(opt.text, "", selected)[0]:
@@ -319,7 +358,9 @@ class NodeEditorPanel:
             self._show_link_warning = False
         center = imgui.get_main_viewport().get_center()
         imgui.set_next_window_pos(center, imgui.Cond_.appearing, imgui.ImVec2(0.5, 0.5))
-        if imgui.begin_popup_modal("##LinkWarning", None, imgui.WindowFlags_.always_auto_resize)[0]:
+        if imgui.begin_popup_modal(
+            "##LinkWarning", None, imgui.WindowFlags_.always_auto_resize
+        )[0]:
             imgui.text("This change will hide the following communication objects:")
             imgui.spacing()
             for co in self._pending_hidden_cos:
@@ -349,7 +390,9 @@ class NodeEditorPanel:
                 imgui.close_current_popup()
             imgui.end_popup()
 
-    def _render_input_pin(self, pin_id: int, pin: ComObject, layout: NodeLayout) -> None:
+    def _render_input_pin(
+        self, pin_id: int, pin: ComObject, layout: NodeLayout
+    ) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.INPUT
         alpha, glow = self._calc_pin_highlight(pin, PinDir.INPUT)
@@ -365,15 +408,21 @@ class NodeEditorPanel:
         else:
             imgui.text_disabled(pin.name)
         imgui.same_line()
-        imgui.dummy(imgui.ImVec2(layout.in_name_w - imgui.calc_text_size(pin.name).x, 1))
+        imgui.dummy(
+            imgui.ImVec2(layout.in_name_w - imgui.calc_text_size(pin.name).x, 1)
+        )
         ed.end_pin()
         imgui.same_line()
         self._render_dpt_label(pin, pin_id)
         imgui.same_line()
         dpt_label = f"[{pin.dpt.label}]"
-        imgui.dummy(imgui.ImVec2(layout.in_dpt_w - imgui.calc_text_size(dpt_label).x, 1))
+        imgui.dummy(
+            imgui.ImVec2(layout.in_dpt_w - imgui.calc_text_size(dpt_label).x, 1)
+        )
 
-    def _render_output_pin(self, pin_id: int, pin: ComObject, layout: NodeLayout) -> None:
+    def _render_output_pin(
+        self, pin_id: int, pin: ComObject, layout: NodeLayout
+    ) -> None:
         self._pin_dpt[pin_id] = pin.dpt
         self._pin_dir[pin_id] = PinDir.OUTPUT
         alpha, glow = self._calc_pin_highlight(pin, PinDir.OUTPUT)
@@ -383,7 +432,9 @@ class NodeEditorPanel:
         dpt_label = f"[{pin.dpt.label}]"
         self._render_dpt_label(pin, pin_id)
         imgui.same_line()
-        imgui.dummy(imgui.ImVec2(layout.out_dpt_w - imgui.calc_text_size(dpt_label).x, 1))
+        imgui.dummy(
+            imgui.ImVec2(layout.out_dpt_w - imgui.calc_text_size(dpt_label).x, 1)
+        )
         imgui.same_line()
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
         ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
@@ -392,7 +443,9 @@ class NodeEditorPanel:
         else:
             imgui.text_disabled(pin.name)
         imgui.same_line()
-        imgui.dummy(imgui.ImVec2(layout.out_name_w - imgui.calc_text_size(pin.name).x, 1))
+        imgui.dummy(
+            imgui.ImVec2(layout.out_name_w - imgui.calc_text_size(pin.name).x, 1)
+        )
         imgui.same_line()
         self._draw_pin_icon(pin.dpt, alpha, glow)
         ed.end_pin()
@@ -416,13 +469,17 @@ class NodeEditorPanel:
         co_indices = {id(co): idx for idx, co in enumerate(device.com_objects)}
         for row in device.rows:
             if row.left and com_object_has_input(row.left):
-                pin_id = self._get_pin_id(device.node_id, co_indices[id(row.left)], "in")
+                pin_id = self._get_pin_id(
+                    device.node_id, co_indices[id(row.left)], "in"
+                )
                 self._render_input_pin(pin_id, row.left, layout)
             else:
                 imgui.dummy(imgui.ImVec2(layout.in_total_w, PIN_HEIGHT))
             imgui.same_line(spacing=layout.mid_spacing)
             if row.right and com_object_has_output(row.right):
-                pin_id = self._get_pin_id(device.node_id, co_indices[id(row.right)], "out")
+                pin_id = self._get_pin_id(
+                    device.node_id, co_indices[id(row.right)], "out"
+                )
                 self._render_output_pin(pin_id, row.right, layout)
             else:
                 imgui.dummy(imgui.ImVec2(layout.out_total_w, PIN_HEIGHT))
@@ -440,7 +497,11 @@ class NodeEditorPanel:
             imgui.table_set_column_index(col)
             current = getattr(com_object.flags, attr)
             locked_attr = f"{attr}_locked"
-            is_locked = getattr(com_object.flags, locked_attr, False) if attr != "communication" else False
+            is_locked = (
+                getattr(com_object.flags, locked_attr, False)
+                if attr != "communication"
+                else False
+            )
             if is_locked:
                 imgui.begin_disabled()
             changed, new_value = imgui.checkbox(f"##{row_id}_{attr}", current)
@@ -454,7 +515,9 @@ class NodeEditorPanel:
 
     def _render_node_com_objects(self, device: Device) -> None:
         flags = imgui.TableFlags_.borders_inner | imgui.TableFlags_.sizing_fixed_fit
-        if not imgui.begin_table(f"##com_objs_{device.node_id}", 1 + len(FLAG_LABELS), flags):
+        if not imgui.begin_table(
+            f"##com_objs_{device.node_id}", 1 + len(FLAG_LABELS), flags
+        ):
             return
         imgui.table_setup_column("Name")
         for _attr, letter, _name in FLAG_LABELS:
@@ -488,7 +551,9 @@ class NodeEditorPanel:
         self._pending_removed_links = affected_links
         self._show_link_warning = True
 
-    def _find_links_for_com_objects(self, device: Device, cos: list[ComObject]) -> list[tuple[int, int, int]]:
+    def _find_links_for_com_objects(
+        self, device: Device, cos: list[ComObject]
+    ) -> list[tuple[int, int, int]]:
         co_to_idx = {id(co): idx for idx, co in enumerate(device.com_objects)}
         pin_ids: set[int] = set()
         for co in cos:
@@ -500,7 +565,7 @@ class NodeEditorPanel:
                         pin_ids.add(self._pin_ids[key])
         affected: list[tuple[int, int, int]] = []
         for link in self._get_links():
-            link_id, start, end = link
+            _link_id, start, end = link
             if start in pin_ids or end in pin_ids:
                 affected.append(link)
         return affected
@@ -535,7 +600,9 @@ class NodeEditorPanel:
                 int_val = pt.min_value or 0
             min_v = pt.min_value if pt.min_value is not None else 0
             max_v = pt.max_value if pt.max_value is not None else 65535
-            changed, new_val = imgui.drag_int(f"##{param.id}", int_val, 1.0, min_v, max_v)
+            changed, new_val = imgui.drag_int(
+                f"##{param.id}", int_val, 1.0, min_v, max_v
+            )
             if changed:
                 self._try_set_param_value(device, param.id, str(new_val))
         elif pt.kind == ParamTypeKind.TIME:
@@ -545,7 +612,9 @@ class NodeEditorPanel:
                 int_val = pt.min_value or 0
             min_v = pt.min_value if pt.min_value is not None else 0
             max_v = pt.max_value if pt.max_value is not None else 86400
-            changed, new_val = imgui.drag_int(f"##{param.id}", int_val, 1.0, min_v, max_v)
+            changed, new_val = imgui.drag_int(
+                f"##{param.id}", int_val, 1.0, min_v, max_v
+            )
             if changed:
                 self._try_set_param_value(device, param.id, str(new_val))
         elif pt.kind == ParamTypeKind.TEXT:
@@ -571,9 +640,15 @@ class NodeEditorPanel:
             imgui.text_disabled(f"({len(group_params)})")
             if is_open:
                 table_flags = imgui.TableFlags_.no_saved_settings
-                if imgui.begin_table(f"##params_{device.node_id}_{group_name}", 2, table_flags):
-                    imgui.table_setup_column("Name", imgui.TableColumnFlags_.width_stretch)
-                    imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_fixed, 120)
+                if imgui.begin_table(
+                    f"##params_{device.node_id}_{group_name}", 2, table_flags
+                ):
+                    imgui.table_setup_column(
+                        "Name", imgui.TableColumnFlags_.width_stretch
+                    )
+                    imgui.table_setup_column(
+                        "Value", imgui.TableColumnFlags_.width_fixed, 120
+                    )
                     for param in group_params:
                         imgui.table_next_row()
                         imgui.table_set_column_index(0)
@@ -605,7 +680,9 @@ class NodeEditorPanel:
             self._render_node_com_objects(device)
             imgui.tree_pop()
 
-    def _draw_node_header_bg(self, node_id: int, header: Rect, content_max_x: float) -> None:
+    def _draw_node_header_bg(
+        self, node_id: int, header: Rect, content_max_x: float
+    ) -> None:
         draw_list = ed.get_node_background_draw_list(ed.NodeId(node_id))
         if not draw_list:
             return
@@ -709,7 +786,9 @@ class NodeEditorPanel:
                     if match == DPTMatch.NONE or duplicate:
                         ed.reject_new_item(LINK_INVALID_COLOR, 3.0)
                     else:
-                        preview_color = LINK_COLOR if match == DPTMatch.EXACT else LINK_LOOSE_COLOR
+                        preview_color = (
+                            LINK_COLOR if match == DPTMatch.EXACT else LINK_LOOSE_COLOR
+                        )
                         if ed.accept_new_item(preview_color, 2.0):
                             self._add_link(start_pin_id.id(), end_pin_id.id())
             else:

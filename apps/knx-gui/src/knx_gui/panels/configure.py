@@ -4,9 +4,9 @@ from imgui_bundle import imgui
 
 from knx_gui.knxprod import ParamTypeKind
 from knx_gui.types import (
+    FLAG_LABELS,
     ComObject,
     Device,
-    FLAG_LABELS,
     Parameter,
 )
 
@@ -59,11 +59,15 @@ class ConfigurePanel:
             self._render_label_value("Firmware", config.firmware)
 
         params = device.get_visible_parameters()
-        if params and imgui.collapsing_header(f"Parameters ({len(params)})", imgui.TreeNodeFlags_.default_open):
+        if params and imgui.collapsing_header(
+            f"Parameters ({len(params)})", imgui.TreeNodeFlags_.default_open
+        ):
             self._render_parameters(device, params)
 
         visible_cos = device.get_visible_com_objects()
-        if imgui.collapsing_header(f"Com Flags ({len(visible_cos)})", imgui.TreeNodeFlags_.default_open):
+        if imgui.collapsing_header(
+            f"Com Flags ({len(visible_cos)})", imgui.TreeNodeFlags_.default_open
+        ):
             self._render_com_objects(device, visible_cos)
 
     def _render_label_value(self, label: str, value: str) -> None:
@@ -80,9 +84,15 @@ class ConfigurePanel:
             imgui.text_disabled(f"({len(group_params)})")
             if is_open:
                 table_flags = imgui.TableFlags_.no_saved_settings
-                if imgui.begin_table(f"##params_{device.node_id}_{group_name}", 2, table_flags):
-                    imgui.table_setup_column("Name", imgui.TableColumnFlags_.width_stretch)
-                    imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_fixed, 120)
+                if imgui.begin_table(
+                    f"##params_{device.node_id}_{group_name}", 2, table_flags
+                ):
+                    imgui.table_setup_column(
+                        "Name", imgui.TableColumnFlags_.width_stretch
+                    )
+                    imgui.table_setup_column(
+                        "Value", imgui.TableColumnFlags_.width_fixed, 120
+                    )
                     for param in group_params:
                         imgui.table_next_row()
                         imgui.table_set_column_index(0)
@@ -137,7 +147,9 @@ class ConfigurePanel:
                 int_val = pt.min_value or 0
             min_v = pt.min_value if pt.min_value is not None else 0
             max_v = pt.max_value if pt.max_value is not None else 65535
-            changed, new_val = imgui.drag_int(f"##{param.id}", int_val, 1.0, min_v, max_v)
+            changed, new_val = imgui.drag_int(
+                f"##{param.id}", int_val, 1.0, min_v, max_v
+            )
             if changed:
                 self._on_param_change(device, param.id, str(new_val))
         elif pt.kind == ParamTypeKind.TIME:
@@ -147,7 +159,9 @@ class ConfigurePanel:
                 int_val = pt.min_value or 0
             min_v = pt.min_value if pt.min_value is not None else 0
             max_v = pt.max_value if pt.max_value is not None else 86400
-            changed, new_val = imgui.drag_int(f"##{param.id}", int_val, 1.0, min_v, max_v)
+            changed, new_val = imgui.drag_int(
+                f"##{param.id}", int_val, 1.0, min_v, max_v
+            )
             if changed:
                 self._on_param_change(device, param.id, str(new_val))
         elif pt.kind == ParamTypeKind.TEXT:
@@ -163,7 +177,9 @@ class ConfigurePanel:
 
     def _render_com_objects(self, device: Device, com_objects: list[ComObject]) -> None:
         flags = imgui.TableFlags_.borders_inner | imgui.TableFlags_.sizing_fixed_fit
-        if not imgui.begin_table(f"##com_objs_{device.node_id}", 1 + len(FLAG_LABELS), flags):
+        if not imgui.begin_table(
+            f"##com_objs_{device.node_id}", 1 + len(FLAG_LABELS), flags
+        ):
             return
 
         imgui.table_setup_column("Name")
@@ -185,7 +201,11 @@ class ConfigurePanel:
             imgui.table_set_column_index(col)
             current = getattr(com_object.flags, attr)
             locked_attr = f"{attr}_locked"
-            is_locked = getattr(com_object.flags, locked_attr, False) if attr != "communication" else False
+            is_locked = (
+                getattr(com_object.flags, locked_attr, False)
+                if attr != "communication"
+                else False
+            )
 
             if is_locked:
                 imgui.begin_disabled()
