@@ -1,3 +1,4 @@
+from knx_gui.widgets.com_flags_widgets import ComFlagsTable
 from knx_gui.widgets.parameter_widgets import (
     EnumPopup,
     EnumPopupRequest,
@@ -7,6 +8,7 @@ from knx_gui.widgets.parameter_widgets import (
 )
 
 __all__ = [
+    "ComFlagsTable",
     "EnumPopup",
     "EnumPopupRequest",
     "group_parameters",
