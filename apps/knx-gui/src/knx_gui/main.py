@@ -1676,16 +1676,32 @@ class KnxGuiApp:
         self._render_telegrams_table()
 
     def gui_configure(self) -> None:
-        self._update_selected_device()
-        device = self._selected_device
-        if device is None:
-            imgui.text_disabled("No device selected")
+        self._sync_selected_device_from_editor()
+
+        if not self._devices:
+            imgui.text_disabled("No devices")
             return
 
-        imgui.text(device.name)
-        if device.address:
-            imgui.same_line()
-            imgui.text_disabled(f"({device.address})")
+        if self._selected_device is None:
+            self._selected_device = self._devices[0]
+
+        current_idx = 0
+        labels = []
+        for i, d in enumerate(self._devices):
+            label = f"{d.name} ({d.address})" if d.address else d.name
+            labels.append(label)
+            if d.node_id == self._selected_device.node_id:
+                current_idx = i
+
+        imgui.set_next_item_width(-1)
+        changed, new_idx = imgui.combo("##device_select", current_idx, labels)
+        if changed:
+            self._selected_device = self._devices[new_idx]
+            ed.set_current_editor(self._editor_context)
+            ed.select_node(ed.NodeId(self._selected_device.node_id), False)
+
+        device = self._selected_device
+
         imgui.separator()
 
         config = device.template.config
@@ -1703,20 +1719,20 @@ class KnxGuiApp:
         if imgui.collapsing_header(f"Com Flags ({len(visible_cos)})", imgui.TreeNodeFlags_.default_open):
             self._render_node_com_objects(device)
 
-    def _update_selected_device(self) -> None:
+    def _sync_selected_device_from_editor(self) -> None:
         if not self._editor_context:
             return
         ed.set_current_editor(self._editor_context)
         selected_nodes = ed.get_selected_nodes()
         if len(selected_nodes) != 1:
-            self._selected_device = None
             return
         node_id = selected_nodes[0].id()
+        if self._selected_device and self._selected_device.node_id == node_id:
+            return
         for device in self._devices:
             if device.node_id == node_id:
                 self._selected_device = device
                 return
-        self._selected_device = None
 
 
 def create_docking_splits() -> list[hello_imgui.DockingSplit]:
