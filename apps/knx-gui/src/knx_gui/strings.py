@@ -99,7 +99,18 @@ class Strings:
     # File dialogs
     FILE_DIALOG_KNXPROD_TITLE = "Open KNX product archive"
     FILE_DIALOG_KNXPROD_FILTER = "KNX product (*.knxprod)"
+    FILE_DIALOG_PROJECT_TITLE = "Open XKNX project"
+    FILE_DIALOG_PROJECT_SAVE_TITLE = "Save XKNX project"
+    FILE_DIALOG_PROJECT_FILTER = "XKNX project (*.xknx)"
     FILE_DIALOG_ALL_FILES = "All files"
+
+    # Shortcuts
+    SHORTCUT_UNDO = "Ctrl+Z"
+    SHORTCUT_REDO = "Ctrl+Y"
+
+    # Status
+    STATUS_PROJECT = "Project: {name}"
+    STATUS_UNSAVED = "(unsaved)"
 
 
 S = Strings
