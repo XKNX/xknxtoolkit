@@ -2,4 +2,4 @@
 *.xknxcatalog
 NodeEditor.json
 .venv/
-plan.md
+internal/
