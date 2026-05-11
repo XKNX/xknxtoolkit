@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from xknx.product.errors import ArchiveError
+from xknxmono.product.errors import ArchiveError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

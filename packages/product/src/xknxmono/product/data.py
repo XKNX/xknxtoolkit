@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from xknx.models import detect_version, load_xml, serialize_xml
+from xknxmono.models import detect_version, load_xml, serialize_xml
 
 if TYPE_CHECKING:
-    from xknx.product.archive import ProductArchive
+    from xknxmono.product.archive import ProductArchive
 
 
 def load_archive(archive: ProductArchive, manufacturer_id: str) -> ProductData:
