@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 
 from imgui_bundle import hello_imgui, imgui
 from imgui_bundle import portable_file_dialogs as pfd
@@ -12,6 +13,11 @@ from knx_gui.panels import (
     DevicesPanel,
     NodeEditorPanel,
     TelegramsPanel,
+)
+from knx_gui.project.database import ProjectDatabase
+from knx_gui.project.events import (
+    LinkCreated,
+    LinkRemoved,
 )
 from knx_gui.state import AppState, create_sample_state
 from knx_gui.strings import S
@@ -32,8 +38,13 @@ NAVIGATE_TO_NODE_DURATION = 0.3
 class KnxGuiApp:
     def __init__(self, state: AppState) -> None:
         self._state = state
+        self._project: ProjectDatabase | None = None
+        self._project_path: Path | None = None
 
         self._open_file_dialog: pfd.open_file | None = None
+        self._save_file_dialog: pfd.save_file | None = None
+        self._open_project_dialog: pfd.open_file | None = None
+        self._save_project_dialog: pfd.save_file | None = None
         self._archive_candidates: list[DeviceApplication] = []
         self._archive_path: str | None = None
         self._archive_load_error: str | None = None
@@ -42,8 +53,8 @@ class KnxGuiApp:
         self._node_editor_panel = NodeEditorPanel(
             get_devices=lambda: self._state.devices,
             get_links=lambda: self._state.links,
-            add_link=self._state.add_link,
-            remove_link=self._state.remove_link,
+            add_link=self._add_link,
+            remove_link=self._remove_link,
             on_param_change=self._state.check_param_change_hides_com_objects,
         )
         self._devices_panel = DevicesPanel(
@@ -95,6 +106,88 @@ class KnxGuiApp:
 
     def shutdown(self) -> None:
         self._node_editor_panel.shutdown()
+        if self._project:
+            self._project.close()
+
+    def _new_project(self) -> None:
+        self._save_project_dialog = pfd.save_file(
+            S.FILE_DIALOG_PROJECT_SAVE_TITLE,
+            "",
+            [S.FILE_DIALOG_PROJECT_FILTER, "*.xknx", S.FILE_DIALOG_ALL_FILES, "*"],
+        )
+
+    def _open_project(self) -> None:
+        self._open_project_dialog = pfd.open_file(
+            S.FILE_DIALOG_PROJECT_TITLE,
+            "",
+            [S.FILE_DIALOG_PROJECT_FILTER, "*.xknx", S.FILE_DIALOG_ALL_FILES, "*"],
+        )
+
+    def _do_new_project(self, path: str) -> None:
+        if self._project:
+            self._project.close()
+        self._project_path = Path(path)
+        if not self._project_path.suffix:
+            self._project_path = self._project_path.with_suffix(".xknx")
+        self._project = ProjectDatabase(self._project_path)
+        self._project.create()
+        self._state.devices.clear()
+        self._state.links.clear()
+
+    def _do_open_project(self, path: str) -> None:
+        if self._project:
+            self._project.close()
+        self._project_path = Path(path)
+        self._project = ProjectDatabase(self._project_path)
+        self._project.open()
+        self._load_links_from_db()
+
+    def _load_links_from_db(self) -> None:
+        if not self._project:
+            return
+        from knx_gui.project.models import LinkModel
+
+        self._state.links.clear()
+        for link_model in self._project.session.query(LinkModel).all():
+            self._state.links.append(
+                (link_model.id, link_model.start_pin, link_model.end_pin)
+            )
+        max_link_id = max((link[0] for link in self._state.links), default=999)
+        self._state._next_link_id = max_link_id + 1
+
+    def _undo(self) -> None:
+        if self._project and self._project.event_store.can_undo():
+            self._project.event_store.undo()
+            self._load_links_from_db()
+
+    def _redo(self) -> None:
+        if self._project and self._project.event_store.can_redo():
+            self._project.event_store.redo()
+            self._load_links_from_db()
+
+    def _can_undo(self) -> bool:
+        return self._project is not None and self._project.event_store.can_undo()
+
+    def _can_redo(self) -> bool:
+        return self._project is not None and self._project.event_store.can_redo()
+
+    def _add_link(self, start_pin: int, end_pin: int) -> int:
+        link_id = self._state.add_link(start_pin, end_pin)
+        if self._project:
+            event = LinkCreated(link_id=link_id, start_pin=start_pin, end_pin=end_pin)
+            self._project.event_store.append(event)
+        return link_id
+
+    def _remove_link(self, link_id: int) -> None:
+        link_data = next(
+            (link for link in self._state.links if link[0] == link_id), None
+        )
+        self._state.remove_link(link_id)
+        if self._project and link_data:
+            event = LinkRemoved(
+                link_id=link_data[0], start_pin=link_data[1], end_pin=link_data[2]
+            )
+            self._project.event_store.append(event)
 
     def _sync_selected_device_from_editor(self) -> None:
         selected_ids = self._node_editor_panel.get_selected_node_ids()
@@ -110,16 +203,34 @@ class KnxGuiApp:
         if device:
             self._state.selected_device = device
 
-    def _poll_open_file_dialog(self) -> None:
-        if self._open_file_dialog is None:
-            return
-        if not self._open_file_dialog.ready():
-            return
-        result = self._open_file_dialog.result()
-        self._open_file_dialog = None
-        if not result:
-            return
-        self._load_knxprod(result[0])
+    def _poll_dialogs(self) -> None:
+        if self._open_file_dialog is not None and self._open_file_dialog.ready():
+            result = self._open_file_dialog.result()
+            self._open_file_dialog = None
+            if result:
+                self._load_knxprod(result[0])
+
+        if self._save_project_dialog is not None and self._save_project_dialog.ready():
+            result = self._save_project_dialog.result()
+            self._save_project_dialog = None
+            if result:
+                self._do_new_project(result)
+
+        if self._open_project_dialog is not None and self._open_project_dialog.ready():
+            result = self._open_project_dialog.result()
+            self._open_project_dialog = None
+            if result:
+                self._do_open_project(result[0])
+
+    def _handle_shortcuts(self) -> None:
+        io = imgui.get_io()
+        if (io.key_ctrl or io.key_super) and imgui.is_key_pressed(imgui.Key.z):
+            if io.key_shift:
+                self._redo()
+            else:
+                self._undo()
+        elif (io.key_ctrl or io.key_super) and imgui.is_key_pressed(imgui.Key.y):
+            self._redo()
 
     def _load_knxprod(self, path: str) -> None:
         self._archive_load_error = None
@@ -280,11 +391,13 @@ class KnxGuiApp:
     def gui_menu(self) -> None:
         if imgui.begin_menu(S.MENU_FILE):
             if imgui.menu_item(S.MENU_NEW_PROJECT, "", False)[0]:
-                pass
+                self._new_project()
             if imgui.menu_item(S.MENU_OPEN_PROJECT, "", False)[0]:
-                pass
+                self._open_project()
+            imgui.begin_disabled(self._project is None)
             if imgui.menu_item(S.MENU_SAVE_PROJECT, "", False)[0]:
                 pass
+            imgui.end_disabled()
             imgui.separator()
             if imgui.menu_item(S.MENU_LOAD_KNXPROD, "", False)[0]:
                 self._open_file_dialog = pfd.open_file(
@@ -303,10 +416,14 @@ class KnxGuiApp:
             imgui.end_menu()
 
         if imgui.begin_menu(S.MENU_EDIT):
-            if imgui.menu_item(S.MENU_UNDO, "Ctrl+Z", False)[0]:
-                pass
-            if imgui.menu_item(S.MENU_REDO, "Ctrl+Y", False)[0]:
-                pass
+            if imgui.menu_item(S.MENU_UNDO, S.SHORTCUT_UNDO, False, self._can_undo())[
+                0
+            ]:
+                self._undo()
+            if imgui.menu_item(S.MENU_REDO, S.SHORTCUT_REDO, False, self._can_redo())[
+                0
+            ]:
+                self._redo()
             imgui.end_menu()
 
         if imgui.begin_menu(S.MENU_CONNECTION):
@@ -323,7 +440,8 @@ class KnxGuiApp:
                     self._state.connected = True
             imgui.end_menu()
 
-        self._poll_open_file_dialog()
+        self._poll_dialogs()
+        self._handle_shortcuts()
 
     def gui_devices(self) -> None:
         self._devices_panel.render()
