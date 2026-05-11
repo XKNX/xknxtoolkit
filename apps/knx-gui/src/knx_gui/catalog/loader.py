@@ -3,7 +3,7 @@ from pathlib import Path
 
 from knx_gui.catalog.database import CatalogDatabase
 from knx_gui.catalog.models import ApplicationModel
-from xknx.product.archive import ProductArchive
+from xknxmono.product.archive import ProductArchive
 
 
 def load_knxprod_to_catalog(catalog: CatalogDatabase, knxprod_path: Path) -> list[str]:
