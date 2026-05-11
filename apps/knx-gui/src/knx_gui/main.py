@@ -18,6 +18,7 @@ from knx_gui.panels import (
 from knx_gui.project.database import ProjectDatabase
 from knx_gui.project.events import (
     ComObjectFlagChanged,
+    DeviceAdded,
     LinkCreated,
     LinkRemoved,
 )
@@ -152,8 +153,32 @@ class KnxGuiApp:
                 False, NAVIGATE_TO_NODE_DURATION
             )
 
-    def _add_device_from_template(self, _key: str, template: DeviceTemplate) -> None:
-        self._state.add_device(template)
+    def _add_device_from_template(self, key: str, template: DeviceTemplate) -> None:
+        device = self._state.add_device(template)
+        if self._project:
+            params = [(p.id, p.value) for p in template.parameters]
+            com_objs = [
+                {
+                    "co_id": co.id,
+                    "dpt_major": co.dpt.major,
+                    "dpt_minor": co.dpt.minor,
+                    "flag_communication": co.flags.communication,
+                    "flag_read": co.flags.read,
+                    "flag_write": co.flags.write,
+                    "flag_transmit": co.flags.transmit,
+                    "flag_update": co.flags.update,
+                }
+                for co in template.com_objects
+            ]
+            event = DeviceAdded(
+                device_id=device.node_id,
+                address=device.address,
+                template_id=key,
+                name=device.name,
+                parameters=params,
+                com_objects=com_objs,
+            )
+            self._project.event_store.append(event)
 
     def setup(self) -> None:
         self._node_editor_panel.setup()
@@ -357,6 +382,32 @@ class KnxGuiApp:
         self._state._next_device_id += 1
         self._state.devices.append(device)
         print(f"[knxprod] device added; total devices: {len(self._state.devices)}")
+
+        if self._project:
+            template_id = f"knxprod:{app.manufacturer_id}:{app.application_id}"
+            params = [(p.id, p.value) for p in template.parameters]
+            com_objs = [
+                {
+                    "co_id": co.id,
+                    "dpt_major": co.dpt.major,
+                    "dpt_minor": co.dpt.minor,
+                    "flag_communication": co.flags.communication,
+                    "flag_read": co.flags.read,
+                    "flag_write": co.flags.write,
+                    "flag_transmit": co.flags.transmit,
+                    "flag_update": co.flags.update,
+                }
+                for co in template.com_objects
+            ]
+            event = DeviceAdded(
+                device_id=device.node_id,
+                address=device.address,
+                template_id=template_id,
+                name=device.name,
+                parameters=params,
+                com_objects=com_objs,
+            )
+            self._project.event_store.append(event)
 
     def _app_to_template(self, app: DeviceApplication) -> DeviceTemplate:
         com_objects: list[ComObject] = []
