@@ -639,8 +639,6 @@ class KnxGuiApp:
         self._connected: bool = False
         self._controller_ip: str = "192.168.1.1"
         self._telegrams: list[Telegram] = []
-        self._selected_telegrams: set[int] = set()
-        self._last_selected_telegram: int = -1
         self._drag_source_pin: int | None = None
         self._open_file_dialog: pfd.open_file | None = None
         self._archive_candidates: list[DeviceApplication] = []
@@ -1467,8 +1465,8 @@ class KnxGuiApp:
         return "\t".join(col.getter(telegram) for col in TELEGRAM_COLUMNS)
 
     def _copy_telegrams(self) -> None:
-        if self._selected_telegrams:
-            indices = sorted(self._selected_telegrams)
+        if self._panel_telegrams["selected"]:
+            indices = sorted(self._panel_telegrams["selected"])
         else:
             indices = range(len(self._telegrams))
         if not indices:
@@ -1479,25 +1477,25 @@ class KnxGuiApp:
 
     def _select_telegram_range(self, start: int, end: int, additive: bool) -> None:
         if not additive:
-            self._selected_telegrams.clear()
+            self._panel_telegrams["selected"].clear()
         lo, hi = min(start, end), max(start, end)
-        self._selected_telegrams.update(range(lo, hi + 1))
+        self._panel_telegrams["selected"].update(range(lo, hi + 1))
 
     def _toggle_telegram(self, index: int) -> None:
-        self._selected_telegrams.symmetric_difference_update({index})
-        self._last_selected_telegram = index
+        self._panel_telegrams["selected"].symmetric_difference_update({index})
+        self._panel_telegrams["last_selected"] = index
 
     def _select_single_telegram(self, index: int) -> None:
-        self._selected_telegrams = {index}
-        self._last_selected_telegram = index
+        self._panel_telegrams["selected"] = {index}
+        self._panel_telegrams["last_selected"] = index
         self._focus_device_by_address(self._telegrams[index].source)
 
     def _handle_telegram_click(self, index: int) -> None:
         io = imgui.get_io()
         ctrl = io.key_ctrl or io.key_super
         shift = io.key_shift
-        if shift and self._last_selected_telegram >= 0:
-            self._select_telegram_range(self._last_selected_telegram, index, additive=ctrl)
+        if shift and self._panel_telegrams["last_selected"] >= 0:
+            self._select_telegram_range(self._panel_telegrams["last_selected"], index, additive=ctrl)
         elif ctrl:
             self._toggle_telegram(index)
         else:
@@ -1512,21 +1510,21 @@ class KnxGuiApp:
 
     def _render_telegrams_header(self) -> None:
         imgui.text("Telegrams")
-        if self._selected_telegrams:
+        if self._panel_telegrams["selected"]:
             imgui.same_line()
-            imgui.text_disabled(f"  ({len(self._selected_telegrams)} selected)")
+            imgui.text_disabled(f"  ({len(self._panel_telegrams["selected"])} selected)")
         imgui.same_line(imgui.get_window_width() - TELEGRAM_HEADER_BUTTONS_WIDTH)
         if imgui.small_button("Copy"):
             self._copy_telegrams()
         imgui.same_line()
         if imgui.small_button("Clear"):
-            self._selected_telegrams.clear()
+            self._panel_telegrams["selected"].clear()
         imgui.separator()
 
     def _render_telegram_row(self, index: int, telegram: Telegram) -> None:
         imgui.table_next_row()
         imgui.table_set_column_index(0)
-        selected = index in self._selected_telegrams
+        selected = index in self._panel_telegrams["selected"]
         flags = imgui.SelectableFlags_.span_all_columns | imgui.SelectableFlags_.allow_overlap
         if imgui.selectable(f"{telegram.timestamp}##row{index}", selected, flags)[0]:
             self._handle_telegram_click(index)
@@ -1722,9 +1720,14 @@ class KnxGuiApp:
         self._render_link_warning_popup()
 
     def gui_telegrams(self) -> None:
+        self._init_panel_telegrams()
         self._render_telegrams_header()
         self._handle_telegrams_shortcuts()
         self._render_telegrams_table()
+
+    def _init_panel_telegrams(self) -> None:
+        if not hasattr(self, "_panel_telegrams"):
+            self._panel_telegrams = {"selected": set(), "last_selected": -1}
 
     def gui_configure(self) -> None:
         self._sync_selected_device_from_editor()
