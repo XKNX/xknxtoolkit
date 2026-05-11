@@ -59,6 +59,7 @@ class KnxGuiApp:
             add_link=self._add_link,
             remove_link=self._remove_link,
             on_param_change=self._state.check_param_change_hides_com_objects,
+            on_flag_change=self._on_flag_change,
         )
         self._devices_panel = DevicesPanel(
             get_devices=lambda: self._state.devices,
