@@ -62,12 +62,14 @@ class NodeEditorPanel:
         add_link: Callable[[int, int], int],
         remove_link: Callable[[int], None],
         on_param_change: Callable[[Device, str, str], list[ComObject]],
+        on_flag_change: Callable[[Device, str, str, bool], None],
     ) -> None:
         self._get_devices = get_devices
         self._get_links = get_links
         self._add_link = add_link
         self._remove_link = remove_link
         self._on_param_change = on_param_change
+        self._on_flag_change = on_flag_change
 
         self._editor_context: ed.EditorContext | None = None
         self._next_pin_id: int = 100000
@@ -492,7 +494,7 @@ class NodeEditorPanel:
         imgui.same_line(SETTINGS_LABEL_OFFSET)
         imgui.text(value)
 
-    def _render_com_object_row(self, com_object: ComObject, row_id: str) -> None:
+    def _render_com_object_row(self, device: Device, com_object: ComObject, row_id: str) -> None:
         imgui.table_next_row()
         imgui.table_set_column_index(0)
         imgui.text(com_object.name)
@@ -509,7 +511,7 @@ class NodeEditorPanel:
                 imgui.begin_disabled()
             changed, new_value = imgui.checkbox(f"##{row_id}_{attr}", current)
             if changed and not is_locked:
-                setattr(com_object.flags, attr, new_value)
+                self._on_flag_change(device, com_object.id, attr, new_value)
             if is_locked:
                 imgui.end_disabled()
             if imgui.is_item_hovered(imgui.HoveredFlags_.allow_when_disabled):
@@ -529,7 +531,7 @@ class NodeEditorPanel:
             imgui.table_setup_column(letter)
         imgui.table_headers_row()
         for com_obj in device.get_visible_com_objects():
-            self._render_com_object_row(com_obj, f"{device.node_id}_{com_obj.id}")
+            self._render_com_object_row(device, com_obj, f"{device.node_id}_{com_obj.id}")
         imgui.end_table()
 
     def _group_parameters(self, params: list[Parameter]) -> dict[str, list[Parameter]]:
