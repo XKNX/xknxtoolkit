@@ -193,7 +193,7 @@ class KnxGuiApp:
 
         app = apps[0]
         print(f"[catalog] adding {app.name} ({len(app.com_objects)} com objects)")
-        self._add_candidate_as_device(app)
+        self._add_candidate_as_device(app, template_id=application_id)
 
     def setup(self) -> None:
         self._node_editor_panel.setup()
@@ -254,7 +254,7 @@ class KnxGuiApp:
     def _load_devices_from_db(self) -> None:
         if not self._project:
             return
-        from knx_gui.project.models import ComObjectModel, DeviceModel
+        from knx_gui.project.models import ComObjectModel, DeviceModel, ParameterModel
 
         selected_node_id = self._state.selected_device.node_id if self._state.selected_device else None
         self._state.devices.clear()
@@ -269,9 +269,12 @@ class KnxGuiApp:
                 template=template,
                 address=device_model.address or "",
             )
+            for param_model in self._project.session.query(ParameterModel).filter_by(device_id=device_model.id).all():
+                device.set_param_value(param_model.param_id, param_model.value)
             for co_model in self._project.session.query(ComObjectModel).filter_by(device_id=device_model.id).all():
                 co = device.find_com_object(co_model.co_id)
                 if co:
+                    co.dpt = lookup_or_make_dpt(f"{co_model.dpt_major}.{co_model.dpt_minor}")
                     co.flags.communication = co_model.flag_communication
                     co.flags.read = co_model.flag_read
                     co.flags.write = co_model.flag_write
@@ -393,10 +396,11 @@ class KnxGuiApp:
         except (OSError, ValueError) as e:
             print(f"[knxprod] error: {type(e).__name__}: {e}")
 
-    def _add_candidate_as_device(self, app: DeviceApplication) -> None:
-        print(f"[knxprod] adding {app.name} ({len(app.com_objects)} com objects)")
+    def _add_candidate_as_device(self, app: DeviceApplication, template_id: str | None = None) -> None:
+        print(f"[knxprod] adding {app.name} ({len(app.visible_com_objects())} visible com objects)")
         template = self._app_to_template(app)
-        template_id = f"knxprod:{app.manufacturer_id}:{app.application_id}"
+        if template_id is None:
+            template_id = f"{app.manufacturer_id}_{app.application_id}"
         params = [(p.id, p.value) for p in template.parameters]
         com_objs = [
             {
@@ -445,7 +449,7 @@ class KnxGuiApp:
 
     def _app_to_template(self, app: DeviceApplication) -> DeviceTemplate:
         com_objects: list[ComObject] = []
-        for co in app.com_objects:
+        for co in app.visible_com_objects():
             flags = ComObjectFlags(
                 communication=co.flags.communication,
                 read=co.flags.read,
