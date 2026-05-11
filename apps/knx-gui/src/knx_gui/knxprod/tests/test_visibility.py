@@ -1,5 +1,3 @@
-import pytest
-
 from knx_gui.knxprod.types import (
     ComObject,
     ComObjectFlags,
@@ -144,11 +142,15 @@ class TestVisibilityEvaluation:
                                         conditions=[
                                             DynamicWhen(
                                                 test_values=["A"],
-                                                content=DynamicElement(param_ref_ids=["p1a"]),
+                                                content=DynamicElement(
+                                                    param_ref_ids=["p1a"]
+                                                ),
                                             ),
                                             DynamicWhen(
                                                 test_values=["B"],
-                                                content=DynamicElement(param_ref_ids=["p1b"]),
+                                                content=DynamicElement(
+                                                    param_ref_ids=["p1b"]
+                                                ),
                                             ),
                                         ],
                                     )
@@ -277,7 +279,11 @@ class TestVisibilityEvaluation:
 
 class TestComObjectVisibility:
     def test_no_dynamic_returns_all_com_objects(self):
-        com_objects = [make_com_object("co1"), make_com_object("co2"), make_com_object("co3")]
+        com_objects = [
+            make_com_object("co1"),
+            make_com_object("co2"),
+            make_com_object("co3"),
+        ]
         app = DeviceApplication(
             application_id="test",
             name="Test",

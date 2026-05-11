@@ -74,7 +74,11 @@ class TelegramsPanel:
             return
 
         for column in TELEGRAM_COLUMNS:
-            col_flags = imgui.TableColumnFlags_.width_stretch if column.stretch else imgui.TableColumnFlags_.none
+            col_flags = (
+                imgui.TableColumnFlags_.width_stretch
+                if column.stretch
+                else imgui.TableColumnFlags_.none
+            )
             imgui.table_setup_column(column.name, col_flags)
         imgui.table_headers_row()
 
@@ -87,7 +91,10 @@ class TelegramsPanel:
         imgui.table_next_row()
         imgui.table_set_column_index(0)
         selected = index in self._selected
-        flags = imgui.SelectableFlags_.span_all_columns | imgui.SelectableFlags_.allow_overlap
+        flags = (
+            imgui.SelectableFlags_.span_all_columns
+            | imgui.SelectableFlags_.allow_overlap
+        )
         if imgui.selectable(f"{telegram.timestamp}##row{index}", selected, flags)[0]:
             self._handle_click(index)
 
@@ -138,7 +145,9 @@ class TelegramsPanel:
             return
 
         header = "\t".join(col.name for col in TELEGRAM_COLUMNS)
-        rows = [self._telegram_to_row(telegrams[i]) for i in indices if i < len(telegrams)]
+        rows = [
+            self._telegram_to_row(telegrams[i]) for i in indices if i < len(telegrams)
+        ]
         imgui.set_clipboard_text("\n".join([header, *rows]))
 
     def _telegram_to_row(self, telegram: Telegram) -> str:

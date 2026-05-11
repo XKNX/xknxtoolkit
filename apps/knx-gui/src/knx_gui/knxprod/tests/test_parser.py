@@ -1,11 +1,13 @@
-import pytest
 from pathlib import Path
 
-from knx_gui.knxprod import parse_archive, ParamTypeKind
+import pytest
+
+from knx_gui.knxprod import ParamTypeKind, parse_archive
 from knx_gui.knxprod.parser import _substitute_template
 
-
-MDT_ARCHIVE = Path("/Users/user/Documents/projects/personal/xknxproduct/tests/resources/MDT/MDT_AKD-02x0CC-02_KP_V31.knxprod")
+MDT_ARCHIVE = Path(
+    "/Users/user/Documents/projects/personal/xknxproduct/tests/resources/MDT/MDT_AKD-02x0CC-02_KP_V31.knxprod"
+)
 
 
 @pytest.mark.skipif(not MDT_ARCHIVE.exists(), reason="MDT archive not available")
@@ -27,7 +29,11 @@ class TestParseArchive:
         app = apps[0]
         assert len(app.parameters) > 0
 
-        enum_params = [p for p in app.parameters if p.param_type and p.param_type.kind == ParamTypeKind.ENUM]
+        enum_params = [
+            p
+            for p in app.parameters
+            if p.param_type and p.param_type.kind == ParamTypeKind.ENUM
+        ]
         assert len(enum_params) > 0
 
         sample = enum_params[0]
@@ -55,7 +61,9 @@ class TestParseArchive:
         app = apps[0]
 
         all_lon = [p for p in app.parameters if "ongitud" in p.text.lower()]
-        visible_lon = [p for p in app.visible_parameters() if "ongitud" in p.text.lower()]
+        visible_lon = [
+            p for p in app.visible_parameters() if "ongitud" in p.text.lower()
+        ]
 
         assert len(visible_lon) < len(all_lon)
 
@@ -70,11 +78,15 @@ class TestTemplateSubstitution:
         assert result == "Channel A: Test"
 
     def test_substitutes_both(self):
-        result = _substitute_template("Channel {{ChNo}}: {{0}}", "Dimming", {"ChNo": "B"})
+        result = _substitute_template(
+            "Channel {{ChNo}}: {{0}}", "Dimming", {"ChNo": "B"}
+        )
         assert result == "Channel B: Dimming"
 
     def test_removes_unresolved_placeholders(self):
-        result = _substitute_template("{{Unknown}} Channel {{ChNo}}", None, {"ChNo": "A"})
+        result = _substitute_template(
+            "{{Unknown}} Channel {{ChNo}}", None, {"ChNo": "A"}
+        )
         assert result == "Channel A"
 
     def test_handles_no_placeholders(self):

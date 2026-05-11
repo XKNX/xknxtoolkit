@@ -25,20 +25,31 @@ class DevicesPanel:
         )
 
         for area in sorted(tree.keys()):
-            area_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
+            area_flags = (
+                imgui.TreeNodeFlags_.default_open
+                | imgui.TreeNodeFlags_.span_avail_width
+            )
             if imgui.tree_node_ex(f"Area {area}", area_flags):
                 for line in sorted(tree[area].keys()):
-                    line_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
+                    line_flags = (
+                        imgui.TreeNodeFlags_.default_open
+                        | imgui.TreeNodeFlags_.span_avail_width
+                    )
                     if imgui.tree_node_ex(f"Line {area}.{line}", line_flags):
                         for device in tree[area][line]:
-                            imgui.tree_node_ex(f"{device.name} ({device.address})", leaf_flags)
+                            imgui.tree_node_ex(
+                                f"{device.name} ({device.address})", leaf_flags
+                            )
                             if imgui.is_item_clicked():
                                 self._on_select_device(device)
                         imgui.tree_pop()
                 imgui.tree_pop()
 
         if unassigned:
-            unassigned_flags = imgui.TreeNodeFlags_.default_open | imgui.TreeNodeFlags_.span_avail_width
+            unassigned_flags = (
+                imgui.TreeNodeFlags_.default_open
+                | imgui.TreeNodeFlags_.span_avail_width
+            )
             if imgui.tree_node_ex(f"Unassigned ({len(unassigned)})", unassigned_flags):
                 for device in unassigned:
                     imgui.tree_node_ex(device.name, leaf_flags)

@@ -17,7 +17,6 @@ from knx_gui.types import (
     send_obj,
 )
 
-
 DEVICE_TEMPLATES: dict[str, DeviceTemplate] = {
     "switch_actuator": DeviceTemplate(
         name="Switch Actuator",

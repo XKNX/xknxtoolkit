@@ -94,7 +94,9 @@ class DeviceApplication:
     parameters: list[Parameter]
     dynamic: DynamicElement | None = None
 
-    def visible_parameters(self, param_values: dict[str, str] | None = None) -> list[Parameter]:
+    def visible_parameters(
+        self, param_values: dict[str, str] | None = None
+    ) -> list[Parameter]:
         if self.dynamic is None:
             return self.parameters
 
@@ -104,7 +106,9 @@ class DeviceApplication:
         visible_ids = self._collect_visible_param_refs(self.dynamic, param_values)
         return [p for p in self.parameters if p.id in visible_ids]
 
-    def visible_com_objects(self, param_values: dict[str, str] | None = None) -> list[ComObject]:
+    def visible_com_objects(
+        self, param_values: dict[str, str] | None = None
+    ) -> list[ComObject]:
         if self.dynamic is None:
             return self.com_objects
 
@@ -114,7 +118,9 @@ class DeviceApplication:
         visible_ids = self._collect_visible_co_refs(self.dynamic, param_values)
         return [co for co in self.com_objects if co.id in visible_ids]
 
-    def _collect_visible_param_refs(self, element: DynamicElement, param_values: dict[str, str]) -> set[str]:
+    def _collect_visible_param_refs(
+        self, element: DynamicElement, param_values: dict[str, str]
+    ) -> set[str]:
         visible: set[str] = set(element.param_ref_ids)
 
         for child in element.children:
@@ -123,11 +129,15 @@ class DeviceApplication:
         for choose in element.chooses:
             matched = self._find_matching_when(choose, param_values)
             if matched and matched.content:
-                visible |= self._collect_visible_param_refs(matched.content, param_values)
+                visible |= self._collect_visible_param_refs(
+                    matched.content, param_values
+                )
 
         return visible
 
-    def _collect_visible_co_refs(self, element: DynamicElement, param_values: dict[str, str]) -> set[str]:
+    def _collect_visible_co_refs(
+        self, element: DynamicElement, param_values: dict[str, str]
+    ) -> set[str]:
         visible: set[str] = set(element.com_object_ref_ids)
 
         for child in element.children:
@@ -140,7 +150,9 @@ class DeviceApplication:
 
         return visible
 
-    def _find_matching_when(self, choose: DynamicChoose, param_values: dict[str, str]) -> DynamicWhen | None:
+    def _find_matching_when(
+        self, choose: DynamicChoose, param_values: dict[str, str]
+    ) -> DynamicWhen | None:
         current_value = param_values.get(choose.param_ref_id, "")
 
         for when in choose.conditions:

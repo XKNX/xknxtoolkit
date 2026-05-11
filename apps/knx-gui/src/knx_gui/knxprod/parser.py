@@ -64,8 +64,11 @@ def _resolve_dpt_codes(*values: Any) -> list[str]:
     return []
 
 
-def _substitute_template(text: str, function_text: str | None, text_args: dict[str, str]) -> str:
+def _substitute_template(
+    text: str, function_text: str | None, text_args: dict[str, str]
+) -> str:
     import re
+
     result = text
     if function_text:
         result = result.replace("{{0}}", function_text)
@@ -80,8 +83,12 @@ def _parse_com_object(
     ref: Any, base: Any | None, text_args: dict[str, str] | None = None
 ) -> ComObject:
     raw_name = (
-        _resolve(getattr(ref, "text", None), getattr(base, "text", None) if base else None)
-        or _resolve(getattr(ref, "name", None), getattr(base, "name", None) if base else None)
+        _resolve(
+            getattr(ref, "text", None), getattr(base, "text", None) if base else None
+        )
+        or _resolve(
+            getattr(ref, "name", None), getattr(base, "name", None) if base else None
+        )
         or "Unnamed"
     )
     function_text = _resolve(
@@ -141,11 +148,21 @@ def _parse_com_object(
                     getattr(base, "read_on_init_flag", None) if base else None,
                 )
             ),
-            read_locked=bool(getattr(base, "read_flag_locked", False) if base else False),
-            write_locked=bool(getattr(base, "write_flag_locked", False) if base else False),
-            transmit_locked=bool(getattr(base, "transmit_flag_locked", False) if base else False),
-            update_locked=bool(getattr(base, "update_flag_locked", False) if base else False),
-            read_on_init_locked=bool(getattr(base, "read_on_init_flag_locked", False) if base else False),
+            read_locked=bool(
+                getattr(base, "read_flag_locked", False) if base else False
+            ),
+            write_locked=bool(
+                getattr(base, "write_flag_locked", False) if base else False
+            ),
+            transmit_locked=bool(
+                getattr(base, "transmit_flag_locked", False) if base else False
+            ),
+            update_locked=bool(
+                getattr(base, "update_flag_locked", False) if base else False
+            ),
+            read_on_init_locked=bool(
+                getattr(base, "read_on_init_flag_locked", False) if base else False
+            ),
         ),
     )
 
@@ -167,7 +184,11 @@ def _extract_com_objects(
             base_by_id[co_id] = co
 
     com_object_refs = getattr(static, "com_object_refs", None)
-    refs: list[Any] = list(getattr(com_object_refs, "com_object_ref", []) or []) if com_object_refs else []
+    refs: list[Any] = (
+        list(getattr(com_object_refs, "com_object_ref", []) or [])
+        if com_object_refs
+        else []
+    )
 
     parsed: list[ComObject] = []
     if refs:
@@ -189,7 +210,9 @@ def _parse_param_type(pt: Any) -> ParamType:
         enums = list(getattr(restrict, "enumeration", []) or [])
         if enums:
             options = [
-                EnumOption(value=str(getattr(e, "value", "")), text=str(getattr(e, "text", "")))
+                EnumOption(
+                    value=str(getattr(e, "value", "")), text=str(getattr(e, "text", ""))
+                )
                 for e in enums
             ]
             return ParamType(kind=ParamTypeKind.ENUM, options=options)
@@ -248,7 +271,9 @@ def _extract_param_types(static: Any) -> dict[str, ParamType]:
     return result
 
 
-def _extract_parameters(static: Any, param_types: dict[str, ParamType]) -> list[Parameter]:
+def _extract_parameters(
+    static: Any, param_types: dict[str, ParamType]
+) -> list[Parameter]:
     parameters = getattr(static, "parameters", None)
     if parameters is None:
         return []
@@ -261,26 +286,39 @@ def _extract_parameters(static: Any, param_types: dict[str, ParamType]) -> list[
             base_by_id[p_id] = p
 
     param_refs_container = getattr(static, "parameter_refs", None)
-    refs: list[Any] = list(getattr(param_refs_container, "parameter_ref", []) or []) if param_refs_container else []
+    refs: list[Any] = (
+        list(getattr(param_refs_container, "parameter_ref", []) or [])
+        if param_refs_container
+        else []
+    )
 
     parsed: list[Parameter] = []
     for ref in refs:
         ref_id = getattr(ref, "ref_id", None) or ""
         base = base_by_id.get(ref_id)
-        name = _resolve(
-            getattr(ref, "name", None),
-            getattr(base, "name", None) if base else None,
-        ) or ""
-        text = _resolve(
-            getattr(ref, "text", None),
-            getattr(base, "text", None) if base else None,
-        ) or ""
+        name = (
+            _resolve(
+                getattr(ref, "name", None),
+                getattr(base, "name", None) if base else None,
+            )
+            or ""
+        )
+        text = (
+            _resolve(
+                getattr(ref, "text", None),
+                getattr(base, "text", None) if base else None,
+            )
+            or ""
+        )
         if not text:
             continue
-        value = _resolve(
-            getattr(ref, "value", None),
-            getattr(base, "value", None) if base else None,
-        ) or ""
+        value = (
+            _resolve(
+                getattr(ref, "value", None),
+                getattr(base, "value", None) if base else None,
+            )
+            or ""
+        )
         param_type_id = str(getattr(base, "parameter_type", "") if base else "")
         param_type = param_types.get(param_type_id)
         parsed.append(
@@ -317,8 +355,10 @@ def _extract_module_instances(raw: Any) -> list[ModuleInstance]:
             if arg_ref_id and arg_value:
                 parts = arg_ref_id.rsplit("_A-", 1)
                 if len(parts) == 2:
-                    arg_num = parts[1]
-                    for md_arg_name in _get_arg_names_from_module_def(ref_id, arg_ref_id):
+                    _arg_num = parts[1]
+                    for md_arg_name in _get_arg_names_from_module_def(
+                        ref_id, arg_ref_id
+                    ):
                         text_args[md_arg_name] = arg_value
                 else:
                     text_args[arg_ref_id] = arg_value
@@ -361,7 +401,9 @@ def _register_module_def_args(module_def: Any) -> None:
     _module_def_arg_names[md_id] = arg_map
 
 
-def _parse_dynamic_element(raw: Any, module_defs: dict[str, Any] | None = None) -> DynamicElement:
+def _parse_dynamic_element(
+    raw: Any, module_defs: dict[str, Any] | None = None
+) -> DynamicElement:
     if module_defs is None:
         module_defs = {}
 
@@ -405,7 +447,9 @@ def _parse_dynamic_element(raw: Any, module_defs: dict[str, Any] | None = None) 
     )
 
 
-def _parse_dynamic_choose(raw: Any, module_defs: dict[str, Any] | None = None) -> DynamicChoose:
+def _parse_dynamic_choose(
+    raw: Any, module_defs: dict[str, Any] | None = None
+) -> DynamicChoose:
     param_ref_id = getattr(raw, "param_ref_id", None) or ""
     conditions: list[DynamicWhen] = []
 
@@ -415,7 +459,9 @@ def _parse_dynamic_choose(raw: Any, module_defs: dict[str, Any] | None = None) -
     return DynamicChoose(param_ref_id=param_ref_id, conditions=conditions)
 
 
-def _parse_dynamic_when(raw: Any, module_defs: dict[str, Any] | None = None) -> DynamicWhen:
+def _parse_dynamic_when(
+    raw: Any, module_defs: dict[str, Any] | None = None
+) -> DynamicWhen:
     test_raw = getattr(raw, "test", None)
     default = bool(getattr(raw, "default", False))
 
@@ -463,7 +509,9 @@ def parse_archive(path: str) -> list[DeviceApplication]:
                     module_defs_raw = getattr(app_program, "module_defs", None)
                     module_defs: dict[str, Any] = {}
                     if module_defs_raw:
-                        for md in list(getattr(module_defs_raw, "module_def", []) or []):
+                        for md in list(
+                            getattr(module_defs_raw, "module_def", []) or []
+                        ):
                             md_id = getattr(md, "id", None)
                             if md_id:
                                 module_defs[md_id] = md
@@ -479,9 +527,13 @@ def parse_archive(path: str) -> list[DeviceApplication]:
                     for md in module_defs.values():
                         md_static = getattr(md, "static", None)
                         if md_static:
-                            parameters.extend(_extract_parameters(md_static, param_types))
+                            parameters.extend(
+                                _extract_parameters(md_static, param_types)
+                            )
 
-                    module_instances = _extract_module_instances(dynamic) if dynamic else []
+                    module_instances = (
+                        _extract_module_instances(dynamic) if dynamic else []
+                    )
                     instantiated_md_ids: set[str] = set()
                     for instance in module_instances:
                         instantiated_md_ids.add(instance.ref_id)
@@ -489,7 +541,9 @@ def parse_archive(path: str) -> list[DeviceApplication]:
                         if md:
                             md_static = getattr(md, "static", None)
                             if md_static:
-                                com_objects.extend(_extract_com_objects(md_static, instance.text_args))
+                                com_objects.extend(
+                                    _extract_com_objects(md_static, instance.text_args)
+                                )
 
                     for md_id, md in module_defs.items():
                         if md_id in instantiated_md_ids:
@@ -498,7 +552,11 @@ def parse_archive(path: str) -> list[DeviceApplication]:
                         if md_static:
                             com_objects.extend(_extract_com_objects(md_static))
 
-                    dynamic_tree = _parse_dynamic_element(dynamic, module_defs) if dynamic else None
+                    dynamic_tree = (
+                        _parse_dynamic_element(dynamic, module_defs)
+                        if dynamic
+                        else None
+                    )
 
                     applications.append(
                         DeviceApplication(
