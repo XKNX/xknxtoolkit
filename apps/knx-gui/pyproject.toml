@@ -13,6 +13,7 @@ dependencies = [
 
 [project.scripts]
 generate-demo = "knx_gui.scripts.generate_demo:main"
+generate-catalog = "knx_gui.scripts.generate_catalog:main"
 
 [project.optional-dependencies]
 dev = ["ruff", "pyright"]

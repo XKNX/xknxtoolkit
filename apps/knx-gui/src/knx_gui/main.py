@@ -4,10 +4,16 @@ from pathlib import Path
 from imgui_bundle import hello_imgui, imgui
 from imgui_bundle import portable_file_dialogs as pfd
 
-from knx_gui.constants import LINK_INVALID_COLOR
+from knx_gui.catalog import (
+    CatalogDatabase,
+    get_application_xml,
+    load_knxprod_to_catalog,
+)
+from knx_gui.catalog.models import ApplicationModel
 from knx_gui.dpt import DPT, DPT_UNKNOWN, lookup_or_make_dpt
-from knx_gui.knxprod import DeviceApplication, parse_archive
+from knx_gui.knxprod import DeviceApplication, parse_application_xml
 from knx_gui.panels import (
+    CatalogEntry,
     CatalogPanel,
     ConfigurePanel,
     DevicesPanel,
@@ -40,19 +46,16 @@ NAVIGATE_TO_NODE_DURATION = 0.3
 
 
 class KnxGuiApp:
-    def __init__(self, state: AppState) -> None:
+    def __init__(self, state: AppState, catalog_path: Path) -> None:
         self._state = state
         self._project: ProjectDatabase | None = None
         self._project_path: Path | None = None
+        self._catalog = CatalogDatabase(catalog_path)
 
         self._open_file_dialog: pfd.open_file | None = None
         self._save_file_dialog: pfd.save_file | None = None
         self._open_project_dialog: pfd.open_file | None = None
         self._save_project_dialog: pfd.save_file | None = None
-        self._archive_candidates: list[DeviceApplication] = []
-        self._archive_path: str | None = None
-        self._archive_load_error: str | None = None
-        self._show_archive_popup: bool = False
 
         self._node_editor_panel = NodeEditorPanel(
             get_devices=lambda: self._state.devices,
@@ -67,7 +70,8 @@ class KnxGuiApp:
             on_select_device=self._select_and_navigate_to_device,
         )
         self._catalog_panel = CatalogPanel(
-            on_add_device=self._add_device_from_template,
+            get_catalog_entries=self._get_catalog_entries,
+            on_add_from_catalog=self._add_device_from_catalog,
         )
         self._telegrams_panel = TelegramsPanel(
             get_telegrams=lambda: self._state.telegrams,
@@ -153,40 +157,53 @@ class KnxGuiApp:
                 False, NAVIGATE_TO_NODE_DURATION
             )
 
-    def _add_device_from_template(self, key: str, template: DeviceTemplate) -> None:
-        device = self._state.add_device(template)
-        if self._project:
-            params = [(p.id, p.value) for p in template.parameters]
-            com_objs = [
-                {
-                    "co_id": co.id,
-                    "dpt_major": co.dpt.major,
-                    "dpt_minor": co.dpt.minor,
-                    "flag_communication": co.flags.communication,
-                    "flag_read": co.flags.read,
-                    "flag_write": co.flags.write,
-                    "flag_transmit": co.flags.transmit,
-                    "flag_update": co.flags.update,
-                }
-                for co in template.com_objects
-            ]
-            event = DeviceAdded(
-                device_id=device.node_id,
-                address=device.address,
-                template_id=key,
-                name=device.name,
-                parameters=params,
-                com_objects=com_objs,
+    def _get_catalog_entries(self) -> list[CatalogEntry]:
+        entries: list[CatalogEntry] = []
+        for app in self._catalog.session.query(ApplicationModel).all():
+            entries.append(
+                CatalogEntry(
+                    application_id=app.application_id,
+                    manufacturer_id=app.manufacturer_id,
+                    name=app.name,
+                )
             )
-            self._project.event_store.append(event)
+        return entries
+
+    def _add_device_from_catalog(self, application_id: str) -> None:
+        xml_data = get_application_xml(self._catalog, application_id)
+        if not xml_data:
+            print(f"[catalog] application not found: {application_id}")
+            return
+
+        app_model = (
+            self._catalog.session.query(ApplicationModel)
+            .filter_by(application_id=application_id)
+            .first()
+        )
+        if not app_model:
+            return
+
+        apps = parse_application_xml(xml_data, app_model.manufacturer_id)
+        if not apps:
+            print(f"[catalog] no applications parsed from {application_id}")
+            return
+
+        app = apps[0]
+        print(f"[catalog] adding {app.name} ({len(app.com_objects)} com objects)")
+        self._add_candidate_as_device(app)
 
     def setup(self) -> None:
         self._node_editor_panel.setup()
+        if self._catalog.path.exists():
+            self._catalog.open()
+        else:
+            self._catalog.create()
 
     def shutdown(self) -> None:
         self._node_editor_panel.shutdown()
         if self._project:
             self._project.close()
+        self._catalog.close()
 
     def _new_project(self) -> None:
         self._save_project_dialog = pfd.save_file(
@@ -262,8 +279,6 @@ class KnxGuiApp:
                     co.flags.transmit = co_model.flag_transmit
                     co.flags.update = co_model.flag_update
             self._state.devices.append(device)
-        max_device_id = max((d.node_id for d in self._state.devices), default=9)
-        self._state._next_device_id = max_device_id + 1
         if selected_node_id is not None:
             self._state.selected_device = self._state.find_device_by_node_id(selected_node_id)
 
@@ -349,65 +364,69 @@ class KnxGuiApp:
             self._redo()
 
     def _load_knxprod(self, path: str) -> None:
-        self._archive_load_error = None
-        self._archive_candidates = []
-        self._archive_path = path
-        print(f"[knxprod] parsing {path}")
+        print(f"[knxprod] loading {path} into catalog")
         try:
-            self._archive_candidates = parse_archive(path)
-            print(f"[knxprod] parsed {len(self._archive_candidates)} candidate(s)")
-            for c in self._archive_candidates:
-                print(
-                    f"[knxprod]   {c.name}: {len(c.com_objects)} com objects, "
-                    f"{len(c.parameters)} parameters"
-                )
+            added = load_knxprod_to_catalog(self._catalog, Path(path))
+            if added:
+                print(f"[knxprod] added {len(added)} application(s) to catalog")
+                for app_id in added:
+                    print(f"[knxprod]   - {app_id}")
+            else:
+                print("[knxprod] no new applications (already in catalog)")
         except ArchiveError as e:
             print(f"[knxprod] archive error: {e}")
-            self._archive_load_error = str(e)
         except (OSError, ValueError) as e:
             print(f"[knxprod] error: {type(e).__name__}: {e}")
-            self._archive_load_error = f"{type(e).__name__}: {e}"
-        self._show_archive_popup = True
 
     def _add_candidate_as_device(self, app: DeviceApplication) -> None:
         print(f"[knxprod] adding {app.name} ({len(app.com_objects)} com objects)")
         template = self._app_to_template(app)
-        device = Device(
-            node_id=self._state._next_device_id,
-            name=app.name,
-            template=template,
-            address="",
-            app=app,
-        )
-        self._state._next_device_id += 1
-        self._state.devices.append(device)
-        print(f"[knxprod] device added; total devices: {len(self._state.devices)}")
+        template_id = f"knxprod:{app.manufacturer_id}:{app.application_id}"
+        params = [(p.id, p.value) for p in template.parameters]
+        com_objs = [
+            {
+                "co_id": co.id,
+                "dpt_major": co.dpt.major,
+                "dpt_minor": co.dpt.minor,
+                "flag_communication": co.flags.communication,
+                "flag_read": co.flags.read,
+                "flag_write": co.flags.write,
+                "flag_transmit": co.flags.transmit,
+                "flag_update": co.flags.update,
+            }
+            for co in template.com_objects
+        ]
 
         if self._project:
-            template_id = f"knxprod:{app.manufacturer_id}:{app.application_id}"
-            params = [(p.id, p.value) for p in template.parameters]
-            com_objs = [
-                {
-                    "co_id": co.id,
-                    "dpt_major": co.dpt.major,
-                    "dpt_minor": co.dpt.minor,
-                    "flag_communication": co.flags.communication,
-                    "flag_read": co.flags.read,
-                    "flag_write": co.flags.write,
-                    "flag_transmit": co.flags.transmit,
-                    "flag_update": co.flags.update,
-                }
-                for co in template.com_objects
-            ]
             event = DeviceAdded(
-                device_id=device.node_id,
-                address=device.address,
+                device_id=0,
+                address="",
                 template_id=template_id,
-                name=device.name,
+                name=app.name,
                 parameters=params,
                 com_objects=com_objs,
             )
             self._project.event_store.append(event)
+            device = Device(
+                node_id=event.device_id,
+                name=app.name,
+                template=template,
+                address="",
+                app=app,
+            )
+            self._state.devices.append(device)
+        else:
+            device = Device(
+                node_id=self._state._next_device_id,
+                name=app.name,
+                template=template,
+                address="",
+                app=app,
+            )
+            self._state._next_device_id += 1
+            self._state.devices.append(device)
+
+        print(f"[knxprod] device added; total devices: {len(self._state.devices)}")
 
     def _app_to_template(self, app: DeviceApplication) -> DeviceTemplate:
         com_objects: list[ComObject] = []
@@ -466,42 +485,6 @@ class KnxGuiApp:
             ),
             parameters=parameters,
         )
-
-    def _render_archive_popup(self) -> None:
-        if self._show_archive_popup:
-            imgui.open_popup("##ArchivePopup")
-            self._show_archive_popup = False
-        center = imgui.get_main_viewport().get_center()
-        imgui.set_next_window_pos(center, imgui.Cond_.appearing, imgui.ImVec2(0.5, 0.5))
-        imgui.set_next_window_size_constraints(
-            imgui.ImVec2(400, 0), imgui.ImVec2(800, 600)
-        )
-        if imgui.begin_popup("##ArchivePopup"):
-            if self._archive_load_error:
-                imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
-                imgui.text(S.ARCHIVE_FAILED_TO_LOAD)
-                imgui.pop_style_color()
-                imgui.text(self._archive_load_error)
-            else:
-                imgui.text(S.ARCHIVE_LOADED.format(path=self._archive_path))
-                imgui.text(
-                    S.ARCHIVE_FOUND_APPS.format(count=len(self._archive_candidates))
-                )
-                imgui.separator()
-                for i, candidate in enumerate(self._archive_candidates):
-                    imgui.text(candidate.name)
-                    imgui.same_line()
-                    imgui.text_disabled(
-                        f"  {S.ARCHIVE_COM_OBJECTS.format(count=len(candidate.com_objects))}"
-                    )
-                    imgui.same_line()
-                    if imgui.small_button(f"{S.BTN_ADD}##{i}"):
-                        self._add_candidate_as_device(candidate)
-                        imgui.close_current_popup()
-            imgui.spacing()
-            if imgui.button(S.BTN_CLOSE, imgui.ImVec2(120, 0)):
-                imgui.close_current_popup()
-            imgui.end_popup()
 
     def gui_status_bar(self) -> None:
         draw_list = imgui.get_window_draw_list()
@@ -593,7 +576,6 @@ class KnxGuiApp:
 
     def gui_node_editor(self) -> None:
         self._node_editor_panel.render()
-        self._render_archive_popup()
 
     def gui_telegrams(self) -> None:
         self._telegrams_panel.render()
@@ -671,7 +653,8 @@ def create_dockable_windows(app: KnxGuiApp) -> list[hello_imgui.DockableWindow]:
 
 def main() -> None:
     state = create_empty_state()
-    app = KnxGuiApp(state)
+    catalog_path = Path(__file__).parent.parent.parent / "demo.xknxcatalog"
+    app = KnxGuiApp(state, catalog_path)
 
     demo_path = Path(__file__).parent.parent.parent / "demo.xknx"
     if demo_path.exists():

@@ -1,4 +1,4 @@
-from .parser import parse_archive
+from .parser import parse_application_xml, parse_archive
 from .types import (
     ComObject,
     ComObjectFlags,
@@ -23,5 +23,6 @@ __all__ = [
     "ParamType",
     "ParamTypeKind",
     "Parameter",
+    "parse_application_xml",
     "parse_archive",
 ]

@@ -1,17 +1,24 @@
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from imgui_bundle import imgui
 
-from knx_gui.templates import DEVICE_TEMPLATES
-from knx_gui.types import DeviceTemplate
+
+@dataclass
+class CatalogEntry:
+    application_id: str
+    manufacturer_id: str
+    name: str
 
 
 class CatalogPanel:
     def __init__(
         self,
-        on_add_device: Callable[[str, DeviceTemplate], None],
+        get_catalog_entries: Callable[[], list[CatalogEntry]],
+        on_add_from_catalog: Callable[[str], None],
     ) -> None:
-        self._on_add_device = on_add_device
+        self._get_catalog_entries = get_catalog_entries
+        self._on_add_from_catalog = on_add_from_catalog
         self._search: str = ""
 
     def render(self) -> None:
@@ -20,13 +27,6 @@ class CatalogPanel:
             "##catalog_search", "Search...", self._search
         )
 
-        by_manufacturer: dict[str, list[tuple[str, DeviceTemplate]]] = {}
-        for key, template in DEVICE_TEMPLATES.items():
-            mfr = template.config.manufacturer
-            if mfr not in by_manufacturer:
-                by_manufacturer[mfr] = []
-            by_manufacturer[mfr].append((key, template))
-
         search = self._search.lower().strip()
         leaf_flags = (
             imgui.TreeNodeFlags_.leaf
@@ -34,19 +34,29 @@ class CatalogPanel:
             | imgui.TreeNodeFlags_.span_avail_width
         )
 
+        entries = self._get_catalog_entries()
+        if not entries:
+            return
+
+        by_manufacturer: dict[str, list[CatalogEntry]] = {}
+        for entry in entries:
+            if entry.manufacturer_id not in by_manufacturer:
+                by_manufacturer[entry.manufacturer_id] = []
+            by_manufacturer[entry.manufacturer_id].append(entry)
+
         if search:
             for mfr in sorted(by_manufacturer.keys()):
-                for key, template in by_manufacturer[mfr]:
-                    if search in template.name.lower() or search in mfr.lower():
-                        label = f"{mfr} - {template.name}"
+                for entry in by_manufacturer[mfr]:
+                    if search in entry.name.lower() or search in mfr.lower():
+                        label = f"{mfr} - {entry.name}"
                         imgui.tree_node_ex(label, leaf_flags)
                         if imgui.is_item_clicked() and imgui.is_mouse_double_clicked(0):
-                            self._on_add_device(key, template)
+                            self._on_add_from_catalog(entry.application_id)
         else:
             for mfr in sorted(by_manufacturer.keys()):
                 if imgui.tree_node(mfr):
-                    for key, template in by_manufacturer[mfr]:
-                        imgui.tree_node_ex(template.name, leaf_flags)
+                    for entry in by_manufacturer[mfr]:
+                        imgui.tree_node_ex(entry.name, leaf_flags)
                         if imgui.is_item_clicked() and imgui.is_mouse_double_clicked(0):
-                            self._on_add_device(key, template)
+                            self._on_add_from_catalog(entry.application_id)
                     imgui.tree_pop()
