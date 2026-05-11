@@ -54,14 +54,11 @@ class ConfigurePanel:
 
         imgui.separator()
 
-        config = device.template.config
         if imgui.collapsing_header(
             S.CONFIGURE_MANUFACTURER, imgui.TreeNodeFlags_.default_open
         ):
-            self._render_label_value(S.CONFIGURE_MANUFACTURER, config.manufacturer)
-            self._render_label_value(S.CONFIGURE_APPLICATION, config.application)
-            self._render_label_value(S.CONFIGURE_HARDWARE, config.hardware)
-            self._render_label_value(S.CONFIGURE_FIRMWARE, config.firmware)
+            self._render_label_value(S.CONFIGURE_MANUFACTURER, device.app.manufacturer_id)
+            self._render_label_value(S.CONFIGURE_APPLICATION, device.app.application_id)
 
         params = device.get_visible_parameters()
         if params and imgui.collapsing_header(

@@ -168,14 +168,6 @@ def generate_rows(com_objects: list[ComObject]) -> list[PinRow]:
 
 
 @dataclass
-class DeviceConfig:
-    manufacturer: str
-    application: str
-    hardware: str
-    firmware: str
-
-
-@dataclass
 class Parameter:
     id: str
     name: str
@@ -185,21 +177,12 @@ class Parameter:
 
 
 @dataclass
-class DeviceTemplate:
-    name: str
-    com_objects: list[ComObject]
-    config: DeviceConfig
-    parameters: list[Parameter] = field(default_factory=list)
-
-
-@dataclass
 class Device:
     node_id: int
     name: str
-    template: DeviceTemplate
+    app: DeviceApplication
     address: str
     com_objects: list[ComObject] = field(default_factory=list)
-    app: DeviceApplication | None = None
     _param_values: dict[str, str] = field(default_factory=dict)
     _cached_visible_params: list[Parameter] = field(default_factory=list)
     _params_dirty: bool = True
@@ -208,13 +191,48 @@ class Device:
 
     def __post_init__(self) -> None:
         if not self.com_objects:
-            self.com_objects = copy.deepcopy(self.template.com_objects)
-        if self.app is not None:
-            for p in self.app.parameters:
-                self._param_values[p.id] = p.value
-        else:
-            for p in self.template.parameters:
-                self._param_values[p.id] = p.value
+            self.com_objects = self._create_com_objects_from_app()
+        for p in self.app.parameters:
+            self._param_values[p.id] = p.value
+
+    def _create_com_objects_from_app(self) -> list[ComObject]:
+        from knx_gui.dpt import DPT_UNKNOWN, lookup_or_make_dpt
+
+        result: list[ComObject] = []
+        for co in self.app.com_objects:
+            flags = ComObjectFlags(
+                communication=co.flags.communication,
+                read=co.flags.read,
+                write=co.flags.write,
+                transmit=co.flags.transmit,
+                update=co.flags.update,
+                read_on_init=co.flags.read_on_init,
+                read_locked=co.flags.read_locked,
+                write_locked=co.flags.write_locked,
+                transmit_locked=co.flags.transmit_locked,
+                update_locked=co.flags.update_locked,
+                read_on_init_locked=co.flags.read_on_init_locked,
+            )
+            supported = [lookup_or_make_dpt(code) for code in co.dpt_codes]
+            seen: set[tuple[int, int]] = set()
+            unique_supported: list = []
+            for dpt in supported:
+                key = (dpt.major, dpt.minor)
+                if key in seen:
+                    continue
+                seen.add(key)
+                unique_supported.append(dpt)
+            primary = unique_supported[0] if unique_supported else DPT_UNKNOWN
+            result.append(
+                ComObject(
+                    id=co.id,
+                    name=co.name,
+                    dpt=primary,
+                    flags=flags,
+                    supported_dpts=unique_supported,
+                )
+            )
+        return result
 
     @property
     def rows(self) -> list[PinRow]:
@@ -223,41 +241,33 @@ class Device:
     def get_visible_com_objects(self) -> list[ComObject]:
         if not self._cos_dirty:
             return self._cached_visible_cos
-        if self.app is None:
-            self._cached_visible_cos = self.com_objects
-        else:
-            visible_ids = {
-                co.id for co in self.app.visible_com_objects(self._param_values)
-            }
-            self._cached_visible_cos = [
-                co for co in self.com_objects if co.id in visible_ids
-            ]
+        visible_ids = {
+            co.id for co in self.app.visible_com_objects(self._param_values)
+        }
+        self._cached_visible_cos = [
+            co for co in self.com_objects if co.id in visible_ids
+        ]
         self._cos_dirty = False
         return self._cached_visible_cos
 
     def get_visible_parameters(self) -> list[Parameter]:
         if not self._params_dirty:
             return self._cached_visible_params
-        if self.app is None:
-            self._cached_visible_params = self.template.parameters
-        else:
-            visible_knx = self.app.visible_parameters(self._param_values)
-            self._cached_visible_params = [
-                Parameter(
-                    id=p.id,
-                    name=p.name,
-                    text=p.text,
-                    value=self._param_values.get(p.id, p.value),
-                    param_type=p.param_type,
-                )
-                for p in visible_knx
-            ]
+        visible_knx = self.app.visible_parameters(self._param_values)
+        self._cached_visible_params = [
+            Parameter(
+                id=p.id,
+                name=p.name,
+                text=p.text,
+                value=self._param_values.get(p.id, p.value),
+                param_type=p.param_type,
+            )
+            for p in visible_knx
+        ]
         self._params_dirty = False
         return self._cached_visible_params
 
     def would_hide_com_objects(self, param_id: str, value: str) -> list[ComObject]:
-        if self.app is None:
-            return []
         test_values = dict(self._param_values)
         test_values[param_id] = value
         new_visible_ids = {co.id for co in self.app.visible_com_objects(test_values)}

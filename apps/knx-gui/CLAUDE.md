@@ -1,5 +1,10 @@
 # knx-gui
 
+## Required Reading
+
+Before making changes, read these docs:
+- `docs/architecture.md` - Template/instance pattern, data flow, key principles
+
 ## Commands
 
 - Run knxprod tests: `uv run pytest src/knx_gui/knxprod/tests/ -v`
@@ -13,3 +18,5 @@
 
 - All user-facing strings must be defined in `src/knx_gui/strings.py` for i18n support
 - Panels hold their own internal state; shared state is accessed via dependency-injected callbacks
+- Catalog stores immutable templates; project stores device instances with overrides
+- Visibility (visible_com_objects, visible_parameters) computed at runtime, never baked into templates
