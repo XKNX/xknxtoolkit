@@ -1,102 +1,105 @@
-"""Generate the demo.xknx project file."""
+"""Generate the demo.xknx project file using devices from the catalog."""
 
 from dataclasses import dataclass
 from pathlib import Path
 
+from knx_gui.catalog import CatalogDatabase, get_application_xml
+from knx_gui.catalog.models import ApplicationModel
+from knx_gui.knxprod import parse_application_xml
 from knx_gui.project.database import ProjectDatabase
-from knx_gui.project.events import DeviceAdded, LinkCreated
+from knx_gui.project.events import DeviceAdded
 
 
 @dataclass
 class DemoDevice:
-    device_id: int
     template_id: str
     name: str
     address: str
 
 
-@dataclass
-class DemoLink:
-    link_id: int
-    start_pin: int
-    end_pin: int
-
-
 DEMO_DEVICES = [
-    DemoDevice(1, "switch_actuator", "Living Room Light", "1.1.1"),
-    DemoDevice(2, "dimmer_actuator", "Kitchen Dimmer", "1.1.2"),
-    DemoDevice(3, "temperature_sensor", "Bedroom Temp", "1.1.3"),
-    DemoDevice(4, "push_button", "Entry Button", "1.2.1"),
-    DemoDevice(5, "thermostat", "Living Room Thermo", "1.2.2"),
-    DemoDevice(6, "rgb_controller", "RGB Strip", "2.1.1"),
-    DemoDevice(7, "blinds_actuator", "Bedroom Blinds", "1.2.3"),
-    DemoDevice(8, "shutter_button", "Shutter Button", "1.2.4"),
-    DemoDevice(9, "logic_gate", "Logic AND", "1.3.1"),
-]
-
-DEMO_LINKS = [
-    DemoLink(1, 100001, 100002),
-    DemoLink(2, 100003, 100004),
+    DemoDevice("M-0083_A-0009-21-FB5C", "Switch Actuator 4x", "1.1.1"),
+    DemoDevice("M-0083_A-013F-31-1DDA", "Dimming Actuator 2x", "1.1.2"),
+    DemoDevice("M-0083_A-0020-15-7F81", "Push Button 2-fold", "1.1.3"),
+    DemoDevice("M-0083_A-004D-13-2B44", "Weather Station", "1.1.4"),
+    DemoDevice("M-0083_A-0112-10-2897", "Energy Meter", "1.1.5"),
 ]
 
 
-def generate_demo(output_path: Path) -> None:
-    from knx_gui.templates import DEVICE_TEMPLATES
-
+def generate_demo(output_path: Path, catalog_path: Path) -> None:
     if output_path.exists():
         output_path.unlink()
+
+    catalog = CatalogDatabase(catalog_path)
+    if not catalog_path.exists():
+        print(f"Error: catalog not found at {catalog_path}")
+        print("Run 'uv run generate-catalog' first")
+        return
+    catalog.open()
 
     db = ProjectDatabase(output_path)
     db.create()
 
-    for device in DEMO_DEVICES:
-        template = DEVICE_TEMPLATES.get(device.template_id)
-        if not template:
-            print(f"Warning: template {device.template_id} not found, skipping")
+    for demo_device in DEMO_DEVICES:
+        xml_data = get_application_xml(catalog, demo_device.template_id)
+        if not xml_data:
+            print(f"Warning: {demo_device.template_id} not in catalog, skipping")
             continue
 
-        params = [(p.id, p.value) for p in template.parameters]
-        com_objs = [
-            {
+        app_model = (
+            catalog.session.query(ApplicationModel)
+            .filter_by(application_id=demo_device.template_id)
+            .first()
+        )
+        if not app_model:
+            continue
+
+        apps = parse_application_xml(xml_data, app_model.manufacturer_id)
+        if not apps:
+            print(f"Warning: failed to parse {demo_device.template_id}, skipping")
+            continue
+
+        app = apps[0]
+        params = [(p.id, p.value) for p in app.parameters]
+        com_objs = []
+        for co in app.com_objects:
+            dpt_major, dpt_minor = 0, 0
+            if co.dpt_codes:
+                parts = co.dpt_codes[0].split(".")
+                dpt_major = int(parts[0]) if len(parts) > 0 else 0
+                dpt_minor = int(parts[1]) if len(parts) > 1 else 0
+            com_objs.append({
                 "co_id": co.id,
-                "dpt_major": co.dpt.major,
-                "dpt_minor": co.dpt.minor,
+                "dpt_major": dpt_major,
+                "dpt_minor": dpt_minor,
                 "flag_communication": co.flags.communication,
                 "flag_read": co.flags.read,
                 "flag_write": co.flags.write,
                 "flag_transmit": co.flags.transmit,
                 "flag_update": co.flags.update,
-            }
-            for co in template.com_objects
-        ]
+            })
 
         event = DeviceAdded(
-            device_id=device.device_id,
-            address=device.address,
-            template_id=device.template_id,
-            name=device.name,
+            device_id=0,
+            address=demo_device.address,
+            template_id=demo_device.template_id,
+            name=demo_device.name,
             parameters=params,
             com_objects=com_objs,
         )
         db.event_store.append(event)
-        print(f"Added device: {device.name} ({device.template_id})")
+        print(f"Added: {demo_device.name} ({len(app.com_objects)} com objects)")
 
-    for link in DEMO_LINKS:
-        event = LinkCreated(
-            link_id=link.link_id,
-            start_pin=link.start_pin,
-            end_pin=link.end_pin,
-        )
-        db.event_store.append(event)
-        print(f"Added link: {link.link_id}")
-
+    catalog.close()
     db.close()
     print(f"\nDemo project saved to: {output_path}")
 
 
 def main() -> None:
-    output_path = Path(__file__).parent.parent.parent.parent / "demo.xknx"
-    generate_demo(output_path)
+    base_path = Path(__file__).parent.parent.parent.parent
+    output_path = base_path / "demo.xknx"
+    catalog_path = base_path / "demo.xknxcatalog"
+    generate_demo(output_path, catalog_path)
 
 
 if __name__ == "__main__":

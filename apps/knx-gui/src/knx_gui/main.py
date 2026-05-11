@@ -30,7 +30,6 @@ from knx_gui.project.events import (
 )
 from knx_gui.state import AppState, create_empty_state
 from knx_gui.strings import S
-from knx_gui.templates import DEVICE_TEMPLATES
 from knx_gui.types import (
     ComObject,
     ComObjectFlags,
@@ -51,6 +50,10 @@ class KnxGuiApp:
         self._project: ProjectDatabase | None = None
         self._project_path: Path | None = None
         self._catalog = CatalogDatabase(catalog_path)
+        if catalog_path.exists():
+            self._catalog.open()
+        else:
+            self._catalog.create()
 
         self._open_file_dialog: pfd.open_file | None = None
         self._save_file_dialog: pfd.save_file | None = None
@@ -194,10 +197,6 @@ class KnxGuiApp:
 
     def setup(self) -> None:
         self._node_editor_panel.setup()
-        if self._catalog.path.exists():
-            self._catalog.open()
-        else:
-            self._catalog.create()
 
     def shutdown(self) -> None:
         self._node_editor_panel.shutdown()
@@ -260,7 +259,7 @@ class KnxGuiApp:
         selected_node_id = self._state.selected_device.node_id if self._state.selected_device else None
         self._state.devices.clear()
         for device_model in self._project.session.query(DeviceModel).all():
-            template = DEVICE_TEMPLATES.get(device_model.template_id)
+            template = self._get_template_for_device(device_model.template_id)
             if not template:
                 print(f"[project] skipping device {device_model.id}: template '{device_model.template_id}' not found")
                 continue
@@ -281,6 +280,22 @@ class KnxGuiApp:
             self._state.devices.append(device)
         if selected_node_id is not None:
             self._state.selected_device = self._state.find_device_by_node_id(selected_node_id)
+
+    def _get_template_for_device(self, template_id: str) -> DeviceTemplate | None:
+        xml_data = get_application_xml(self._catalog, template_id)
+        if not xml_data:
+            return None
+        app_model = (
+            self._catalog.session.query(ApplicationModel)
+            .filter_by(application_id=template_id)
+            .first()
+        )
+        if not app_model:
+            return None
+        apps = parse_application_xml(xml_data, app_model.manufacturer_id)
+        if not apps:
+            return None
+        return self._app_to_template(apps[0])
 
     def _undo(self) -> None:
         if self._project and self._project.event_store.can_undo():
