@@ -15,6 +15,7 @@ class Strings:
     PANEL_NODE_EDITOR = "Node Editor"
     PANEL_TELEGRAMS = "Telegrams"
     PANEL_CONFIGURE = "Configure"
+    PANEL_HISTORY = "History"
 
     # Menu: File
     MENU_FILE = "File"
@@ -111,6 +112,17 @@ class Strings:
     # Status
     STATUS_PROJECT = "Project: {name}"
     STATUS_UNSAVED = "(unsaved)"
+
+    # History panel
+    HISTORY_NO_HISTORY = "No history"
+    HISTORY_DEVICE_ADD = "Add device: {name}"
+    HISTORY_DEVICE_REMOVE = "Remove device: {name}"
+    HISTORY_ADDRESS_CHANGE = "Address: {old} -> {new}"
+    HISTORY_PARAM_CHANGE = "Parameter: {old} -> {new}"
+    HISTORY_DPT_CHANGE = "DPT: {old} -> {new}"
+    HISTORY_FLAG_CHANGE = "Flag: {flag} -> {state}"
+    HISTORY_LINK_CREATE = "Link created"
+    HISTORY_LINK_REMOVE = "Link removed"
 
 
 S = Strings

@@ -111,6 +111,12 @@ class EventStore:
         )
         return result.scalar() is not None
 
+    def jump_to(self, target_id: int) -> None:
+        while self._cursor > target_id and self.can_undo():
+            self.undo()
+        while self._cursor < target_id and self.can_redo():
+            self.redo()
+
     @property
     def cursor(self) -> int:
         return self._cursor
