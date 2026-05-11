@@ -181,11 +181,13 @@ class KnxGuiApp:
     def _undo(self) -> None:
         if self._project and self._project.event_store.can_undo():
             self._project.event_store.undo()
+            self._load_devices_from_db()
             self._load_links_from_db()
 
     def _redo(self) -> None:
         if self._project and self._project.event_store.can_redo():
             self._project.event_store.redo()
+            self._load_devices_from_db()
             self._load_links_from_db()
 
     def _can_undo(self) -> bool:
