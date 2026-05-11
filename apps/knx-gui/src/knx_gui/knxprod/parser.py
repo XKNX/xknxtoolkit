@@ -425,6 +425,9 @@ def _parse_dynamic_element(
     for pb in list(getattr(raw, "parameter_block", []) or []):
         children.append(_parse_dynamic_element(pb, module_defs))
 
+    for cib in list(getattr(raw, "channel_independent_block", []) or []):
+        children.append(_parse_dynamic_element(cib, module_defs))
+
     for ch in list(getattr(raw, "channel", []) or []):
         children.append(_parse_dynamic_element(ch, module_defs))
 
