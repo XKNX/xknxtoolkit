@@ -4,7 +4,7 @@ from imgui_bundle import hello_imgui, imgui
 from imgui_bundle import portable_file_dialogs as pfd
 
 from knx_gui.constants import LINK_INVALID_COLOR
-from knx_gui.dpt import DPT_UNKNOWN, lookup_or_make_dpt
+from knx_gui.dpt import DPT, DPT_UNKNOWN, lookup_or_make_dpt
 from knx_gui.knxprod import DeviceApplication, parse_archive
 from knx_gui.panels import (
     CatalogPanel,
@@ -13,7 +13,7 @@ from knx_gui.panels import (
     NodeEditorPanel,
     TelegramsPanel,
 )
-from knx_gui.templates import DEVICE_TEMPLATES
+from knx_gui.state import AppState, create_sample_state
 from knx_gui.types import (
     ComObject,
     ComObjectFlags,
@@ -21,7 +21,6 @@ from knx_gui.types import (
     DeviceConfig,
     DeviceTemplate,
     Parameter,
-    Telegram,
     color_u32,
 )
 from xknx.product.errors import ArchiveError
@@ -30,14 +29,8 @@ NAVIGATE_TO_NODE_DURATION = 0.3
 
 
 class KnxGuiApp:
-    def __init__(self) -> None:
-        self._devices: list[Device] = []
-        self._links: list[tuple[int, int, int]] = []
-        self._next_link_id: int = 1000
-        self._telegrams: list[Telegram] = []
-        self._connected: bool = False
-        self._controller_ip: str = "192.168.1.1"
-        self._selected_device: Device | None = None
+    def __init__(self, state: AppState) -> None:
+        self._state = state
 
         self._open_file_dialog: pfd.open_file | None = None
         self._archive_candidates: list[DeviceApplication] = []
@@ -45,101 +38,38 @@ class KnxGuiApp:
         self._archive_load_error: str | None = None
         self._show_archive_popup: bool = False
 
-        self._init_devices()
-        self._init_sample_telegrams()
-
         self._node_editor_panel = NodeEditorPanel(
-            get_devices=lambda: self._devices,
-            get_links=lambda: self._links,
-            add_link=self._add_link,
-            remove_link=self._remove_link,
-            on_param_change=self._check_param_change,
+            get_devices=lambda: self._state.devices,
+            get_links=lambda: self._state.links,
+            add_link=self._state.add_link,
+            remove_link=self._state.remove_link,
+            on_param_change=self._state.check_param_change_hides_com_objects,
         )
         self._devices_panel = DevicesPanel(
-            get_devices=lambda: self._devices,
+            get_devices=lambda: self._state.devices,
             on_select_device=self._select_and_navigate_to_device,
         )
         self._catalog_panel = CatalogPanel(
             on_add_device=self._add_device_from_template,
         )
         self._telegrams_panel = TelegramsPanel(
-            get_telegrams=lambda: self._telegrams,
+            get_telegrams=lambda: self._state.telegrams,
             on_focus_source=self._focus_device_by_address,
         )
         self._configure_panel = ConfigurePanel(
-            get_devices=lambda: self._devices,
-            get_selected_device=lambda: self._selected_device,
+            get_devices=lambda: self._state.devices,
+            get_selected_device=lambda: self._state.selected_device,
             set_selected_device=self._set_selected_device,
             on_param_change=self._on_config_param_change,
         )
 
-    def _init_devices(self) -> None:
-        self._devices = [
-            Device(
-                1, "Living Room Light", DEVICE_TEMPLATES["switch_actuator"], "1.1.1"
-            ),
-            Device(2, "Kitchen Dimmer", DEVICE_TEMPLATES["dimmer_actuator"], "1.1.2"),
-            Device(3, "Bedroom Temp", DEVICE_TEMPLATES["temperature_sensor"], "1.1.3"),
-            Device(4, "Entry Button", DEVICE_TEMPLATES["push_button"], "1.2.1"),
-            Device(5, "Living Room Thermo", DEVICE_TEMPLATES["thermostat"], "1.2.2"),
-            Device(6, "RGB Strip", DEVICE_TEMPLATES["rgb_controller"], "2.1.1"),
-            Device(7, "Bedroom Blinds", DEVICE_TEMPLATES["blinds_actuator"], "1.2.3"),
-            Device(8, "Shutter Button", DEVICE_TEMPLATES["shutter_button"], "1.2.4"),
-            Device(9, "Logic AND", DEVICE_TEMPLATES["logic_gate"], "1.3.1"),
-        ]
-
-    def _init_sample_telegrams(self) -> None:
-        self._telegrams = [
-            Telegram(
-                "12:34:01.123", "1.1.1", "1/0/1", "GroupValueWrite", "1.001", "On"
-            ),
-            Telegram(
-                "12:34:01.456", "1.1.1", "1/0/2", "GroupValueResponse", "1.001", "Off"
-            ),
-            Telegram(
-                "12:34:02.001", "1.2.1", "2/0/1", "GroupValueWrite", "5.001", "75%"
-            ),
-            Telegram(
-                "12:34:02.345", "1.1.3", "3/0/1", "GroupValueWrite", "9.001", "21.5°C"
-            ),
-            Telegram("12:34:03.012", "1.2.2", "4/0/1", "GroupValueRead", "1.001", ""),
-            Telegram(
-                "12:34:03.234", "1.2.2", "4/0/1", "GroupValueResponse", "1.001", "On"
-            ),
-            Telegram(
-                "12:34:04.567",
-                "2.1.1",
-                "5/0/1",
-                "GroupValueWrite",
-                "232.600",
-                "#FF8800",
-            ),
-            Telegram(
-                "12:34:05.123", "1.1.2", "1/1/1", "GroupValueWrite", "3.007", "Up"
-            ),
-        ]
-
-    def _add_link(self, start_pin: int, end_pin: int) -> int:
-        link_id = self._next_link_id
-        self._next_link_id += 1
-        self._links.append((link_id, start_pin, end_pin))
-        return link_id
-
-    def _remove_link(self, link_id: int) -> None:
-        self._links = [link for link in self._links if link[0] != link_id]
-
-    def _check_param_change(
-        self, device: Device, param_id: str, value: str
-    ) -> list[ComObject]:
-        return device.would_hide_com_objects(param_id, value)
-
     def _select_and_navigate_to_device(self, device: Device) -> None:
-        self._selected_device = device
+        self._state.selected_device = device
         self._node_editor_panel.select_node(device.node_id, False)
         self._node_editor_panel.navigate_to_selection(False, NAVIGATE_TO_NODE_DURATION)
 
     def _set_selected_device(self, device: Device) -> None:
-        self._selected_device = device
+        self._state.selected_device = device
         self._node_editor_panel.select_node(device.node_id, False)
 
     def _on_config_param_change(
@@ -148,25 +78,16 @@ class KnxGuiApp:
         device.set_param_value(param_id, value)
 
     def _focus_device_by_address(self, address: str) -> None:
-        for device in self._devices:
-            if device.address == address:
-                self._selected_device = device
-                self._node_editor_panel.select_node(device.node_id, False)
-                self._node_editor_panel.navigate_to_selection(
-                    False, NAVIGATE_TO_NODE_DURATION
-                )
-                return
-
-    def _add_device_from_template(self, key: str, template: DeviceTemplate) -> None:
-        next_id = max((d.node_id for d in self._devices), default=0) + 1
-        self._devices.append(
-            Device(
-                node_id=next_id,
-                name=template.name,
-                template=template,
-                address="",
+        device = self._state.find_device_by_address(address)
+        if device:
+            self._state.selected_device = device
+            self._node_editor_panel.select_node(device.node_id, False)
+            self._node_editor_panel.navigate_to_selection(
+                False, NAVIGATE_TO_NODE_DURATION
             )
-        )
+
+    def _add_device_from_template(self, _key: str, template: DeviceTemplate) -> None:
+        self._state.add_device(template)
 
     def setup(self) -> None:
         self._node_editor_panel.setup()
@@ -179,12 +100,14 @@ class KnxGuiApp:
         if len(selected_ids) != 1:
             return
         node_id = selected_ids[0]
-        if self._selected_device and self._selected_device.node_id == node_id:
+        if (
+            self._state.selected_device
+            and self._state.selected_device.node_id == node_id
+        ):
             return
-        for device in self._devices:
-            if device.node_id == node_id:
-                self._selected_device = device
-                return
+        device = self._state.find_device_by_node_id(node_id)
+        if device:
+            self._state.selected_device = device
 
     def _poll_open_file_dialog(self) -> None:
         if self._open_file_dialog is None:
@@ -207,7 +130,8 @@ class KnxGuiApp:
             print(f"[knxprod] parsed {len(self._archive_candidates)} candidate(s)")
             for c in self._archive_candidates:
                 print(
-                    f"[knxprod]   {c.name}: {len(c.com_objects)} com objects, {len(c.parameters)} parameters"
+                    f"[knxprod]   {c.name}: {len(c.com_objects)} com objects, "
+                    f"{len(c.parameters)} parameters"
                 )
         except ArchiveError as e:
             print(f"[knxprod] archive error: {e}")
@@ -220,17 +144,16 @@ class KnxGuiApp:
     def _add_candidate_as_device(self, app: DeviceApplication) -> None:
         print(f"[knxprod] adding {app.name} ({len(app.com_objects)} com objects)")
         template = self._app_to_template(app)
-        next_id = max((d.node_id for d in self._devices), default=0) + 1
-        self._devices.append(
-            Device(
-                node_id=next_id,
-                name=app.name,
-                template=template,
-                address="",
-                app=app,
-            )
+        device = Device(
+            node_id=self._state._next_device_id,
+            name=app.name,
+            template=template,
+            address="",
+            app=app,
         )
-        print(f"[knxprod] device added; total devices: {len(self._devices)}")
+        self._state._next_device_id += 1
+        self._state.devices.append(device)
+        print(f"[knxprod] device added; total devices: {len(self._state.devices)}")
 
     def _app_to_template(self, app: DeviceApplication) -> DeviceTemplate:
         com_objects: list[ComObject] = []
@@ -250,7 +173,7 @@ class KnxGuiApp:
             )
             supported = [lookup_or_make_dpt(code) for code in co.dpt_codes]
             seen: set[tuple[int, int]] = set()
-            unique_supported: list[ComObject] = []
+            unique_supported: list[DPT] = []
             for dpt in supported:
                 key = (dpt.major, dpt.minor)
                 if key in seen:
@@ -327,7 +250,7 @@ class KnxGuiApp:
         cursor = imgui.get_cursor_screen_pos()
         text_height = imgui.get_text_line_height()
         center = imgui.ImVec2(cursor.x + 5, cursor.y + text_height / 2)
-        if self._connected:
+        if self._state.connected:
             pulse = 0.5 + 0.5 * math.sin(imgui.get_time() * 3.0)
             alpha = 0.4 + 0.6 * pulse
             draw_list.add_circle_filled(center, 4, color_u32(0.2, 0.8, 0.3, alpha))
@@ -336,14 +259,16 @@ class KnxGuiApp:
             )
             imgui.dummy(imgui.ImVec2(12, 0))
             imgui.same_line()
-            imgui.text(f"Connected: {self._controller_ip}")
+            imgui.text(f"Connected: {self._state.controller_ip}")
         else:
             draw_list.add_circle_filled(center, 4, color_u32(0.5, 0.5, 0.5, 1.0))
             imgui.dummy(imgui.ImVec2(12, 0))
             imgui.same_line()
             imgui.text_disabled("Disconnected")
         imgui.same_line()
-        imgui.text(f"| Devices: {len(self._devices)} | Links: {len(self._links)}")
+        imgui.text(
+            f"| Devices: {len(self._state.devices)} | Links: {len(self._state.links)}"
+        )
 
     def gui_menu(self) -> None:
         if imgui.begin_menu("File"):
@@ -373,15 +298,17 @@ class KnxGuiApp:
             imgui.end_menu()
 
         if imgui.begin_menu("Connection"):
-            if self._connected:
-                imgui.text(f"Connected to {self._controller_ip}")
+            if self._state.connected:
+                imgui.text(f"Connected to {self._state.controller_ip}")
                 if imgui.menu_item("Disconnect", "", False)[0]:
-                    self._connected = False
+                    self._state.connected = False
             else:
                 imgui.set_next_item_width(180)
-                _, self._controller_ip = imgui.input_text("IP", self._controller_ip)
+                _, self._state.controller_ip = imgui.input_text(
+                    "IP", self._state.controller_ip
+                )
                 if imgui.menu_item("Connect", "", False)[0]:
-                    self._connected = True
+                    self._state.connected = True
             imgui.end_menu()
 
         self._poll_open_file_dialog()
@@ -462,7 +389,8 @@ def create_dockable_windows(app: KnxGuiApp) -> list[hello_imgui.DockableWindow]:
 
 
 def main() -> None:
-    app = KnxGuiApp()
+    state = create_sample_state()
+    app = KnxGuiApp(state)
 
     runner_params = hello_imgui.RunnerParams()
     runner_params.app_window_params.window_title = "XKNX Toolkit"
