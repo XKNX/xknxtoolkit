@@ -11,6 +11,9 @@ dependencies = [
     "xknx-product",
 ]
 
+[project.scripts]
+generate-demo = "knx_gui.scripts.generate_demo:main"
+
 [project.optional-dependencies]
 dev = ["ruff", "pyright"]
 

@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 
-from knx_gui.templates import DEVICE_TEMPLATES
 from knx_gui.types import ComObject, Device, DeviceTemplate, Telegram
 
 
@@ -53,34 +52,5 @@ class AppState:
         return device.would_hide_com_objects(param_id, value)
 
 
-def create_sample_state() -> AppState:
-    state = AppState()
-    state.devices = [
-        Device(1, "Living Room Light", DEVICE_TEMPLATES["switch_actuator"], "1.1.1"),
-        Device(2, "Kitchen Dimmer", DEVICE_TEMPLATES["dimmer_actuator"], "1.1.2"),
-        Device(3, "Bedroom Temp", DEVICE_TEMPLATES["temperature_sensor"], "1.1.3"),
-        Device(4, "Entry Button", DEVICE_TEMPLATES["push_button"], "1.2.1"),
-        Device(5, "Living Room Thermo", DEVICE_TEMPLATES["thermostat"], "1.2.2"),
-        Device(6, "RGB Strip", DEVICE_TEMPLATES["rgb_controller"], "2.1.1"),
-        Device(7, "Bedroom Blinds", DEVICE_TEMPLATES["blinds_actuator"], "1.2.3"),
-        Device(8, "Shutter Button", DEVICE_TEMPLATES["shutter_button"], "1.2.4"),
-        Device(9, "Logic AND", DEVICE_TEMPLATES["logic_gate"], "1.3.1"),
-    ]
-    state._next_device_id = 10
-    state.telegrams = [
-        Telegram("12:34:01.123", "1.1.1", "1/0/1", "GroupValueWrite", "1.001", "On"),
-        Telegram(
-            "12:34:01.456", "1.1.1", "1/0/2", "GroupValueResponse", "1.001", "Off"
-        ),
-        Telegram("12:34:02.001", "1.2.1", "2/0/1", "GroupValueWrite", "5.001", "75%"),
-        Telegram(
-            "12:34:02.345", "1.1.3", "3/0/1", "GroupValueWrite", "9.001", "21.5°C"
-        ),
-        Telegram("12:34:03.012", "1.2.2", "4/0/1", "GroupValueRead", "1.001", ""),
-        Telegram("12:34:03.234", "1.2.2", "4/0/1", "GroupValueResponse", "1.001", "On"),
-        Telegram(
-            "12:34:04.567", "2.1.1", "5/0/1", "GroupValueWrite", "232.600", "#FF8800"
-        ),
-        Telegram("12:34:05.123", "1.1.2", "1/1/1", "GroupValueWrite", "3.007", "Up"),
-    ]
-    return state
+def create_empty_state() -> AppState:
+    return AppState()
