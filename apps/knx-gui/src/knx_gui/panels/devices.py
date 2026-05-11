@@ -2,6 +2,7 @@ from collections.abc import Callable
 
 from imgui_bundle import imgui
 
+from knx_gui.strings import S
 from knx_gui.types import Device
 
 
@@ -29,13 +30,15 @@ class DevicesPanel:
                 imgui.TreeNodeFlags_.default_open
                 | imgui.TreeNodeFlags_.span_avail_width
             )
-            if imgui.tree_node_ex(f"Area {area}", area_flags):
+            if imgui.tree_node_ex(S.DEVICE_AREA.format(area=area), area_flags):
                 for line in sorted(tree[area].keys()):
                     line_flags = (
                         imgui.TreeNodeFlags_.default_open
                         | imgui.TreeNodeFlags_.span_avail_width
                     )
-                    if imgui.tree_node_ex(f"Line {area}.{line}", line_flags):
+                    if imgui.tree_node_ex(
+                        S.DEVICE_LINE.format(area=area, line=line), line_flags
+                    ):
                         for device in tree[area][line]:
                             imgui.tree_node_ex(
                                 f"{device.name} ({device.address})", leaf_flags
@@ -50,7 +53,9 @@ class DevicesPanel:
                 imgui.TreeNodeFlags_.default_open
                 | imgui.TreeNodeFlags_.span_avail_width
             )
-            if imgui.tree_node_ex(f"Unassigned ({len(unassigned)})", unassigned_flags):
+            if imgui.tree_node_ex(
+                S.DEVICE_UNASSIGNED.format(count=len(unassigned)), unassigned_flags
+            ):
                 for device in unassigned:
                     imgui.tree_node_ex(device.name, leaf_flags)
                     if imgui.is_item_clicked():

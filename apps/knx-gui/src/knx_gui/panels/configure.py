@@ -3,6 +3,7 @@ from collections.abc import Callable
 from imgui_bundle import imgui
 
 from knx_gui.knxprod import ParamTypeKind
+from knx_gui.strings import S
 from knx_gui.types import (
     FLAG_LABELS,
     ComObject,
@@ -27,7 +28,7 @@ class ConfigurePanel:
     def render(self) -> None:
         devices = self._get_devices()
         if not devices:
-            imgui.text_disabled("No devices")
+            imgui.text_disabled(S.CONFIGURE_NO_DEVICES)
             return
 
         device = self._get_selected_device()
@@ -52,21 +53,25 @@ class ConfigurePanel:
         imgui.separator()
 
         config = device.template.config
-        if imgui.collapsing_header("Manufacturer", imgui.TreeNodeFlags_.default_open):
-            self._render_label_value("Manufacturer", config.manufacturer)
-            self._render_label_value("Application", config.application)
-            self._render_label_value("Hardware", config.hardware)
-            self._render_label_value("Firmware", config.firmware)
+        if imgui.collapsing_header(
+            S.CONFIGURE_MANUFACTURER, imgui.TreeNodeFlags_.default_open
+        ):
+            self._render_label_value(S.CONFIGURE_MANUFACTURER, config.manufacturer)
+            self._render_label_value(S.CONFIGURE_APPLICATION, config.application)
+            self._render_label_value(S.CONFIGURE_HARDWARE, config.hardware)
+            self._render_label_value(S.CONFIGURE_FIRMWARE, config.firmware)
 
         params = device.get_visible_parameters()
         if params and imgui.collapsing_header(
-            f"Parameters ({len(params)})", imgui.TreeNodeFlags_.default_open
+            S.CONFIGURE_PARAMETERS.format(count=len(params)),
+            imgui.TreeNodeFlags_.default_open,
         ):
             self._render_parameters(device, params)
 
         visible_cos = device.get_visible_com_objects()
         if imgui.collapsing_header(
-            f"Com Flags ({len(visible_cos)})", imgui.TreeNodeFlags_.default_open
+            S.CONFIGURE_COM_FLAGS.format(count=len(visible_cos)),
+            imgui.TreeNodeFlags_.default_open,
         ):
             self._render_com_objects(device, visible_cos)
 
@@ -169,7 +174,7 @@ class ConfigurePanel:
             if changed:
                 self._on_param_change(device, param.id, new_value)
         elif pt.kind == ParamTypeKind.PICTURE:
-            imgui.text_disabled("(image)")
+            imgui.text_disabled(S.NODE_IMAGE_PLACEHOLDER)
         else:
             changed, new_value = imgui.input_text(f"##{param.id}", param.value)
             if changed:
@@ -216,5 +221,7 @@ class ConfigurePanel:
                 imgui.end_disabled()
 
             if imgui.is_item_hovered(imgui.HoveredFlags_.allow_when_disabled):
-                tooltip = f"{full_name} (locked)" if is_locked else full_name
+                tooltip = (
+                    S.TOOLTIP_LOCKED.format(name=full_name) if is_locked else full_name
+                )
                 imgui.set_tooltip(tooltip)

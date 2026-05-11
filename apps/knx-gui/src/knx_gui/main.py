@@ -14,6 +14,7 @@ from knx_gui.panels import (
     TelegramsPanel,
 )
 from knx_gui.state import AppState, create_sample_state
+from knx_gui.strings import S
 from knx_gui.types import (
     ComObject,
     ComObjectFlags,
@@ -225,23 +226,27 @@ class KnxGuiApp:
         if imgui.begin_popup("##ArchivePopup"):
             if self._archive_load_error:
                 imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
-                imgui.text("Failed to load archive")
+                imgui.text(S.ARCHIVE_FAILED_TO_LOAD)
                 imgui.pop_style_color()
                 imgui.text(self._archive_load_error)
             else:
-                imgui.text(f"Loaded: {self._archive_path}")
-                imgui.text(f"Found {len(self._archive_candidates)} application(s)")
+                imgui.text(S.ARCHIVE_LOADED.format(path=self._archive_path))
+                imgui.text(
+                    S.ARCHIVE_FOUND_APPS.format(count=len(self._archive_candidates))
+                )
                 imgui.separator()
                 for i, candidate in enumerate(self._archive_candidates):
                     imgui.text(candidate.name)
                     imgui.same_line()
-                    imgui.text_disabled(f"  ({len(candidate.com_objects)} com objects)")
+                    imgui.text_disabled(
+                        f"  {S.ARCHIVE_COM_OBJECTS.format(count=len(candidate.com_objects))}"
+                    )
                     imgui.same_line()
-                    if imgui.small_button(f"Add##{i}"):
+                    if imgui.small_button(f"{S.BTN_ADD}##{i}"):
                         self._add_candidate_as_device(candidate)
                         imgui.close_current_popup()
             imgui.spacing()
-            if imgui.button("Close", imgui.ImVec2(120, 0)):
+            if imgui.button(S.BTN_CLOSE, imgui.ImVec2(120, 0)):
                 imgui.close_current_popup()
             imgui.end_popup()
 
@@ -259,55 +264,62 @@ class KnxGuiApp:
             )
             imgui.dummy(imgui.ImVec2(12, 0))
             imgui.same_line()
-            imgui.text(f"Connected: {self._state.controller_ip}")
+            imgui.text(S.STATUS_CONNECTED.format(ip=self._state.controller_ip))
         else:
             draw_list.add_circle_filled(center, 4, color_u32(0.5, 0.5, 0.5, 1.0))
             imgui.dummy(imgui.ImVec2(12, 0))
             imgui.same_line()
-            imgui.text_disabled("Disconnected")
+            imgui.text_disabled(S.STATUS_DISCONNECTED)
         imgui.same_line()
         imgui.text(
-            f"| Devices: {len(self._state.devices)} | Links: {len(self._state.links)}"
+            S.STATUS_DEVICES_LINKS.format(
+                devices=len(self._state.devices), links=len(self._state.links)
+            )
         )
 
     def gui_menu(self) -> None:
-        if imgui.begin_menu("File"):
-            if imgui.menu_item("New Project", "", False)[0]:
+        if imgui.begin_menu(S.MENU_FILE):
+            if imgui.menu_item(S.MENU_NEW_PROJECT, "", False)[0]:
                 pass
-            if imgui.menu_item("Open Project", "", False)[0]:
+            if imgui.menu_item(S.MENU_OPEN_PROJECT, "", False)[0]:
                 pass
-            if imgui.menu_item("Save Project", "", False)[0]:
+            if imgui.menu_item(S.MENU_SAVE_PROJECT, "", False)[0]:
                 pass
             imgui.separator()
-            if imgui.menu_item("Load .knxprod...", "", False)[0]:
+            if imgui.menu_item(S.MENU_LOAD_KNXPROD, "", False)[0]:
                 self._open_file_dialog = pfd.open_file(
-                    "Open KNX product archive",
+                    S.FILE_DIALOG_KNXPROD_TITLE,
                     "",
-                    ["KNX product (*.knxprod)", "*.knxprod", "All files", "*"],
+                    [
+                        S.FILE_DIALOG_KNXPROD_FILTER,
+                        "*.knxprod",
+                        S.FILE_DIALOG_ALL_FILES,
+                        "*",
+                    ],
                 )
             imgui.separator()
-            if imgui.menu_item("Exit", "", False)[0]:
+            if imgui.menu_item(S.MENU_EXIT, "", False)[0]:
                 hello_imgui.get_runner_params().app_shall_exit = True
             imgui.end_menu()
 
-        if imgui.begin_menu("Edit"):
-            if imgui.menu_item("Undo", "Ctrl+Z", False)[0]:
+        if imgui.begin_menu(S.MENU_EDIT):
+            if imgui.menu_item(S.MENU_UNDO, "Ctrl+Z", False)[0]:
                 pass
-            if imgui.menu_item("Redo", "Ctrl+Y", False)[0]:
+            if imgui.menu_item(S.MENU_REDO, "Ctrl+Y", False)[0]:
                 pass
             imgui.end_menu()
 
-        if imgui.begin_menu("Connection"):
+        if imgui.begin_menu(S.MENU_CONNECTION):
             if self._state.connected:
-                imgui.text(f"Connected to {self._state.controller_ip}")
-                if imgui.menu_item("Disconnect", "", False)[0]:
+                imgui.text(S.STATUS_CONNECTED_TO.format(ip=self._state.controller_ip))
+                if imgui.menu_item(S.MENU_DISCONNECT, "", False)[0]:
                     self._state.connected = False
             else:
                 imgui.set_next_item_width(180)
                 _, self._state.controller_ip = imgui.input_text(
                     "IP", self._state.controller_ip
                 )
-                if imgui.menu_item("Connect", "", False)[0]:
+                if imgui.menu_item(S.MENU_CONNECT, "", False)[0]:
                     self._state.connected = True
             imgui.end_menu()
 
@@ -355,27 +367,27 @@ def create_docking_splits() -> list[hello_imgui.DockingSplit]:
 
 def create_dockable_windows(app: KnxGuiApp) -> list[hello_imgui.DockableWindow]:
     devices_window = hello_imgui.DockableWindow()
-    devices_window.label = "Devices"
+    devices_window.label = S.PANEL_DEVICES
     devices_window.dock_space_name = "LeftSpace"
     devices_window.gui_function = app.gui_devices
 
     catalog_window = hello_imgui.DockableWindow()
-    catalog_window.label = "Catalog"
+    catalog_window.label = S.PANEL_CATALOG
     catalog_window.dock_space_name = "LeftSpace"
     catalog_window.gui_function = app.gui_catalog
 
     editor_window = hello_imgui.DockableWindow()
-    editor_window.label = "Node Editor"
+    editor_window.label = S.PANEL_NODE_EDITOR
     editor_window.dock_space_name = "MainDockSpace"
     editor_window.gui_function = app.gui_node_editor
 
     telegrams_window = hello_imgui.DockableWindow()
-    telegrams_window.label = "Telegrams"
+    telegrams_window.label = S.PANEL_TELEGRAMS
     telegrams_window.dock_space_name = "BottomSpace"
     telegrams_window.gui_function = app.gui_telegrams
 
     configure_window = hello_imgui.DockableWindow()
-    configure_window.label = "Configure"
+    configure_window.label = S.PANEL_CONFIGURE
     configure_window.dock_space_name = "RightSpace"
     configure_window.gui_function = app.gui_configure
 
@@ -393,7 +405,7 @@ def main() -> None:
     app = KnxGuiApp(state)
 
     runner_params = hello_imgui.RunnerParams()
-    runner_params.app_window_params.window_title = "XKNX Toolkit"
+    runner_params.app_window_params.window_title = S.APP_TITLE
     runner_params.app_window_params.window_geometry.size = (1280, 720)
     runner_params.app_window_params.restore_previous_geometry = True
 

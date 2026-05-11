@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from imgui_bundle import imgui
 
+from knx_gui.strings import S
 from knx_gui.types import Telegram
 
 TELEGRAM_HEADER_BUTTONS_WIDTH = 100
@@ -43,15 +44,17 @@ class TelegramsPanel:
         self._render_table()
 
     def _render_header(self) -> None:
-        imgui.text("Telegrams")
+        imgui.text(S.TELEGRAMS_TITLE)
         if self._selected:
             imgui.same_line()
-            imgui.text_disabled(f"  ({len(self._selected)} selected)")
+            imgui.text_disabled(
+                f"  {S.TELEGRAMS_SELECTED.format(count=len(self._selected))}"
+            )
         imgui.same_line(imgui.get_window_width() - TELEGRAM_HEADER_BUTTONS_WIDTH)
-        if imgui.small_button("Copy"):
+        if imgui.small_button(S.BTN_COPY):
             self._copy_telegrams()
         imgui.same_line()
-        if imgui.small_button("Clear"):
+        if imgui.small_button(S.BTN_CLEAR):
             self._selected.clear()
         imgui.separator()
 
