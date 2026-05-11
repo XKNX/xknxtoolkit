@@ -19,11 +19,13 @@ class ConfigurePanel:
         get_selected_device: Callable[[], Device | None],
         set_selected_device: Callable[[Device], None],
         on_param_change: Callable[[Device, str, str], None],
+        on_flag_change: Callable[[Device, str, str, bool], None],
     ) -> None:
         self._get_devices = get_devices
         self._get_selected_device = get_selected_device
         self._set_selected_device = set_selected_device
         self._on_param_change = on_param_change
+        self._on_flag_change = on_flag_change
 
     def render(self) -> None:
         devices = self._get_devices()
@@ -193,11 +195,11 @@ class ConfigurePanel:
         imgui.table_headers_row()
 
         for com_obj in com_objects:
-            self._render_com_object_row(com_obj, f"{device.node_id}_{com_obj.id}")
+            self._render_com_object_row(device, com_obj, f"{device.node_id}_{com_obj.id}")
 
         imgui.end_table()
 
-    def _render_com_object_row(self, com_object: ComObject, row_id: str) -> None:
+    def _render_com_object_row(self, device: Device, com_object: ComObject, row_id: str) -> None:
         imgui.table_next_row()
         imgui.table_set_column_index(0)
         imgui.text(com_object.name)
@@ -216,7 +218,7 @@ class ConfigurePanel:
                 imgui.begin_disabled()
             changed, new_value = imgui.checkbox(f"##{row_id}_{attr}", current)
             if changed and not is_locked:
-                setattr(com_object.flags, attr, new_value)
+                self._on_flag_change(device, com_object.id, attr, new_value)
             if is_locked:
                 imgui.end_disabled()
 

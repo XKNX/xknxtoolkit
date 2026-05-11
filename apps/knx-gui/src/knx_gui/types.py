@@ -274,6 +274,12 @@ class Device:
                     p.value = value
                     break
 
+    def find_com_object(self, co_id: str) -> ComObject | None:
+        for co in self.com_objects:
+            if co.id == co_id:
+                return co
+        return None
+
 
 @dataclass
 class Telegram:

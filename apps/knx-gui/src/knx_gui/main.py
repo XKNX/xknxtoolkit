@@ -16,6 +16,7 @@ from knx_gui.panels import (
 )
 from knx_gui.project.database import ProjectDatabase
 from knx_gui.project.events import (
+    ComObjectFlagChanged,
     LinkCreated,
     LinkRemoved,
 )
@@ -74,6 +75,7 @@ class KnxGuiApp:
             get_selected_device=lambda: self._state.selected_device,
             set_selected_device=self._set_selected_device,
             on_param_change=self._on_config_param_change,
+            on_flag_change=self._on_flag_change,
         )
 
     def _select_and_navigate_to_device(self, device: Device) -> None:
@@ -89,6 +91,24 @@ class KnxGuiApp:
         self, device: Device, param_id: str, value: str
     ) -> None:
         device.set_param_value(param_id, value)
+
+    def _on_flag_change(
+        self, device: Device, co_id: str, flag_name: str, new_value: bool
+    ) -> None:
+        com_object = device.find_com_object(co_id)
+        if not com_object:
+            return
+        old_value = getattr(com_object.flags, flag_name)
+        setattr(com_object.flags, flag_name, new_value)
+        if self._project:
+            event = ComObjectFlagChanged(
+                device_id=device.node_id,
+                co_id=co_id,
+                flag_name=flag_name,
+                old_value=old_value,
+                new_value=new_value,
+            )
+            self._project.event_store.append(event)
 
     def _focus_device_by_address(self, address: str) -> None:
         device = self._state.find_device_by_address(address)
@@ -162,6 +182,7 @@ class KnxGuiApp:
             return
         from knx_gui.project.models import DeviceModel
 
+        selected_node_id = self._state.selected_device.node_id if self._state.selected_device else None
         self._state.devices.clear()
         for device_model in self._project.session.query(DeviceModel).all():
             template = DEVICE_TEMPLATES.get(device_model.template_id)
@@ -177,6 +198,8 @@ class KnxGuiApp:
             self._state.devices.append(device)
         max_device_id = max((d.node_id for d in self._state.devices), default=9)
         self._state._next_device_id = max_device_id + 1
+        if selected_node_id is not None:
+            self._state.selected_device = self._state.find_device_by_node_id(selected_node_id)
 
     def _undo(self) -> None:
         if self._project and self._project.event_store.can_undo():
