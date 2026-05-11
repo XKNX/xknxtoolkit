@@ -9,3 +9,4 @@
 ## Conventions
 
 - All user-facing strings must be defined in `src/knx_gui/strings.py` for i18n support
+- Panels hold their own internal state; shared state is accessed via dependency-injected callbacks
