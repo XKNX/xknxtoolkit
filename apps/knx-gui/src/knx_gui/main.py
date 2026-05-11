@@ -180,7 +180,7 @@ class KnxGuiApp:
     def _load_devices_from_db(self) -> None:
         if not self._project:
             return
-        from knx_gui.project.models import DeviceModel
+        from knx_gui.project.models import ComObjectModel, DeviceModel
 
         selected_node_id = self._state.selected_device.node_id if self._state.selected_device else None
         self._state.devices.clear()
@@ -195,6 +195,14 @@ class KnxGuiApp:
                 template=template,
                 address=device_model.address or "",
             )
+            for co_model in self._project.session.query(ComObjectModel).filter_by(device_id=device_model.id).all():
+                co = device.find_com_object(co_model.co_id)
+                if co:
+                    co.flags.communication = co_model.flag_communication
+                    co.flags.read = co_model.flag_read
+                    co.flags.write = co_model.flag_write
+                    co.flags.transmit = co_model.flag_transmit
+                    co.flags.update = co_model.flag_update
             self._state.devices.append(device)
         max_device_id = max((d.node_id for d in self._state.devices), default=9)
         self._state._next_device_id = max_device_id + 1
