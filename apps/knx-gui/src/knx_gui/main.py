@@ -1649,6 +1649,57 @@ class KnxGuiApp:
                         ed.navigate_to_selection(False, 0.3)
                 imgui.tree_pop()
 
+    def gui_catalog(self) -> None:
+        if not hasattr(self, "_panel_catalog"):
+            self._panel_catalog = {"search": ""}
+
+        imgui.set_next_item_width(-1)
+        _, self._panel_catalog["search"] = imgui.input_text_with_hint(
+            "##catalog_search", "Search...", self._panel_catalog["search"]
+        )
+
+        by_manufacturer: dict[str, list[tuple[str, DeviceTemplate]]] = {}
+        for key, template in DEVICE_TEMPLATES.items():
+            mfr = template.config.manufacturer
+            if mfr not in by_manufacturer:
+                by_manufacturer[mfr] = []
+            by_manufacturer[mfr].append((key, template))
+
+        search = self._panel_catalog["search"].lower().strip()
+        leaf_flags = (
+            imgui.TreeNodeFlags_.leaf
+            | imgui.TreeNodeFlags_.no_tree_push_on_open
+            | imgui.TreeNodeFlags_.span_avail_width
+        )
+
+        if search:
+            for mfr in sorted(by_manufacturer.keys()):
+                for key, template in by_manufacturer[mfr]:
+                    if search in template.name.lower() or search in mfr.lower():
+                        label = f"{mfr} - {template.name}"
+                        imgui.tree_node_ex(label, leaf_flags)
+                        if imgui.is_item_clicked() and imgui.is_mouse_double_clicked(0):
+                            self._add_device_from_template(key, template)
+        else:
+            for mfr in sorted(by_manufacturer.keys()):
+                if imgui.tree_node(mfr):
+                    for key, template in by_manufacturer[mfr]:
+                        imgui.tree_node_ex(template.name, leaf_flags)
+                        if imgui.is_item_clicked() and imgui.is_mouse_double_clicked(0):
+                            self._add_device_from_template(key, template)
+                    imgui.tree_pop()
+
+    def _add_device_from_template(self, key: str, template: DeviceTemplate) -> None:
+        next_id = max((d.node_id for d in self._devices), default=0) + 1
+        self._devices.append(
+            Device(
+                node_id=next_id,
+                name=template.name,
+                template=template,
+                address="",
+            )
+        )
+
     def gui_node_editor(self) -> None:
         if not self._editor_context:
             return
@@ -1763,6 +1814,11 @@ def create_dockable_windows(app: "KnxGuiApp") -> list[hello_imgui.DockableWindow
     devices_window.dock_space_name = "LeftSpace"
     devices_window.gui_function = app.gui_devices
 
+    catalog_window = hello_imgui.DockableWindow()
+    catalog_window.label = "Catalog"
+    catalog_window.dock_space_name = "LeftSpace"
+    catalog_window.gui_function = app.gui_catalog
+
     editor_window = hello_imgui.DockableWindow()
     editor_window.label = "Node Editor"
     editor_window.dock_space_name = "MainDockSpace"
@@ -1778,7 +1834,7 @@ def create_dockable_windows(app: "KnxGuiApp") -> list[hello_imgui.DockableWindow
     configure_window.dock_space_name = "RightSpace"
     configure_window.gui_function = app.gui_configure
 
-    return [devices_window, editor_window, telegrams_window, configure_window]
+    return [devices_window, catalog_window, editor_window, telegrams_window, configure_window]
 
 
 def main() -> None:
