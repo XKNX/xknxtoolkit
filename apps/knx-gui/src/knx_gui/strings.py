@@ -115,6 +115,7 @@ class Strings:
 
     # History panel
     HISTORY_NO_HISTORY = "No history"
+    HISTORY_REVERT = "Revert"
     HISTORY_DEVICE_ADD = "Add device: {name}"
     HISTORY_DEVICE_REMOVE = "Remove device: {name}"
     HISTORY_ADDRESS_CHANGE = "Address: {old} -> {new}"
