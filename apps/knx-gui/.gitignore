@@ -1,3 +1,4 @@
 *.ini
 NodeEditor.json
 .venv/
+plan.md
