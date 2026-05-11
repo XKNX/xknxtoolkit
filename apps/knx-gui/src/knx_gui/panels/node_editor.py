@@ -4,10 +4,6 @@ from dataclasses import dataclass
 from imgui_bundle import imgui
 from imgui_bundle import imgui_node_editor as ed
 
-from knx_gui.widgets import (
-    EnumPopup,
-    render_parameters_grouped,
-)
 from knx_gui.dpt import DPT, DPTMatch, dpt_color, dpt_match
 from knx_gui.strings import S
 from knx_gui.types import (
@@ -21,6 +17,11 @@ from knx_gui.types import (
     com_object_has_output,
     default_flags_for,
     flag_diff_letters,
+)
+from knx_gui.widgets import (
+    ComFlagsTable,
+    EnumPopup,
+    render_parameters_grouped,
 )
 
 NODE_PADDING = 8.0
@@ -71,7 +72,6 @@ class NodeEditorPanel:
         self._add_link = add_link
         self._remove_link = remove_link
         self._on_param_change = on_param_change
-        self._on_flag_change = on_flag_change
 
         self._editor_context: ed.EditorContext | None = None
         self._next_pin_id: int = 100000
@@ -83,6 +83,7 @@ class NodeEditorPanel:
         self._dpt_popup_target: ComObject | None = None
         self._dpt_popup_request: ComObject | None = None
         self._enum_popup = EnumPopup("##NodeEnumPopup", on_param_change)
+        self._com_flags_table = ComFlagsTable(on_flag_change)
 
     def setup(self) -> None:
         config = ed.Config()
@@ -441,50 +442,6 @@ class NodeEditorPanel:
         imgui.same_line(SETTINGS_LABEL_OFFSET)
         imgui.text(value)
 
-    def _render_com_object_row(
-        self, device: Device, com_object: ComObject, row_id: str
-    ) -> None:
-        imgui.table_next_row()
-        imgui.table_set_column_index(0)
-        imgui.text(com_object.name)
-        for col, (attr, _letter, full_name) in enumerate(FLAG_LABELS, start=1):
-            imgui.table_set_column_index(col)
-            current = getattr(com_object.flags, attr)
-            locked_attr = f"{attr}_locked"
-            is_locked = (
-                getattr(com_object.flags, locked_attr, False)
-                if attr != "communication"
-                else False
-            )
-            if is_locked:
-                imgui.begin_disabled()
-            changed, new_value = imgui.checkbox(f"##{row_id}_{attr}", current)
-            if changed and not is_locked:
-                self._on_flag_change(device, com_object.id, attr, new_value)
-            if is_locked:
-                imgui.end_disabled()
-            if imgui.is_item_hovered(imgui.HoveredFlags_.allow_when_disabled):
-                tooltip = (
-                    S.TOOLTIP_LOCKED.format(name=full_name) if is_locked else full_name
-                )
-                imgui.set_tooltip(tooltip)
-
-    def _render_node_com_objects(self, device: Device) -> None:
-        flags = imgui.TableFlags_.borders_inner | imgui.TableFlags_.sizing_fixed_fit
-        if not imgui.begin_table(
-            f"##com_objs_{device.node_id}", 1 + len(FLAG_LABELS), flags
-        ):
-            return
-        imgui.table_setup_column("Name")
-        for _attr, letter, _name in FLAG_LABELS:
-            imgui.table_setup_column(letter)
-        imgui.table_headers_row()
-        for com_obj in device.get_visible_com_objects():
-            self._render_com_object_row(
-                device, com_obj, f"{device.node_id}_{com_obj.id}"
-            )
-        imgui.end_table()
-
     def _render_node_settings(self, device: Device, width: float) -> None:
         if imgui.tree_node(f"{S.CONFIGURE_MANUFACTURER}##{device.node_id}"):
             self._render_label_value(
@@ -505,7 +462,7 @@ class NodeEditorPanel:
                     self._enum_popup.request(device, req.param)
                 imgui.tree_pop()
         if imgui.tree_node(f"{S.NODE_COM_FLAGS}##{device.node_id}"):
-            self._render_node_com_objects(device)
+            self._com_flags_table.render(device, device.get_visible_com_objects())
             imgui.tree_pop()
 
     def _render_enum_popup(self) -> None:
