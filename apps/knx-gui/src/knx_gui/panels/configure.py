@@ -2,13 +2,12 @@ from collections.abc import Callable
 
 from imgui_bundle import imgui
 
-from knx_gui.knxprod import ParamTypeKind
+from knx_gui.widgets import render_parameters_grouped
 from knx_gui.strings import S
 from knx_gui.types import (
     FLAG_LABELS,
     ComObject,
     Device,
-    Parameter,
 )
 
 
@@ -57,7 +56,9 @@ class ConfigurePanel:
         if imgui.collapsing_header(
             S.CONFIGURE_MANUFACTURER, imgui.TreeNodeFlags_.default_open
         ):
-            self._render_label_value(S.CONFIGURE_MANUFACTURER, device.app.manufacturer_id)
+            self._render_label_value(
+                S.CONFIGURE_MANUFACTURER, device.app.manufacturer_id
+            )
             self._render_label_value(S.CONFIGURE_APPLICATION, device.app.application_id)
 
         params = device.get_visible_parameters()
@@ -65,7 +66,7 @@ class ConfigurePanel:
             S.CONFIGURE_PARAMETERS.format(count=len(params)),
             imgui.TreeNodeFlags_.default_open,
         ):
-            self._render_parameters(device, params)
+            render_parameters_grouped(device, params, self._on_param_change)
 
         visible_cos = device.get_visible_com_objects()
         if imgui.collapsing_header(
@@ -78,106 +79,6 @@ class ConfigurePanel:
         imgui.text_disabled(label)
         imgui.same_line(120.0)
         imgui.text(value)
-
-    def _render_parameters(self, device: Device, params: list[Parameter]) -> None:
-        groups = self._group_parameters(params)
-        for group_name, group_params in sorted(groups.items()):
-            group_label = f"{group_name}##{device.node_id}_{group_name}"
-            is_open = imgui.tree_node(group_label)
-            imgui.same_line()
-            imgui.text_disabled(f"({len(group_params)})")
-            if is_open:
-                table_flags = imgui.TableFlags_.no_saved_settings
-                if imgui.begin_table(
-                    f"##params_{device.node_id}_{group_name}", 2, table_flags
-                ):
-                    imgui.table_setup_column(
-                        "Name", imgui.TableColumnFlags_.width_stretch
-                    )
-                    imgui.table_setup_column(
-                        "Value", imgui.TableColumnFlags_.width_fixed, 120
-                    )
-                    for param in group_params:
-                        imgui.table_next_row()
-                        imgui.table_set_column_index(0)
-                        display_text = param.text if param.text else param.name
-                        imgui.text(display_text)
-                        imgui.table_set_column_index(1)
-                        imgui.set_next_item_width(-1)
-                        self._render_param_widget(device, param)
-                    imgui.end_table()
-                imgui.tree_pop()
-
-    def _group_parameters(self, params: list[Parameter]) -> dict[str, list[Parameter]]:
-        groups: dict[str, list[Parameter]] = {}
-        for param in params:
-            text = param.text if param.text else param.name
-            prefix = text.split(" - ")[0].strip() if " - " in text else "General"
-            if prefix not in groups:
-                groups[prefix] = []
-            groups[prefix].append(param)
-        return groups
-
-    def _render_param_widget(self, device: Device, param: Parameter) -> None:
-        pt = param.param_type
-        if pt is None:
-            changed, new_value = imgui.input_text(f"##{param.id}", param.value)
-            if changed:
-                self._on_param_change(device, param.id, new_value)
-            return
-
-        if pt.kind == ParamTypeKind.ENUM:
-            current_idx = 0
-            for i, opt in enumerate(pt.options):
-                if opt.value == param.value:
-                    current_idx = i
-                    break
-            preview = pt.options[current_idx].text if pt.options else param.value
-            if imgui.begin_combo(f"##{param.id}", preview):
-                for opt in pt.options:
-                    selected = opt.value == param.value
-                    if imgui.selectable(opt.text, selected)[0]:
-                        self._on_param_change(device, param.id, opt.value)
-                imgui.end_combo()
-        elif pt.kind == ParamTypeKind.CHECKBOX:
-            checked = param.value == "1"
-            changed, new_checked = imgui.checkbox(f"##{param.id}", checked)
-            if changed:
-                self._on_param_change(device, param.id, "1" if new_checked else "0")
-        elif pt.kind == ParamTypeKind.NUMBER:
-            try:
-                int_val = int(param.value)
-            except ValueError:
-                int_val = pt.min_value or 0
-            min_v = pt.min_value if pt.min_value is not None else 0
-            max_v = pt.max_value if pt.max_value is not None else 65535
-            changed, new_val = imgui.drag_int(
-                f"##{param.id}", int_val, 1.0, min_v, max_v
-            )
-            if changed:
-                self._on_param_change(device, param.id, str(new_val))
-        elif pt.kind == ParamTypeKind.TIME:
-            try:
-                int_val = int(param.value)
-            except ValueError:
-                int_val = pt.min_value or 0
-            min_v = pt.min_value if pt.min_value is not None else 0
-            max_v = pt.max_value if pt.max_value is not None else 86400
-            changed, new_val = imgui.drag_int(
-                f"##{param.id}", int_val, 1.0, min_v, max_v
-            )
-            if changed:
-                self._on_param_change(device, param.id, str(new_val))
-        elif pt.kind == ParamTypeKind.TEXT:
-            changed, new_value = imgui.input_text(f"##{param.id}", param.value)
-            if changed:
-                self._on_param_change(device, param.id, new_value)
-        elif pt.kind == ParamTypeKind.PICTURE:
-            imgui.text_disabled(S.NODE_IMAGE_PLACEHOLDER)
-        else:
-            changed, new_value = imgui.input_text(f"##{param.id}", param.value)
-            if changed:
-                self._on_param_change(device, param.id, new_value)
 
     def _render_com_objects(self, device: Device, com_objects: list[ComObject]) -> None:
         flags = imgui.TableFlags_.borders_inner | imgui.TableFlags_.sizing_fixed_fit
@@ -192,11 +93,15 @@ class ConfigurePanel:
         imgui.table_headers_row()
 
         for com_obj in com_objects:
-            self._render_com_object_row(device, com_obj, f"{device.node_id}_{com_obj.id}")
+            self._render_com_object_row(
+                device, com_obj, f"{device.node_id}_{com_obj.id}"
+            )
 
         imgui.end_table()
 
-    def _render_com_object_row(self, device: Device, com_object: ComObject, row_id: str) -> None:
+    def _render_com_object_row(
+        self, device: Device, com_object: ComObject, row_id: str
+    ) -> None:
         imgui.table_next_row()
         imgui.table_set_column_index(0)
         imgui.text(com_object.name)

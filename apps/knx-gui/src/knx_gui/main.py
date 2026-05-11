@@ -10,6 +10,7 @@ from knx_gui.catalog import (
     load_knxprod_to_catalog,
 )
 from knx_gui.catalog.models import ApplicationModel
+from knx_gui.dialogs import LinkWarningDialog
 from knx_gui.dpt import lookup_or_make_dpt
 from knx_gui.knxprod import DeviceApplication, parse_application_xml
 from knx_gui.panels import (
@@ -27,6 +28,7 @@ from knx_gui.project.events import (
     DeviceAdded,
     LinkCreated,
     LinkRemoved,
+    ParameterChanged,
 )
 from knx_gui.state import AppState, create_empty_state
 from knx_gui.strings import S
@@ -55,14 +57,17 @@ class KnxGuiApp:
         self._open_project_dialog: pfd.open_file | None = None
         self._save_project_dialog: pfd.save_file | None = None
 
+        self._link_warning_dialog = LinkWarningDialog(
+            on_confirm=self._on_link_warning_confirm
+        )
+
         self._node_editor_panel = NodeEditorPanel(
             get_devices=lambda: self._state.devices,
             get_links=lambda: self._state.links,
             add_link=self._add_link,
             remove_link=self._remove_link,
-            on_param_change=self._state.check_param_change_hides_com_objects,
+            on_param_change=self._on_param_change,
             on_flag_change=self._on_flag_change,
-            on_param_persist=self._on_config_param_change,
         )
         self._devices_panel = DevicesPanel(
             get_devices=lambda: self._state.devices,
@@ -80,7 +85,7 @@ class KnxGuiApp:
             get_devices=lambda: self._state.devices,
             get_selected_device=lambda: self._state.selected_device,
             set_selected_device=self._set_selected_device,
-            on_param_change=self._on_config_param_change,
+            on_param_change=self._on_param_change,
             on_flag_change=self._on_flag_change,
         )
         self._history_panel = HistoryPanel(
@@ -97,9 +102,15 @@ class KnxGuiApp:
         from knx_gui.project.models import EventModel
 
         entries = []
-        for e in self._project.session.query(EventModel).order_by(EventModel.id.desc()).all():
+        for e in (
+            self._project.session.query(EventModel).order_by(EventModel.id.desc()).all()
+        ):
             event = deserialize_event(e.type, e.data)
-            entries.append(HistoryEntry(id=e.id, display_text=event.display_text(), reverted=e.reverted))
+            entries.append(
+                HistoryEntry(
+                    id=e.id, display_text=event.display_text(), reverted=e.reverted
+                )
+            )
         return entries
 
     def _get_cursor(self) -> int:
@@ -124,13 +135,39 @@ class KnxGuiApp:
         self._state.selected_device = device
         self._node_editor_panel.select_node(device.node_id, False)
 
-    def _on_config_param_change(
-        self, device: Device, param_id: str, value: str
-    ) -> None:
-        from knx_gui.project.events import ParameterChanged
+    def _on_param_change(self, device: Device, param_id: str, value: str) -> None:
         old_value = device._param_values.get(param_id, "")
         if old_value == value:
             return
+
+        hidden_cos = self._state.check_param_change_hides_com_objects(
+            device, param_id, value
+        )
+        if hidden_cos:
+            affected_links = self._node_editor_panel.find_links_for_com_objects(
+                device, hidden_cos
+            )
+            if affected_links:
+                self._link_warning_dialog.request_confirmation(
+                    device, param_id, value, hidden_cos, affected_links
+                )
+                return
+
+        self._apply_param_change(device, param_id, value)
+
+    def _on_link_warning_confirm(
+        self,
+        device: Device,
+        param_id: str,
+        value: str,
+        affected_links: list[tuple[int, int, int]],
+    ) -> None:
+        for link in affected_links:
+            self._remove_link(link[0])
+        self._apply_param_change(device, param_id, value)
+
+    def _apply_param_change(self, device: Device, param_id: str, value: str) -> None:
+        old_value = device._param_values.get(param_id, "")
         device.set_param_value(param_id, value)
         if self._project:
             event = ParameterChanged(
@@ -264,31 +301,47 @@ class KnxGuiApp:
             return
         from knx_gui.project.models import ComObjectModel, DeviceModel, ParameterModel
 
-        selected_node_id = self._state.selected_device.node_id if self._state.selected_device else None
+        selected_node_id = (
+            self._state.selected_device.node_id if self._state.selected_device else None
+        )
         self._state.devices.clear()
         for device_model in self._project.session.query(DeviceModel).all():
             app = self._get_app_for_device(device_model.template_id)
             if not app:
-                print(f"[project] skipping device {device_model.id}: template '{device_model.template_id}' not found")
+                print(
+                    f"[project] skipping device {device_model.id}: template '{device_model.template_id}' not found"
+                )
                 continue
             device = self._state.add_device_with_id(
                 app=app,
                 node_id=device_model.id,
                 address=device_model.address or "",
             )
-            for param_model in self._project.session.query(ParameterModel).filter_by(device_id=device_model.id).all():
+            for param_model in (
+                self._project.session.query(ParameterModel)
+                .filter_by(device_id=device_model.id)
+                .all()
+            ):
                 device.set_param_value(param_model.param_id, param_model.value)
-            for co_model in self._project.session.query(ComObjectModel).filter_by(device_id=device_model.id).all():
+            for co_model in (
+                self._project.session.query(ComObjectModel)
+                .filter_by(device_id=device_model.id)
+                .all()
+            ):
                 co = device.find_com_object(co_model.co_id)
                 if co:
-                    co.dpt = lookup_or_make_dpt(f"{co_model.dpt_major}.{co_model.dpt_minor}")
+                    co.dpt = lookup_or_make_dpt(
+                        f"{co_model.dpt_major}.{co_model.dpt_minor}"
+                    )
                     co.flags.communication = co_model.flag_communication
                     co.flags.read = co_model.flag_read
                     co.flags.write = co_model.flag_write
                     co.flags.transmit = co_model.flag_transmit
                     co.flags.update = co_model.flag_update
         if selected_node_id is not None:
-            self._state.selected_device = self._state.find_device_by_node_id(selected_node_id)
+            self._state.selected_device = self._state.find_device_by_node_id(
+                selected_node_id
+            )
 
     def _get_app_for_device(self, template_id: str) -> DeviceApplication | None:
         xml_data = get_application_xml(self._catalog, template_id)
@@ -402,8 +455,12 @@ class KnxGuiApp:
         except (OSError, ValueError) as e:
             print(f"[knxprod] error: {type(e).__name__}: {e}")
 
-    def _add_candidate_as_device(self, app: DeviceApplication, template_id: str | None = None) -> None:
-        print(f"[knxprod] adding {app.name} ({len(app.com_objects)} total, {len(app.visible_com_objects())} visible)")
+    def _add_candidate_as_device(
+        self, app: DeviceApplication, template_id: str | None = None
+    ) -> None:
+        print(
+            f"[knxprod] adding {app.name} ({len(app.com_objects)} total, {len(app.visible_com_objects())} visible)"
+        )
         if template_id is None:
             template_id = f"{app.manufacturer_id}_{app.application_id}"
 
@@ -415,16 +472,18 @@ class KnxGuiApp:
                 parts = co.dpt_codes[0].split(".")
                 dpt_major = int(parts[0]) if len(parts) > 0 else 0
                 dpt_minor = int(parts[1]) if len(parts) > 1 else 0
-            com_objs.append({
-                "co_id": co.id,
-                "dpt_major": dpt_major,
-                "dpt_minor": dpt_minor,
-                "flag_communication": co.flags.communication,
-                "flag_read": co.flags.read,
-                "flag_write": co.flags.write,
-                "flag_transmit": co.flags.transmit,
-                "flag_update": co.flags.update,
-            })
+            com_objs.append(
+                {
+                    "co_id": co.id,
+                    "dpt_major": dpt_major,
+                    "dpt_minor": dpt_minor,
+                    "flag_communication": co.flags.communication,
+                    "flag_read": co.flags.read,
+                    "flag_write": co.flags.write,
+                    "flag_transmit": co.flags.transmit,
+                    "flag_update": co.flags.update,
+                }
+            )
 
         if self._project:
             event = DeviceAdded(
@@ -532,6 +591,7 @@ class KnxGuiApp:
 
     def gui_node_editor(self) -> None:
         self._node_editor_panel.render()
+        self._link_warning_dialog.render()
 
     def gui_telegrams(self) -> None:
         self._telegrams_panel.render()
