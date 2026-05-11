@@ -10,7 +10,7 @@ from knx_gui.catalog import (
     load_knxprod_to_catalog,
 )
 from knx_gui.catalog.models import ApplicationModel
-from knx_gui.dpt import DPT, DPT_UNKNOWN, lookup_or_make_dpt
+from knx_gui.dpt import lookup_or_make_dpt
 from knx_gui.knxprod import DeviceApplication, parse_application_xml
 from knx_gui.panels import (
     CatalogEntry,
@@ -31,12 +31,7 @@ from knx_gui.project.events import (
 from knx_gui.state import AppState, create_empty_state
 from knx_gui.strings import S
 from knx_gui.types import (
-    ComObject,
-    ComObjectFlags,
     Device,
-    DeviceConfig,
-    DeviceTemplate,
-    Parameter,
     color_u32,
 )
 from xknx.product.errors import ArchiveError
@@ -259,14 +254,13 @@ class KnxGuiApp:
         selected_node_id = self._state.selected_device.node_id if self._state.selected_device else None
         self._state.devices.clear()
         for device_model in self._project.session.query(DeviceModel).all():
-            template = self._get_template_for_device(device_model.template_id)
-            if not template:
+            app = self._get_app_for_device(device_model.template_id)
+            if not app:
                 print(f"[project] skipping device {device_model.id}: template '{device_model.template_id}' not found")
                 continue
-            device = Device(
+            device = self._state.add_device_with_id(
+                app=app,
                 node_id=device_model.id,
-                name=device_model.name,
-                template=template,
                 address=device_model.address or "",
             )
             for param_model in self._project.session.query(ParameterModel).filter_by(device_id=device_model.id).all():
@@ -280,11 +274,10 @@ class KnxGuiApp:
                     co.flags.write = co_model.flag_write
                     co.flags.transmit = co_model.flag_transmit
                     co.flags.update = co_model.flag_update
-            self._state.devices.append(device)
         if selected_node_id is not None:
             self._state.selected_device = self._state.find_device_by_node_id(selected_node_id)
 
-    def _get_template_for_device(self, template_id: str) -> DeviceTemplate | None:
+    def _get_app_for_device(self, template_id: str) -> DeviceApplication | None:
         xml_data = get_application_xml(self._catalog, template_id)
         if not xml_data:
             return None
@@ -298,7 +291,7 @@ class KnxGuiApp:
         apps = parse_application_xml(xml_data, app_model.manufacturer_id)
         if not apps:
             return None
-        return self._app_to_template(apps[0])
+        return apps[0]
 
     def _undo(self) -> None:
         if self._project and self._project.event_store.can_undo():
@@ -397,24 +390,28 @@ class KnxGuiApp:
             print(f"[knxprod] error: {type(e).__name__}: {e}")
 
     def _add_candidate_as_device(self, app: DeviceApplication, template_id: str | None = None) -> None:
-        print(f"[knxprod] adding {app.name} ({len(app.visible_com_objects())} visible com objects)")
-        template = self._app_to_template(app)
+        print(f"[knxprod] adding {app.name} ({len(app.com_objects)} total, {len(app.visible_com_objects())} visible)")
         if template_id is None:
             template_id = f"{app.manufacturer_id}_{app.application_id}"
-        params = [(p.id, p.value) for p in template.parameters]
-        com_objs = [
-            {
+
+        params = [(p.id, p.value) for p in app.parameters]
+        com_objs = []
+        for co in app.com_objects:
+            dpt_major, dpt_minor = 0, 0
+            if co.dpt_codes:
+                parts = co.dpt_codes[0].split(".")
+                dpt_major = int(parts[0]) if len(parts) > 0 else 0
+                dpt_minor = int(parts[1]) if len(parts) > 1 else 0
+            com_objs.append({
                 "co_id": co.id,
-                "dpt_major": co.dpt.major,
-                "dpt_minor": co.dpt.minor,
+                "dpt_major": dpt_major,
+                "dpt_minor": dpt_minor,
                 "flag_communication": co.flags.communication,
                 "flag_read": co.flags.read,
                 "flag_write": co.flags.write,
                 "flag_transmit": co.flags.transmit,
                 "flag_update": co.flags.update,
-            }
-            for co in template.com_objects
-        ]
+            })
 
         if self._project:
             event = DeviceAdded(
@@ -426,84 +423,11 @@ class KnxGuiApp:
                 com_objects=com_objs,
             )
             self._project.event_store.append(event)
-            device = Device(
-                node_id=event.device_id,
-                name=app.name,
-                template=template,
-                address="",
-                app=app,
-            )
-            self._state.devices.append(device)
+            self._state.add_device_with_id(app=app, node_id=event.device_id, address="")
         else:
-            device = Device(
-                node_id=self._state._next_device_id,
-                name=app.name,
-                template=template,
-                address="",
-                app=app,
-            )
-            self._state._next_device_id += 1
-            self._state.devices.append(device)
+            self._state.add_device(app=app, address="")
 
         print(f"[knxprod] device added; total devices: {len(self._state.devices)}")
-
-    def _app_to_template(self, app: DeviceApplication) -> DeviceTemplate:
-        com_objects: list[ComObject] = []
-        for co in app.visible_com_objects():
-            flags = ComObjectFlags(
-                communication=co.flags.communication,
-                read=co.flags.read,
-                write=co.flags.write,
-                transmit=co.flags.transmit,
-                update=co.flags.update,
-                read_on_init=co.flags.read_on_init,
-                read_locked=co.flags.read_locked,
-                write_locked=co.flags.write_locked,
-                transmit_locked=co.flags.transmit_locked,
-                update_locked=co.flags.update_locked,
-                read_on_init_locked=co.flags.read_on_init_locked,
-            )
-            supported = [lookup_or_make_dpt(code) for code in co.dpt_codes]
-            seen: set[tuple[int, int]] = set()
-            unique_supported: list[DPT] = []
-            for dpt in supported:
-                key = (dpt.major, dpt.minor)
-                if key in seen:
-                    continue
-                seen.add(key)
-                unique_supported.append(dpt)
-            primary = unique_supported[0] if unique_supported else DPT_UNKNOWN
-            com_objects.append(
-                ComObject(
-                    id=co.id,
-                    name=co.name,
-                    dpt=primary,
-                    flags=flags,
-                    supported_dpts=unique_supported,
-                )
-            )
-        visible_params = app.visible_parameters()
-        parameters = [
-            Parameter(
-                id=p.id,
-                name=p.name,
-                text=p.text,
-                value=p.value,
-                param_type=p.param_type,
-            )
-            for p in visible_params
-        ]
-        return DeviceTemplate(
-            name=app.name,
-            com_objects=com_objects,
-            config=DeviceConfig(
-                manufacturer=app.manufacturer_id,
-                application=app.application_id,
-                hardware="",
-                firmware="",
-            ),
-            parameters=parameters,
-        )
 
     def gui_status_bar(self) -> None:
         draw_list = imgui.get_window_draw_list()

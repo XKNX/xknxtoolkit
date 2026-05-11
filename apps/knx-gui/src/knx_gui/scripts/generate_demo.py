@@ -62,8 +62,7 @@ def generate_demo(output_path: Path, catalog_path: Path) -> None:
         app = apps[0]
         params = [(p.id, p.value) for p in app.parameters]
         com_objs = []
-        visible_cos = app.visible_com_objects()
-        for co in visible_cos:
+        for co in app.com_objects:
             dpt_major, dpt_minor = 0, 0
             if co.dpt_codes:
                 parts = co.dpt_codes[0].split(".")
@@ -89,7 +88,7 @@ def generate_demo(output_path: Path, catalog_path: Path) -> None:
             com_objects=com_objs,
         )
         db.event_store.append(event)
-        print(f"Added: {demo_device.name} ({len(visible_cos)} visible com objects)")
+        print(f"Added: {demo_device.name} ({len(app.com_objects)} total, {len(app.visible_com_objects())} visible)")
 
     catalog.close()
     db.close()

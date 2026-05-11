@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
-from knx_gui.types import ComObject, Device, DeviceTemplate, Telegram
+from knx_gui.knxprod import DeviceApplication
+from knx_gui.types import ComObject, Device, Telegram
 
 
 @dataclass
@@ -14,6 +15,29 @@ class AppState:
     _next_link_id: int = 1000
     _next_device_id: int = 10
 
+    def add_device(self, app: DeviceApplication, address: str = "") -> Device:
+        device = Device(
+            node_id=self._next_device_id,
+            name=app.name,
+            app=app,
+            address=address,
+        )
+        self._next_device_id += 1
+        self.devices.append(device)
+        return device
+
+    def add_device_with_id(
+        self, app: DeviceApplication, node_id: int, address: str = ""
+    ) -> Device:
+        device = Device(
+            node_id=node_id,
+            name=app.name,
+            app=app,
+            address=address,
+        )
+        self.devices.append(device)
+        return device
+
     def add_link(self, start_pin: int, end_pin: int) -> int:
         link_id = self._next_link_id
         self._next_link_id += 1
@@ -22,29 +46,6 @@ class AppState:
 
     def remove_link(self, link_id: int) -> None:
         self.links = [link for link in self.links if link[0] != link_id]
-
-    def add_device(self, template: DeviceTemplate, address: str = "") -> Device:
-        device = Device(
-            node_id=self._next_device_id,
-            name=template.name,
-            template=template,
-            address=address,
-        )
-        self._next_device_id += 1
-        self.devices.append(device)
-        return device
-
-    def add_device_with_id(
-        self, template: DeviceTemplate, node_id: int, address: str = ""
-    ) -> Device:
-        device = Device(
-            node_id=node_id,
-            name=template.name,
-            template=template,
-            address=address,
-        )
-        self.devices.append(device)
-        return device
 
     def find_device_by_address(self, address: str) -> Device | None:
         for device in self.devices:

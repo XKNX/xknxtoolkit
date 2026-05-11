@@ -256,13 +256,10 @@ class NodeEditorPanel:
             else 0
         )
 
-        config = device.template.config
         tree_indent = imgui.get_style().indent_spacing
         max_value_w = max(
-            imgui.calc_text_size(config.manufacturer).x,
-            imgui.calc_text_size(config.application).x,
-            imgui.calc_text_size(config.hardware).x,
-            imgui.calc_text_size(config.firmware).x,
+            imgui.calc_text_size(device.app.manufacturer_id).x,
+            imgui.calc_text_size(device.app.application_id).x,
         )
         manufacturer_width = tree_indent + SETTINGS_LABEL_OFFSET + max_value_w
 
@@ -456,10 +453,9 @@ class NodeEditorPanel:
         ed.end_pin()
 
     def _render_node_header(self, device: Device, width: float) -> Rect:
-        template = device.template
         cursor_x = imgui.get_cursor_pos_x()
         imgui.begin_group()
-        imgui.text(template.name)
+        imgui.text(device.name)
         if device.address:
             imgui.same_line()
             address_width = imgui.calc_text_size(device.address).x
@@ -668,12 +664,9 @@ class NodeEditorPanel:
                 imgui.tree_pop()
 
     def _render_node_settings(self, device: Device, width: float) -> None:
-        config = device.template.config
         if imgui.tree_node(f"{S.CONFIGURE_MANUFACTURER}##{device.node_id}"):
-            self._render_label_value(S.CONFIGURE_MANUFACTURER, config.manufacturer)
-            self._render_label_value(S.CONFIGURE_APPLICATION, config.application)
-            self._render_label_value(S.CONFIGURE_HARDWARE, config.hardware)
-            self._render_label_value(S.CONFIGURE_FIRMWARE, config.firmware)
+            self._render_label_value(S.CONFIGURE_MANUFACTURER, device.app.manufacturer_id)
+            self._render_label_value(S.CONFIGURE_APPLICATION, device.app.application_id)
             imgui.tree_pop()
         params = device.get_visible_parameters()
         if params:
