@@ -1,5 +1,5 @@
-from xknx.models.generated import v10, v11, v12, v13, v14, v20, v21, v22, v23
-from xknx.models.schema import (
+from xknxmono.models.generated import v10, v11, v12, v13, v14, v20, v21, v22, v23
+from xknxmono.models.schema import (
     SUPPORTED_VERSIONS,
     VERSION_MODULES,
     VERSION_NAMESPACES,

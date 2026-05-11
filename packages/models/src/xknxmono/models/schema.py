@@ -7,7 +7,7 @@ from xsdata.formats.dataclass.parsers import XmlParser
 from xsdata.formats.dataclass.serializers import XmlSerializer
 from xsdata.formats.dataclass.serializers.config import SerializerConfig
 
-from xknx.models.generated import v10, v11, v12, v13, v14, v20, v21, v22, v23
+from xknxmono.models.generated import v10, v11, v12, v13, v14, v20, v21, v22, v23
 
 SUPPORTED_VERSIONS = frozenset({"10", "11", "12", "13", "14", "20", "21", "22", "23"})
 

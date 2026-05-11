@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from xknx.models import VersionError, detect_version, load_xml, serialize_xml, v23
+from xknxmono.models import VersionError, detect_version, load_xml, serialize_xml, v23
 
 
 MINIMAL_KNX_XML = b"""\
