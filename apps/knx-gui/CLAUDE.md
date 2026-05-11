@@ -5,6 +5,7 @@
 - Run knxprod tests: `uv run pytest src/knx_gui/knxprod/tests/ -v`
 - Run project tests: `uv run pytest src/knx_gui/project/tests/ -v`
 - Run GUI: `uv run python -m knx_gui.main`
+- Generate demo project: `uv run generate-demo`
 - Use `uv run` for all Python commands (not manual venv activation)
 
 ## Conventions

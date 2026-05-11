@@ -19,8 +19,9 @@ from knx_gui.project.events import (
     LinkCreated,
     LinkRemoved,
 )
-from knx_gui.state import AppState, create_sample_state
+from knx_gui.state import AppState, create_empty_state
 from knx_gui.strings import S
+from knx_gui.templates import DEVICE_TEMPLATES
 from knx_gui.types import (
     ComObject,
     ComObjectFlags,
@@ -140,6 +141,7 @@ class KnxGuiApp:
         self._project_path = Path(path)
         self._project = ProjectDatabase(self._project_path)
         self._project.open()
+        self._load_devices_from_db()
         self._load_links_from_db()
 
     def _load_links_from_db(self) -> None:
@@ -154,6 +156,27 @@ class KnxGuiApp:
             )
         max_link_id = max((link[0] for link in self._state.links), default=999)
         self._state._next_link_id = max_link_id + 1
+
+    def _load_devices_from_db(self) -> None:
+        if not self._project:
+            return
+        from knx_gui.project.models import DeviceModel
+
+        self._state.devices.clear()
+        for device_model in self._project.session.query(DeviceModel).all():
+            template = DEVICE_TEMPLATES.get(device_model.template_id)
+            if not template:
+                print(f"[project] skipping device {device_model.id}: template '{device_model.template_id}' not found")
+                continue
+            device = Device(
+                node_id=device_model.id,
+                name=device_model.name,
+                template=template,
+                address=device_model.address or "",
+            )
+            self._state.devices.append(device)
+        max_device_id = max((d.node_id for d in self._state.devices), default=9)
+        self._state._next_device_id = max_device_id + 1
 
     def _undo(self) -> None:
         if self._project and self._project.event_store.can_undo():
@@ -519,8 +542,12 @@ def create_dockable_windows(app: KnxGuiApp) -> list[hello_imgui.DockableWindow]:
 
 
 def main() -> None:
-    state = create_sample_state()
+    state = create_empty_state()
     app = KnxGuiApp(state)
+
+    demo_path = Path(__file__).parent.parent.parent / "demo.xknx"
+    if demo_path.exists():
+        app._do_open_project(str(demo_path))
 
     runner_params = hello_imgui.RunnerParams()
     runner_params.app_window_params.window_title = S.APP_TITLE
