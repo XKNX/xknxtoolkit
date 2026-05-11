@@ -11,6 +11,7 @@ from knx_gui.panels import (
     CatalogPanel,
     ConfigurePanel,
     DevicesPanel,
+    HistoryPanel,
     NodeEditorPanel,
     TelegramsPanel,
 )
@@ -77,6 +78,37 @@ class KnxGuiApp:
             on_param_change=self._on_config_param_change,
             on_flag_change=self._on_flag_change,
         )
+        self._history_panel = HistoryPanel(
+            get_entries=self._get_history_entries,
+            get_cursor=self._get_cursor,
+            on_jump_to=self._on_jump_to,
+        )
+
+    def _get_history_entries(self) -> list:
+        if not self._project:
+            return []
+        from knx_gui.panels.history import HistoryEntry
+        from knx_gui.project.events import deserialize_event
+        from knx_gui.project.models import EventModel
+
+        entries = []
+        for e in self._project.session.query(EventModel).order_by(EventModel.id.desc()).all():
+            event = deserialize_event(e.type, e.data)
+            entries.append(HistoryEntry(id=e.id, display_text=event.display_text(), reverted=e.reverted))
+        return entries
+
+    def _get_cursor(self) -> int:
+        if not self._project:
+            return 0
+        return self._project.event_store.cursor
+
+    def _on_jump_to(self, event_id: int) -> None:
+        if not self._project:
+            return
+        self._project.event_store.jump_to(event_id)
+        self._project.session.expire_all()
+        self._load_devices_from_db()
+        self._load_links_from_db()
 
     def _select_and_navigate_to_device(self, device: Device) -> None:
         self._state.selected_device = device
@@ -212,12 +244,14 @@ class KnxGuiApp:
     def _undo(self) -> None:
         if self._project and self._project.event_store.can_undo():
             self._project.event_store.undo()
+            self._project.session.expire_all()
             self._load_devices_from_db()
             self._load_links_from_db()
 
     def _redo(self) -> None:
         if self._project and self._project.event_store.can_redo():
             self._project.event_store.redo()
+            self._project.session.expire_all()
             self._load_devices_from_db()
             self._load_links_from_db()
 
@@ -516,6 +550,9 @@ class KnxGuiApp:
         self._sync_selected_device_from_editor()
         self._configure_panel.render()
 
+    def gui_history(self) -> None:
+        self._history_panel.render()
+
 
 def create_docking_splits() -> list[hello_imgui.DockingSplit]:
     split_left = hello_imgui.DockingSplit()
@@ -565,12 +602,18 @@ def create_dockable_windows(app: KnxGuiApp) -> list[hello_imgui.DockableWindow]:
     configure_window.dock_space_name = "RightSpace"
     configure_window.gui_function = app.gui_configure
 
+    history_window = hello_imgui.DockableWindow()
+    history_window.label = S.PANEL_HISTORY
+    history_window.dock_space_name = "RightSpace"
+    history_window.gui_function = app.gui_history
+
     return [
         devices_window,
         catalog_window,
         editor_window,
         telegrams_window,
         configure_window,
+        history_window,
     ]
 
 

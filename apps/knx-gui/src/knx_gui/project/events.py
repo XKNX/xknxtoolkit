@@ -11,6 +11,7 @@ from knx_gui.project.models import (
     LinkModel,
     ParameterModel,
 )
+from knx_gui.strings import S
 
 
 @dataclass
@@ -36,6 +37,10 @@ class Event(ABC):
     @classmethod
     @abstractmethod
     def from_dict(cls, data: dict[str, Any]) -> "Event":
+        pass
+
+    @abstractmethod
+    def display_text(self) -> str:
         pass
 
 
@@ -101,6 +106,9 @@ class DeviceAdded(Event):
             com_objects=data.get("com_objects", []),
         )
 
+    def display_text(self) -> str:
+        return S.HISTORY_DEVICE_ADD.format(name=self.name)
+
 
 @dataclass
 class DeviceRemoved(Event):
@@ -164,6 +172,9 @@ class DeviceRemoved(Event):
             com_objects=data.get("com_objects", []),
         )
 
+    def display_text(self) -> str:
+        return S.HISTORY_DEVICE_REMOVE.format(name=self.name)
+
 
 @dataclass
 class DeviceAddressChanged(Event):
@@ -197,6 +208,9 @@ class DeviceAddressChanged(Event):
             old_address=data.get("old_address"),
             new_address=data.get("new_address"),
         )
+
+    def display_text(self) -> str:
+        return S.HISTORY_ADDRESS_CHANGE.format(old=self.old_address, new=self.new_address)
 
 
 @dataclass
@@ -242,6 +256,9 @@ class ParameterChanged(Event):
             old_value=data["old_value"],
             new_value=data["new_value"],
         )
+
+    def display_text(self) -> str:
+        return S.HISTORY_PARAM_CHANGE.format(old=self.old_value, new=self.new_value)
 
 
 @dataclass
@@ -296,6 +313,11 @@ class ComObjectDptChanged(Event):
             new_dpt_minor=data["new_dpt_minor"],
         )
 
+    def display_text(self) -> str:
+        old = f"{self.old_dpt_major}.{self.old_dpt_minor}"
+        new = f"{self.new_dpt_major}.{self.new_dpt_minor}"
+        return S.HISTORY_DPT_CHANGE.format(old=old, new=new)
+
 
 @dataclass
 class ComObjectFlagChanged(Event):
@@ -344,6 +366,10 @@ class ComObjectFlagChanged(Event):
             new_value=data["new_value"],
         )
 
+    def display_text(self) -> str:
+        state = "on" if self.new_value else "off"
+        return S.HISTORY_FLAG_CHANGE.format(flag=self.flag_name, state=state)
+
 
 @dataclass
 class LinkCreated(Event):
@@ -379,6 +405,9 @@ class LinkCreated(Event):
             end_pin=data["end_pin"],
         )
 
+    def display_text(self) -> str:
+        return S.HISTORY_LINK_CREATE
+
 
 @dataclass
 class LinkRemoved(Event):
@@ -413,6 +442,9 @@ class LinkRemoved(Event):
             start_pin=data["start_pin"],
             end_pin=data["end_pin"],
         )
+
+    def display_text(self) -> str:
+        return S.HISTORY_LINK_REMOVE
 
 
 EVENT_TYPES: dict[str, type[Event]] = {
