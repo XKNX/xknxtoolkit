@@ -62,6 +62,7 @@ class KnxGuiApp:
             remove_link=self._remove_link,
             on_param_change=self._state.check_param_change_hides_com_objects,
             on_flag_change=self._on_flag_change,
+            on_param_persist=self._on_config_param_change,
         )
         self._devices_panel = DevicesPanel(
             get_devices=lambda: self._state.devices,
@@ -126,7 +127,19 @@ class KnxGuiApp:
     def _on_config_param_change(
         self, device: Device, param_id: str, value: str
     ) -> None:
+        from knx_gui.project.events import ParameterChanged
+        old_value = device._param_values.get(param_id, "")
+        if old_value == value:
+            return
         device.set_param_value(param_id, value)
+        if self._project:
+            event = ParameterChanged(
+                device_id=device.node_id,
+                param_id=param_id,
+                old_value=old_value,
+                new_value=value,
+            )
+            self._project.event_store.append(event)
 
     def _on_flag_change(
         self, device: Device, co_id: str, flag_name: str, new_value: bool

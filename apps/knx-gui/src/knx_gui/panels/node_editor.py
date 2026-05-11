@@ -63,6 +63,7 @@ class NodeEditorPanel:
         remove_link: Callable[[int], None],
         on_param_change: Callable[[Device, str, str], list[ComObject]],
         on_flag_change: Callable[[Device, str, str, bool], None],
+        on_param_persist: Callable[[Device, str, str], None] | None = None,
     ) -> None:
         self._get_devices = get_devices
         self._get_links = get_links
@@ -70,6 +71,7 @@ class NodeEditorPanel:
         self._remove_link = remove_link
         self._on_param_change = on_param_change
         self._on_flag_change = on_flag_change
+        self._on_param_persist = on_param_persist
 
         self._editor_context: ed.EditorContext | None = None
         self._next_pin_id: int = 100000
@@ -379,7 +381,7 @@ class NodeEditorPanel:
                     device, param_id, value = self._pending_param_change
                     for link in self._pending_removed_links:
                         self._remove_link(link[0])
-                    device.set_param_value(param_id, value)
+                    self._apply_param_value(device, param_id, value)
                 self._pending_param_change = None
                 self._pending_hidden_cos = []
                 self._pending_removed_links = []
@@ -543,16 +545,22 @@ class NodeEditorPanel:
     def _try_set_param_value(self, device: Device, param_id: str, value: str) -> None:
         hidden_cos = self._on_param_change(device, param_id, value)
         if not hidden_cos:
-            device.set_param_value(param_id, value)
+            self._apply_param_value(device, param_id, value)
             return
         affected_links = self._find_links_for_com_objects(device, hidden_cos)
         if not affected_links:
-            device.set_param_value(param_id, value)
+            self._apply_param_value(device, param_id, value)
             return
         self._pending_param_change = (device, param_id, value)
         self._pending_hidden_cos = hidden_cos
         self._pending_removed_links = affected_links
         self._show_link_warning = True
+
+    def _apply_param_value(self, device: Device, param_id: str, value: str) -> None:
+        if self._on_param_persist:
+            self._on_param_persist(device, param_id, value)
+        else:
+            device.set_param_value(param_id, value)
 
     def _find_links_for_com_objects(
         self, device: Device, cos: list[ComObject]
