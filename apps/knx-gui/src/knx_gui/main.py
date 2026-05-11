@@ -656,6 +656,7 @@ class KnxGuiApp:
         self._pending_hidden_cos: list[ComObject] = []
         self._pending_removed_links: list[tuple[int, int, int]] = []
         self._show_link_warning: bool = False
+        self._selected_device: Device | None = None
         self._init_devices()
         self._init_sample_telegrams()
 
@@ -1674,6 +1675,49 @@ class KnxGuiApp:
         self._handle_telegrams_shortcuts()
         self._render_telegrams_table()
 
+    def gui_configure(self) -> None:
+        self._update_selected_device()
+        device = self._selected_device
+        if device is None:
+            imgui.text_disabled("No device selected")
+            return
+
+        imgui.text(device.name)
+        if device.address:
+            imgui.same_line()
+            imgui.text_disabled(f"({device.address})")
+        imgui.separator()
+
+        config = device.template.config
+        if imgui.collapsing_header("Manufacturer", imgui.TreeNodeFlags_.default_open):
+            self._render_label_value("Manufacturer", config.manufacturer)
+            self._render_label_value("Application", config.application)
+            self._render_label_value("Hardware", config.hardware)
+            self._render_label_value("Firmware", config.firmware)
+
+        params = device.get_visible_parameters()
+        if params and imgui.collapsing_header(f"Parameters ({len(params)})", imgui.TreeNodeFlags_.default_open):
+            self._render_node_parameters(device)
+
+        visible_cos = device.get_visible_com_objects()
+        if imgui.collapsing_header(f"Com Flags ({len(visible_cos)})", imgui.TreeNodeFlags_.default_open):
+            self._render_node_com_objects(device)
+
+    def _update_selected_device(self) -> None:
+        if not self._editor_context:
+            return
+        ed.set_current_editor(self._editor_context)
+        selected_nodes = ed.get_selected_nodes()
+        if len(selected_nodes) != 1:
+            self._selected_device = None
+            return
+        node_id = selected_nodes[0].id()
+        for device in self._devices:
+            if device.node_id == node_id:
+                self._selected_device = device
+                return
+        self._selected_device = None
+
 
 def create_docking_splits() -> list[hello_imgui.DockingSplit]:
     split_left = hello_imgui.DockingSplit()
@@ -1688,7 +1732,13 @@ def create_docking_splits() -> list[hello_imgui.DockingSplit]:
     split_bottom.direction = imgui.Dir.down
     split_bottom.ratio = 0.25
 
-    return [split_left, split_bottom]
+    split_right = hello_imgui.DockingSplit()
+    split_right.initial_dock = "MainDockSpace"
+    split_right.new_dock = "RightSpace"
+    split_right.direction = imgui.Dir.right
+    split_right.ratio = 0.25
+
+    return [split_left, split_bottom, split_right]
 
 
 def create_dockable_windows(app: "KnxGuiApp") -> list[hello_imgui.DockableWindow]:
@@ -1707,7 +1757,12 @@ def create_dockable_windows(app: "KnxGuiApp") -> list[hello_imgui.DockableWindow
     telegrams_window.dock_space_name = "BottomSpace"
     telegrams_window.gui_function = app.gui_telegrams
 
-    return [devices_window, editor_window, telegrams_window]
+    configure_window = hello_imgui.DockableWindow()
+    configure_window.label = "Configure"
+    configure_window.dock_space_name = "RightSpace"
+    configure_window.gui_function = app.gui_configure
+
+    return [devices_window, editor_window, telegrams_window, configure_window]
 
 
 def main() -> None:
