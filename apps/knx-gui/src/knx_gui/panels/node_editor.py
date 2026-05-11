@@ -7,6 +7,7 @@ from imgui_bundle import imgui_node_editor as ed
 from knx_gui.constants import LINK_INVALID_COLOR
 from knx_gui.dpt import DPT, DPTMatch, dpt_color, dpt_match
 from knx_gui.knxprod import ParamTypeKind
+from knx_gui.strings import S
 from knx_gui.types import (
     FLAG_LABELS,
     ComObject,
@@ -208,7 +209,7 @@ class NodeEditorPanel:
     def _show_flags_tooltip(self, flags: ComObjectFlags, direction: PinDir) -> None:
         ed.suspend()
         imgui.begin_tooltip()
-        imgui.text(f"Default for {direction.value}:")
+        imgui.text(S.NODE_DEFAULT_FOR.format(direction=direction.value))
         default = default_flags_for(direction)
         for attr, letter, name in FLAG_LABELS:
             current = getattr(flags, attr)
@@ -222,7 +223,7 @@ class NodeEditorPanel:
                     else imgui.ImVec4(0.7, 0.3, 0.3, 1.0)
                 )
                 imgui.push_style_color(imgui.Col_.text, color)
-                imgui.text(label + "  (modified)")
+                imgui.text(label + "  " + S.NODE_MODIFIED)
                 imgui.pop_style_color()
             else:
                 imgui.text_disabled(label)
@@ -318,7 +319,7 @@ class NodeEditorPanel:
         if imgui.begin_popup("##DptPopup"):
             target = self._dpt_popup_target
             if target is not None:
-                imgui.text_disabled("Select DPT")
+                imgui.text_disabled(S.NODE_SELECT_DPT)
                 imgui.separator()
                 for dpt in target.supported_dpts:
                     selected = (
@@ -361,18 +362,20 @@ class NodeEditorPanel:
         if imgui.begin_popup_modal(
             "##LinkWarning", None, imgui.WindowFlags_.always_auto_resize
         )[0]:
-            imgui.text("This change will hide the following communication objects:")
+            imgui.text(S.LINK_WARNING_HIDE_COM_OBJECTS)
             imgui.spacing()
             for co in self._pending_hidden_cos:
                 imgui.bullet_text(co.name)
             imgui.spacing()
             imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
-            imgui.text(f"{len(self._pending_removed_links)} link(s) will be removed.")
+            imgui.text(
+                S.LINK_WARNING_REMOVED.format(count=len(self._pending_removed_links))
+            )
             imgui.pop_style_color()
             imgui.spacing()
             imgui.separator()
             imgui.spacing()
-            if imgui.button("Remove Links", imgui.ImVec2(120, 0)):
+            if imgui.button(S.BTN_REMOVE_LINKS, imgui.ImVec2(120, 0)):
                 if self._pending_param_change:
                     device, param_id, value = self._pending_param_change
                     for link in self._pending_removed_links:
@@ -383,7 +386,7 @@ class NodeEditorPanel:
                 self._pending_removed_links = []
                 imgui.close_current_popup()
             imgui.same_line()
-            if imgui.button("Cancel", imgui.ImVec2(120, 0)):
+            if imgui.button(S.BTN_CANCEL, imgui.ImVec2(120, 0)):
                 self._pending_param_change = None
                 self._pending_hidden_cos = []
                 self._pending_removed_links = []
@@ -510,7 +513,9 @@ class NodeEditorPanel:
             if is_locked:
                 imgui.end_disabled()
             if imgui.is_item_hovered(imgui.HoveredFlags_.allow_when_disabled):
-                tooltip = f"{full_name} (locked)" if is_locked else full_name
+                tooltip = (
+                    S.TOOLTIP_LOCKED.format(name=full_name) if is_locked else full_name
+                )
                 imgui.set_tooltip(tooltip)
 
     def _render_node_com_objects(self, device: Device) -> None:
@@ -622,7 +627,7 @@ class NodeEditorPanel:
             if changed:
                 self._try_set_param_value(device, param.id, new_value)
         elif pt.kind == ParamTypeKind.PICTURE:
-            imgui.text_disabled("(image)")
+            imgui.text_disabled(S.NODE_IMAGE_PLACEHOLDER)
         else:
             changed, new_value = imgui.input_text(f"##{param.id}", param.value)
             if changed:
@@ -662,21 +667,21 @@ class NodeEditorPanel:
 
     def _render_node_settings(self, device: Device, width: float) -> None:
         config = device.template.config
-        if imgui.tree_node(f"Manufacturer##{device.node_id}"):
-            self._render_label_value("Manufacturer", config.manufacturer)
-            self._render_label_value("Application", config.application)
-            self._render_label_value("Hardware", config.hardware)
-            self._render_label_value("Firmware", config.firmware)
+        if imgui.tree_node(f"{S.CONFIGURE_MANUFACTURER}##{device.node_id}"):
+            self._render_label_value(S.CONFIGURE_MANUFACTURER, config.manufacturer)
+            self._render_label_value(S.CONFIGURE_APPLICATION, config.application)
+            self._render_label_value(S.CONFIGURE_HARDWARE, config.hardware)
+            self._render_label_value(S.CONFIGURE_FIRMWARE, config.firmware)
             imgui.tree_pop()
         params = device.get_visible_parameters()
         if params:
-            is_open = imgui.tree_node(f"Parameters##{device.node_id}")
+            is_open = imgui.tree_node(f"{S.NODE_PARAMETERS}##{device.node_id}")
             imgui.same_line()
             imgui.text_disabled(f"({len(params)})")
             if is_open:
                 self._render_node_parameters(device)
                 imgui.tree_pop()
-        if imgui.tree_node(f"Com Flags##{device.node_id}"):
+        if imgui.tree_node(f"{S.NODE_COM_FLAGS}##{device.node_id}"):
             self._render_node_com_objects(device)
             imgui.tree_pop()
 
@@ -749,25 +754,29 @@ class NodeEditorPanel:
         imgui.begin_tooltip()
         if dir_a == dir_b:
             imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
-            label = "outputs" if dir_a == PinDir.OUTPUT else "inputs"
-            imgui.text(f"Cannot connect two {label}")
+            msg = (
+                S.LINK_CANNOT_CONNECT_OUTPUTS
+                if dir_a == PinDir.OUTPUT
+                else S.LINK_CANNOT_CONNECT_INPUTS
+            )
+            imgui.text(msg)
             imgui.pop_style_color()
         else:
             match = dpt_match(dpt_a, dpt_b)
             if match == DPTMatch.EXACT:
-                imgui.text(f"DPT {dpt_a.code} - {dpt_a.name}")
+                imgui.text(S.LINK_DPT_INFO.format(code=dpt_a.code, name=dpt_a.name))
             elif match == DPTMatch.LOOSE:
                 imgui.push_style_color(imgui.Col_.text, LINK_LOOSE_COLOR)
-                imgui.text("Warning: same byte format, different semantics")
+                imgui.text(S.LINK_WARNING_LOOSE_MATCH)
                 imgui.pop_style_color()
-                imgui.text(f"From: DPT {dpt_a.code} - {dpt_a.name}")
-                imgui.text(f"To:   DPT {dpt_b.code} - {dpt_b.name}")
+                imgui.text(S.LINK_FROM_DPT.format(code=dpt_a.code, name=dpt_a.name))
+                imgui.text(S.LINK_TO_DPT.format(code=dpt_b.code, name=dpt_b.name))
             else:
                 imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
-                imgui.text("Incompatible DPTs")
+                imgui.text(S.LINK_INCOMPATIBLE_DPTS)
                 imgui.pop_style_color()
-                imgui.text(f"From: DPT {dpt_a.code} - {dpt_a.name}")
-                imgui.text(f"To:   DPT {dpt_b.code} - {dpt_b.name}")
+                imgui.text(S.LINK_FROM_DPT.format(code=dpt_a.code, name=dpt_a.name))
+                imgui.text(S.LINK_TO_DPT.format(code=dpt_b.code, name=dpt_b.name))
         imgui.end_tooltip()
         ed.resume()
 
