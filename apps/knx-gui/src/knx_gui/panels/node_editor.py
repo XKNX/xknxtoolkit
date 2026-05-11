@@ -4,16 +4,17 @@ from dataclasses import dataclass
 from imgui_bundle import imgui
 from imgui_bundle import imgui_node_editor as ed
 
-from knx_gui.constants import LINK_INVALID_COLOR
+from knx_gui.widgets import (
+    EnumPopup,
+    render_parameters_grouped,
+)
 from knx_gui.dpt import DPT, DPTMatch, dpt_color, dpt_match
-from knx_gui.knxprod import ParamTypeKind
 from knx_gui.strings import S
 from knx_gui.types import (
     FLAG_LABELS,
     ComObject,
     ComObjectFlags,
     Device,
-    Parameter,
     PinDir,
     color_u32,
     com_object_has_input,
@@ -32,6 +33,7 @@ SETTINGS_LABEL_OFFSET = 120.0
 HEADER_COLOR = (0.2, 0.4, 0.7)
 LINK_COLOR = imgui.ImVec4(0.6, 0.6, 0.6, 1.0)
 LINK_LOOSE_COLOR = imgui.ImVec4(0.9, 0.7, 0.2, 1.0)
+LINK_INVALID_COLOR = imgui.ImVec4(0.9, 0.2, 0.2, 1.0)
 
 
 @dataclass
@@ -61,9 +63,8 @@ class NodeEditorPanel:
         get_links: Callable[[], list[tuple[int, int, int]]],
         add_link: Callable[[int, int], int],
         remove_link: Callable[[int], None],
-        on_param_change: Callable[[Device, str, str], list[ComObject]],
+        on_param_change: Callable[[Device, str, str], None],
         on_flag_change: Callable[[Device, str, str, bool], None],
-        on_param_persist: Callable[[Device, str, str], None] | None = None,
     ) -> None:
         self._get_devices = get_devices
         self._get_links = get_links
@@ -71,7 +72,6 @@ class NodeEditorPanel:
         self._remove_link = remove_link
         self._on_param_change = on_param_change
         self._on_flag_change = on_flag_change
-        self._on_param_persist = on_param_persist
 
         self._editor_context: ed.EditorContext | None = None
         self._next_pin_id: int = 100000
@@ -82,14 +82,7 @@ class NodeEditorPanel:
 
         self._dpt_popup_target: ComObject | None = None
         self._dpt_popup_request: ComObject | None = None
-        self._enum_popup_target: Parameter | None = None
-        self._enum_popup_request: Parameter | None = None
-        self._enum_popup_device: Device | None = None
-
-        self._pending_param_change: tuple[Device, str, str] | None = None
-        self._pending_hidden_cos: list[ComObject] = []
-        self._pending_removed_links: list[tuple[int, int, int]] = []
-        self._show_link_warning: bool = False
+        self._enum_popup = EnumPopup("##NodeEnumPopup", on_param_change)
 
     def setup(self) -> None:
         config = ed.Config()
@@ -125,7 +118,6 @@ class NodeEditorPanel:
 
         self._render_dpt_popup()
         self._render_enum_popup()
-        self._render_link_warning_popup()
 
     def select_node(self, node_id: int, clear_selection: bool = False) -> None:
         if self._editor_context:
@@ -144,6 +136,25 @@ class NodeEditorPanel:
         ed.set_current_editor(self._editor_context)
         selected = ed.get_selected_nodes()
         return [n.id() for n in selected]
+
+    def find_links_for_com_objects(
+        self, device: Device, cos: list[ComObject]
+    ) -> list[tuple[int, int, int]]:
+        co_to_idx = {id(co): idx for idx, co in enumerate(device.com_objects)}
+        pin_ids: set[int] = set()
+        for co in cos:
+            idx = co_to_idx.get(id(co))
+            if idx is not None:
+                for direction in ("in", "out"):
+                    key = (device.node_id, idx, direction)
+                    if key in self._pin_ids:
+                        pin_ids.add(self._pin_ids[key])
+        affected: list[tuple[int, int, int]] = []
+        for link in self._get_links():
+            _link_id, start, end = link
+            if start in pin_ids or end in pin_ids:
+                affected.append(link)
+        return affected
 
     def _get_pin_id(self, device_id: int, co_index: int, direction: str) -> int:
         key = (device_id, co_index, direction)
@@ -218,7 +229,7 @@ class NodeEditorPanel:
         for attr, letter, name in FLAG_LABELS:
             current = getattr(flags, attr)
             default_val = getattr(default, attr)
-            symbol = "✓" if current else "✗"
+            symbol = "+" if current else "-"
             label = f"{symbol} {letter}  {name}"
             if current != default_val:
                 color = (
@@ -332,68 +343,6 @@ class NodeEditorPanel:
         else:
             self._dpt_popup_target = None
 
-    def _render_enum_popup(self) -> None:
-        if self._enum_popup_request is not None:
-            self._enum_popup_target = self._enum_popup_request
-            self._enum_popup_request = None
-            imgui.open_popup("##EnumPopup")
-        if imgui.begin_popup("##EnumPopup"):
-            target = self._enum_popup_target
-            device = self._enum_popup_device
-            if (
-                target is not None
-                and target.param_type is not None
-                and device is not None
-            ):
-                for opt in target.param_type.options:
-                    selected = opt.value == target.value
-                    if imgui.menu_item(opt.text, "", selected)[0]:
-                        self._try_set_param_value(device, target.id, opt.value)
-            imgui.end_popup()
-        else:
-            self._enum_popup_target = None
-            self._enum_popup_device = None
-
-    def _render_link_warning_popup(self) -> None:
-        if self._show_link_warning:
-            imgui.open_popup("##LinkWarning")
-            self._show_link_warning = False
-        center = imgui.get_main_viewport().get_center()
-        imgui.set_next_window_pos(center, imgui.Cond_.appearing, imgui.ImVec2(0.5, 0.5))
-        if imgui.begin_popup_modal(
-            "##LinkWarning", None, imgui.WindowFlags_.always_auto_resize
-        )[0]:
-            imgui.text(S.LINK_WARNING_HIDE_COM_OBJECTS)
-            imgui.spacing()
-            for co in self._pending_hidden_cos:
-                imgui.bullet_text(co.name)
-            imgui.spacing()
-            imgui.push_style_color(imgui.Col_.text, LINK_INVALID_COLOR)
-            imgui.text(
-                S.LINK_WARNING_REMOVED.format(count=len(self._pending_removed_links))
-            )
-            imgui.pop_style_color()
-            imgui.spacing()
-            imgui.separator()
-            imgui.spacing()
-            if imgui.button(S.BTN_REMOVE_LINKS, imgui.ImVec2(120, 0)):
-                if self._pending_param_change:
-                    device, param_id, value = self._pending_param_change
-                    for link in self._pending_removed_links:
-                        self._remove_link(link[0])
-                    self._apply_param_value(device, param_id, value)
-                self._pending_param_change = None
-                self._pending_hidden_cos = []
-                self._pending_removed_links = []
-                imgui.close_current_popup()
-            imgui.same_line()
-            if imgui.button(S.BTN_CANCEL, imgui.ImVec2(120, 0)):
-                self._pending_param_change = None
-                self._pending_hidden_cos = []
-                self._pending_removed_links = []
-                imgui.close_current_popup()
-            imgui.end_popup()
-
     def _render_input_pin(
         self, pin_id: int, pin: ComObject, layout: NodeLayout
     ) -> None:
@@ -492,7 +441,9 @@ class NodeEditorPanel:
         imgui.same_line(SETTINGS_LABEL_OFFSET)
         imgui.text(value)
 
-    def _render_com_object_row(self, device: Device, com_object: ComObject, row_id: str) -> None:
+    def _render_com_object_row(
+        self, device: Device, com_object: ComObject, row_id: str
+    ) -> None:
         imgui.table_next_row()
         imgui.table_set_column_index(0)
         imgui.text(com_object.name)
@@ -529,151 +480,16 @@ class NodeEditorPanel:
             imgui.table_setup_column(letter)
         imgui.table_headers_row()
         for com_obj in device.get_visible_com_objects():
-            self._render_com_object_row(device, com_obj, f"{device.node_id}_{com_obj.id}")
+            self._render_com_object_row(
+                device, com_obj, f"{device.node_id}_{com_obj.id}"
+            )
         imgui.end_table()
-
-    def _group_parameters(self, params: list[Parameter]) -> dict[str, list[Parameter]]:
-        groups: dict[str, list[Parameter]] = {}
-        for param in params:
-            text = param.text if param.text else param.name
-            prefix = text.split(" - ")[0].strip() if " - " in text else "General"
-            if prefix not in groups:
-                groups[prefix] = []
-            groups[prefix].append(param)
-        return groups
-
-    def _try_set_param_value(self, device: Device, param_id: str, value: str) -> None:
-        hidden_cos = self._on_param_change(device, param_id, value)
-        if not hidden_cos:
-            self._apply_param_value(device, param_id, value)
-            return
-        affected_links = self._find_links_for_com_objects(device, hidden_cos)
-        if not affected_links:
-            self._apply_param_value(device, param_id, value)
-            return
-        self._pending_param_change = (device, param_id, value)
-        self._pending_hidden_cos = hidden_cos
-        self._pending_removed_links = affected_links
-        self._show_link_warning = True
-
-    def _apply_param_value(self, device: Device, param_id: str, value: str) -> None:
-        if self._on_param_persist:
-            self._on_param_persist(device, param_id, value)
-        else:
-            device.set_param_value(param_id, value)
-
-    def _find_links_for_com_objects(
-        self, device: Device, cos: list[ComObject]
-    ) -> list[tuple[int, int, int]]:
-        co_to_idx = {id(co): idx for idx, co in enumerate(device.com_objects)}
-        pin_ids: set[int] = set()
-        for co in cos:
-            idx = co_to_idx.get(id(co))
-            if idx is not None:
-                for direction in ("in", "out"):
-                    key = (device.node_id, idx, direction)
-                    if key in self._pin_ids:
-                        pin_ids.add(self._pin_ids[key])
-        affected: list[tuple[int, int, int]] = []
-        for link in self._get_links():
-            _link_id, start, end = link
-            if start in pin_ids or end in pin_ids:
-                affected.append(link)
-        return affected
-
-    def _render_param_widget(self, param: Parameter, device: Device) -> None:
-        pt = param.param_type
-        if pt is None:
-            changed, new_value = imgui.input_text(f"##{param.id}", param.value)
-            if changed:
-                self._try_set_param_value(device, param.id, new_value)
-            return
-
-        if pt.kind == ParamTypeKind.ENUM:
-            current_idx = 0
-            for i, opt in enumerate(pt.options):
-                if opt.value == param.value:
-                    current_idx = i
-                    break
-            preview = pt.options[current_idx].text if pt.options else param.value
-            if imgui.button(f"{preview}##{param.id}", imgui.ImVec2(-1, 0)):
-                self._enum_popup_request = param
-                self._enum_popup_device = device
-        elif pt.kind == ParamTypeKind.CHECKBOX:
-            checked = param.value == "1"
-            changed, new_checked = imgui.checkbox(f"##{param.id}", checked)
-            if changed:
-                self._try_set_param_value(device, param.id, "1" if new_checked else "0")
-        elif pt.kind == ParamTypeKind.NUMBER:
-            try:
-                int_val = int(param.value)
-            except ValueError:
-                int_val = pt.min_value or 0
-            min_v = pt.min_value if pt.min_value is not None else 0
-            max_v = pt.max_value if pt.max_value is not None else 65535
-            changed, new_val = imgui.drag_int(
-                f"##{param.id}", int_val, 1.0, min_v, max_v
-            )
-            if changed:
-                self._try_set_param_value(device, param.id, str(new_val))
-        elif pt.kind == ParamTypeKind.TIME:
-            try:
-                int_val = int(param.value)
-            except ValueError:
-                int_val = pt.min_value or 0
-            min_v = pt.min_value if pt.min_value is not None else 0
-            max_v = pt.max_value if pt.max_value is not None else 86400
-            changed, new_val = imgui.drag_int(
-                f"##{param.id}", int_val, 1.0, min_v, max_v
-            )
-            if changed:
-                self._try_set_param_value(device, param.id, str(new_val))
-        elif pt.kind == ParamTypeKind.TEXT:
-            changed, new_value = imgui.input_text(f"##{param.id}", param.value)
-            if changed:
-                self._try_set_param_value(device, param.id, new_value)
-        elif pt.kind == ParamTypeKind.PICTURE:
-            imgui.text_disabled(S.NODE_IMAGE_PLACEHOLDER)
-        else:
-            changed, new_value = imgui.input_text(f"##{param.id}", param.value)
-            if changed:
-                self._try_set_param_value(device, param.id, new_value)
-
-    def _render_node_parameters(self, device: Device) -> None:
-        params = device.get_visible_parameters()
-        if not params:
-            return
-        groups = self._group_parameters(params)
-        for group_name, group_params in sorted(groups.items()):
-            group_label = f"{group_name}##{device.node_id}_{group_name}"
-            is_open = imgui.tree_node(group_label)
-            imgui.same_line()
-            imgui.text_disabled(f"({len(group_params)})")
-            if is_open:
-                table_flags = imgui.TableFlags_.no_saved_settings
-                if imgui.begin_table(
-                    f"##params_{device.node_id}_{group_name}", 2, table_flags
-                ):
-                    imgui.table_setup_column(
-                        "Name", imgui.TableColumnFlags_.width_stretch
-                    )
-                    imgui.table_setup_column(
-                        "Value", imgui.TableColumnFlags_.width_fixed, 120
-                    )
-                    for param in group_params:
-                        imgui.table_next_row()
-                        imgui.table_set_column_index(0)
-                        display_text = param.text if param.text else param.name
-                        imgui.text(display_text)
-                        imgui.table_set_column_index(1)
-                        imgui.set_next_item_width(-1)
-                        self._render_param_widget(param, device)
-                    imgui.end_table()
-                imgui.tree_pop()
 
     def _render_node_settings(self, device: Device, width: float) -> None:
         if imgui.tree_node(f"{S.CONFIGURE_MANUFACTURER}##{device.node_id}"):
-            self._render_label_value(S.CONFIGURE_MANUFACTURER, device.app.manufacturer_id)
+            self._render_label_value(
+                S.CONFIGURE_MANUFACTURER, device.app.manufacturer_id
+            )
             self._render_label_value(S.CONFIGURE_APPLICATION, device.app.application_id)
             imgui.tree_pop()
         params = device.get_visible_parameters()
@@ -682,11 +498,18 @@ class NodeEditorPanel:
             imgui.same_line()
             imgui.text_disabled(f"({len(params)})")
             if is_open:
-                self._render_node_parameters(device)
+                req = render_parameters_grouped(
+                    device, params, self._on_param_change, deferred_enum=True
+                )
+                if req is not None:
+                    self._enum_popup.request(device, req.param)
                 imgui.tree_pop()
         if imgui.tree_node(f"{S.NODE_COM_FLAGS}##{device.node_id}"):
             self._render_node_com_objects(device)
             imgui.tree_pop()
+
+    def _render_enum_popup(self) -> None:
+        self._enum_popup.render()
 
     def _draw_node_header_bg(
         self, node_id: int, header: Rect, content_max_x: float
