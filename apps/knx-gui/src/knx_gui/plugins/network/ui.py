@@ -1,3 +1,4 @@
+import math
 from collections.abc import Callable
 from enum import Enum
 
@@ -55,14 +56,63 @@ class NetworkPanel:
         self._render_toolbar()
         self._render_table()
 
+    def _render_record_button(self, state: CaptureState) -> None:
+        draw_list = imgui.get_window_draw_list()
+        cursor = imgui.get_cursor_screen_pos()
+        text_height = imgui.get_text_line_height()
+        style = imgui.get_style()
+
+        dot_radius = 5
+        dot_center = imgui.ImVec2(
+            cursor.x + style.frame_padding.x + dot_radius,
+            cursor.y + text_height / 2 + style.frame_padding.y,
+        )
+
+        max_text_width = imgui.calc_text_size(S.BTN_RECORDING).x
+        button_width = style.frame_padding.x * 2 + dot_radius * 2 + 6 + max_text_width
+        text_pos = imgui.ImVec2(
+            cursor.x + style.frame_padding.x + dot_radius * 2 + 6,
+            cursor.y + style.frame_padding.y,
+        )
+
+        if state == CaptureState.CAPTURING:
+            pulse = 0.5 + 0.5 * math.sin(imgui.get_time() * 3.0)
+            alpha = 0.5 + 0.5 * pulse
+            draw_list.add_circle_filled(
+                dot_center, dot_radius, color_u32(0.9, 0.2, 0.2, alpha)
+            )
+            draw_list.add_circle_filled(
+                dot_center,
+                dot_radius + pulse * 3,
+                color_u32(0.9, 0.2, 0.2, 0.15 * (1 - pulse)),
+            )
+
+            if imgui.invisible_button(
+                "##record",
+                imgui.ImVec2(button_width, text_height + style.frame_padding.y * 2),
+            ):
+                self._on_stop()
+
+            if imgui.is_item_hovered():
+                draw_list.add_text(text_pos, color_u32(0.9, 0.3, 0.3, 1.0), S.BTN_STOP)
+            else:
+                draw_list.add_text(text_pos, color_u32(0.9, 0.3, 0.3, 1.0), S.BTN_RECORDING)
+        else:
+            draw_list.add_circle_filled(
+                dot_center, dot_radius, color_u32(0.5, 0.5, 0.5, 1.0)
+            )
+
+            if imgui.invisible_button(
+                "##record",
+                imgui.ImVec2(button_width, text_height + style.frame_padding.y * 2),
+            ):
+                self._on_start()
+
+            draw_list.add_text(text_pos, imgui.get_color_u32(imgui.Col_.text), S.BTN_RECORD)
+
     def _render_toolbar(self) -> None:
         state = self._get_capture_state()
-        if state == CaptureState.STOPPED:
-            if imgui.button("Start"):
-                self._on_start()
-        else:
-            if imgui.button("Stop"):
-                self._on_stop()
+        self._render_record_button(state)
 
         imgui.same_line()
         imgui.set_next_item_width(150)

@@ -48,6 +48,9 @@ class Strings:
     BTN_COPY = "Copy"
     BTN_CLEAR = "Clear"
     BTN_REMOVE_LINKS = "Remove Links"
+    BTN_RECORD = "Record"
+    BTN_RECORDING = "Recording"
+    BTN_STOP = "Stop"
 
     # Archive popup
     ARCHIVE_FAILED_TO_LOAD = "Failed to load archive"
