@@ -42,7 +42,8 @@ from xknx.telegram.apci import (
 from xknx.dpt import DPTBinary, DPTArray
 
 from knx_gui.plugins.base import PanelDefinition, PluginAPI
-from knx_gui.plugins.telegrams.ui import TelegramsPanel
+from knx_gui.plugins.telegrams.service import TelegramsService
+from knx_gui.plugins.telegrams.ui import CaptureState as UICaptureState, TelegramsPanel
 from knx_gui.strings import S
 from knx_gui.types import TelegramRecord
 
@@ -99,11 +100,15 @@ class TelegramsPlugin:
 
     def __init__(self, api: PluginAPI) -> None:
         self._api = api
-        self._telegrams: list[TelegramRecord] = list(MOCK_TELEGRAMS)
+        self._service = TelegramsService()
+        self._load_mock_data()
         self._panel = TelegramsPanel(
-            get_telegrams=lambda: self._telegrams,
+            get_telegrams=lambda: self._service.telegrams,
+            get_capture_state=lambda: UICaptureState(self._service.state.value),
+            on_start=self._service.start,
+            on_stop=self._service.stop,
+            on_clear=self._service.clear,
             on_focus_source=self._on_focus_source,
-            on_clear=self.clear_telegrams,
         )
         self._panels = [
             PanelDefinition(
@@ -115,14 +120,12 @@ class TelegramsPlugin:
         ]
 
     @property
-    def telegrams(self) -> list[TelegramRecord]:
-        return self._telegrams
+    def service(self) -> TelegramsService:
+        return self._service
 
-    def add_telegram(self, telegram: TelegramRecord) -> None:
-        self._telegrams.append(telegram)
-
-    def clear_telegrams(self) -> None:
-        self._telegrams.clear()
+    def _load_mock_data(self) -> None:
+        for record in MOCK_TELEGRAMS:
+            self._service._telegrams.append(record)
 
     def _on_focus_source(self, address: str) -> None:
         device = self._api.project.find_device_by_address(address)
