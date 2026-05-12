@@ -3,17 +3,21 @@ from collections.abc import Callable
 from imgui_bundle import imgui
 
 from knx_gui.strings import S
-from knx_gui.types import Telegram, color_u32
+from knx_gui.types import TelegramRecord, color_u32
 
 SERVICE_COLORS = {
     "GroupValueWrite": (0.4, 0.7, 0.4),
     "GroupValueRead": (0.5, 0.6, 0.8),
     "GroupValueResponse": (0.7, 0.6, 0.4),
 }
-SERVICE_ABBREV = {
-    "GroupValueWrite": "Write",
-    "GroupValueRead": "Read",
-    "GroupValueResponse": "Resp",
+TPCI_ABBREV = {
+    "TDataGroup": "Group",
+    "TDataBroadcast": "Bcast",
+    "TDataIndividual": "Indiv",
+    "TConnect": "Conn",
+    "TDisconnect": "Disc",
+    "TAck": "Ack",
+    "TNak": "Nak",
 }
 DEFAULT_SERVICE_COLOR = (0.5, 0.5, 0.5)
 
@@ -21,7 +25,7 @@ DEFAULT_SERVICE_COLOR = (0.5, 0.5, 0.5)
 class TelegramsPanel:
     def __init__(
         self,
-        get_telegrams: Callable[[], list[Telegram]],
+        get_telegrams: Callable[[], list[TelegramRecord]],
         on_focus_source: Callable[[str], None],
         on_clear: Callable[[], None],
     ) -> None:
@@ -87,7 +91,7 @@ class TelegramsPanel:
             | imgui.TableFlags_.scroll_y
             | imgui.TableFlags_.borders_inner_h
         )
-        if not imgui.begin_table("##telegrams", 6, flags, imgui.ImVec2(avail.x, avail.y)):
+        if not imgui.begin_table("##telegrams", 7, flags, imgui.ImVec2(avail.x, avail.y)):
             return
 
         imgui.table_setup_scroll_freeze(0, 1)
@@ -95,7 +99,8 @@ class TelegramsPanel:
         imgui.table_setup_column("", imgui.TableColumnFlags_.width_fixed, 12)
         imgui.table_setup_column("Source", imgui.TableColumnFlags_.width_fixed, 60)
         imgui.table_setup_column("Dest", imgui.TableColumnFlags_.width_fixed, 60)
-        imgui.table_setup_column("Type", imgui.TableColumnFlags_.width_fixed, 50)
+        imgui.table_setup_column("TPCI", imgui.TableColumnFlags_.width_fixed, 50)
+        imgui.table_setup_column("APCI", imgui.TableColumnFlags_.width_fixed, 200)
         imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_stretch)
         imgui.table_headers_row()
 
@@ -110,7 +115,7 @@ class TelegramsPanel:
         imgui.end_table()
         self._handle_shortcuts()
 
-    def _render_row(self, index: int, telegram: Telegram) -> None:
+    def _render_row(self, index: int, telegram: TelegramRecord) -> None:
         imgui.table_next_row()
 
         color = SERVICE_COLORS.get(telegram.service, DEFAULT_SERVICE_COLOR)
@@ -121,8 +126,7 @@ class TelegramsPanel:
             imgui.SelectableFlags_.span_all_columns
             | imgui.SelectableFlags_.allow_overlap
         )
-        time_short = telegram.timestamp.split(" ")[-1] if " " in telegram.timestamp else telegram.timestamp
-        if imgui.selectable(f"{time_short}##row{index}", selected, flags)[0]:
+        if imgui.selectable(f"{telegram.timestamp_str}##row{index}", selected, flags)[0]:
             self._handle_click(index, telegram)
 
         imgui.table_set_column_index(1)
@@ -143,18 +147,21 @@ class TelegramsPanel:
         imgui.text(telegram.destination)
 
         imgui.table_set_column_index(4)
-        abbrev = SERVICE_ABBREV.get(telegram.service, telegram.service[:4])
-        imgui.push_style_color(imgui.Col_.text, imgui.ImVec4(*color, 1.0))
-        imgui.text(abbrev)
-        imgui.pop_style_color()
+        tpci_abbrev = TPCI_ABBREV.get(telegram.tpci, telegram.tpci[:5] if telegram.tpci else "")
+        imgui.text_disabled(tpci_abbrev)
 
         imgui.table_set_column_index(5)
+        imgui.push_style_color(imgui.Col_.text, imgui.ImVec4(*color, 1.0))
+        imgui.text(telegram.service)
+        imgui.pop_style_color()
+
+        imgui.table_set_column_index(6)
         if telegram.dpt:
             imgui.text_disabled(f"[{telegram.dpt}]")
             imgui.same_line(0, 4)
         imgui.text(telegram.value if telegram.value else "-")
 
-    def _handle_click(self, index: int, telegram: Telegram) -> None:
+    def _handle_click(self, index: int, telegram: TelegramRecord) -> None:
         io = imgui.get_io()
         ctrl = io.key_ctrl or io.key_super
         shift = io.key_shift
@@ -185,7 +192,7 @@ class TelegramsPanel:
         self._selected.symmetric_difference_update({index})
         self._last_selected = index
 
-    def _select_single(self, index: int, telegram: Telegram) -> None:
+    def _select_single(self, index: int, telegram: TelegramRecord) -> None:
         self._selected = {index}
         self._last_selected = index
         self._on_focus_source(telegram.source)
@@ -199,12 +206,12 @@ class TelegramsPanel:
         if not indices:
             return
 
-        header = "Time\tSource\tDestination\tService\tDPT\tValue"
+        header = "Time\tSource\tDestination\tTPCI\tAPCI\tDPT\tValue"
         rows = [self._telegram_to_row(telegrams[i]) for i in indices if i < len(telegrams)]
         imgui.set_clipboard_text("\n".join([header, *rows]))
 
-    def _telegram_to_row(self, t: Telegram) -> str:
-        return f"{t.timestamp}\t{t.source}\t{t.destination}\t{t.service}\t{t.dpt}\t{t.value}"
+    def _telegram_to_row(self, t: TelegramRecord) -> str:
+        return f"{t.timestamp_str}\t{t.source}\t{t.destination}\t{t.tpci}\t{t.service}\t{t.dpt}\t{t.value}"
 
     def _clear_telegrams(self) -> None:
         self._selected.clear()
