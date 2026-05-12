@@ -1,12 +1,11 @@
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
+from knx_gui.types import TelegramRecord
 from xknx.cemi import CEMIFrame
 from xknx.telegram import Telegram
-
-from knx_gui.types import TelegramRecord
 
 
 class CaptureState(Enum):
@@ -42,9 +41,11 @@ class NetworkService:
         self._emit("capture_state_changed", self._state)
 
     def add_raw(self, cemi_bytes: bytes) -> TelegramRecord | None:
-        return self.add_raw_with_timestamp(cemi_bytes, datetime.now(timezone.utc))
+        return self.add_raw_with_timestamp(cemi_bytes, datetime.now(UTC))
 
-    def add_raw_with_timestamp(self, cemi_bytes: bytes, timestamp: datetime) -> TelegramRecord | None:
+    def add_raw_with_timestamp(
+        self, cemi_bytes: bytes, timestamp: datetime
+    ) -> TelegramRecord | None:
         if self._state != CaptureState.CAPTURING:
             return None
         telegram = self._parse_cemi(cemi_bytes)

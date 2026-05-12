@@ -331,6 +331,7 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "pyright" },
+    { name = "pytest" },
     { name = "ruff" },
 ]
 
@@ -339,6 +340,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.18.4" },
     { name = "imgui-bundle", specifier = ">=1.92.0" },
     { name = "pyright", marker = "extra == 'dev'" },
+    { name = "pytest", marker = "extra == 'dev'" },
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "sqlalchemy", specifier = ">=2.0.49" },
     { name = "xknx", specifier = ">=3.0.0" },
