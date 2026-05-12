@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 from imgui_bundle import imgui
 
@@ -9,13 +9,10 @@ from knx_gui.types import (
     Device,
 )
 
-if TYPE_CHECKING:
-    from knx_gui.state import AppState
-
 
 class ComFlagsTable:
-    def __init__(self, state: "AppState") -> None:
-        self._state = state
+    def __init__(self, set_flag: Callable[[Device, str, str, bool], None]) -> None:
+        self._set_flag = set_flag
 
     def render(self, device: Device, com_objects: list[ComObject]) -> None:
         flags = imgui.TableFlags_.borders_inner | imgui.TableFlags_.sizing_fixed_fit
@@ -53,7 +50,7 @@ class ComFlagsTable:
                 imgui.begin_disabled()
             changed, new_value = imgui.checkbox(f"##{row_id}_{attr}", current)
             if changed and not is_locked:
-                self._state.set_flag(device, com_object.id, attr, new_value)
+                self._set_flag(device, com_object.id, attr, new_value)
             if is_locked:
                 imgui.end_disabled()
 
