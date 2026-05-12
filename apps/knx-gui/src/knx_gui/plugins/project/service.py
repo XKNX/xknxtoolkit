@@ -1,9 +1,9 @@
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from knx_gui.dpt import lookup_or_make_dpt
 from knx_gui.knxprod import DeviceApplication, parse_application_xml
-from knx_gui.plugins.base import EventBus
 from knx_gui.plugins.project.db import (
     ComObjectDptChanged,
     ComObjectFlagChanged,
@@ -26,16 +26,26 @@ if TYPE_CHECKING:
 
 
 class ProjectService:
-    def __init__(self, event_bus: EventBus, catalog: "CatalogService") -> None:
-        self._event_bus = event_bus
+    def __init__(self, catalog: "CatalogService") -> None:
         self._catalog = catalog
         self._db: ProjectDatabase | None = None
+        self._listeners: dict[str, list[Callable[..., Any]]] = {}
 
         self._devices: list[Device] = []
         self._links: list[tuple[int, int, int]] = []
         self._selected_device: Device | None = None
         self._next_link_id: int = 1000
         self._next_device_id: int = 10
+
+    def subscribe(self, event: str, handler: Callable[..., Any]) -> Callable[[], None]:
+        if event not in self._listeners:
+            self._listeners[event] = []
+        self._listeners[event].append(handler)
+        return lambda: self._listeners[event].remove(handler)
+
+    def _emit(self, event: str, *args: Any) -> None:
+        for handler in self._listeners.get(event, []):
+            handler(*args)
 
     @property
     def devices(self) -> list[Device]:
@@ -53,7 +63,7 @@ class ProjectService:
     def selected_device(self, device: Device | None) -> None:
         if self._selected_device != device:
             self._selected_device = device
-            self._event_bus.emit("device_selected", device)
+            self._emit("device_selected", device)
 
     def add_device_to_state(self, app: "DeviceApplication", address: str = "") -> Device:
         device = Device(
@@ -86,14 +96,14 @@ class ProjectService:
         link_id = self._next_link_id
         self._next_link_id += 1
         self._links.append((link_id, start_pin, end_pin))
-        self._event_bus.emit("link_added", link_id, start_pin, end_pin)
+        self._emit("link_added", link_id, start_pin, end_pin)
         return link_id
 
     def remove_link_from_state(self, link_id: int) -> None:
         link_data = next((link for link in self._links if link[0] == link_id), None)
         self._links = [link for link in self._links if link[0] != link_id]
         if link_data:
-            self._event_bus.emit("link_removed", link_data[0], link_data[1], link_data[2])
+            self._emit("link_removed", link_data[0], link_data[1], link_data[2])
 
     def clear_links(self) -> None:
         self._links.clear()
@@ -117,13 +127,13 @@ class ProjectService:
         old_value = getattr(com_object.flags, flag_name)
         if old_value != new_value:
             setattr(com_object.flags, flag_name, new_value)
-            self._event_bus.emit("flag_changed", device, co_id, flag_name, old_value, new_value)
+            self._emit("flag_changed", device, co_id, flag_name, old_value, new_value)
 
     def set_param(self, device: Device, param_id: str, new_value: str) -> None:
         old_value = device._param_values.get(param_id, "")
         if old_value != new_value:
             device.set_param_value(param_id, new_value)
-            self._event_bus.emit("param_changed", device, param_id, old_value, new_value)
+            self._emit("param_changed", device, param_id, old_value, new_value)
 
     def check_param_change_hides_com_objects(
         self, device: Device, param_id: str, value: str
@@ -230,13 +240,13 @@ class ProjectService:
             self._db.close()
         if not path.suffix:
             path = path.with_suffix(".xknx")
-        self._db = ProjectDatabase(path, self._event_bus)
+        self._db = ProjectDatabase(path)
         self._db.create()
 
     def open(self, path: Path) -> None:
         if self._db:
             self._db.close()
-        self._db = ProjectDatabase(path, self._event_bus)
+        self._db = ProjectDatabase(path)
         self._db.open()
         self._reload_from_db()
 

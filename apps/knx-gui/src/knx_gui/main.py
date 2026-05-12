@@ -6,7 +6,7 @@ from imgui_bundle import portable_file_dialogs as pfd
 from xknxmono.product.errors import ArchiveError
 
 from knx_gui.knxprod import DeviceApplication
-from knx_gui.plugins.base import API_VERSION, EventBus, PanelDefinition, PluginAPI
+from knx_gui.plugins.base import API_VERSION, PanelDefinition, PluginAPI
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
 from knx_gui.plugins.connection import ConnectionPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
@@ -29,14 +29,12 @@ class KnxGuiApp:
         self._open_project_dialog: pfd.open_file | None = None
         self._save_project_dialog: pfd.save_file | None = None
 
-        self._event_bus = EventBus()
-        self._project_service = ProjectService(self._event_bus, self._catalog_service)
+        self._project_service = ProjectService(self._catalog_service)
 
         self._plugin_api = PluginAPI(
             api_version=API_VERSION,
             project=self._project_service,
             catalog=self._catalog_service,
-            events=self._event_bus,
         )
 
         self._catalog_plugin = CatalogPlugin(self._plugin_api)

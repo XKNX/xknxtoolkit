@@ -34,7 +34,7 @@ class NodeEditorPlugin:
             ),
         ]
 
-        api.events.subscribe("device_selected", self._on_device_selected)
+        api.project.subscribe("device_selected", self._on_device_selected)
 
     def _add_link(self, start_pin: int, end_pin: int) -> int:
         return self._api.project.add_link_to_state(start_pin, end_pin)
