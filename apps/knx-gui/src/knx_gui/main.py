@@ -693,6 +693,7 @@ def main() -> None:
     runner_params.callbacks.show_menus = app.gui_menu
 
     runner_params.imgui_window_params.show_status_bar = True
+    runner_params.imgui_window_params.remember_status_bar_settings = False
     runner_params.callbacks.show_status = app.gui_status_bar
 
     runner_params.docking_params.docking_splits = create_docking_splits()
