@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from imgui_bundle import imgui
 
@@ -6,21 +7,24 @@ from knx_gui.strings import S
 from knx_gui.types import Device
 from knx_gui.widgets import ComFlagsTable, render_parameters_grouped
 
+if TYPE_CHECKING:
+    from knx_gui.state import AppState
+
 
 class ConfigurePanel:
     def __init__(
         self,
+        state: "AppState",
         get_devices: Callable[[], list[Device]],
         get_selected_device: Callable[[], Device | None],
         set_selected_device: Callable[[Device], None],
         on_param_change: Callable[[Device, str, str], None],
-        on_flag_change: Callable[[Device, str, str, bool], None],
     ) -> None:
         self._get_devices = get_devices
         self._get_selected_device = get_selected_device
         self._set_selected_device = set_selected_device
         self._on_param_change = on_param_change
-        self._com_flags_table = ComFlagsTable(on_flag_change)
+        self._com_flags_table = ComFlagsTable(state)
 
     def render(self) -> None:
         devices = self._get_devices()

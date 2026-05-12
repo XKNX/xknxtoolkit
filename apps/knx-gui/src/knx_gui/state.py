@@ -1,19 +1,58 @@
-from dataclasses import dataclass, field
+from collections import defaultdict
+from collections.abc import Callable
+from typing import Any
 
 from knx_gui.knxprod import DeviceApplication
 from knx_gui.types import ComObject, Device, Telegram
 
 
-@dataclass
 class AppState:
-    devices: list[Device] = field(default_factory=list)
-    links: list[tuple[int, int, int]] = field(default_factory=list)
-    telegrams: list[Telegram] = field(default_factory=list)
-    connected: bool = False
-    controller_ip: str = "192.168.1.1"
-    selected_device: Device | None = None
-    _next_link_id: int = 1000
-    _next_device_id: int = 10
+    def __init__(self) -> None:
+        self.devices: list[Device] = []
+        self.links: list[tuple[int, int, int]] = []
+        self.telegrams: list[Telegram] = []
+        self.connected: bool = False
+        self.controller_ip: str = "192.168.1.1"
+        self._selected_device: Device | None = None
+        self._next_link_id: int = 1000
+        self._next_device_id: int = 10
+        self._listeners: dict[str, list[Callable[..., Any]]] = defaultdict(list)
+
+    def subscribe(self, event: str, callback: Callable[..., Any]) -> Callable[[], None]:
+        self._listeners[event].append(callback)
+        return lambda: self._listeners[event].remove(callback)
+
+    def _emit(self, event: str, *args: Any) -> None:
+        for callback in self._listeners[event]:
+            callback(*args)
+
+    @property
+    def selected_device(self) -> Device | None:
+        return self._selected_device
+
+    @selected_device.setter
+    def selected_device(self, device: Device | None) -> None:
+        if self._selected_device != device:
+            self._selected_device = device
+            self._emit("device_selected", device)
+
+    def set_flag(self, device: Device, co_id: str, flag_name: str, new_value: bool) -> None:
+        com_object = device.find_com_object(co_id)
+        if not com_object:
+            return
+        old_value = getattr(com_object.flags, flag_name)
+        if old_value != new_value:
+            setattr(com_object.flags, flag_name, new_value)
+            self._emit("flag_changed", device, co_id, flag_name, old_value, new_value)
+
+    def request_reload(self) -> None:
+        self._emit("reload_requested")
+
+    def set_param(self, device: Device, param_id: str, new_value: str) -> None:
+        old_value = device._param_values.get(param_id, "")
+        if old_value != new_value:
+            device.set_param_value(param_id, new_value)
+            self._emit("param_changed", device, param_id, old_value, new_value)
 
     def add_device(self, app: DeviceApplication, address: str = "") -> Device:
         device = Device(

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from imgui_bundle import hello_imgui, imgui
 from imgui_bundle import portable_file_dialogs as pfd
+from xknxmono.product.errors import ArchiveError
 
 from knx_gui.dialogs import LinkWarningDialog
 from knx_gui.dpt import lookup_or_make_dpt
@@ -11,15 +12,13 @@ from knx_gui.panels import NodeEditorPanel, TelegramsPanel
 from knx_gui.plugins.base import API_VERSION, EventBus, PluginAPI
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
 from knx_gui.plugins.catalog.db import ApplicationModel
-from knx_gui.plugins.project import ProjectService
-from knx_gui.plugins.project.ui import ConfigurePanel, DevicesPanel, HistoryPanel
+from knx_gui.plugins.project import ProjectPlugin, ProjectService
 from knx_gui.state import AppState, create_empty_state
 from knx_gui.strings import S
 from knx_gui.types import (
     Device,
     color_u32,
 )
-from xknxmono.product.errors import ArchiveError
 
 NAVIGATE_TO_NODE_DURATION = 0.3
 
@@ -55,16 +54,12 @@ class KnxGuiApp:
         )
 
         self._node_editor_panel = NodeEditorPanel(
+            state=self._state,
             get_devices=lambda: self._state.devices,
             get_links=lambda: self._state.links,
             add_link=self._add_link,
             remove_link=self._remove_link,
             on_param_change=self._on_param_change,
-            on_flag_change=self._on_flag_change,
-        )
-        self._devices_panel = DevicesPanel(
-            get_devices=lambda: self._state.devices,
-            on_select_device=self._select_and_navigate_to_device,
         )
         self._catalog_plugin = CatalogPlugin(self._plugin_api)
         self._catalog_panel = self._catalog_plugin.create_panel()
@@ -72,60 +67,22 @@ class KnxGuiApp:
             get_telegrams=lambda: self._state.telegrams,
             on_focus_source=self._focus_device_by_address,
         )
-        self._configure_panel = ConfigurePanel(
-            get_devices=lambda: self._state.devices,
-            get_selected_device=lambda: self._state.selected_device,
-            set_selected_device=self._set_selected_device,
+        self._project_plugin = ProjectPlugin(
+            api=self._plugin_api,
             on_param_change=self._on_param_change,
-            on_flag_change=self._on_flag_change,
-        )
-        self._history_panel = HistoryPanel(
-            get_entries=self._get_history_entries,
-            get_cursor=self._get_cursor,
-            on_jump_to=self._on_jump_to,
         )
 
-    def _get_history_entries(self) -> list:
-        if not self._project_service.is_open:
-            return []
-        from knx_gui.plugins.project.db import EventModel
-        from knx_gui.plugins.project.db.events import deserialize_event
-        from knx_gui.plugins.project.ui import HistoryEntry
+        self._state.subscribe("device_selected", self._on_device_selected)
+        self._state.subscribe("reload_requested", self._on_reload_requested)
 
-        entries = []
-        for e in (
-            self._project_service.session.query(EventModel).order_by(EventModel.id.desc()).all()
-        ):
-            event = deserialize_event(e.type, e.data)
-            entries.append(
-                HistoryEntry(
-                    id=e.id, display_text=event.display_text(), reverted=e.reverted
-                )
-            )
-        return entries
-
-    def _get_cursor(self) -> int:
-        if not self._project_service.is_open:
-            return 0
-        return self._project_service.cursor
-
-    def _on_jump_to(self, event_id: int) -> None:
-        if not self._project_service.is_open:
-            return
-        self._project_service.jump_to(event_id)
-        self._project_service.session.expire_all()
+    def _on_reload_requested(self) -> None:
         self._load_devices_from_db()
         self._load_links_from_db()
 
-    def _select_and_navigate_to_device(self, device: Device) -> None:
-        self._state.selected_device = device
-        self._node_editor_panel.select_node(device.node_id, False)
-        self._node_editor_panel.navigate_to_selection(False, NAVIGATE_TO_NODE_DURATION)
-
-    def _set_selected_device(self, device: Device | None) -> None:
-        self._state.selected_device = device
+    def _on_device_selected(self, device: Device | None) -> None:
         if device:
             self._node_editor_panel.select_node(device.node_id, False)
+            self._node_editor_panel.navigate_to_selection(False, NAVIGATE_TO_NODE_DURATION)
 
     def _remove_device(self, device_id: str) -> None:
         raise NotImplementedError("Device removal not yet implemented")
@@ -148,7 +105,7 @@ class KnxGuiApp:
                 )
                 return
 
-        self._apply_param_change(device, param_id, value)
+        self._state.set_param(device, param_id, value)
 
     def _on_link_warning_confirm(
         self,
@@ -159,33 +116,7 @@ class KnxGuiApp:
     ) -> None:
         for link in affected_links:
             self._remove_link(link[0])
-        self._apply_param_change(device, param_id, value)
-
-    def _apply_param_change(self, device: Device, param_id: str, value: str) -> None:
-        old_value = device._param_values.get(param_id, "")
-        device.set_param_value(param_id, value)
-        self._project_service.set_parameter(
-            device_id=device.node_id,
-            param_id=param_id,
-            old_value=old_value,
-            new_value=value,
-        )
-
-    def _on_flag_change(
-        self, device: Device, co_id: str, flag_name: str, new_value: bool
-    ) -> None:
-        com_object = device.find_com_object(co_id)
-        if not com_object:
-            return
-        old_value = getattr(com_object.flags, flag_name)
-        setattr(com_object.flags, flag_name, new_value)
-        self._project_service.set_com_object_flag(
-            device_id=device.node_id,
-            co_id=co_id,
-            flag_name=flag_name,
-            old_value=old_value,
-            new_value=new_value,
-        )
+        self._state.set_param(device, param_id, value)
 
     def _focus_device_by_address(self, address: str) -> None:
         device = self._state.find_device_by_address(address)
@@ -268,7 +199,11 @@ class KnxGuiApp:
     def _load_devices_from_db(self) -> None:
         if not self._project_service.is_open:
             return
-        from knx_gui.plugins.project.db import ComObjectModel, DeviceModel, ParameterModel
+        from knx_gui.plugins.project.db import (
+            ComObjectModel,
+            DeviceModel,
+            ParameterModel,
+        )
 
         selected_node_id = (
             self._state.selected_device.node_id if self._state.selected_device else None
@@ -523,7 +458,7 @@ class KnxGuiApp:
         self._handle_shortcuts()
 
     def gui_devices(self) -> None:
-        self._devices_panel.render()
+        self._project_plugin.devices_panel.render()
 
     def gui_catalog(self) -> None:
         self._catalog_panel.render()
@@ -537,10 +472,10 @@ class KnxGuiApp:
 
     def gui_configure(self) -> None:
         self._sync_selected_device_from_editor()
-        self._configure_panel.render()
+        self._project_plugin.configure_panel.render()
 
     def gui_history(self) -> None:
-        self._history_panel.render()
+        self._project_plugin.history_panel.render()
 
 
 def create_docking_splits() -> list[hello_imgui.DockingSplit]:
