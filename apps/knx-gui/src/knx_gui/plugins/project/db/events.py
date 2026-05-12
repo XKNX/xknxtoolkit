@@ -5,7 +5,7 @@ from typing import Any, ClassVar
 
 from sqlalchemy.orm import Session
 
-from knx_gui.project.models import (
+from knx_gui.plugins.project.db.models import (
     ComObjectModel,
     DeviceModel,
     LinkModel,
@@ -220,7 +220,9 @@ class DeviceAddressChanged(Event):
         )
 
     def display_text(self) -> str:
-        return S.HISTORY_ADDRESS_CHANGE.format(old=self.old_address, new=self.new_address)
+        return S.HISTORY_ADDRESS_CHANGE.format(
+            old=self.old_address, new=self.new_address
+        )
 
 
 @dataclass

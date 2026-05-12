@@ -1,15 +1,20 @@
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from knx_gui.project.events import Event, deserialize_event
-from knx_gui.project.models import EventModel
+from knx_gui.plugins.project.db.events import Event, deserialize_event
+from knx_gui.plugins.project.db.models import EventModel
+
+if TYPE_CHECKING:
+    from knx_gui.plugins.base import EventBus
 
 
 class EventStore:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, event_bus: "EventBus | None" = None) -> None:
         self._session = session
+        self._event_bus = event_bus
         self._cursor = self._calculate_cursor()
 
     def _calculate_cursor(self) -> int:
@@ -41,6 +46,9 @@ class EventStore:
 
         event.id = event_model.id
         self._cursor = event_model.id
+
+        if self._event_bus:
+            self._event_bus.emit(event)
 
     def undo(self) -> bool:
         if not self.can_undo():

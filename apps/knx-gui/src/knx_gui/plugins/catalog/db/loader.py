@@ -1,11 +1,12 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-from knx_gui.catalog.database import CatalogDatabase
-from knx_gui.catalog.models import ApplicationModel
-from knx_gui.knxprod import parse_application_xml
 from xknxmono.models import load_xml
 from xknxmono.product.archive import ProductArchive
+
+from knx_gui.knxprod import parse_application_xml
+from knx_gui.plugins.catalog.db.database import CatalogDatabase
+from knx_gui.plugins.catalog.db.models import ApplicationModel
 
 
 def _parse_manufacturer_names(master_xml: bytes) -> dict[str, str]:

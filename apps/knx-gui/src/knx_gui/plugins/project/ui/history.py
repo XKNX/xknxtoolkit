@@ -36,7 +36,10 @@ class HistoryPanel:
             is_current = entry.id == cursor
 
             if entry.reverted:
-                imgui.push_style_color(imgui.Col_.text, imgui.get_style_color_vec4(imgui.Col_.text_disabled))
+                imgui.push_style_color(
+                    imgui.Col_.text,
+                    imgui.get_style_color_vec4(imgui.Col_.text_disabled),
+                )
 
             row_min_y = imgui.get_cursor_screen_pos().y
             if is_current:
@@ -44,7 +47,9 @@ class HistoryPanel:
                 cursor_pos = imgui.get_cursor_screen_pos()
                 text_height = imgui.get_text_line_height()
                 center = imgui.ImVec2(cursor_pos.x + 6, cursor_pos.y + text_height / 2)
-                draw_list.add_circle_filled(center, 4, imgui.get_color_u32(imgui.ImVec4(0.2, 0.8, 0.3, 1.0)))
+                draw_list.add_circle_filled(
+                    center, 4, imgui.get_color_u32(imgui.ImVec4(0.2, 0.8, 0.3, 1.0))
+                )
             imgui.dummy(imgui.ImVec2(14, 0))
             imgui.same_line()
 
