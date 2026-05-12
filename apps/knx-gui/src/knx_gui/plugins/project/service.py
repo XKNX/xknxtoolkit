@@ -13,6 +13,7 @@ from knx_gui.plugins.project.db import (
     ParameterChanged,
     ProjectDatabase,
 )
+from knx_gui.types import ComObject, Device
 
 if TYPE_CHECKING:
     from knx_gui.knxprod import DeviceApplication
@@ -22,6 +23,108 @@ class ProjectService:
     def __init__(self, event_bus: EventBus) -> None:
         self._event_bus = event_bus
         self._db: ProjectDatabase | None = None
+
+        self._devices: list[Device] = []
+        self._links: list[tuple[int, int, int]] = []
+        self._selected_device: Device | None = None
+        self._next_link_id: int = 1000
+        self._next_device_id: int = 10
+
+    @property
+    def devices(self) -> list[Device]:
+        return self._devices
+
+    @property
+    def links(self) -> list[tuple[int, int, int]]:
+        return self._links
+
+    @property
+    def selected_device(self) -> Device | None:
+        return self._selected_device
+
+    @selected_device.setter
+    def selected_device(self, device: Device | None) -> None:
+        if self._selected_device != device:
+            self._selected_device = device
+            self._event_bus.emit("device_selected", device)
+
+    def add_device_to_state(self, app: "DeviceApplication", address: str = "") -> Device:
+        device = Device(
+            node_id=self._next_device_id,
+            name=app.name,
+            app=app,
+            address=address,
+        )
+        self._next_device_id += 1
+        self._devices.append(device)
+        return device
+
+    def add_device_to_state_with_id(
+        self, app: "DeviceApplication", node_id: int, address: str = ""
+    ) -> Device:
+        device = Device(
+            node_id=node_id,
+            name=app.name,
+            app=app,
+            address=address,
+        )
+        self._devices.append(device)
+        return device
+
+    def clear_devices(self) -> None:
+        self._devices.clear()
+        self._selected_device = None
+
+    def add_link_to_state(self, start_pin: int, end_pin: int) -> int:
+        link_id = self._next_link_id
+        self._next_link_id += 1
+        self._links.append((link_id, start_pin, end_pin))
+        self._event_bus.emit("link_added", link_id, start_pin, end_pin)
+        return link_id
+
+    def remove_link_from_state(self, link_id: int) -> None:
+        link_data = next((link for link in self._links if link[0] == link_id), None)
+        self._links = [link for link in self._links if link[0] != link_id]
+        if link_data:
+            self._event_bus.emit("link_removed", link_data[0], link_data[1], link_data[2])
+
+    def clear_links(self) -> None:
+        self._links.clear()
+
+    def find_device_by_address(self, address: str) -> Device | None:
+        for device in self._devices:
+            if device.address == address:
+                return device
+        return None
+
+    def find_device_by_node_id(self, node_id: int) -> Device | None:
+        for device in self._devices:
+            if device.node_id == node_id:
+                return device
+        return None
+
+    def set_flag(self, device: Device, co_id: str, flag_name: str, new_value: bool) -> None:
+        com_object = device.find_com_object(co_id)
+        if not com_object:
+            return
+        old_value = getattr(com_object.flags, flag_name)
+        if old_value != new_value:
+            setattr(com_object.flags, flag_name, new_value)
+            self._event_bus.emit("flag_changed", device, co_id, flag_name, old_value, new_value)
+
+    def set_param(self, device: Device, param_id: str, new_value: str) -> None:
+        old_value = device._param_values.get(param_id, "")
+        if old_value != new_value:
+            device.set_param_value(param_id, new_value)
+            self._event_bus.emit("param_changed", device, param_id, old_value, new_value)
+
+    def check_param_change_hides_com_objects(
+        self, device: Device, param_id: str, value: str
+    ) -> list[ComObject]:
+        return device.would_hide_com_objects(param_id, value)
+
+    def request_reload(self) -> None:
+        self._event_bus.emit("reload_requested")
 
     @property
     def is_open(self) -> bool:

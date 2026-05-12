@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from knx_gui.plugins.base import PluginAPI
@@ -11,25 +10,20 @@ if TYPE_CHECKING:
 class ProjectPlugin:
     name = "project"
 
-    def __init__(
-        self,
-        api: PluginAPI,
-        on_param_change: Callable[["Device", str, str], None] | None = None,
-    ) -> None:
+    def __init__(self, api: PluginAPI) -> None:
         self._api = api
-        self._external_on_param_change = on_param_change
 
         self._devices_panel = DevicesPanel(
-            get_devices=lambda: api.state.devices,
+            get_devices=lambda: api.project.devices,
             on_select_device=self._on_select_device,
         )
 
         self._configure_panel = ConfigurePanel(
-            state=api.state,
-            get_devices=lambda: api.state.devices,
-            get_selected_device=lambda: api.state.selected_device,
+            get_devices=lambda: api.project.devices,
+            get_selected_device=lambda: api.project.selected_device,
             set_selected_device=self._set_selected_device,
             on_param_change=self._handle_param_change,
+            set_flag=self._handle_flag_change,
         )
 
         self._history_panel = HistoryPanel(
@@ -38,22 +32,24 @@ class ProjectPlugin:
             on_jump_to=self._handle_jump_to,
         )
 
-        api.state.subscribe("flag_changed", self._on_flag_changed)
-        api.state.subscribe("param_changed", self._on_param_changed)
-        api.state.subscribe("link_added", self._on_link_added)
-        api.state.subscribe("link_removed", self._on_link_removed)
+        api.events.subscribe("flag_changed", self._on_flag_changed)
+        api.events.subscribe("param_changed", self._on_param_changed)
+        api.events.subscribe("link_added", self._on_link_added)
+        api.events.subscribe("link_removed", self._on_link_removed)
 
     def _on_select_device(self, device: "Device") -> None:
-        self._api.state.selected_device = device
+        self._api.project.selected_device = device
 
     def _set_selected_device(self, device: "Device") -> None:
-        self._api.state.selected_device = device
+        self._api.project.selected_device = device
 
     def _handle_param_change(self, device: "Device", param_id: str, new_value: str) -> None:
-        if self._external_on_param_change:
-            self._external_on_param_change(device, param_id, new_value)
-        else:
-            self._api.state.set_param(device, param_id, new_value)
+        self._api.project.set_param(device, param_id, new_value)
+
+    def _handle_flag_change(
+        self, device: "Device", co_id: str, flag_name: str, new_value: bool
+    ) -> None:
+        self._api.project.set_flag(device, co_id, flag_name, new_value)
 
     def _on_param_changed(
         self, device: "Device", param_id: str, old_value: str, new_value: str
@@ -102,7 +98,7 @@ class ProjectPlugin:
             return
         self._api.project.jump_to(event_id)
         self._api.project.session.expire_all()
-        self._api.state.request_reload()
+        self._api.project.request_reload()
 
     @property
     def devices_panel(self) -> DevicesPanel:

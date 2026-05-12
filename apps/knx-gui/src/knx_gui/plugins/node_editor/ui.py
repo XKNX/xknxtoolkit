@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 from imgui_bundle import imgui
 from imgui_bundle import imgui_node_editor as ed
@@ -24,9 +23,6 @@ from knx_gui.widgets import (
     EnumPopup,
     render_parameters_grouped,
 )
-
-if TYPE_CHECKING:
-    from knx_gui.state import AppState
 
 NODE_PADDING = 8.0
 HEADER_INSET = 1.0
@@ -64,14 +60,13 @@ class Rect:
 class NodeEditorPanel:
     def __init__(
         self,
-        state: "AppState",
         get_devices: Callable[[], list[Device]],
         get_links: Callable[[], list[tuple[int, int, int]]],
         add_link: Callable[[int, int], int],
         remove_link: Callable[[int], None],
         on_param_change: Callable[[Device, str, str], None],
+        set_flag: Callable[[Device, str, str, bool], None],
     ) -> None:
-        self._state = state
         self._get_devices = get_devices
         self._get_links = get_links
         self._add_link = add_link
@@ -88,7 +83,7 @@ class NodeEditorPanel:
         self._dpt_popup_target: ComObject | None = None
         self._dpt_popup_request: ComObject | None = None
         self._enum_popup = EnumPopup("##NodeEnumPopup", on_param_change)
-        self._com_flags_table = ComFlagsTable(state)
+        self._com_flags_table = ComFlagsTable(set_flag)
 
     def setup(self) -> None:
         config = ed.Config()
