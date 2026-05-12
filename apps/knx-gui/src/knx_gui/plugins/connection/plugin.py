@@ -13,6 +13,8 @@ from knx_gui.strings import S
 from knx_gui.types import color_u32
 from xknx import XKNX
 from xknx.io.connection import ConnectionConfig, ConnectionType
+from xknx.io.gateway_scanner import GatewayDescriptor
+from xknx.io.self_description import request_description
 
 
 class ConnectionState(Enum):
@@ -40,6 +42,7 @@ class ConnectionPlugin:
 
         self._xknx: XKNX | None = None
         self._interface: ObservableKNXIPInterfaceThreaded | None = None
+        self._gateway_info: GatewayDescriptor | None = None
         self._async_loop: asyncio.AbstractEventLoop | None = None
         self._async_thread: threading.Thread | None = None
 
@@ -99,11 +102,16 @@ class ConnectionPlugin:
                 raw_cemi_callback=self._raw_cemi_callback,
             )
             await self._interface.start()
+            try:
+                self._gateway_info = await request_description(self._controller_ip)
+            except Exception:
+                self._gateway_info = None
             self._state = ConnectionState.CONNECTED
         except Exception as e:
             self._state = ConnectionState.ERROR
             self._error_message = str(e)
             self._interface = None
+            self._gateway_info = None
             self._xknx = None
 
     def disconnect(self) -> None:
@@ -118,6 +126,7 @@ class ConnectionPlugin:
                 await self._interface.stop()
         finally:
             self._interface = None
+            self._gateway_info = None
             self._xknx = None
             self._state = ConnectionState.DISCONNECTED
 
@@ -169,6 +178,25 @@ class ConnectionPlugin:
         if imgui.begin_menu(S.MENU_CONNECTION):
             if self._state == ConnectionState.CONNECTED:
                 imgui.text(S.STATUS_CONNECTED_TO.format(ip=self._controller_ip))
+                if self._gateway_info:
+                    imgui.separator()
+                    imgui.text_disabled("Gateway")
+                    imgui.text(f"  Name: {self._gateway_info.name}")
+                    if self._gateway_info.individual_address:
+                        imgui.text(f"  KNX Address: {self._gateway_info.individual_address}")
+                    imgui.text(f"  Core Version: {self._gateway_info.core_version}")
+                    services = []
+                    if self._gateway_info.supports_tunnelling:
+                        services.append("Tunneling")
+                    if self._gateway_info.supports_tunnelling_tcp:
+                        services.append("TCP Tunneling")
+                    if self._gateway_info.supports_routing:
+                        services.append("Routing")
+                    if self._gateway_info.supports_secure:
+                        services.append("Secure")
+                    if services:
+                        imgui.text(f"  Services: {', '.join(services)}")
+                imgui.separator()
                 if imgui.menu_item(S.MENU_DISCONNECT, "", False)[0]:
                     self.disconnect()
             elif self._state == ConnectionState.CONNECTING:
