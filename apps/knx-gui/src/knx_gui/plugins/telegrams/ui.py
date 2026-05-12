@@ -1,30 +1,21 @@
 from collections.abc import Callable
-from dataclasses import dataclass
 
 from imgui_bundle import imgui
 
 from knx_gui.strings import S
-from knx_gui.types import Telegram
+from knx_gui.types import Telegram, color_u32
 
-TELEGRAM_HEADER_BUTTONS_WIDTH = 100
-
-
-@dataclass
-class TelegramColumn:
-    name: str
-    getter: Callable[[Telegram], str]
-    stretch: bool = False
-    disabled: bool = False
-
-
-TELEGRAM_COLUMNS: list[TelegramColumn] = [
-    TelegramColumn("Time", lambda t: t.timestamp),
-    TelegramColumn("Source", lambda t: t.source),
-    TelegramColumn("Destination", lambda t: t.destination),
-    TelegramColumn("Service", lambda t: t.service),
-    TelegramColumn("DPT", lambda t: t.dpt, disabled=True),
-    TelegramColumn("Value", lambda t: t.value, stretch=True),
-]
+SERVICE_COLORS = {
+    "GroupValueWrite": (0.4, 0.7, 0.4),
+    "GroupValueRead": (0.5, 0.6, 0.8),
+    "GroupValueResponse": (0.7, 0.6, 0.4),
+}
+SERVICE_ABBREV = {
+    "GroupValueWrite": "Write",
+    "GroupValueRead": "Read",
+    "GroupValueResponse": "Resp",
+}
+DEFAULT_SERVICE_COLOR = (0.5, 0.5, 0.5)
 
 
 class TelegramsPanel:
@@ -32,84 +23,138 @@ class TelegramsPanel:
         self,
         get_telegrams: Callable[[], list[Telegram]],
         on_focus_source: Callable[[str], None],
+        on_clear: Callable[[], None],
     ) -> None:
         self._get_telegrams = get_telegrams
         self._on_focus_source = on_focus_source
+        self._on_clear = on_clear
         self._selected: set[int] = set()
         self._last_selected: int = -1
+        self._auto_scroll = True
+        self._filter_text = ""
+        self._last_count = 0
 
     def render(self) -> None:
-        self._render_header()
-        self._handle_shortcuts()
+        self._render_toolbar()
         self._render_table()
 
-    def _render_header(self) -> None:
-        imgui.text(S.TELEGRAMS_TITLE)
-        if self._selected:
-            imgui.same_line()
-            imgui.text_disabled(
-                f"  {S.TELEGRAMS_SELECTED.format(count=len(self._selected))}"
-            )
-        imgui.same_line(imgui.get_window_width() - TELEGRAM_HEADER_BUTTONS_WIDTH)
-        if imgui.small_button(S.BTN_COPY):
+    def _render_toolbar(self) -> None:
+        if self._auto_scroll:
+            if imgui.button("Pause"):
+                self._auto_scroll = False
+        else:
+            if imgui.button("Resume"):
+                self._auto_scroll = True
+
+        imgui.same_line()
+        imgui.set_next_item_width(150)
+        _, self._filter_text = imgui.input_text_with_hint(
+            "##filter", "Filter...", self._filter_text
+        )
+
+        imgui.same_line()
+        telegrams = self._get_telegrams()
+        count = len(telegrams)
+        selected_count = len(self._selected)
+        if selected_count > 0:
+            imgui.text(f"{selected_count}/{count}")
+        else:
+            imgui.text_disabled(str(count))
+
+        imgui.same_line()
+        if imgui.button(S.BTN_COPY):
             self._copy_telegrams()
         imgui.same_line()
-        if imgui.small_button(S.BTN_CLEAR):
-            self._selected.clear()
-        imgui.separator()
-
-    def _handle_shortcuts(self) -> None:
-        if not imgui.is_window_focused():
-            return
-        io = imgui.get_io()
-        if (io.key_ctrl or io.key_super) and imgui.is_key_pressed(imgui.Key.c):
-            self._copy_telegrams()
+        if imgui.button(S.BTN_CLEAR):
+            self._clear_telegrams()
 
     def _render_table(self) -> None:
         telegrams = self._get_telegrams()
+        if self._filter_text:
+            filter_lower = self._filter_text.lower()
+            telegrams = [
+                t
+                for t in telegrams
+                if filter_lower in t.source.lower()
+                or filter_lower in t.destination.lower()
+                or filter_lower in t.value.lower()
+                or filter_lower in t.service.lower()
+            ]
+
+        avail = imgui.get_content_region_avail()
         flags = (
-            imgui.TableFlags_.borders_inner_h
-            | imgui.TableFlags_.row_bg
+            imgui.TableFlags_.row_bg
             | imgui.TableFlags_.scroll_y
-            | imgui.TableFlags_.sizing_fixed_fit
+            | imgui.TableFlags_.borders_inner_h
         )
-        if not imgui.begin_table("##telegrams_table", len(TELEGRAM_COLUMNS), flags):
+        if not imgui.begin_table("##telegrams", 6, flags, imgui.ImVec2(avail.x, avail.y)):
             return
 
-        for column in TELEGRAM_COLUMNS:
-            col_flags = (
-                imgui.TableColumnFlags_.width_stretch
-                if column.stretch
-                else imgui.TableColumnFlags_.none
-            )
-            imgui.table_setup_column(column.name, col_flags)
+        imgui.table_setup_scroll_freeze(0, 1)
+        imgui.table_setup_column("Time", imgui.TableColumnFlags_.width_fixed, 70)
+        imgui.table_setup_column("", imgui.TableColumnFlags_.width_fixed, 12)
+        imgui.table_setup_column("Source", imgui.TableColumnFlags_.width_fixed, 60)
+        imgui.table_setup_column("Dest", imgui.TableColumnFlags_.width_fixed, 60)
+        imgui.table_setup_column("Type", imgui.TableColumnFlags_.width_fixed, 50)
+        imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_stretch)
         imgui.table_headers_row()
 
         for i, telegram in enumerate(telegrams):
             self._render_row(i, telegram)
 
+        current_count = len(telegrams)
+        if self._auto_scroll and current_count > self._last_count:
+            imgui.set_scroll_here_y(1.0)
+        self._last_count = current_count
+
         imgui.end_table()
+        self._handle_shortcuts()
 
     def _render_row(self, index: int, telegram: Telegram) -> None:
         imgui.table_next_row()
-        imgui.table_set_column_index(0)
+
+        color = SERVICE_COLORS.get(telegram.service, DEFAULT_SERVICE_COLOR)
         selected = index in self._selected
+
+        imgui.table_set_column_index(0)
         flags = (
             imgui.SelectableFlags_.span_all_columns
             | imgui.SelectableFlags_.allow_overlap
         )
-        if imgui.selectable(f"{telegram.timestamp}##row{index}", selected, flags)[0]:
-            self._handle_click(index)
+        time_short = telegram.timestamp.split(" ")[-1] if " " in telegram.timestamp else telegram.timestamp
+        if imgui.selectable(f"{time_short}##row{index}", selected, flags)[0]:
+            self._handle_click(index, telegram)
 
-        for col_index, column in enumerate(TELEGRAM_COLUMNS[1:], start=1):
-            imgui.table_set_column_index(col_index)
-            text = column.getter(telegram)
-            if column.disabled:
-                imgui.text_disabled(text)
-            else:
-                imgui.text(text)
+        imgui.table_set_column_index(1)
+        draw_list = imgui.get_window_draw_list()
+        cursor = imgui.get_cursor_screen_pos()
+        center_y = cursor.y + imgui.get_text_line_height() / 2
+        draw_list.add_circle_filled(
+            imgui.ImVec2(cursor.x + 3, center_y),
+            3,
+            color_u32(*color),
+        )
+        imgui.dummy(imgui.ImVec2(8, 0))
 
-    def _handle_click(self, index: int) -> None:
+        imgui.table_set_column_index(2)
+        imgui.text_disabled(telegram.source)
+
+        imgui.table_set_column_index(3)
+        imgui.text(telegram.destination)
+
+        imgui.table_set_column_index(4)
+        abbrev = SERVICE_ABBREV.get(telegram.service, telegram.service[:4])
+        imgui.push_style_color(imgui.Col_.text, imgui.ImVec4(*color, 1.0))
+        imgui.text(abbrev)
+        imgui.pop_style_color()
+
+        imgui.table_set_column_index(5)
+        if telegram.dpt:
+            imgui.text_disabled(f"[{telegram.dpt}]")
+            imgui.same_line(0, 4)
+        imgui.text(telegram.value if telegram.value else "-")
+
+    def _handle_click(self, index: int, telegram: Telegram) -> None:
         io = imgui.get_io()
         ctrl = io.key_ctrl or io.key_super
         shift = io.key_shift
@@ -119,7 +164,16 @@ class TelegramsPanel:
         elif ctrl:
             self._toggle(index)
         else:
-            self._select_single(index)
+            self._select_single(index, telegram)
+
+    def _handle_shortcuts(self) -> None:
+        if not imgui.is_window_focused():
+            return
+        io = imgui.get_io()
+        if (io.key_ctrl or io.key_super) and imgui.is_key_pressed(imgui.Key.c):
+            self._copy_telegrams()
+        if imgui.is_key_pressed(imgui.Key.escape):
+            self._selected.clear()
 
     def _select_range(self, start: int, end: int, additive: bool) -> None:
         if not additive:
@@ -131,12 +185,10 @@ class TelegramsPanel:
         self._selected.symmetric_difference_update({index})
         self._last_selected = index
 
-    def _select_single(self, index: int) -> None:
-        telegrams = self._get_telegrams()
+    def _select_single(self, index: int, telegram: Telegram) -> None:
         self._selected = {index}
         self._last_selected = index
-        if index < len(telegrams):
-            self._on_focus_source(telegrams[index].source)
+        self._on_focus_source(telegram.source)
 
     def _copy_telegrams(self) -> None:
         telegrams = self._get_telegrams()
@@ -147,11 +199,14 @@ class TelegramsPanel:
         if not indices:
             return
 
-        header = "\t".join(col.name for col in TELEGRAM_COLUMNS)
-        rows = [
-            self._telegram_to_row(telegrams[i]) for i in indices if i < len(telegrams)
-        ]
+        header = "Time\tSource\tDestination\tService\tDPT\tValue"
+        rows = [self._telegram_to_row(telegrams[i]) for i in indices if i < len(telegrams)]
         imgui.set_clipboard_text("\n".join([header, *rows]))
 
-    def _telegram_to_row(self, telegram: Telegram) -> str:
-        return "\t".join(col.getter(telegram) for col in TELEGRAM_COLUMNS)
+    def _telegram_to_row(self, t: Telegram) -> str:
+        return f"{t.timestamp}\t{t.source}\t{t.destination}\t{t.service}\t{t.dpt}\t{t.value}"
+
+    def _clear_telegrams(self) -> None:
+        self._selected.clear()
+        self._last_count = 0
+        self._on_clear()
