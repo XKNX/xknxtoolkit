@@ -3,16 +3,13 @@ from collections.abc import Callable
 from typing import Any
 
 from knx_gui.knxprod import DeviceApplication
-from knx_gui.types import ComObject, Device, Telegram
+from knx_gui.types import ComObject, Device
 
 
 class AppState:
     def __init__(self) -> None:
         self.devices: list[Device] = []
         self.links: list[tuple[int, int, int]] = []
-        self.telegrams: list[Telegram] = []
-        self.connected: bool = False
-        self.controller_ip: str = "192.168.1.1"
         self._selected_device: Device | None = None
         self._next_link_id: int = 1000
         self._next_device_id: int = 10

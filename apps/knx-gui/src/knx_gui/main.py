@@ -1,4 +1,3 @@
-import math
 from pathlib import Path
 
 from imgui_bundle import hello_imgui, imgui
@@ -11,15 +10,13 @@ from knx_gui.knxprod import DeviceApplication, parse_application_xml
 from knx_gui.plugins.base import API_VERSION, EventBus, PluginAPI
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
 from knx_gui.plugins.catalog.db import ApplicationModel
+from knx_gui.plugins.connection import ConnectionPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
 from knx_gui.plugins.telegrams import TelegramsPlugin
 from knx_gui.state import AppState, create_empty_state
 from knx_gui.strings import S
-from knx_gui.types import (
-    Device,
-    color_u32,
-)
+from knx_gui.types import Device
 
 
 class KnxGuiApp:
@@ -53,6 +50,7 @@ class KnxGuiApp:
         )
 
         self._catalog_plugin = CatalogPlugin(self._plugin_api)
+        self._connection_plugin = ConnectionPlugin(self._plugin_api)
         self._telegrams_plugin = TelegramsPlugin(self._plugin_api)
         self._node_editor_plugin = NodeEditorPlugin(
             api=self._plugin_api,
@@ -339,25 +337,7 @@ class KnxGuiApp:
         print(f"[knxprod] device added; total devices: {len(self._state.devices)}")
 
     def gui_status_bar(self) -> None:
-        draw_list = imgui.get_window_draw_list()
-        cursor = imgui.get_cursor_screen_pos()
-        text_height = imgui.get_text_line_height()
-        center = imgui.ImVec2(cursor.x + 5, cursor.y + text_height / 2)
-        if self._state.connected:
-            pulse = 0.5 + 0.5 * math.sin(imgui.get_time() * 3.0)
-            alpha = 0.4 + 0.6 * pulse
-            draw_list.add_circle_filled(center, 4, color_u32(0.2, 0.8, 0.3, alpha))
-            draw_list.add_circle_filled(
-                center, 4 + pulse * 3, color_u32(0.2, 0.8, 0.3, 0.15 * (1 - pulse))
-            )
-            imgui.dummy(imgui.ImVec2(12, 0))
-            imgui.same_line()
-            imgui.text(S.STATUS_CONNECTED.format(ip=self._state.controller_ip))
-        else:
-            draw_list.add_circle_filled(center, 4, color_u32(0.5, 0.5, 0.5, 1.0))
-            imgui.dummy(imgui.ImVec2(12, 0))
-            imgui.same_line()
-            imgui.text_disabled(S.STATUS_DISCONNECTED)
+        self._connection_plugin.render_status_indicator()
         imgui.same_line()
         imgui.text(
             S.STATUS_DEVICES_LINKS.format(
@@ -403,19 +383,7 @@ class KnxGuiApp:
                 self._redo()
             imgui.end_menu()
 
-        if imgui.begin_menu(S.MENU_CONNECTION):
-            if self._state.connected:
-                imgui.text(S.STATUS_CONNECTED_TO.format(ip=self._state.controller_ip))
-                if imgui.menu_item(S.MENU_DISCONNECT, "", False)[0]:
-                    self._state.connected = False
-            else:
-                imgui.set_next_item_width(180)
-                _, self._state.controller_ip = imgui.input_text(
-                    "IP", self._state.controller_ip
-                )
-                if imgui.menu_item(S.MENU_CONNECT, "", False)[0]:
-                    self._state.connected = True
-            imgui.end_menu()
+        self._connection_plugin.render_menu()
 
         self._poll_dialogs()
         self._handle_shortcuts()
