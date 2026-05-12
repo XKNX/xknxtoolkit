@@ -9,9 +9,9 @@ from knx_gui.knxprod import DeviceApplication
 from knx_gui.plugins.base import API_VERSION, PanelDefinition, PluginAPI
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
 from knx_gui.plugins.connection import ConnectionPlugin
+from knx_gui.plugins.network import NetworkPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
-from knx_gui.plugins.network import NetworkPlugin
 from knx_gui.strings import S
 
 
@@ -38,8 +38,11 @@ class KnxGuiApp:
         )
 
         self._catalog_plugin = CatalogPlugin(self._plugin_api)
-        self._connection_plugin = ConnectionPlugin(self._plugin_api)
         self._network_plugin = NetworkPlugin(self._plugin_api)
+        self._connection_plugin = ConnectionPlugin(
+            self._plugin_api,
+            raw_cemi_callback=self._network_plugin.service.add_raw,
+        )
         self._node_editor_plugin = NodeEditorPlugin(self._plugin_api)
         self._project_plugin = ProjectPlugin(
             self._plugin_api,
@@ -58,6 +61,7 @@ class KnxGuiApp:
         self._node_editor_plugin.setup()
 
     def shutdown(self) -> None:
+        self._connection_plugin.shutdown()
         self._node_editor_plugin.shutdown()
         if self._project_service.is_open:
             self._project_service.close()
