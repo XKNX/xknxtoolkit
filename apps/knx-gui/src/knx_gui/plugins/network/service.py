@@ -14,7 +14,7 @@ class CaptureState(Enum):
     CAPTURING = "capturing"
 
 
-class TelegramsService:
+class NetworkService:
     def __init__(self) -> None:
         self._telegrams: list[TelegramRecord] = []
         self._state = CaptureState.STOPPED

@@ -11,7 +11,7 @@ from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogServi
 from knx_gui.plugins.connection import ConnectionPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
-from knx_gui.plugins.telegrams import TelegramsPlugin
+from knx_gui.plugins.network import NetworkPlugin
 from knx_gui.strings import S
 
 
@@ -39,7 +39,7 @@ class KnxGuiApp:
 
         self._catalog_plugin = CatalogPlugin(self._plugin_api)
         self._connection_plugin = ConnectionPlugin(self._plugin_api)
-        self._telegrams_plugin = TelegramsPlugin(self._plugin_api)
+        self._network_plugin = NetworkPlugin(self._plugin_api)
         self._node_editor_plugin = NodeEditorPlugin(self._plugin_api)
         self._project_plugin = ProjectPlugin(
             self._plugin_api,
@@ -49,7 +49,7 @@ class KnxGuiApp:
         self._plugins: list[Any] = [
             self._catalog_plugin,
             self._connection_plugin,
-            self._telegrams_plugin,
+            self._network_plugin,
             self._node_editor_plugin,
             self._project_plugin,
         ]
