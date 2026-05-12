@@ -60,10 +60,10 @@ class ProjectPlugin:
             ),
         ]
 
-        api.events.subscribe("flag_changed", self._on_flag_changed)
-        api.events.subscribe("param_changed", self._on_param_changed)
-        api.events.subscribe("link_added", self._on_link_added)
-        api.events.subscribe("link_removed", self._on_link_removed)
+        api.project.subscribe("flag_changed", self._on_flag_changed)
+        api.project.subscribe("param_changed", self._on_param_changed)
+        api.project.subscribe("link_added", self._on_link_added)
+        api.project.subscribe("link_removed", self._on_link_removed)
 
     def _on_select_device(self, device: "Device") -> None:
         self._api.project.selected_device = device

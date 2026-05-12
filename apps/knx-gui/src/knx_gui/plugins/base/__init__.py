@@ -1,5 +1,4 @@
 from knx_gui.plugins.base.api import API_VERSION, PluginAPI
-from knx_gui.plugins.base.events import EventBus
 from knx_gui.plugins.base.registry import (
     Panel,
     PanelDefinition,
@@ -11,7 +10,6 @@ from knx_gui.plugins.base.registry import (
 
 __all__ = [
     "API_VERSION",
-    "EventBus",
     "Panel",
     "PanelDefinition",
     "Plugin",
