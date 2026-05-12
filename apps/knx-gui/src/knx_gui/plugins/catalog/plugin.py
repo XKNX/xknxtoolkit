@@ -1,7 +1,8 @@
 from knx_gui.knxprod import parse_application_xml
-from knx_gui.plugins.base import PluginAPI
+from knx_gui.plugins.base import PanelDefinition, PluginAPI
 from knx_gui.plugins.catalog.db import ApplicationModel
 from knx_gui.plugins.catalog.ui import CatalogPanel
+from knx_gui.strings import S
 
 
 class CatalogPlugin:
@@ -13,6 +14,14 @@ class CatalogPlugin:
             get_entries=api.catalog.get_entries,
             on_select=self._on_select,
         )
+        self._panels = [
+            PanelDefinition(
+                name="catalog",
+                label=S.PANEL_CATALOG,
+                dock="LeftSpace",
+                render=self._panel.render,
+            ),
+        ]
 
     def _on_select(self, application_id: str) -> None:
         xml_data = self._api.catalog.get_application_xml(application_id)
@@ -40,11 +49,14 @@ class CatalogPlugin:
             app=app,
         )
         if device_id:
+            self._api.project.add_device_to_state_with_id(
+                app=app, node_id=device_id, address=""
+            )
             print(f"[catalog] added device {app.name} (id={device_id})")
 
     @property
-    def panel(self) -> CatalogPanel:
-        return self._panel
+    def panels(self) -> list[PanelDefinition]:
+        return self._panels
 
     def on_load(self) -> None:
         pass
