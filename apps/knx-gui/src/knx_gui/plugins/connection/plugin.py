@@ -2,7 +2,7 @@ import math
 
 from imgui_bundle import imgui
 
-from knx_gui.plugins.base import PluginAPI
+from knx_gui.plugins.base import PanelDefinition, PluginAPI
 from knx_gui.strings import S
 from knx_gui.types import color_u32
 
@@ -14,6 +14,7 @@ class ConnectionPlugin:
         self._api = api
         self._connected: bool = False
         self._controller_ip: str = "192.168.1.1"
+        self._panels: list[PanelDefinition] = []
 
     @property
     def connected(self) -> bool:
@@ -63,6 +64,10 @@ class ConnectionPlugin:
                 if imgui.menu_item(S.MENU_CONNECT, "", False)[0]:
                     self.connect()
             imgui.end_menu()
+
+    @property
+    def panels(self) -> list[PanelDefinition]:
+        return self._panels
 
     def on_load(self) -> None:
         pass

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from imgui_bundle import hello_imgui, imgui
 from imgui_bundle import portable_file_dialogs as pfd
@@ -6,7 +7,7 @@ from xknxmono.product.errors import ArchiveError
 
 from knx_gui.dpt import lookup_or_make_dpt
 from knx_gui.knxprod import DeviceApplication, parse_application_xml
-from knx_gui.plugins.base import API_VERSION, EventBus, PluginAPI
+from knx_gui.plugins.base import API_VERSION, EventBus, PanelDefinition, PluginAPI
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
 from knx_gui.plugins.catalog.db import ApplicationModel
 from knx_gui.plugins.connection import ConnectionPlugin
@@ -44,7 +45,18 @@ class KnxGuiApp:
         self._connection_plugin = ConnectionPlugin(self._plugin_api)
         self._telegrams_plugin = TelegramsPlugin(self._plugin_api)
         self._node_editor_plugin = NodeEditorPlugin(self._plugin_api)
-        self._project_plugin = ProjectPlugin(self._plugin_api)
+        self._project_plugin = ProjectPlugin(
+            self._plugin_api,
+            get_selected_node_ids=self._node_editor_plugin.get_selected_node_ids,
+        )
+
+        self._plugins: list[Any] = [
+            self._catalog_plugin,
+            self._connection_plugin,
+            self._telegrams_plugin,
+            self._node_editor_plugin,
+            self._project_plugin,
+        ]
 
         self._event_bus.subscribe("reload_requested", self._on_reload_requested)
 
@@ -210,20 +222,6 @@ class KnxGuiApp:
     def _can_redo(self) -> bool:
         return self._project_service.is_open and self._project_service.can_redo()
 
-    def _sync_selected_device_from_editor(self) -> None:
-        selected_ids = self._node_editor_plugin.panel.get_selected_node_ids()
-        if len(selected_ids) != 1:
-            return
-        node_id = selected_ids[0]
-        if (
-            self._project_service.selected_device
-            and self._project_service.selected_device.node_id == node_id
-        ):
-            return
-        device = self._project_service.find_device_by_node_id(node_id)
-        if device:
-            self._project_service.selected_device = device
-
     def _poll_dialogs(self) -> None:
         if self._open_file_dialog is not None and self._open_file_dialog.ready():
             result = self._open_file_dialog.result()
@@ -346,24 +344,11 @@ class KnxGuiApp:
         self._poll_dialogs()
         self._handle_shortcuts()
 
-    def gui_devices(self) -> None:
-        self._project_plugin.devices_panel.render()
-
-    def gui_catalog(self) -> None:
-        self._catalog_plugin.panel.render()
-
-    def gui_node_editor(self) -> None:
-        self._node_editor_plugin.panel.render()
-
-    def gui_telegrams(self) -> None:
-        self._telegrams_plugin.panel.render()
-
-    def gui_configure(self) -> None:
-        self._sync_selected_device_from_editor()
-        self._project_plugin.configure_panel.render()
-
-    def gui_history(self) -> None:
-        self._project_plugin.history_panel.render()
+    def get_all_panels(self) -> list[PanelDefinition]:
+        panels: list[PanelDefinition] = []
+        for plugin in self._plugins:
+            panels.extend(plugin.panels)
+        return panels
 
 
 def create_docking_splits() -> list[hello_imgui.DockingSplit]:
@@ -389,44 +374,14 @@ def create_docking_splits() -> list[hello_imgui.DockingSplit]:
 
 
 def create_dockable_windows(app: KnxGuiApp) -> list[hello_imgui.DockableWindow]:
-    devices_window = hello_imgui.DockableWindow()
-    devices_window.label = S.PANEL_DEVICES
-    devices_window.dock_space_name = "LeftSpace"
-    devices_window.gui_function = app.gui_devices
-
-    catalog_window = hello_imgui.DockableWindow()
-    catalog_window.label = S.PANEL_CATALOG
-    catalog_window.dock_space_name = "LeftSpace"
-    catalog_window.gui_function = app.gui_catalog
-
-    editor_window = hello_imgui.DockableWindow()
-    editor_window.label = S.PANEL_NODE_EDITOR
-    editor_window.dock_space_name = "MainDockSpace"
-    editor_window.gui_function = app.gui_node_editor
-
-    telegrams_window = hello_imgui.DockableWindow()
-    telegrams_window.label = S.PANEL_TELEGRAMS
-    telegrams_window.dock_space_name = "BottomSpace"
-    telegrams_window.gui_function = app.gui_telegrams
-
-    configure_window = hello_imgui.DockableWindow()
-    configure_window.label = S.PANEL_CONFIGURE
-    configure_window.dock_space_name = "RightSpace"
-    configure_window.gui_function = app.gui_configure
-
-    history_window = hello_imgui.DockableWindow()
-    history_window.label = S.PANEL_HISTORY
-    history_window.dock_space_name = "RightSpace"
-    history_window.gui_function = app.gui_history
-
-    return [
-        devices_window,
-        catalog_window,
-        editor_window,
-        telegrams_window,
-        configure_window,
-        history_window,
-    ]
+    windows: list[hello_imgui.DockableWindow] = []
+    for panel in app.get_all_panels():
+        window = hello_imgui.DockableWindow()
+        window.label = panel.label
+        window.dock_space_name = panel.dock
+        window.gui_function = panel.render
+        windows.append(window)
+    return windows
 
 
 def main() -> None:

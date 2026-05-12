@@ -1,7 +1,9 @@
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from knx_gui.plugins.base import PluginAPI
+from knx_gui.plugins.base import PanelDefinition, PluginAPI
 from knx_gui.plugins.project.ui import ConfigurePanel, DevicesPanel, HistoryPanel
+from knx_gui.strings import S
 
 if TYPE_CHECKING:
     from knx_gui.types import Device
@@ -10,8 +12,13 @@ if TYPE_CHECKING:
 class ProjectPlugin:
     name = "project"
 
-    def __init__(self, api: PluginAPI) -> None:
+    def __init__(
+        self,
+        api: PluginAPI,
+        get_selected_node_ids: Callable[[], list[int]] | None = None,
+    ) -> None:
         self._api = api
+        self._get_selected_node_ids = get_selected_node_ids
 
         self._devices_panel = DevicesPanel(
             get_devices=lambda: api.project.devices,
@@ -31,6 +38,27 @@ class ProjectPlugin:
             get_cursor=lambda: api.project.cursor,
             on_jump_to=self._handle_jump_to,
         )
+
+        self._panels = [
+            PanelDefinition(
+                name="devices",
+                label=S.PANEL_DEVICES,
+                dock="LeftSpace",
+                render=self._devices_panel.render,
+            ),
+            PanelDefinition(
+                name="configure",
+                label=S.PANEL_CONFIGURE,
+                dock="RightSpace",
+                render=self._render_configure,
+            ),
+            PanelDefinition(
+                name="history",
+                label=S.PANEL_HISTORY,
+                dock="RightSpace",
+                render=self._history_panel.render,
+            ),
+        ]
 
         api.events.subscribe("flag_changed", self._on_flag_changed)
         api.events.subscribe("param_changed", self._on_param_changed)
@@ -100,17 +128,29 @@ class ProjectPlugin:
         self._api.project.session.expire_all()
         self._api.project.request_reload()
 
-    @property
-    def devices_panel(self) -> DevicesPanel:
-        return self._devices_panel
+    def _render_configure(self) -> None:
+        self._sync_selected_device_from_editor()
+        self._configure_panel.render()
+
+    def _sync_selected_device_from_editor(self) -> None:
+        if not self._get_selected_node_ids:
+            return
+        selected_ids = self._get_selected_node_ids()
+        if len(selected_ids) != 1:
+            return
+        node_id = selected_ids[0]
+        if (
+            self._api.project.selected_device
+            and self._api.project.selected_device.node_id == node_id
+        ):
+            return
+        device = self._api.project.find_device_by_node_id(node_id)
+        if device:
+            self._api.project.selected_device = device
 
     @property
-    def configure_panel(self) -> ConfigurePanel:
-        return self._configure_panel
-
-    @property
-    def history_panel(self) -> HistoryPanel:
-        return self._history_panel
+    def panels(self) -> list[PanelDefinition]:
+        return self._panels
 
     def on_load(self) -> None:
         pass

@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING
 
-from knx_gui.plugins.base import PluginAPI
+from knx_gui.plugins.base import PanelDefinition, PluginAPI
 from knx_gui.plugins.node_editor.ui import NodeEditorPanel
+from knx_gui.strings import S
 
 if TYPE_CHECKING:
     from knx_gui.types import Device
@@ -24,6 +25,15 @@ class NodeEditorPlugin:
             set_flag=self._handle_flag_change,
         )
 
+        self._panels = [
+            PanelDefinition(
+                name="node_editor",
+                label=S.PANEL_NODE_EDITOR,
+                dock="MainDockSpace",
+                render=self._panel.render,
+            ),
+        ]
+
         api.events.subscribe("device_selected", self._on_device_selected)
 
     def _add_link(self, start_pin: int, end_pin: int) -> int:
@@ -45,9 +55,12 @@ class NodeEditorPlugin:
             self._panel.select_node(device.node_id, False)
             self._panel.navigate_to_selection(False, NAVIGATE_TO_NODE_DURATION)
 
+    def get_selected_node_ids(self) -> list[int]:
+        return self._panel.get_selected_node_ids()
+
     @property
-    def panel(self) -> NodeEditorPanel:
-        return self._panel
+    def panels(self) -> list[PanelDefinition]:
+        return self._panels
 
     def setup(self) -> None:
         self._panel.setup()

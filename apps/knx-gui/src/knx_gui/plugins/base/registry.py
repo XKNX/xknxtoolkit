@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from dataclasses import dataclass
 from importlib.metadata import entry_points
 from typing import ClassVar, Protocol
 
@@ -13,10 +14,19 @@ class Service(Protocol):
     def refresh(self) -> None: ...
 
 
+@dataclass
+class PanelDefinition:
+    name: str
+    label: str
+    dock: str
+    render: Callable[[], None]
+
+
 class Plugin(Protocol):
     name: str
 
-    def create_panel(self) -> Panel | None: ...
+    @property
+    def panels(self) -> list[PanelDefinition]: ...
     def on_load(self) -> None: ...
     def on_unload(self) -> None: ...
 
