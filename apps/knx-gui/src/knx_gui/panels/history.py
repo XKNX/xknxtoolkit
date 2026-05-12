@@ -60,7 +60,7 @@ class HistoryPanel:
             )
 
             if row_hovered and not is_current:
-                imgui.same_line(imgui.get_content_region_avail().x - 36)
+                imgui.same_line(imgui.get_content_region_avail().x - 50)
                 if imgui.small_button(f"{S.HISTORY_REVERT}##{entry.id}"):
                     self._on_jump_to(entry.id)
 
