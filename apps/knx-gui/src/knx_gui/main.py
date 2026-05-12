@@ -42,6 +42,7 @@ class KnxGuiApp:
         self._connection_plugin = ConnectionPlugin(
             self._plugin_api,
             raw_cemi_callback=self._network_plugin.service.add_raw,
+            on_connected=self._network_plugin.service.start,
         )
         self._node_editor_plugin = NodeEditorPlugin(self._plugin_api)
         self._project_plugin = ProjectPlugin(
