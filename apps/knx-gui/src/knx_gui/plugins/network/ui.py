@@ -11,6 +11,7 @@ class CaptureState(Enum):
     STOPPED = "stopped"
     CAPTURING = "capturing"
 
+
 SERVICE_COLORS = {
     "GroupValueWrite": (0.4, 0.7, 0.4),
     "GroupValueRead": (0.5, 0.6, 0.8),
@@ -104,7 +105,9 @@ class NetworkPanel:
             | imgui.TableFlags_.scroll_y
             | imgui.TableFlags_.borders_inner_h
         )
-        if not imgui.begin_table("##telegrams", 7, flags, imgui.ImVec2(avail.x, avail.y)):
+        if not imgui.begin_table(
+            "##telegrams", 7, flags, imgui.ImVec2(avail.x, avail.y)
+        ):
             return
 
         imgui.table_setup_scroll_freeze(0, 1)
@@ -139,7 +142,9 @@ class NetworkPanel:
             imgui.SelectableFlags_.span_all_columns
             | imgui.SelectableFlags_.allow_overlap
         )
-        if imgui.selectable(f"{telegram.timestamp_str}##row{index}", selected, flags)[0]:
+        if imgui.selectable(f"{telegram.timestamp_str}##row{index}", selected, flags)[
+            0
+        ]:
             self._handle_click(index, telegram)
 
         imgui.table_set_column_index(1)
@@ -160,7 +165,9 @@ class NetworkPanel:
         imgui.text(telegram.destination)
 
         imgui.table_set_column_index(4)
-        tpci_abbrev = TPCI_ABBREV.get(telegram.tpci, telegram.tpci[:5] if telegram.tpci else "")
+        tpci_abbrev = TPCI_ABBREV.get(
+            telegram.tpci, telegram.tpci[:5] if telegram.tpci else ""
+        )
         imgui.text_disabled(tpci_abbrev)
 
         imgui.table_set_column_index(5)
@@ -220,7 +227,9 @@ class NetworkPanel:
             return
 
         header = "Time\tSource\tDestination\tTPCI\tAPCI\tDPT\tValue"
-        rows = [self._telegram_to_row(telegrams[i]) for i in indices if i < len(telegrams)]
+        rows = [
+            self._telegram_to_row(telegrams[i]) for i in indices if i < len(telegrams)
+        ]
         imgui.set_clipboard_text("\n".join([header, *rows]))
 
     def _telegram_to_row(self, t: TelegramRecord) -> str:
