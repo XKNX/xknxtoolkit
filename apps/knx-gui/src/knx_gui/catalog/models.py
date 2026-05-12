@@ -13,6 +13,7 @@ class ApplicationModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     manufacturer_id: Mapped[str] = mapped_column(String, nullable=False)
+    manufacturer_name: Mapped[str] = mapped_column(String, nullable=False)
     application_id: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     xml_data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)

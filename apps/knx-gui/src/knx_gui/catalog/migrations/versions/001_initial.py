@@ -21,6 +21,7 @@ def upgrade() -> None:
         "applications",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("manufacturer_id", sa.String(), nullable=False),
+        sa.Column("manufacturer_name", sa.String(), nullable=False),
         sa.Column("application_id", sa.String(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("xml_data", sa.LargeBinary(), nullable=False),
