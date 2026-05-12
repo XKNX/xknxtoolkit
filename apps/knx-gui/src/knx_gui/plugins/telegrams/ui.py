@@ -1,9 +1,15 @@
 from collections.abc import Callable
+from enum import Enum
 
 from imgui_bundle import imgui
 
 from knx_gui.strings import S
 from knx_gui.types import TelegramRecord, color_u32
+
+
+class CaptureState(Enum):
+    STOPPED = "stopped"
+    CAPTURING = "capturing"
 
 SERVICE_COLORS = {
     "GroupValueWrite": (0.4, 0.7, 0.4),
@@ -26,12 +32,18 @@ class TelegramsPanel:
     def __init__(
         self,
         get_telegrams: Callable[[], list[TelegramRecord]],
-        on_focus_source: Callable[[str], None],
+        get_capture_state: Callable[[], CaptureState],
+        on_start: Callable[[], None],
+        on_stop: Callable[[], None],
         on_clear: Callable[[], None],
+        on_focus_source: Callable[[str], None],
     ) -> None:
         self._get_telegrams = get_telegrams
-        self._on_focus_source = on_focus_source
+        self._get_capture_state = get_capture_state
+        self._on_start = on_start
+        self._on_stop = on_stop
         self._on_clear = on_clear
+        self._on_focus_source = on_focus_source
         self._selected: set[int] = set()
         self._last_selected: int = -1
         self._auto_scroll = True
@@ -43,12 +55,13 @@ class TelegramsPanel:
         self._render_table()
 
     def _render_toolbar(self) -> None:
-        if self._auto_scroll:
-            if imgui.button("Pause"):
-                self._auto_scroll = False
+        state = self._get_capture_state()
+        if state == CaptureState.STOPPED:
+            if imgui.button("Start"):
+                self._on_start()
         else:
-            if imgui.button("Resume"):
-                self._auto_scroll = True
+            if imgui.button("Stop"):
+                self._on_stop()
 
         imgui.same_line()
         imgui.set_next_item_width(150)
