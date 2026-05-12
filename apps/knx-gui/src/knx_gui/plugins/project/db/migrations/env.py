@@ -1,5 +1,5 @@
 from alembic import context
-from knx_gui.catalog.models import Base
+from knx_gui.plugins.project.db.models import Base
 from sqlalchemy import engine_from_config, pool
 
 config = context.config

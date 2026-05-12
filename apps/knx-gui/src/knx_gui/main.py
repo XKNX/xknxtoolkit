@@ -4,32 +4,15 @@ from pathlib import Path
 from imgui_bundle import hello_imgui, imgui
 from imgui_bundle import portable_file_dialogs as pfd
 
-from knx_gui.catalog import (
-    CatalogDatabase,
-    get_application_xml,
-    load_knxprod_to_catalog,
-)
-from knx_gui.catalog.models import ApplicationModel
 from knx_gui.dialogs import LinkWarningDialog
 from knx_gui.dpt import lookup_or_make_dpt
 from knx_gui.knxprod import DeviceApplication, parse_application_xml
-from knx_gui.panels import (
-    CatalogEntry,
-    CatalogPanel,
-    ConfigurePanel,
-    DevicesPanel,
-    HistoryPanel,
-    NodeEditorPanel,
-    TelegramsPanel,
-)
-from knx_gui.project.database import ProjectDatabase
-from knx_gui.project.events import (
-    ComObjectFlagChanged,
-    DeviceAdded,
-    LinkCreated,
-    LinkRemoved,
-    ParameterChanged,
-)
+from knx_gui.panels import NodeEditorPanel, TelegramsPanel
+from knx_gui.plugins.base import API_VERSION, EventBus, PluginAPI
+from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
+from knx_gui.plugins.catalog.db import ApplicationModel
+from knx_gui.plugins.project import ProjectService
+from knx_gui.plugins.project.ui import ConfigurePanel, DevicesPanel, HistoryPanel
 from knx_gui.state import AppState, create_empty_state
 from knx_gui.strings import S
 from knx_gui.types import (
@@ -44,13 +27,12 @@ NAVIGATE_TO_NODE_DURATION = 0.3
 class KnxGuiApp:
     def __init__(self, state: AppState, catalog_path: Path) -> None:
         self._state = state
-        self._project: ProjectDatabase | None = None
-        self._project_path: Path | None = None
-        self._catalog = CatalogDatabase(catalog_path)
+        self._catalog_db = CatalogDatabase(catalog_path)
         if catalog_path.exists():
-            self._catalog.open()
+            self._catalog_db.open()
         else:
-            self._catalog.create()
+            self._catalog_db.create()
+        self._catalog_service = CatalogService(self._catalog_db)
 
         self._open_file_dialog: pfd.open_file | None = None
         self._save_file_dialog: pfd.save_file | None = None
@@ -59,6 +41,17 @@ class KnxGuiApp:
 
         self._link_warning_dialog = LinkWarningDialog(
             on_confirm=self._on_link_warning_confirm
+        )
+
+        self._event_bus = EventBus()
+        self._project_service = ProjectService(self._event_bus)
+
+        self._plugin_api = PluginAPI(
+            api_version=API_VERSION,
+            state=self._state,
+            project=self._project_service,
+            catalog=self._catalog_service,
+            events=self._event_bus,
         )
 
         self._node_editor_panel = NodeEditorPanel(
@@ -73,10 +66,8 @@ class KnxGuiApp:
             get_devices=lambda: self._state.devices,
             on_select_device=self._select_and_navigate_to_device,
         )
-        self._catalog_panel = CatalogPanel(
-            get_catalog_entries=self._get_catalog_entries,
-            on_add_from_catalog=self._add_device_from_catalog,
-        )
+        self._catalog_plugin = CatalogPlugin(self._plugin_api)
+        self._catalog_panel = self._catalog_plugin.create_panel()
         self._telegrams_panel = TelegramsPanel(
             get_telegrams=lambda: self._state.telegrams,
             on_focus_source=self._focus_device_by_address,
@@ -95,15 +86,15 @@ class KnxGuiApp:
         )
 
     def _get_history_entries(self) -> list:
-        if not self._project:
+        if not self._project_service.is_open:
             return []
-        from knx_gui.panels.history import HistoryEntry
-        from knx_gui.project.events import deserialize_event
-        from knx_gui.project.models import EventModel
+        from knx_gui.plugins.project.db import EventModel
+        from knx_gui.plugins.project.db.events import deserialize_event
+        from knx_gui.plugins.project.ui import HistoryEntry
 
         entries = []
         for e in (
-            self._project.session.query(EventModel).order_by(EventModel.id.desc()).all()
+            self._project_service.session.query(EventModel).order_by(EventModel.id.desc()).all()
         ):
             event = deserialize_event(e.type, e.data)
             entries.append(
@@ -114,15 +105,15 @@ class KnxGuiApp:
         return entries
 
     def _get_cursor(self) -> int:
-        if not self._project:
+        if not self._project_service.is_open:
             return 0
-        return self._project.event_store.cursor
+        return self._project_service.cursor
 
     def _on_jump_to(self, event_id: int) -> None:
-        if not self._project:
+        if not self._project_service.is_open:
             return
-        self._project.event_store.jump_to(event_id)
-        self._project.session.expire_all()
+        self._project_service.jump_to(event_id)
+        self._project_service.session.expire_all()
         self._load_devices_from_db()
         self._load_links_from_db()
 
@@ -131,9 +122,13 @@ class KnxGuiApp:
         self._node_editor_panel.select_node(device.node_id, False)
         self._node_editor_panel.navigate_to_selection(False, NAVIGATE_TO_NODE_DURATION)
 
-    def _set_selected_device(self, device: Device) -> None:
+    def _set_selected_device(self, device: Device | None) -> None:
         self._state.selected_device = device
-        self._node_editor_panel.select_node(device.node_id, False)
+        if device:
+            self._node_editor_panel.select_node(device.node_id, False)
+
+    def _remove_device(self, device_id: str) -> None:
+        raise NotImplementedError("Device removal not yet implemented")
 
     def _on_param_change(self, device: Device, param_id: str, value: str) -> None:
         old_value = device._param_values.get(param_id, "")
@@ -169,14 +164,12 @@ class KnxGuiApp:
     def _apply_param_change(self, device: Device, param_id: str, value: str) -> None:
         old_value = device._param_values.get(param_id, "")
         device.set_param_value(param_id, value)
-        if self._project:
-            event = ParameterChanged(
-                device_id=device.node_id,
-                param_id=param_id,
-                old_value=old_value,
-                new_value=value,
-            )
-            self._project.event_store.append(event)
+        self._project_service.set_parameter(
+            device_id=device.node_id,
+            param_id=param_id,
+            old_value=old_value,
+            new_value=value,
+        )
 
     def _on_flag_change(
         self, device: Device, co_id: str, flag_name: str, new_value: bool
@@ -186,15 +179,13 @@ class KnxGuiApp:
             return
         old_value = getattr(com_object.flags, flag_name)
         setattr(com_object.flags, flag_name, new_value)
-        if self._project:
-            event = ComObjectFlagChanged(
-                device_id=device.node_id,
-                co_id=co_id,
-                flag_name=flag_name,
-                old_value=old_value,
-                new_value=new_value,
-            )
-            self._project.event_store.append(event)
+        self._project_service.set_com_object_flag(
+            device_id=device.node_id,
+            co_id=co_id,
+            flag_name=flag_name,
+            old_value=old_value,
+            new_value=new_value,
+        )
 
     def _focus_device_by_address(self, address: str) -> None:
         device = self._state.find_device_by_address(address)
@@ -205,27 +196,14 @@ class KnxGuiApp:
                 False, NAVIGATE_TO_NODE_DURATION
             )
 
-    def _get_catalog_entries(self) -> list[CatalogEntry]:
-        entries: list[CatalogEntry] = []
-        for app in self._catalog.session.query(ApplicationModel).all():
-            entries.append(
-                CatalogEntry(
-                    application_id=app.application_id,
-                    manufacturer_id=app.manufacturer_id,
-                    manufacturer_name=app.manufacturer_name,
-                    name=app.name,
-                )
-            )
-        return entries
-
     def _add_device_from_catalog(self, application_id: str) -> None:
-        xml_data = get_application_xml(self._catalog, application_id)
+        xml_data = self._catalog_service.get_application_xml(application_id)
         if not xml_data:
             print(f"[catalog] application not found: {application_id}")
             return
 
         app_model = (
-            self._catalog.session.query(ApplicationModel)
+            self._catalog_service.session.query(ApplicationModel)
             .filter_by(application_id=application_id)
             .first()
         )
@@ -246,9 +224,9 @@ class KnxGuiApp:
 
     def shutdown(self) -> None:
         self._node_editor_panel.shutdown()
-        if self._project:
-            self._project.close()
-        self._catalog.close()
+        if self._project_service.is_open:
+            self._project_service.close()
+        self._catalog_db.close()
 
     def _new_project(self) -> None:
         self._save_project_dialog = pfd.save_file(
@@ -265,32 +243,22 @@ class KnxGuiApp:
         )
 
     def _do_new_project(self, path: str) -> None:
-        if self._project:
-            self._project.close()
-        self._project_path = Path(path)
-        if not self._project_path.suffix:
-            self._project_path = self._project_path.with_suffix(".xknx")
-        self._project = ProjectDatabase(self._project_path)
-        self._project.create()
+        self._project_service.new(Path(path))
         self._state.devices.clear()
         self._state.links.clear()
 
     def _do_open_project(self, path: str) -> None:
-        if self._project:
-            self._project.close()
-        self._project_path = Path(path)
-        self._project = ProjectDatabase(self._project_path)
-        self._project.open()
+        self._project_service.open(Path(path))
         self._load_devices_from_db()
         self._load_links_from_db()
 
     def _load_links_from_db(self) -> None:
-        if not self._project:
+        if not self._project_service.is_open:
             return
-        from knx_gui.project.models import LinkModel
+        from knx_gui.plugins.project.db import LinkModel
 
         self._state.links.clear()
-        for link_model in self._project.session.query(LinkModel).all():
+        for link_model in self._project_service.session.query(LinkModel).all():
             self._state.links.append(
                 (link_model.id, link_model.start_pin, link_model.end_pin)
             )
@@ -298,15 +266,15 @@ class KnxGuiApp:
         self._state._next_link_id = max_link_id + 1
 
     def _load_devices_from_db(self) -> None:
-        if not self._project:
+        if not self._project_service.is_open:
             return
-        from knx_gui.project.models import ComObjectModel, DeviceModel, ParameterModel
+        from knx_gui.plugins.project.db import ComObjectModel, DeviceModel, ParameterModel
 
         selected_node_id = (
             self._state.selected_device.node_id if self._state.selected_device else None
         )
         self._state.devices.clear()
-        for device_model in self._project.session.query(DeviceModel).all():
+        for device_model in self._project_service.session.query(DeviceModel).all():
             app = self._get_app_for_device(device_model.template_id)
             if not app:
                 print(
@@ -319,13 +287,13 @@ class KnxGuiApp:
                 address=device_model.address or "",
             )
             for param_model in (
-                self._project.session.query(ParameterModel)
+                self._project_service.session.query(ParameterModel)
                 .filter_by(device_id=device_model.id)
                 .all()
             ):
                 device.set_param_value(param_model.param_id, param_model.value)
             for co_model in (
-                self._project.session.query(ComObjectModel)
+                self._project_service.session.query(ComObjectModel)
                 .filter_by(device_id=device_model.id)
                 .all()
             ):
@@ -345,11 +313,11 @@ class KnxGuiApp:
             )
 
     def _get_app_for_device(self, template_id: str) -> DeviceApplication | None:
-        xml_data = get_application_xml(self._catalog, template_id)
+        xml_data = self._catalog_service.get_application_xml(template_id)
         if not xml_data:
             return None
         app_model = (
-            self._catalog.session.query(ApplicationModel)
+            self._catalog_service.session.query(ApplicationModel)
             .filter_by(application_id=template_id)
             .first()
         )
@@ -361,30 +329,28 @@ class KnxGuiApp:
         return apps[0]
 
     def _undo(self) -> None:
-        if self._project and self._project.event_store.can_undo():
-            self._project.event_store.undo()
-            self._project.session.expire_all()
+        if self._project_service and self._project_service.can_undo():
+            self._project_service.undo()
+            self._project_service.session.expire_all()
             self._load_devices_from_db()
             self._load_links_from_db()
 
     def _redo(self) -> None:
-        if self._project and self._project.event_store.can_redo():
-            self._project.event_store.redo()
-            self._project.session.expire_all()
+        if self._project_service and self._project_service.can_redo():
+            self._project_service.redo()
+            self._project_service.session.expire_all()
             self._load_devices_from_db()
             self._load_links_from_db()
 
     def _can_undo(self) -> bool:
-        return self._project is not None and self._project.event_store.can_undo()
+        return self._project_service.is_open and self._project_service.can_undo()
 
     def _can_redo(self) -> bool:
-        return self._project is not None and self._project.event_store.can_redo()
+        return self._project_service.is_open and self._project_service.can_redo()
 
     def _add_link(self, start_pin: int, end_pin: int) -> int:
         link_id = self._state.add_link(start_pin, end_pin)
-        if self._project:
-            event = LinkCreated(link_id=link_id, start_pin=start_pin, end_pin=end_pin)
-            self._project.event_store.append(event)
+        self._project_service.add_link(link_id, start_pin, end_pin)
         return link_id
 
     def _remove_link(self, link_id: int) -> None:
@@ -392,11 +358,8 @@ class KnxGuiApp:
             (link for link in self._state.links if link[0] == link_id), None
         )
         self._state.remove_link(link_id)
-        if self._project and link_data:
-            event = LinkRemoved(
-                link_id=link_data[0], start_pin=link_data[1], end_pin=link_data[2]
-            )
-            self._project.event_store.append(event)
+        if link_data:
+            self._project_service.remove_link(link_data[0], link_data[1], link_data[2])
 
     def _sync_selected_device_from_editor(self) -> None:
         selected_ids = self._node_editor_panel.get_selected_node_ids()
@@ -444,7 +407,7 @@ class KnxGuiApp:
     def _load_knxprod(self, path: str) -> None:
         print(f"[knxprod] loading {path} into catalog")
         try:
-            added = load_knxprod_to_catalog(self._catalog, Path(path))
+            added = self._catalog_service.import_knxprod(Path(path))
             if added:
                 print(f"[knxprod] added {len(added)} application(s) to catalog")
                 for app_id in added:
@@ -465,38 +428,13 @@ class KnxGuiApp:
         if template_id is None:
             template_id = f"{app.manufacturer_id}_{app.application_id}"
 
-        params = [(p.id, p.value) for p in app.parameters]
-        com_objs = []
-        for co in app.com_objects:
-            dpt_major, dpt_minor = 0, 0
-            if co.dpt_codes:
-                parts = co.dpt_codes[0].split(".")
-                dpt_major = int(parts[0]) if len(parts) > 0 else 0
-                dpt_minor = int(parts[1]) if len(parts) > 1 else 0
-            com_objs.append(
-                {
-                    "co_id": co.id,
-                    "dpt_major": dpt_major,
-                    "dpt_minor": dpt_minor,
-                    "flag_communication": co.flags.communication,
-                    "flag_read": co.flags.read,
-                    "flag_write": co.flags.write,
-                    "flag_transmit": co.flags.transmit,
-                    "flag_update": co.flags.update,
-                }
-            )
-
-        if self._project:
-            event = DeviceAdded(
-                device_id=0,
-                address="",
-                template_id=template_id,
-                name=app.name,
-                parameters=params,
-                com_objects=com_objs,
-            )
-            self._project.event_store.append(event)
-            self._state.add_device_with_id(app=app, node_id=event.device_id, address="")
+        device_id = self._project_service.add_device(
+            template_id=template_id,
+            name=app.name,
+            app=app,
+        )
+        if device_id:
+            self._state.add_device_with_id(app=app, node_id=device_id, address="")
         else:
             self._state.add_device(app=app, address="")
 
@@ -535,7 +473,7 @@ class KnxGuiApp:
                 self._new_project()
             if imgui.menu_item(S.MENU_OPEN_PROJECT, "", False)[0]:
                 self._open_project()
-            imgui.begin_disabled(self._project is None)
+            imgui.begin_disabled(not self._project_service.is_open)
             if imgui.menu_item(S.MENU_SAVE_PROJECT, "", False)[0]:
                 pass
             imgui.end_disabled()

@@ -1,25 +1,18 @@
 from collections.abc import Callable
-from dataclasses import dataclass
 
 from imgui_bundle import imgui
 
-
-@dataclass
-class CatalogEntry:
-    application_id: str
-    manufacturer_id: str
-    manufacturer_name: str
-    name: str
+from knx_gui.plugins.catalog.service import CatalogEntry
 
 
 class CatalogPanel:
     def __init__(
         self,
-        get_catalog_entries: Callable[[], list[CatalogEntry]],
-        on_add_from_catalog: Callable[[str], None],
+        get_entries: Callable[[], list[CatalogEntry]],
+        on_select: Callable[[str], None],
     ) -> None:
-        self._get_catalog_entries = get_catalog_entries
-        self._on_add_from_catalog = on_add_from_catalog
+        self._get_entries = get_entries
+        self._on_select = on_select
         self._search: str = ""
 
     def render(self) -> None:
@@ -35,7 +28,7 @@ class CatalogPanel:
             | imgui.TreeNodeFlags_.span_avail_width
         )
 
-        entries = self._get_catalog_entries()
+        entries = self._get_entries()
         if not entries:
             return
 
@@ -47,7 +40,9 @@ class CatalogPanel:
                 manufacturer_labels[entry.manufacturer_id] = entry.manufacturer_name
             by_manufacturer[entry.manufacturer_id].append(entry)
 
-        sorted_mfrs = sorted(by_manufacturer.keys(), key=lambda m: manufacturer_labels[m])
+        sorted_mfrs = sorted(
+            by_manufacturer.keys(), key=lambda m: manufacturer_labels[m]
+        )
 
         if search:
             for mfr_id in sorted_mfrs:
@@ -57,7 +52,7 @@ class CatalogPanel:
                         label = f"{mfr_label} - {entry.name}"
                         imgui.tree_node_ex(label, leaf_flags)
                         if imgui.is_item_clicked() and imgui.is_mouse_double_clicked(0):
-                            self._on_add_from_catalog(entry.application_id)
+                            self._on_select(entry.application_id)
         else:
             for mfr_id in sorted_mfrs:
                 mfr_label = manufacturer_labels[mfr_id]
@@ -65,5 +60,5 @@ class CatalogPanel:
                     for entry in by_manufacturer[mfr_id]:
                         imgui.tree_node_ex(entry.name, leaf_flags)
                         if imgui.is_item_clicked() and imgui.is_mouse_double_clicked(0):
-                            self._on_add_from_catalog(entry.application_id)
+                            self._on_select(entry.application_id)
                     imgui.tree_pop()

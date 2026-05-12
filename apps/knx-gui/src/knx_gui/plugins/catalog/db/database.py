@@ -5,7 +5,7 @@ from alembic.config import Config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from knx_gui.catalog.models import Base
+from knx_gui.plugins.catalog.db.models import Base
 
 
 class CatalogDatabase:

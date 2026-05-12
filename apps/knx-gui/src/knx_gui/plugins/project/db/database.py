@@ -1,19 +1,24 @@
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from knx_gui.project.event_store import EventStore
-from knx_gui.project.models import Base
+from knx_gui.plugins.project.db.event_store import EventStore
+from knx_gui.plugins.project.db.models import Base
+
+if TYPE_CHECKING:
+    from knx_gui.plugins.base import EventBus
 
 MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
 
 class ProjectDatabase:
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, event_bus: "EventBus | None" = None) -> None:
         self._path = path
+        self._event_bus = event_bus
         self._engine = None
         self._session_factory = None
         self._session: Session | None = None
@@ -26,7 +31,7 @@ class ProjectDatabase:
         self._stamp_head()
         self._session_factory = sessionmaker(bind=self._engine)
         self._session = self._session_factory()
-        self._event_store = EventStore(self._session)
+        self._event_store = EventStore(self._session, self._event_bus)
 
     def open(self) -> None:
         if not self._path.exists():
@@ -35,7 +40,7 @@ class ProjectDatabase:
         self._run_migrations()
         self._session_factory = sessionmaker(bind=self._engine)
         self._session = self._session_factory()
-        self._event_store = EventStore(self._session)
+        self._event_store = EventStore(self._session, self._event_bus)
 
     def close(self) -> None:
         if self._session:
