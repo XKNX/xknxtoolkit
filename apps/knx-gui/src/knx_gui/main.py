@@ -212,6 +212,7 @@ class KnxGuiApp:
                 CatalogEntry(
                     application_id=app.application_id,
                     manufacturer_id=app.manufacturer_id,
+                    manufacturer_name=app.manufacturer_name,
                     name=app.name,
                 )
             )

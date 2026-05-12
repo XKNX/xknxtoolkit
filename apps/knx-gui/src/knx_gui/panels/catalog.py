@@ -8,6 +8,7 @@ from imgui_bundle import imgui
 class CatalogEntry:
     application_id: str
     manufacturer_id: str
+    manufacturer_name: str
     name: str
 
 
@@ -39,23 +40,29 @@ class CatalogPanel:
             return
 
         by_manufacturer: dict[str, list[CatalogEntry]] = {}
+        manufacturer_labels: dict[str, str] = {}
         for entry in entries:
             if entry.manufacturer_id not in by_manufacturer:
                 by_manufacturer[entry.manufacturer_id] = []
+                manufacturer_labels[entry.manufacturer_id] = entry.manufacturer_name
             by_manufacturer[entry.manufacturer_id].append(entry)
 
+        sorted_mfrs = sorted(by_manufacturer.keys(), key=lambda m: manufacturer_labels[m])
+
         if search:
-            for mfr in sorted(by_manufacturer.keys()):
-                for entry in by_manufacturer[mfr]:
-                    if search in entry.name.lower() or search in mfr.lower():
-                        label = f"{mfr} - {entry.name}"
+            for mfr_id in sorted_mfrs:
+                mfr_label = manufacturer_labels[mfr_id]
+                for entry in by_manufacturer[mfr_id]:
+                    if search in entry.name.lower() or search in mfr_label.lower():
+                        label = f"{mfr_label} - {entry.name}"
                         imgui.tree_node_ex(label, leaf_flags)
                         if imgui.is_item_clicked() and imgui.is_mouse_double_clicked(0):
                             self._on_add_from_catalog(entry.application_id)
         else:
-            for mfr in sorted(by_manufacturer.keys()):
-                if imgui.tree_node(mfr):
-                    for entry in by_manufacturer[mfr]:
+            for mfr_id in sorted_mfrs:
+                mfr_label = manufacturer_labels[mfr_id]
+                if imgui.tree_node(mfr_label):
+                    for entry in by_manufacturer[mfr_id]:
                         imgui.tree_node_ex(entry.name, leaf_flags)
                         if imgui.is_item_clicked() and imgui.is_mouse_double_clicked(0):
                             self._on_add_from_catalog(entry.application_id)
