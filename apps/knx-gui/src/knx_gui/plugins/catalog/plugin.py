@@ -42,7 +42,8 @@ class CatalogPlugin:
         if device_id:
             print(f"[catalog] added device {app.name} (id={device_id})")
 
-    def create_panel(self) -> CatalogPanel:
+    @property
+    def panel(self) -> CatalogPanel:
         return self._panel
 
     def on_load(self) -> None:

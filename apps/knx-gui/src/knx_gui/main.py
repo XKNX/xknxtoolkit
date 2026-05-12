@@ -8,19 +8,18 @@ from xknxmono.product.errors import ArchiveError
 from knx_gui.dialogs import LinkWarningDialog
 from knx_gui.dpt import lookup_or_make_dpt
 from knx_gui.knxprod import DeviceApplication, parse_application_xml
-from knx_gui.panels import NodeEditorPanel, TelegramsPanel
 from knx_gui.plugins.base import API_VERSION, EventBus, PluginAPI
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
 from knx_gui.plugins.catalog.db import ApplicationModel
+from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
+from knx_gui.plugins.telegrams import TelegramsPlugin
 from knx_gui.state import AppState, create_empty_state
 from knx_gui.strings import S
 from knx_gui.types import (
     Device,
     color_u32,
 )
-
-NAVIGATE_TO_NODE_DURATION = 0.3
 
 
 class KnxGuiApp:
@@ -53,36 +52,22 @@ class KnxGuiApp:
             events=self._event_bus,
         )
 
-        self._node_editor_panel = NodeEditorPanel(
-            state=self._state,
-            get_devices=lambda: self._state.devices,
-            get_links=lambda: self._state.links,
-            add_link=self._add_link,
-            remove_link=self._remove_link,
-            on_param_change=self._on_param_change,
-        )
         self._catalog_plugin = CatalogPlugin(self._plugin_api)
-        self._catalog_panel = self._catalog_plugin.create_panel()
-        self._telegrams_panel = TelegramsPanel(
-            get_telegrams=lambda: self._state.telegrams,
-            on_focus_source=self._focus_device_by_address,
+        self._telegrams_plugin = TelegramsPlugin(self._plugin_api)
+        self._node_editor_plugin = NodeEditorPlugin(
+            api=self._plugin_api,
+            on_param_change=self._on_param_change,
         )
         self._project_plugin = ProjectPlugin(
             api=self._plugin_api,
             on_param_change=self._on_param_change,
         )
 
-        self._state.subscribe("device_selected", self._on_device_selected)
         self._state.subscribe("reload_requested", self._on_reload_requested)
 
     def _on_reload_requested(self) -> None:
         self._load_devices_from_db()
         self._load_links_from_db()
-
-    def _on_device_selected(self, device: Device | None) -> None:
-        if device:
-            self._node_editor_panel.select_node(device.node_id, False)
-            self._node_editor_panel.navigate_to_selection(False, NAVIGATE_TO_NODE_DURATION)
 
     def _remove_device(self, device_id: str) -> None:
         raise NotImplementedError("Device removal not yet implemented")
@@ -96,7 +81,7 @@ class KnxGuiApp:
             device, param_id, value
         )
         if hidden_cos:
-            affected_links = self._node_editor_panel.find_links_for_com_objects(
+            affected_links = self._node_editor_plugin.panel.find_links_for_com_objects(
                 device, hidden_cos
             )
             if affected_links:
@@ -115,17 +100,8 @@ class KnxGuiApp:
         affected_links: list[tuple[int, int, int]],
     ) -> None:
         for link in affected_links:
-            self._remove_link(link[0])
+            self._state.remove_link(link[0])
         self._state.set_param(device, param_id, value)
-
-    def _focus_device_by_address(self, address: str) -> None:
-        device = self._state.find_device_by_address(address)
-        if device:
-            self._state.selected_device = device
-            self._node_editor_panel.select_node(device.node_id, False)
-            self._node_editor_panel.navigate_to_selection(
-                False, NAVIGATE_TO_NODE_DURATION
-            )
 
     def _add_device_from_catalog(self, application_id: str) -> None:
         xml_data = self._catalog_service.get_application_xml(application_id)
@@ -151,10 +127,10 @@ class KnxGuiApp:
         self._add_candidate_as_device(app, template_id=application_id)
 
     def setup(self) -> None:
-        self._node_editor_panel.setup()
+        self._node_editor_plugin.setup()
 
     def shutdown(self) -> None:
-        self._node_editor_panel.shutdown()
+        self._node_editor_plugin.shutdown()
         if self._project_service.is_open:
             self._project_service.close()
         self._catalog_db.close()
@@ -283,21 +259,8 @@ class KnxGuiApp:
     def _can_redo(self) -> bool:
         return self._project_service.is_open and self._project_service.can_redo()
 
-    def _add_link(self, start_pin: int, end_pin: int) -> int:
-        link_id = self._state.add_link(start_pin, end_pin)
-        self._project_service.add_link(link_id, start_pin, end_pin)
-        return link_id
-
-    def _remove_link(self, link_id: int) -> None:
-        link_data = next(
-            (link for link in self._state.links if link[0] == link_id), None
-        )
-        self._state.remove_link(link_id)
-        if link_data:
-            self._project_service.remove_link(link_data[0], link_data[1], link_data[2])
-
     def _sync_selected_device_from_editor(self) -> None:
-        selected_ids = self._node_editor_panel.get_selected_node_ids()
+        selected_ids = self._node_editor_plugin.panel.get_selected_node_ids()
         if len(selected_ids) != 1:
             return
         node_id = selected_ids[0]
@@ -461,14 +424,14 @@ class KnxGuiApp:
         self._project_plugin.devices_panel.render()
 
     def gui_catalog(self) -> None:
-        self._catalog_panel.render()
+        self._catalog_plugin.panel.render()
 
     def gui_node_editor(self) -> None:
-        self._node_editor_panel.render()
+        self._node_editor_plugin.panel.render()
         self._link_warning_dialog.render()
 
     def gui_telegrams(self) -> None:
-        self._telegrams_panel.render()
+        self._telegrams_plugin.panel.render()
 
     def gui_configure(self) -> None:
         self._sync_selected_device_from_editor()

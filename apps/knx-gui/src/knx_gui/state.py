@@ -81,10 +81,14 @@ class AppState:
         link_id = self._next_link_id
         self._next_link_id += 1
         self.links.append((link_id, start_pin, end_pin))
+        self._emit("link_added", link_id, start_pin, end_pin)
         return link_id
 
     def remove_link(self, link_id: int) -> None:
+        link_data = next((link for link in self.links if link[0] == link_id), None)
         self.links = [link for link in self.links if link[0] != link_id]
+        if link_data:
+            self._emit("link_removed", link_data[0], link_data[1], link_data[2])
 
     def find_device_by_address(self, address: str) -> Device | None:
         for device in self.devices:
