@@ -122,11 +122,7 @@ class ProjectPlugin:
         return entries
 
     def _handle_jump_to(self, event_id: int) -> None:
-        if not self._api.project.session:
-            return
         self._api.project.jump_to(event_id)
-        self._api.project.session.expire_all()
-        self._api.project.request_reload()
 
     def _render_configure(self) -> None:
         self._sync_selected_device_from_editor()

@@ -1,27 +1,34 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from knx_gui.dpt import lookup_or_make_dpt
+from knx_gui.knxprod import DeviceApplication, parse_application_xml
 from knx_gui.plugins.base import EventBus
 from knx_gui.plugins.project.db import (
     ComObjectDptChanged,
     ComObjectFlagChanged,
+    ComObjectModel,
     DeviceAdded,
     DeviceAddressChanged,
+    DeviceModel,
     DeviceRemoved,
     LinkCreated,
+    LinkModel,
     LinkRemoved,
     ParameterChanged,
+    ParameterModel,
     ProjectDatabase,
 )
 from knx_gui.types import ComObject, Device
 
 if TYPE_CHECKING:
-    from knx_gui.knxprod import DeviceApplication
+    from knx_gui.plugins.catalog.service import CatalogService
 
 
 class ProjectService:
-    def __init__(self, event_bus: EventBus) -> None:
+    def __init__(self, event_bus: EventBus, catalog: "CatalogService") -> None:
         self._event_bus = event_bus
+        self._catalog = catalog
         self._db: ProjectDatabase | None = None
 
         self._devices: list[Device] = []
@@ -123,8 +130,86 @@ class ProjectService:
     ) -> list[ComObject]:
         return device.would_hide_com_objects(param_id, value)
 
-    def request_reload(self) -> None:
-        self._event_bus.emit("reload_requested")
+    def _reload_from_db(self) -> None:
+        if not self._db:
+            return
+        self._load_devices_from_db()
+        self._load_links_from_db()
+
+    def _load_links_from_db(self) -> None:
+        if not self._db:
+            return
+        self.clear_links()
+        for link_model in self._db.session.query(LinkModel).all():
+            self._links.append(
+                (link_model.id, link_model.start_pin, link_model.end_pin)
+            )
+        max_link_id = max((link[0] for link in self._links), default=999)
+        self._next_link_id = max_link_id + 1
+
+    def _load_devices_from_db(self) -> None:
+        if not self._db:
+            return
+        from knx_gui.plugins.catalog.db import ApplicationModel
+
+        selected_node_id = (
+            self._selected_device.node_id if self._selected_device else None
+        )
+        self.clear_devices()
+        for device_model in self._db.session.query(DeviceModel).all():
+            app = self._get_app_for_template(device_model.template_id)
+            if not app:
+                print(
+                    f"[project] skipping device {device_model.id}: "
+                    f"template '{device_model.template_id}' not found"
+                )
+                continue
+            device = self.add_device_to_state_with_id(
+                app=app,
+                node_id=device_model.id,
+                address=device_model.address or "",
+            )
+            for param_model in (
+                self._db.session.query(ParameterModel)
+                .filter_by(device_id=device_model.id)
+                .all()
+            ):
+                device.set_param_value(param_model.param_id, param_model.value)
+            for co_model in (
+                self._db.session.query(ComObjectModel)
+                .filter_by(device_id=device_model.id)
+                .all()
+            ):
+                co = device.find_com_object(co_model.co_id)
+                if co:
+                    co.dpt = lookup_or_make_dpt(
+                        f"{co_model.dpt_major}.{co_model.dpt_minor}"
+                    )
+                    co.flags.communication = co_model.flag_communication
+                    co.flags.read = co_model.flag_read
+                    co.flags.write = co_model.flag_write
+                    co.flags.transmit = co_model.flag_transmit
+                    co.flags.update = co_model.flag_update
+        if selected_node_id is not None:
+            self._selected_device = self.find_device_by_node_id(selected_node_id)
+
+    def _get_app_for_template(self, template_id: str) -> DeviceApplication | None:
+        from knx_gui.plugins.catalog.db import ApplicationModel
+
+        xml_data = self._catalog.get_application_xml(template_id)
+        if not xml_data:
+            return None
+        app_model = (
+            self._catalog.session.query(ApplicationModel)
+            .filter_by(application_id=template_id)
+            .first()
+        )
+        if not app_model:
+            return None
+        apps = parse_application_xml(xml_data, app_model.manufacturer_id)
+        if not apps:
+            return None
+        return apps[0]
 
     @property
     def is_open(self) -> bool:
@@ -153,6 +238,7 @@ class ProjectService:
             self._db.close()
         self._db = ProjectDatabase(path, self._event_bus)
         self._db.open()
+        self._reload_from_db()
 
     def close(self) -> None:
         if self._db:
@@ -291,12 +377,20 @@ class ProjectService:
     def undo(self) -> bool:
         if not self._db:
             return False
-        return self._db.event_store.undo()
+        result = self._db.event_store.undo()
+        if result:
+            self._db.session.expire_all()
+            self._reload_from_db()
+        return result
 
     def redo(self) -> bool:
         if not self._db:
             return False
-        return self._db.event_store.redo()
+        result = self._db.event_store.redo()
+        if result:
+            self._db.session.expire_all()
+            self._reload_from_db()
+        return result
 
     def can_undo(self) -> bool:
         if not self._db:
@@ -318,3 +412,5 @@ class ProjectService:
         if not self._db:
             return
         self._db.event_store.jump_to(event_id)
+        self._db.session.expire_all()
+        self._reload_from_db()
