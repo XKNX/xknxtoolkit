@@ -32,9 +32,11 @@ class ConnectionPlugin:
         self,
         api: PluginAPI,
         raw_cemi_callback: Callable[[bytes], None] | None = None,
+        on_connected: Callable[[], None] | None = None,
     ) -> None:
         self._api = api
         self._raw_cemi_callback = raw_cemi_callback
+        self._on_connected = on_connected
         self._state = ConnectionState.DISCONNECTED
         self._error_message: str | None = None
         self._controller_ip: str = "192.168.1.1"
@@ -107,6 +109,8 @@ class ConnectionPlugin:
             except Exception:
                 self._gateway_info = None
             self._state = ConnectionState.CONNECTED
+            if self._on_connected:
+                self._on_connected()
         except Exception as e:
             self._state = ConnectionState.ERROR
             self._error_message = str(e)
