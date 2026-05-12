@@ -5,11 +5,9 @@ from imgui_bundle import hello_imgui, imgui
 from imgui_bundle import portable_file_dialogs as pfd
 from xknxmono.product.errors import ArchiveError
 
-from knx_gui.dpt import lookup_or_make_dpt
-from knx_gui.knxprod import DeviceApplication, parse_application_xml
+from knx_gui.knxprod import DeviceApplication
 from knx_gui.plugins.base import API_VERSION, EventBus, PanelDefinition, PluginAPI
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
-from knx_gui.plugins.catalog.db import ApplicationModel
 from knx_gui.plugins.connection import ConnectionPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
@@ -32,7 +30,7 @@ class KnxGuiApp:
         self._save_project_dialog: pfd.save_file | None = None
 
         self._event_bus = EventBus()
-        self._project_service = ProjectService(self._event_bus)
+        self._project_service = ProjectService(self._event_bus, self._catalog_service)
 
         self._plugin_api = PluginAPI(
             api_version=API_VERSION,
@@ -57,35 +55,6 @@ class KnxGuiApp:
             self._node_editor_plugin,
             self._project_plugin,
         ]
-
-        self._event_bus.subscribe("reload_requested", self._on_reload_requested)
-
-    def _on_reload_requested(self) -> None:
-        self._load_devices_from_db()
-        self._load_links_from_db()
-
-    def _add_device_from_catalog(self, application_id: str) -> None:
-        xml_data = self._catalog_service.get_application_xml(application_id)
-        if not xml_data:
-            print(f"[catalog] application not found: {application_id}")
-            return
-
-        app_model = (
-            self._catalog_service.session.query(ApplicationModel)
-            .filter_by(application_id=application_id)
-            .first()
-        )
-        if not app_model:
-            return
-
-        apps = parse_application_xml(xml_data, app_model.manufacturer_id)
-        if not apps:
-            print(f"[catalog] no applications parsed from {application_id}")
-            return
-
-        app = apps[0]
-        print(f"[catalog] adding {app.name} ({len(app.com_objects)} com objects)")
-        self._add_candidate_as_device(app, template_id=application_id)
 
     def setup(self) -> None:
         self._node_editor_plugin.setup()
@@ -112,109 +81,15 @@ class KnxGuiApp:
 
     def _do_new_project(self, path: str) -> None:
         self._project_service.new(Path(path))
-        self._project_service.clear_devices()
-        self._project_service.clear_links()
 
     def _do_open_project(self, path: str) -> None:
         self._project_service.open(Path(path))
-        self._load_devices_from_db()
-        self._load_links_from_db()
-
-    def _load_links_from_db(self) -> None:
-        if not self._project_service.is_open:
-            return
-        from knx_gui.plugins.project.db import LinkModel
-
-        self._project_service.clear_links()
-        for link_model in self._project_service.session.query(LinkModel).all():
-            self._project_service.links.append(
-                (link_model.id, link_model.start_pin, link_model.end_pin)
-            )
-        max_link_id = max((link[0] for link in self._project_service.links), default=999)
-        self._project_service._next_link_id = max_link_id + 1
-
-    def _load_devices_from_db(self) -> None:
-        if not self._project_service.is_open:
-            return
-        from knx_gui.plugins.project.db import (
-            ComObjectModel,
-            DeviceModel,
-            ParameterModel,
-        )
-
-        selected_node_id = (
-            self._project_service.selected_device.node_id
-            if self._project_service.selected_device
-            else None
-        )
-        self._project_service.clear_devices()
-        for device_model in self._project_service.session.query(DeviceModel).all():
-            app = self._get_app_for_device(device_model.template_id)
-            if not app:
-                print(
-                    f"[project] skipping device {device_model.id}: template '{device_model.template_id}' not found"
-                )
-                continue
-            device = self._project_service.add_device_to_state_with_id(
-                app=app,
-                node_id=device_model.id,
-                address=device_model.address or "",
-            )
-            for param_model in (
-                self._project_service.session.query(ParameterModel)
-                .filter_by(device_id=device_model.id)
-                .all()
-            ):
-                device.set_param_value(param_model.param_id, param_model.value)
-            for co_model in (
-                self._project_service.session.query(ComObjectModel)
-                .filter_by(device_id=device_model.id)
-                .all()
-            ):
-                co = device.find_com_object(co_model.co_id)
-                if co:
-                    co.dpt = lookup_or_make_dpt(
-                        f"{co_model.dpt_major}.{co_model.dpt_minor}"
-                    )
-                    co.flags.communication = co_model.flag_communication
-                    co.flags.read = co_model.flag_read
-                    co.flags.write = co_model.flag_write
-                    co.flags.transmit = co_model.flag_transmit
-                    co.flags.update = co_model.flag_update
-        if selected_node_id is not None:
-            self._project_service.selected_device = (
-                self._project_service.find_device_by_node_id(selected_node_id)
-            )
-
-    def _get_app_for_device(self, template_id: str) -> DeviceApplication | None:
-        xml_data = self._catalog_service.get_application_xml(template_id)
-        if not xml_data:
-            return None
-        app_model = (
-            self._catalog_service.session.query(ApplicationModel)
-            .filter_by(application_id=template_id)
-            .first()
-        )
-        if not app_model:
-            return None
-        apps = parse_application_xml(xml_data, app_model.manufacturer_id)
-        if not apps:
-            return None
-        return apps[0]
 
     def _undo(self) -> None:
-        if self._project_service and self._project_service.can_undo():
-            self._project_service.undo()
-            self._project_service.session.expire_all()
-            self._load_devices_from_db()
-            self._load_links_from_db()
+        self._project_service.undo()
 
     def _redo(self) -> None:
-        if self._project_service and self._project_service.can_redo():
-            self._project_service.redo()
-            self._project_service.session.expire_all()
-            self._load_devices_from_db()
-            self._load_links_from_db()
+        self._project_service.redo()
 
     def _can_undo(self) -> bool:
         return self._project_service.is_open and self._project_service.can_undo()
