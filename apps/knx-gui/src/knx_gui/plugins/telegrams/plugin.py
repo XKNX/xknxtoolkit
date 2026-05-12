@@ -1,25 +1,96 @@
+from datetime import datetime, timezone
+
+from xknx.telegram import Telegram
+from xknx.telegram.apci import (
+    ADCRead,
+    ADCResponse,
+    AuthorizeRequest,
+    AuthorizeResponse,
+    DeviceDescriptorRead,
+    DeviceDescriptorResponse,
+    FunctionPropertyCommand,
+    FunctionPropertyStateRead,
+    FunctionPropertyStateResponse,
+    GroupValueRead,
+    GroupValueResponse,
+    GroupValueWrite,
+    IndividualAddressRead,
+    IndividualAddressResponse,
+    IndividualAddressSerialRead,
+    IndividualAddressSerialResponse,
+    IndividualAddressSerialWrite,
+    IndividualAddressWrite,
+    MemoryExtendedRead,
+    MemoryExtendedReadResponse,
+    MemoryExtendedWrite,
+    MemoryExtendedWriteResponse,
+    MemoryRead,
+    MemoryResponse,
+    MemoryWrite,
+    PropertyDescriptionRead,
+    PropertyDescriptionResponse,
+    PropertyValueRead,
+    PropertyValueResponse,
+    PropertyValueWrite,
+    Restart,
+    UserManufacturerInfoRead,
+    UserManufacturerInfoResponse,
+    UserMemoryRead,
+    UserMemoryResponse,
+    UserMemoryWrite,
+)
+from xknx.dpt import DPTBinary, DPTArray
+
 from knx_gui.plugins.base import PanelDefinition, PluginAPI
 from knx_gui.plugins.telegrams.ui import TelegramsPanel
 from knx_gui.strings import S
-from knx_gui.types import Telegram
+from knx_gui.types import TelegramRecord
+
+
+def _mock(source: str, dest: str, payload, sec: int) -> TelegramRecord:
+    t = Telegram(destination_address=dest, source_address=source, payload=payload)
+    ts = datetime(2026, 5, 12, 9, 15, sec, tzinfo=timezone.utc)
+    return TelegramRecord(telegram=t, timestamp=ts)
 
 
 MOCK_TELEGRAMS = [
-    Telegram("2026-05-12 09:15:23", "1.1.10", "0/0/1", "GroupValueWrite", "1.001", "On"),
-    Telegram("2026-05-12 09:15:24", "1.1.15", "0/0/2", "GroupValueRead", "", ""),
-    Telegram("2026-05-12 09:15:24", "1.1.20", "0/0/2", "GroupValueResponse", "5.001", "75%"),
-    Telegram("2026-05-12 09:15:26", "1.1.10", "0/1/5", "GroupValueWrite", "9.001", "21.5 °C"),
-    Telegram("2026-05-12 09:15:28", "1.1.12", "0/0/1", "GroupValueWrite", "1.001", "Off"),
-    Telegram("2026-05-12 09:15:30", "1.1.15", "0/2/10", "GroupValueRead", "", ""),
-    Telegram("2026-05-12 09:15:30", "1.1.25", "0/2/10", "GroupValueResponse", "1.001", "On"),
-    Telegram("2026-05-12 09:15:32", "1.1.10", "0/1/6", "GroupValueWrite", "5.001", "50%"),
-    Telegram("2026-05-12 09:15:35", "1.1.30", "0/3/1", "GroupValueWrite", "16.001", "Hello World"),
-    Telegram("2026-05-12 09:15:38", "1.1.12", "0/0/3", "GroupValueWrite", "1.001", "On"),
-    Telegram("2026-05-12 09:15:40", "1.1.15", "0/1/5", "GroupValueRead", "", ""),
-    Telegram("2026-05-12 09:15:40", "1.1.20", "0/1/5", "GroupValueResponse", "9.001", "22.0 °C"),
-    Telegram("2026-05-12 09:15:42", "1.1.10", "0/0/1", "GroupValueWrite", "1.001", "On"),
-    Telegram("2026-05-12 09:15:45", "1.1.25", "0/2/15", "GroupValueWrite", "10.001", "12:30:00"),
-    Telegram("2026-05-12 09:15:48", "1.1.30", "0/3/2", "GroupValueWrite", "11.001", "2026-05-12"),
+    _mock("1.1.10", "0/0/1", GroupValueWrite(DPTBinary(1)), 0),
+    _mock("1.1.15", "0/0/2", GroupValueRead(), 1),
+    _mock("1.1.20", "0/0/2", GroupValueResponse(DPTArray([0x4B])), 1),
+    _mock("0.0.0", "1.1.50", DeviceDescriptorRead(descriptor=0), 2),
+    _mock("1.1.50", "0.0.0", DeviceDescriptorResponse(descriptor=0, value=0x07B0), 2),
+    _mock("0.0.0", "0.0.0", IndividualAddressRead(), 3),
+    _mock("1.1.99", "0.0.0", IndividualAddressResponse(), 3),
+    _mock("0.0.0", "1.1.50", IndividualAddressWrite(address="1.1.60"), 4),
+    _mock("0.0.0", "0.0.0", IndividualAddressSerialRead(serial=bytes([0x00, 0xFA, 0x12, 0x34, 0x56, 0x78])), 5),
+    _mock("1.1.50", "0.0.0", IndividualAddressSerialResponse(serial=bytes([0x00, 0xFA, 0x12, 0x34, 0x56, 0x78]), address="1.1.50"), 5),
+    _mock("0.0.0", "1.1.50", IndividualAddressSerialWrite(serial=bytes([0x00, 0xFA, 0x12, 0x34, 0x56, 0x78]), address="1.1.60"), 6),
+    _mock("0.0.0", "1.1.50", MemoryRead(address=0x0060, count=2), 7),
+    _mock("1.1.50", "0.0.0", MemoryResponse(address=0x0060, data=bytes([0x01, 0x02])), 7),
+    _mock("0.0.0", "1.1.50", MemoryWrite(address=0x0060, data=bytes([0xAB, 0xCD])), 8),
+    _mock("0.0.0", "1.1.50", MemoryExtendedRead(address=0x010000, count=4), 9),
+    _mock("1.1.50", "0.0.0", MemoryExtendedReadResponse(return_code=0, address=0x010000, data=bytes([0x11, 0x22, 0x33, 0x44])), 9),
+    _mock("0.0.0", "1.1.50", MemoryExtendedWrite(address=0x010000, data=bytes([0xDE, 0xAD])), 10),
+    _mock("1.1.50", "0.0.0", MemoryExtendedWriteResponse(return_code=0, address=0x010000, confirmation_data=bytes([0xDE, 0xAD])), 10),
+    _mock("0.0.0", "1.1.50", UserMemoryRead(address=0x100, count=1), 11),
+    _mock("1.1.50", "0.0.0", UserMemoryResponse(address=0x100, data=bytes([0x55])), 11),
+    _mock("0.0.0", "1.1.50", UserMemoryWrite(address=0x100, data=bytes([0xAA])), 12),
+    _mock("0.0.0", "1.1.50", PropertyValueRead(object_index=0, property_id=78, count=1, start_index=1), 13),
+    _mock("1.1.50", "0.0.0", PropertyValueResponse(object_index=0, property_id=78, count=1, start_index=1, data=bytes([0x00, 0x12])), 13),
+    _mock("0.0.0", "1.1.50", PropertyValueWrite(object_index=0, property_id=78, count=1, start_index=1, data=bytes([0x00, 0x15])), 14),
+    _mock("0.0.0", "1.1.50", PropertyDescriptionRead(object_index=0, property_id=78, property_index=0), 15),
+    _mock("1.1.50", "0.0.0", PropertyDescriptionResponse(object_index=0, property_id=78, property_index=0, type_=0x11, max_count=1, access=0x3F), 15),
+    _mock("0.0.0", "1.1.50", FunctionPropertyCommand(object_index=0, property_id=1, data=bytes([0x01])), 16),
+    _mock("0.0.0", "1.1.50", FunctionPropertyStateRead(object_index=0, property_id=1, data=bytes()), 17),
+    _mock("1.1.50", "0.0.0", FunctionPropertyStateResponse(object_index=0, property_id=1, return_code=0, data=bytes([0x02])), 17),
+    _mock("0.0.0", "1.1.50", ADCRead(channel=1, count=1), 18),
+    _mock("1.1.50", "0.0.0", ADCResponse(channel=1, count=1, value=512), 18),
+    _mock("0.0.0", "1.1.50", AuthorizeRequest(key=0x12345678), 19),
+    _mock("1.1.50", "0.0.0", AuthorizeResponse(level=0), 19),
+    _mock("0.0.0", "1.1.50", UserManufacturerInfoRead(), 20),
+    _mock("1.1.50", "0.0.0", UserManufacturerInfoResponse(manufacturer_id=0x00FA, data=bytes([0x01, 0x02, 0x03])), 20),
+    _mock("0.0.0", "1.1.50", Restart(), 21),
+    _mock("1.1.10", "0/0/1", GroupValueWrite(DPTBinary(0)), 22),
 ]
 
 
@@ -28,7 +99,7 @@ class TelegramsPlugin:
 
     def __init__(self, api: PluginAPI) -> None:
         self._api = api
-        self._telegrams: list[Telegram] = list(MOCK_TELEGRAMS)
+        self._telegrams: list[TelegramRecord] = list(MOCK_TELEGRAMS)
         self._panel = TelegramsPanel(
             get_telegrams=lambda: self._telegrams,
             on_focus_source=self._on_focus_source,
@@ -44,10 +115,10 @@ class TelegramsPlugin:
         ]
 
     @property
-    def telegrams(self) -> list[Telegram]:
+    def telegrams(self) -> list[TelegramRecord]:
         return self._telegrams
 
-    def add_telegram(self, telegram: Telegram) -> None:
+    def add_telegram(self, telegram: TelegramRecord) -> None:
         self._telegrams.append(telegram)
 
     def clear_telegrams(self) -> None:
