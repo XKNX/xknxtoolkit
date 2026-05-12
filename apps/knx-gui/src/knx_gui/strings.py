@@ -13,7 +13,7 @@ class Strings:
     PANEL_DEVICES = "Devices"
     PANEL_CATALOG = "Catalog"
     PANEL_NODE_EDITOR = "Node Editor"
-    PANEL_TELEGRAMS = "Telegrams"
+    PANEL_NETWORK = "Network"
     PANEL_CONFIGURE = "Configure"
     PANEL_HISTORY = "History"
 

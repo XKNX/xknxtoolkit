@@ -28,7 +28,7 @@ TPCI_ABBREV = {
 DEFAULT_SERVICE_COLOR = (0.5, 0.5, 0.5)
 
 
-class TelegramsPanel:
+class NetworkPanel:
     def __init__(
         self,
         get_telegrams: Callable[[], list[TelegramRecord]],

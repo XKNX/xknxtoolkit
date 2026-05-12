@@ -42,8 +42,8 @@ from xknx.telegram.apci import (
 from xknx.dpt import DPTBinary, DPTArray
 
 from knx_gui.plugins.base import PanelDefinition, PluginAPI
-from knx_gui.plugins.telegrams.service import TelegramsService
-from knx_gui.plugins.telegrams.ui import CaptureState as UICaptureState, TelegramsPanel
+from knx_gui.plugins.network.service import NetworkService
+from knx_gui.plugins.network.ui import CaptureState as UICaptureState, NetworkPanel
 from knx_gui.strings import S
 from knx_gui.types import TelegramRecord
 
@@ -95,14 +95,14 @@ MOCK_TELEGRAMS = [
 ]
 
 
-class TelegramsPlugin:
-    name = "telegrams"
+class NetworkPlugin:
+    name = "network"
 
     def __init__(self, api: PluginAPI) -> None:
         self._api = api
-        self._service = TelegramsService()
+        self._service = NetworkService()
         self._load_mock_data()
-        self._panel = TelegramsPanel(
+        self._panel = NetworkPanel(
             get_telegrams=lambda: self._service.telegrams,
             get_capture_state=lambda: UICaptureState(self._service.state.value),
             on_start=self._service.start,
@@ -112,15 +112,15 @@ class TelegramsPlugin:
         )
         self._panels = [
             PanelDefinition(
-                name="telegrams",
-                label=S.PANEL_TELEGRAMS,
+                name="network",
+                label=S.PANEL_NETWORK,
                 dock="BottomSpace",
                 render=self._panel.render,
             ),
         ]
 
     @property
-    def service(self) -> TelegramsService:
+    def service(self) -> NetworkService:
         return self._service
 
     def _load_mock_data(self) -> None:
