@@ -61,21 +61,27 @@ class NodeEditorPanel:
     def __init__(
         self,
         get_devices: Callable[[], list[Device]],
-        get_links: Callable[[], list[tuple[int, int, int]]],
-        add_link: Callable[[int, int], int],
+        get_group_addresses: Callable[[], list],
+        get_assignments_for_ga: Callable[[int], list],
+        add_link: Callable[[int, int], int | None],
         remove_link: Callable[[int], None],
         on_param_change: Callable[[Device, str, str], None],
         set_flag: Callable[[Device, str, str, bool], None],
+        get_show_ga_nodes: Callable[[], bool],
     ) -> None:
         self._get_devices = get_devices
-        self._get_links = get_links
+        self._get_group_addresses = get_group_addresses
+        self._get_assignments_for_ga = get_assignments_for_ga
         self._add_link = add_link
         self._remove_link = remove_link
         self._on_param_change = on_param_change
+        self._get_show_ga_nodes = get_show_ga_nodes
 
         self._editor_context: ed.EditorContext | None = None
         self._next_pin_id: int = 100000
         self._pin_ids: dict[tuple[int, int, str], int] = {}
+        self._pin_to_co_db_id: dict[int, int] = {}
+        self._co_db_id_to_pins: dict[int, dict[str, int]] = {}
         self._pin_dpt: dict[int, DPT] = {}
         self._pin_dir: dict[int, PinDir] = {}
         self._drag_source_pin: int | None = None
@@ -151,18 +157,26 @@ class NodeEditorPanel:
                     if key in self._pin_ids:
                         pin_ids.add(self._pin_ids[key])
         affected: list[tuple[int, int, int]] = []
-        for link in self._get_links():
+        for link in self._compute_visual_links():
             _link_id, start, end = link
             if start in pin_ids or end in pin_ids:
                 affected.append(link)
         return affected
 
-    def _get_pin_id(self, device_id: int, co_index: int, direction: str) -> int:
+    def _get_pin_id(
+        self, device_id: int, co_index: int, direction: str, co_db_id: int | None = None
+    ) -> int:
         key = (device_id, co_index, direction)
         if key not in self._pin_ids:
             self._pin_ids[key] = self._next_pin_id
             self._next_pin_id += 1
-        return self._pin_ids[key]
+        pin_id = self._pin_ids[key]
+        if co_db_id is not None:
+            self._pin_to_co_db_id[pin_id] = co_db_id
+            if co_db_id not in self._co_db_id_to_pins:
+                self._co_db_id_to_pins[co_db_id] = {}
+            self._co_db_id_to_pins[co_db_id][direction] = pin_id
+        return pin_id
 
     def _calc_pin_highlight(
         self, pin: ComObject, direction: PinDir
@@ -423,7 +437,7 @@ class NodeEditorPanel:
         for row in device.rows:
             if row.left and com_object_has_input(row.left):
                 pin_id = self._get_pin_id(
-                    device.node_id, co_indices[id(row.left)], "in"
+                    device.node_id, co_indices[id(row.left)], "in", row.left.db_id
                 )
                 self._render_input_pin(pin_id, row.left, layout)
             else:
@@ -431,7 +445,7 @@ class NodeEditorPanel:
             imgui.same_line(spacing=layout.mid_spacing)
             if row.right and com_object_has_output(row.right):
                 pin_id = self._get_pin_id(
-                    device.node_id, co_indices[id(row.right)], "out"
+                    device.node_id, co_indices[id(row.right)], "out", row.right.db_id
                 )
                 self._render_output_pin(pin_id, row.right, layout)
             else:
@@ -520,7 +534,7 @@ class NodeEditorPanel:
         return self._pins_match_quality(pin_a, pin_b) != DPTMatch.NONE
 
     def _link_exists(self, pin_a: int, pin_b: int) -> bool:
-        for _, start, end in self._get_links():
+        for _, start, end in self._compute_visual_links():
             if (start == pin_a and end == pin_b) or (start == pin_b and end == pin_a):
                 return True
         return False
@@ -582,7 +596,17 @@ class NodeEditorPanel:
                             LINK_COLOR if match == DPTMatch.EXACT else LINK_LOOSE_COLOR
                         )
                         if ed.accept_new_item(preview_color, 2.0):
-                            self._add_link(start_pin_id.id(), end_pin_id.id())
+                            start_co_id = self._pin_to_co_db_id.get(start_pin_id.id())
+                            end_co_id = self._pin_to_co_db_id.get(end_pin_id.id())
+                            start_dir = self._pin_dir.get(start_pin_id.id())
+                            end_dir = self._pin_dir.get(end_pin_id.id())
+                            if start_co_id is not None and end_co_id is not None:
+                                start_is_output = start_dir == PinDir.OUTPUT
+                                end_is_output = end_dir == PinDir.OUTPUT
+                                if start_is_output:
+                                    self._add_link(start_co_id, end_co_id)
+                                else:
+                                    self._add_link(end_co_id, start_co_id)
             else:
                 drag_pin_id = ed.PinId()
                 if ed.query_new_node(drag_pin_id):
@@ -602,8 +626,33 @@ class NodeEditorPanel:
                     self._remove_link(link_id.id())
             ed.end_delete()
 
+    def _compute_visual_links(self) -> list[tuple[int, int, int]]:
+        links: list[tuple[int, int, int]] = []
+        for ga in self._get_group_addresses():
+            assignments = self._get_assignments_for_ga(ga.id)
+            if len(assignments) < 2:
+                continue
+            sending_pins = []
+            receiving_pins = []
+            for assignment in assignments:
+                pins = self._co_db_id_to_pins.get(assignment.com_object_id)
+                if pins is None:
+                    continue
+                if assignment.is_sending:
+                    pin_id = pins.get("out")
+                    if pin_id is not None:
+                        sending_pins.append(pin_id)
+                else:
+                    pin_id = pins.get("in")
+                    if pin_id is not None:
+                        receiving_pins.append(pin_id)
+            for send_pin in sending_pins:
+                for recv_pin in receiving_pins:
+                    links.append((ga.id, send_pin, recv_pin))
+        return links
+
     def _render_links(self) -> None:
-        for link_id, start_pin, end_pin in self._get_links():
+        for ga_id, start_pin, end_pin in self._compute_visual_links():
             match = self._pins_match_quality(start_pin, end_pin)
             color = LINK_LOOSE_COLOR if match == DPTMatch.LOOSE else LINK_COLOR
-            ed.link(ed.LinkId(link_id), ed.PinId(start_pin), ed.PinId(end_pin), color)
+            ed.link(ed.LinkId(ga_id), ed.PinId(start_pin), ed.PinId(end_pin), color)

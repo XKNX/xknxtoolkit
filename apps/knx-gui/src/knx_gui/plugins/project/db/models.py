@@ -64,12 +64,32 @@ class ComObjectModel(Base):
     device: Mapped["DeviceModel"] = relationship(back_populates="com_objects")
 
 
-class LinkModel(Base):
-    __tablename__ = "links"
+class GroupAddressModel(Base):
+    __tablename__ = "group_addresses"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    start_pin: Mapped[int] = mapped_column(Integer, nullable=False)
-    end_pin: Mapped[int] = mapped_column(Integer, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    address: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, default="")
+
+    assignments: Mapped[list["ComObjectGroupAddressModel"]] = relationship(
+        back_populates="group_address", cascade="all, delete-orphan"
+    )
+
+
+class ComObjectGroupAddressModel(Base):
+    __tablename__ = "com_object_group_addresses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    com_object_id: Mapped[int] = mapped_column(
+        ForeignKey("com_objects.id"), nullable=False
+    )
+    group_address_id: Mapped[int] = mapped_column(
+        ForeignKey("group_addresses.id"), nullable=False
+    )
+    is_sending: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    com_object: Mapped["ComObjectModel"] = relationship()
+    group_address: Mapped["GroupAddressModel"] = relationship(back_populates="assignments")
 
 
 class AreaModel(Base):

@@ -74,8 +74,6 @@ class ProjectPlugin:
 
         api.project.subscribe("flag_changed", self._on_flag_changed)
         api.project.subscribe("param_changed", self._on_param_changed)
-        api.project.subscribe("link_added", self._on_link_added)
-        api.project.subscribe("link_removed", self._on_link_removed)
 
     def _get_areas(self) -> list[Area]:
         return [
@@ -180,12 +178,6 @@ class ProjectPlugin:
         self._api.project.set_com_object_flag(
             device.node_id, co_id, flag_name, old_value, new_value
         )
-
-    def _on_link_added(self, link_id: int, start_pin: int, end_pin: int) -> None:
-        self._api.project.add_link(link_id, start_pin, end_pin)
-
-    def _on_link_removed(self, link_id: int, start_pin: int, end_pin: int) -> None:
-        self._api.project.remove_link(link_id, start_pin, end_pin)
 
     def _get_history_entries(self):
         from knx_gui.plugins.project.db import EventModel

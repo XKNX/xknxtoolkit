@@ -15,14 +15,17 @@ class NodeEditorPlugin:
 
     def __init__(self, api: PluginAPI) -> None:
         self._api = api
+        self._show_ga_nodes = False
 
         self._panel = NodeEditorPanel(
             get_devices=lambda: api.project.devices,
-            get_links=lambda: api.project.links,
+            get_group_addresses=lambda: api.project.group_addresses,
+            get_assignments_for_ga=api.project.get_assignments_for_ga,
             add_link=self._add_link,
             remove_link=self._remove_link,
             on_param_change=self._handle_param_change,
             set_flag=self._handle_flag_change,
+            get_show_ga_nodes=lambda: self._show_ga_nodes,
         )
 
         self._panels = [
@@ -36,11 +39,35 @@ class NodeEditorPlugin:
 
         api.project.subscribe("device_selected", self._on_device_selected)
 
-    def _add_link(self, start_pin: int, end_pin: int) -> int:
-        return self._api.project.add_link_to_state(start_pin, end_pin)
+    @property
+    def show_ga_nodes(self) -> bool:
+        return self._show_ga_nodes
 
-    def _remove_link(self, link_id: int) -> None:
-        self._api.project.remove_link_from_state(link_id)
+    @show_ga_nodes.setter
+    def show_ga_nodes(self, value: bool) -> None:
+        self._show_ga_nodes = value
+
+    def _add_link(self, output_co_id: int, input_co_id: int) -> int | None:
+        ga_id = self._api.project.create_group_address()
+        if ga_id is None:
+            return None
+        self._api.project.link_com_object_to_ga(output_co_id, ga_id, is_sending=True)
+        self._api.project.link_com_object_to_ga(input_co_id, ga_id, is_sending=False)
+        return ga_id
+
+    def _remove_link(self, ga_id: int) -> None:
+        ga = self._api.project.get_group_address(ga_id)
+        if not ga:
+            return
+        assignments = self._api.project.get_assignments_for_ga(ga_id)
+        for assignment in assignments:
+            self._api.project.unlink_com_object_from_ga(
+                assignment.id,
+                assignment.com_object_id,
+                ga_id,
+                assignment.is_sending,
+            )
+        self._api.project.remove_group_address(ga_id, ga.address, ga.name)
 
     def _handle_param_change(
         self, device: "Device", param_id: str, new_value: str

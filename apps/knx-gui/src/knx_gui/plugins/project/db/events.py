@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 
 from knx_gui.plugins.project.db.models import (
     AreaModel,
+    ComObjectGroupAddressModel,
     ComObjectModel,
     DeviceModel,
+    GroupAddressModel,
     LineModel,
-    LinkModel,
     ParameterModel,
 )
 from knx_gui.strings import S
@@ -423,79 +424,220 @@ class ComObjectFlagChanged(Event):
 
 
 @dataclass
-class LinkCreated(Event):
-    event_type: ClassVar[str] = "LinkCreated"
+class GroupAddressCreated(Event):
+    event_type: ClassVar[str] = "GroupAddressCreated"
 
-    link_id: int = 0
-    start_pin: int = 0
-    end_pin: int = 0
+    group_address_id: int = 0
+    address: str = ""
+    name: str = ""
 
-    def apply(self, session: Session) -> None:
-        link = LinkModel(
-            id=self.link_id, start_pin=self.start_pin, end_pin=self.end_pin
-        )
-        session.add(link)
+    def apply(self, session: Session) -> int:
+        if self.group_address_id:
+            ga = GroupAddressModel(
+                id=self.group_address_id, address=self.address, name=self.name
+            )
+        else:
+            ga = GroupAddressModel(address=self.address, name=self.name)
+        session.add(ga)
+        session.flush()
+        self.group_address_id = ga.id
+        return ga.id
 
     def revert(self, session: Session) -> None:
-        link = session.get(LinkModel, self.link_id)
-        if link:
-            session.delete(link)
+        ga = session.get(GroupAddressModel, self.group_address_id)
+        if ga:
+            session.delete(ga)
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "link_id": self.link_id,
-            "start_pin": self.start_pin,
-            "end_pin": self.end_pin,
+            "group_address_id": self.group_address_id,
+            "address": self.address,
+            "name": self.name,
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "LinkCreated":
+    def from_dict(cls, data: dict[str, Any]) -> "GroupAddressCreated":
         return cls(
-            link_id=data["link_id"],
-            start_pin=data["start_pin"],
-            end_pin=data["end_pin"],
+            group_address_id=data["group_address_id"],
+            address=data["address"],
+            name=data.get("name", ""),
         )
 
     def display_text(self) -> str:
-        return S.HISTORY_LINK_CREATE
+        return S.HISTORY_GA_CREATE.format(address=self.address)
 
 
 @dataclass
-class LinkRemoved(Event):
-    event_type: ClassVar[str] = "LinkRemoved"
+class GroupAddressRemoved(Event):
+    event_type: ClassVar[str] = "GroupAddressRemoved"
 
-    link_id: int = 0
-    start_pin: int = 0
-    end_pin: int = 0
+    group_address_id: int = 0
+    address: str = ""
+    name: str = ""
 
     def apply(self, session: Session) -> None:
-        link = session.get(LinkModel, self.link_id)
-        if link:
-            session.delete(link)
+        ga = session.get(GroupAddressModel, self.group_address_id)
+        if ga:
+            session.delete(ga)
 
     def revert(self, session: Session) -> None:
-        link = LinkModel(
-            id=self.link_id, start_pin=self.start_pin, end_pin=self.end_pin
+        ga = GroupAddressModel(
+            id=self.group_address_id, address=self.address, name=self.name
         )
-        session.add(link)
+        session.add(ga)
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "link_id": self.link_id,
-            "start_pin": self.start_pin,
-            "end_pin": self.end_pin,
+            "group_address_id": self.group_address_id,
+            "address": self.address,
+            "name": self.name,
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "LinkRemoved":
+    def from_dict(cls, data: dict[str, Any]) -> "GroupAddressRemoved":
         return cls(
-            link_id=data["link_id"],
-            start_pin=data["start_pin"],
-            end_pin=data["end_pin"],
+            group_address_id=data["group_address_id"],
+            address=data["address"],
+            name=data.get("name", ""),
         )
 
     def display_text(self) -> str:
-        return S.HISTORY_LINK_REMOVE
+        return S.HISTORY_GA_REMOVE.format(address=self.address)
+
+
+@dataclass
+class GroupAddressNameChanged(Event):
+    event_type: ClassVar[str] = "GroupAddressNameChanged"
+
+    group_address_id: int = 0
+    old_name: str = ""
+    new_name: str = ""
+
+    def apply(self, session: Session) -> None:
+        ga = session.get(GroupAddressModel, self.group_address_id)
+        if ga:
+            ga.name = self.new_name
+
+    def revert(self, session: Session) -> None:
+        ga = session.get(GroupAddressModel, self.group_address_id)
+        if ga:
+            ga.name = self.old_name
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "group_address_id": self.group_address_id,
+            "old_name": self.old_name,
+            "new_name": self.new_name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "GroupAddressNameChanged":
+        return cls(
+            group_address_id=data["group_address_id"],
+            old_name=data.get("old_name", ""),
+            new_name=data.get("new_name", ""),
+        )
+
+    def display_text(self) -> str:
+        return S.HISTORY_GA_RENAME.format(old=self.old_name, new=self.new_name)
+
+
+@dataclass
+class ComObjectLinked(Event):
+    event_type: ClassVar[str] = "ComObjectLinked"
+
+    assignment_id: int = 0
+    com_object_id: int = 0
+    group_address_id: int = 0
+    is_sending: bool = False
+
+    def apply(self, session: Session) -> int:
+        if self.assignment_id:
+            assignment = ComObjectGroupAddressModel(
+                id=self.assignment_id,
+                com_object_id=self.com_object_id,
+                group_address_id=self.group_address_id,
+                is_sending=self.is_sending,
+            )
+        else:
+            assignment = ComObjectGroupAddressModel(
+                com_object_id=self.com_object_id,
+                group_address_id=self.group_address_id,
+                is_sending=self.is_sending,
+            )
+        session.add(assignment)
+        session.flush()
+        self.assignment_id = assignment.id
+        return assignment.id
+
+    def revert(self, session: Session) -> None:
+        assignment = session.get(ComObjectGroupAddressModel, self.assignment_id)
+        if assignment:
+            session.delete(assignment)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "assignment_id": self.assignment_id,
+            "com_object_id": self.com_object_id,
+            "group_address_id": self.group_address_id,
+            "is_sending": self.is_sending,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ComObjectLinked":
+        return cls(
+            assignment_id=data["assignment_id"],
+            com_object_id=data["com_object_id"],
+            group_address_id=data["group_address_id"],
+            is_sending=data.get("is_sending", False),
+        )
+
+    def display_text(self) -> str:
+        return S.HISTORY_CO_LINKED
+
+
+@dataclass
+class ComObjectUnlinked(Event):
+    event_type: ClassVar[str] = "ComObjectUnlinked"
+
+    assignment_id: int = 0
+    com_object_id: int = 0
+    group_address_id: int = 0
+    is_sending: bool = False
+
+    def apply(self, session: Session) -> None:
+        assignment = session.get(ComObjectGroupAddressModel, self.assignment_id)
+        if assignment:
+            session.delete(assignment)
+
+    def revert(self, session: Session) -> None:
+        assignment = ComObjectGroupAddressModel(
+            id=self.assignment_id,
+            com_object_id=self.com_object_id,
+            group_address_id=self.group_address_id,
+            is_sending=self.is_sending,
+        )
+        session.add(assignment)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "assignment_id": self.assignment_id,
+            "com_object_id": self.com_object_id,
+            "group_address_id": self.group_address_id,
+            "is_sending": self.is_sending,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ComObjectUnlinked":
+        return cls(
+            assignment_id=data["assignment_id"],
+            com_object_id=data["com_object_id"],
+            group_address_id=data["group_address_id"],
+            is_sending=data.get("is_sending", False),
+        )
+
+    def display_text(self) -> str:
+        return S.HISTORY_CO_UNLINKED
 
 
 @dataclass
@@ -756,15 +898,18 @@ EVENT_TYPES: dict[str, type[Event]] = {
     "AreaRemoved": AreaRemoved,
     "ComObjectDptChanged": ComObjectDptChanged,
     "ComObjectFlagChanged": ComObjectFlagChanged,
+    "ComObjectLinked": ComObjectLinked,
+    "ComObjectUnlinked": ComObjectUnlinked,
     "DeviceAdded": DeviceAdded,
     "DeviceIndividualAddressChanged": DeviceIndividualAddressChanged,
     "DeviceNameChanged": DeviceNameChanged,
     "DeviceRemoved": DeviceRemoved,
+    "GroupAddressCreated": GroupAddressCreated,
+    "GroupAddressNameChanged": GroupAddressNameChanged,
+    "GroupAddressRemoved": GroupAddressRemoved,
     "LineCreated": LineCreated,
     "LineNameChanged": LineNameChanged,
     "LineRemoved": LineRemoved,
-    "LinkCreated": LinkCreated,
-    "LinkRemoved": LinkRemoved,
     "ParameterChanged": ParameterChanged,
 }
 
