@@ -176,11 +176,11 @@ class DeviceApplication:
 
     def get_visible_tree(
         self, param_values: dict[str, str] | None = None
-    ) -> parameter_tree.VisibleTree:
+    ) -> list[parameter_tree.VisibleNode]:
         from . import parameter_tree as pt
 
         if param_values is None:
             param_values = {p.id: p.value for p in self.parameters}
 
-        tree = pt.build_parameter_tree(self.dynamic)
-        return pt.evaluate_tree(tree, param_values, self.parameters)
+        params_by_id = {p.id: p for p in self.parameters}
+        return pt.evaluate_tree(self.dynamic, param_values, params_by_id)

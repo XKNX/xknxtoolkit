@@ -99,7 +99,7 @@ class ConfigurePanel:
             imgui.TreeNodeFlags_.default_open,
         ):
             tree = device.get_visible_tree()
-            if tree.channels:
+            if tree:
                 render_parameters_tree(device, tree, self._on_param_change)
             else:
                 render_parameters_grouped(device, params, self._on_param_change)
