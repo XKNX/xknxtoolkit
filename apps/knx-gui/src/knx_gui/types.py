@@ -5,10 +5,10 @@ from datetime import datetime
 from enum import Enum
 
 from imgui_bundle import imgui
-from xknx.telegram import Telegram as XknxTelegram
 
 from knx_gui.dpt import DPT
 from knx_gui.knxprod import DeviceApplication, ParamType
+from xknx.telegram import Telegram as XknxTelegram
 
 
 class PinDir(Enum):
@@ -182,7 +182,7 @@ class Device:
     node_id: int
     name: str
     app: DeviceApplication
-    address: str
+    individual_address: str
     com_objects: list[ComObject] = field(default_factory=list)
     _param_values: dict[str, str] = field(default_factory=dict)
     _cached_visible_params: list[Parameter] = field(default_factory=list)
@@ -242,9 +242,7 @@ class Device:
     def get_visible_com_objects(self) -> list[ComObject]:
         if not self._cos_dirty:
             return self._cached_visible_cos
-        visible_ids = {
-            co.id for co in self.app.visible_com_objects(self._param_values)
-        }
+        visible_ids = {co.id for co in self.app.visible_com_objects(self._param_values)}
         self._cached_visible_cos = [
             co for co in self.com_objects if co.id in visible_ids
         ]

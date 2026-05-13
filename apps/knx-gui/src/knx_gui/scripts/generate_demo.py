@@ -3,18 +3,16 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from knx_gui.catalog import CatalogDatabase, get_application_xml
-from knx_gui.catalog.models import ApplicationModel
 from knx_gui.knxprod import parse_application_xml
-from knx_gui.project.database import ProjectDatabase
-from knx_gui.project.events import DeviceAdded
+from knx_gui.plugins.catalog.db import ApplicationModel, CatalogDatabase, get_application_xml
+from knx_gui.plugins.project.db import DeviceAdded, ProjectDatabase
 
 
 @dataclass
 class DemoDevice:
     template_id: str
     name: str
-    address: str
+    individual_address: str
 
 
 DEMO_DEVICES = [
@@ -68,27 +66,31 @@ def generate_demo(output_path: Path, catalog_path: Path) -> None:
                 parts = co.dpt_codes[0].split(".")
                 dpt_major = int(parts[0]) if len(parts) > 0 else 0
                 dpt_minor = int(parts[1]) if len(parts) > 1 else 0
-            com_objs.append({
-                "co_id": co.id,
-                "dpt_major": dpt_major,
-                "dpt_minor": dpt_minor,
-                "flag_communication": co.flags.communication,
-                "flag_read": co.flags.read,
-                "flag_write": co.flags.write,
-                "flag_transmit": co.flags.transmit,
-                "flag_update": co.flags.update,
-            })
+            com_objs.append(
+                {
+                    "co_id": co.id,
+                    "dpt_major": dpt_major,
+                    "dpt_minor": dpt_minor,
+                    "flag_communication": co.flags.communication,
+                    "flag_read": co.flags.read,
+                    "flag_write": co.flags.write,
+                    "flag_transmit": co.flags.transmit,
+                    "flag_update": co.flags.update,
+                }
+            )
 
         event = DeviceAdded(
             device_id=0,
-            address=demo_device.address,
+            individual_address=demo_device.individual_address,
             template_id=demo_device.template_id,
             name=demo_device.name,
             parameters=params,
             com_objects=com_objs,
         )
         db.event_store.append(event)
-        print(f"Added: {demo_device.name} ({len(app.com_objects)} total, {len(app.visible_com_objects())} visible)")
+        print(
+            f"Added: {demo_device.name} ({len(app.com_objects)} total, {len(app.visible_com_objects())} visible)"
+        )
 
     catalog.close()
     db.close()

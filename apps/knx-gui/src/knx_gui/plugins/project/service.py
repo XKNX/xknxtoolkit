@@ -9,7 +9,7 @@ from knx_gui.plugins.project.db import (
     ComObjectFlagChanged,
     ComObjectModel,
     DeviceAdded,
-    DeviceAddressChanged,
+    DeviceIndividualAddressChanged,
     DeviceModel,
     DeviceRemoved,
     LinkCreated,
@@ -65,25 +65,27 @@ class ProjectService:
             self._selected_device = device
             self._emit("device_selected", device)
 
-    def add_device_to_state(self, app: "DeviceApplication", address: str = "") -> Device:
+    def add_device_to_state(
+        self, app: "DeviceApplication", individual_address: str = ""
+    ) -> Device:
         device = Device(
             node_id=self._next_device_id,
             name=app.name,
             app=app,
-            address=address,
+            individual_address=individual_address,
         )
         self._next_device_id += 1
         self._devices.append(device)
         return device
 
     def add_device_to_state_with_id(
-        self, app: "DeviceApplication", node_id: int, address: str = ""
+        self, app: "DeviceApplication", node_id: int, individual_address: str = ""
     ) -> Device:
         device = Device(
             node_id=node_id,
             name=app.name,
             app=app,
-            address=address,
+            individual_address=individual_address,
         )
         self._devices.append(device)
         return device
@@ -108,9 +110,11 @@ class ProjectService:
     def clear_links(self) -> None:
         self._links.clear()
 
-    def find_device_by_address(self, address: str) -> Device | None:
+    def find_device_by_individual_address(
+        self, individual_address: str
+    ) -> Device | None:
         for device in self._devices:
-            if device.address == address:
+            if device.individual_address == individual_address:
                 return device
         return None
 
@@ -120,7 +124,9 @@ class ProjectService:
                 return device
         return None
 
-    def set_flag(self, device: Device, co_id: str, flag_name: str, new_value: bool) -> None:
+    def set_flag(
+        self, device: Device, co_id: str, flag_name: str, new_value: bool
+    ) -> None:
         com_object = device.find_com_object(co_id)
         if not com_object:
             return
@@ -160,7 +166,6 @@ class ProjectService:
     def _load_devices_from_db(self) -> None:
         if not self._db:
             return
-        from knx_gui.plugins.catalog.db import ApplicationModel
 
         selected_node_id = (
             self._selected_device.node_id if self._selected_device else None
@@ -177,7 +182,7 @@ class ProjectService:
             device = self.add_device_to_state_with_id(
                 app=app,
                 node_id=device_model.id,
-                address=device_model.address or "",
+                individual_address=device_model.individual_address or "",
             )
             for param_model in (
                 self._db.session.query(ParameterModel)
@@ -260,7 +265,7 @@ class ProjectService:
         template_id: str,
         name: str,
         app: "DeviceApplication",
-        address: str = "",
+        individual_address: str = "",
     ) -> int | None:
         if not self._db:
             return None
@@ -288,7 +293,7 @@ class ProjectService:
 
         event = DeviceAdded(
             device_id=0,
-            address=address,
+            individual_address=individual_address,
             template_id=template_id,
             name=name,
             parameters=params,
@@ -297,25 +302,27 @@ class ProjectService:
         self._db.event_store.append(event)
         return event.device_id
 
-    def remove_device(self, device_id: int, template_id: str, address: str) -> None:
+    def remove_device(
+        self, device_id: int, template_id: str, individual_address: str
+    ) -> None:
         if not self._db:
             return
         event = DeviceRemoved(
             device_id=device_id,
             template_id=template_id,
-            address=address,
+            individual_address=individual_address,
         )
         self._db.event_store.append(event)
 
-    def set_device_address(
-        self, device_id: int, old_address: str, new_address: str
+    def set_device_individual_address(
+        self, device_id: int, old_individual_address: str, new_individual_address: str
     ) -> None:
         if not self._db:
             return
-        event = DeviceAddressChanged(
+        event = DeviceIndividualAddressChanged(
             device_id=device_id,
-            old_address=old_address,
-            new_address=new_address,
+            old_individual_address=old_individual_address,
+            new_individual_address=new_individual_address,
         )
         self._db.event_store.append(event)
 

@@ -49,7 +49,7 @@ class DeviceAdded(Event):
     event_type: ClassVar[str] = "DeviceAdded"
 
     device_id: int = 0
-    address: str | None = None
+    individual_address: str | None = None
     template_id: str = ""
     name: str = ""
     parameters: list[tuple[str, str]] = field(default_factory=list)
@@ -59,13 +59,13 @@ class DeviceAdded(Event):
         if self.device_id:
             device = DeviceModel(
                 id=self.device_id,
-                address=self.address,
+                individual_address=self.individual_address,
                 template_id=self.template_id,
                 name=self.name,
             )
         else:
             device = DeviceModel(
-                address=self.address,
+                individual_address=self.individual_address,
                 template_id=self.template_id,
                 name=self.name,
             )
@@ -98,7 +98,7 @@ class DeviceAdded(Event):
     def to_dict(self) -> dict[str, Any]:
         return {
             "device_id": self.device_id,
-            "address": self.address,
+            "individual_address": self.individual_address,
             "template_id": self.template_id,
             "name": self.name,
             "parameters": self.parameters,
@@ -109,7 +109,7 @@ class DeviceAdded(Event):
     def from_dict(cls, data: dict[str, Any]) -> "DeviceAdded":
         return cls(
             device_id=data["device_id"],
-            address=data.get("address"),
+            individual_address=data.get("individual_address"),
             template_id=data["template_id"],
             name=data["name"],
             parameters=data.get("parameters", []),
@@ -125,7 +125,7 @@ class DeviceRemoved(Event):
     event_type: ClassVar[str] = "DeviceRemoved"
 
     device_id: int = 0
-    address: str | None = None
+    individual_address: str | None = None
     template_id: str = ""
     name: str = ""
     parameters: list[tuple[str, str]] = field(default_factory=list)
@@ -139,7 +139,7 @@ class DeviceRemoved(Event):
     def revert(self, session: Session) -> None:
         device = DeviceModel(
             id=self.device_id,
-            address=self.address,
+            individual_address=self.individual_address,
             template_id=self.template_id,
             name=self.name,
         )
@@ -164,7 +164,7 @@ class DeviceRemoved(Event):
     def to_dict(self) -> dict[str, Any]:
         return {
             "device_id": self.device_id,
-            "address": self.address,
+            "individual_address": self.individual_address,
             "template_id": self.template_id,
             "name": self.name,
             "parameters": self.parameters,
@@ -175,7 +175,7 @@ class DeviceRemoved(Event):
     def from_dict(cls, data: dict[str, Any]) -> "DeviceRemoved":
         return cls(
             device_id=data["device_id"],
-            address=data.get("address"),
+            individual_address=data.get("individual_address"),
             template_id=data["template_id"],
             name=data["name"],
             parameters=data.get("parameters", []),
@@ -187,41 +187,41 @@ class DeviceRemoved(Event):
 
 
 @dataclass
-class DeviceAddressChanged(Event):
-    event_type: ClassVar[str] = "DeviceAddressChanged"
+class DeviceIndividualAddressChanged(Event):
+    event_type: ClassVar[str] = "DeviceIndividualAddressChanged"
 
     device_id: int = 0
-    old_address: str | None = None
-    new_address: str | None = None
+    old_individual_address: str | None = None
+    new_individual_address: str | None = None
 
     def apply(self, session: Session) -> None:
         device = session.get(DeviceModel, self.device_id)
         if device:
-            device.address = self.new_address
+            device.individual_address = self.new_individual_address
 
     def revert(self, session: Session) -> None:
         device = session.get(DeviceModel, self.device_id)
         if device:
-            device.address = self.old_address
+            device.individual_address = self.old_individual_address
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "device_id": self.device_id,
-            "old_address": self.old_address,
-            "new_address": self.new_address,
+            "old_individual_address": self.old_individual_address,
+            "new_individual_address": self.new_individual_address,
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "DeviceAddressChanged":
+    def from_dict(cls, data: dict[str, Any]) -> "DeviceIndividualAddressChanged":
         return cls(
             device_id=data["device_id"],
-            old_address=data.get("old_address"),
-            new_address=data.get("new_address"),
+            old_individual_address=data.get("old_individual_address"),
+            new_individual_address=data.get("new_individual_address"),
         )
 
     def display_text(self) -> str:
         return S.HISTORY_ADDRESS_CHANGE.format(
-            old=self.old_address, new=self.new_address
+            old=self.old_individual_address, new=self.new_individual_address
         )
 
 
@@ -462,7 +462,7 @@ class LinkRemoved(Event):
 EVENT_TYPES: dict[str, type[Event]] = {
     "DeviceAdded": DeviceAdded,
     "DeviceRemoved": DeviceRemoved,
-    "DeviceAddressChanged": DeviceAddressChanged,
+    "DeviceIndividualAddressChanged": DeviceIndividualAddressChanged,
     "ParameterChanged": ParameterChanged,
     "ComObjectDptChanged": ComObjectDptChanged,
     "ComObjectFlagChanged": ComObjectFlagChanged,
