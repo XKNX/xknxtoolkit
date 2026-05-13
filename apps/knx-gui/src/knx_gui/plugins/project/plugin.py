@@ -30,6 +30,7 @@ class ProjectPlugin:
             get_selected_device=lambda: api.project.selected_device,
             set_selected_device=self._set_selected_device,
             on_param_change=self._handle_param_change,
+            on_individual_address_change=self._handle_individual_address_change,
             set_flag=self._handle_flag_change,
         )
 
@@ -71,8 +72,20 @@ class ProjectPlugin:
     def _set_selected_device(self, device: "Device") -> None:
         self._api.project.selected_device = device
 
-    def _handle_param_change(self, device: "Device", param_id: str, new_value: str) -> None:
+    def _handle_param_change(
+        self, device: "Device", param_id: str, new_value: str
+    ) -> None:
         self._api.project.set_param(device, param_id, new_value)
+
+    def _handle_individual_address_change(
+        self, device: "Device", new_address: str
+    ) -> None:
+        old_address = device.individual_address
+        if old_address != new_address:
+            device.individual_address = new_address
+            self._api.project.set_device_individual_address(
+                device.node_id, old_address, new_address
+            )
 
     def _handle_flag_change(
         self, device: "Device", co_id: str, flag_name: str, new_value: bool
@@ -85,7 +98,12 @@ class ProjectPlugin:
         self._api.project.set_parameter(device.node_id, param_id, old_value, new_value)
 
     def _on_flag_changed(
-        self, device: "Device", co_id: str, flag_name: str, old_value: bool, new_value: bool
+        self,
+        device: "Device",
+        co_id: str,
+        flag_name: str,
+        old_value: bool,
+        new_value: bool,
     ) -> None:
         self._api.project.set_com_object_flag(
             device.node_id, co_id, flag_name, old_value, new_value

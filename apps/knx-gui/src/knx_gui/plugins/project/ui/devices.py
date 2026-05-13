@@ -41,7 +41,8 @@ class DevicesPanel:
                     ):
                         for device in tree[area][line]:
                             imgui.tree_node_ex(
-                                f"{device.name} ({device.address})", leaf_flags
+                                f"{device.name} ({device.individual_address})",
+                                leaf_flags,
                             )
                             if imgui.is_item_clicked():
                                 self._on_select_device(device)
@@ -69,10 +70,10 @@ class DevicesPanel:
         unassigned: list[Device] = []
 
         for device in devices:
-            if not device.address:
+            if not device.individual_address:
                 unassigned.append(device)
                 continue
-            parts = device.address.split(".")
+            parts = device.individual_address.split(".")
             if len(parts) < 2:
                 unassigned.append(device)
                 continue

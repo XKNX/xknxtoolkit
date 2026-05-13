@@ -14,13 +14,17 @@ class ConfigurePanel:
         get_selected_device: Callable[[], Device | None],
         set_selected_device: Callable[[Device], None],
         on_param_change: Callable[[Device, str, str], None],
+        on_individual_address_change: Callable[[Device, str], None],
         set_flag: Callable[[Device, str, str, bool], None],
     ) -> None:
         self._get_devices = get_devices
         self._get_selected_device = get_selected_device
         self._set_selected_device = set_selected_device
         self._on_param_change = on_param_change
+        self._on_individual_address_change = on_individual_address_change
         self._com_flags_table = ComFlagsTable(set_flag)
+        self._address_buffer: str = ""
+        self._address_device_id: int | None = None
 
     def render(self) -> None:
         devices = self._get_devices()
@@ -36,7 +40,9 @@ class ConfigurePanel:
         current_idx = 0
         labels = []
         for i, d in enumerate(devices):
-            label = f"{d.name} ({d.address})" if d.address else d.name
+            label = (
+                f"{d.name} ({d.individual_address})" if d.individual_address else d.name
+            )
             labels.append(label)
             if d.node_id == device.node_id:
                 current_idx = i
@@ -48,6 +54,20 @@ class ConfigurePanel:
             device = devices[new_idx]
 
         imgui.separator()
+
+        if self._address_device_id != device.node_id:
+            self._address_buffer = device.individual_address
+            self._address_device_id = device.node_id
+
+        imgui.align_text_to_frame_padding()
+        imgui.text_disabled(S.CONFIGURE_INDIVIDUAL_ADDRESS)
+        imgui.same_line(120.0)
+        imgui.set_next_item_width(-1)
+        changed, self._address_buffer = imgui.input_text(
+            "##individual_address", self._address_buffer
+        )
+        if changed:
+            self._on_individual_address_change(device, self._address_buffer)
 
         if imgui.collapsing_header(
             S.CONFIGURE_MANUFACTURER, imgui.TreeNodeFlags_.default_open

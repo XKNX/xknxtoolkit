@@ -60,6 +60,7 @@ class Strings:
 
     # Configure panel
     CONFIGURE_NO_DEVICES = "No devices"
+    CONFIGURE_INDIVIDUAL_ADDRESS = "Individual Address"
     CONFIGURE_MANUFACTURER = "Manufacturer"
     CONFIGURE_APPLICATION = "Application"
     CONFIGURE_HARDWARE = "Hardware"

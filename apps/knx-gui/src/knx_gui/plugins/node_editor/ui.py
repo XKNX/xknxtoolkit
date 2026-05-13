@@ -408,11 +408,11 @@ class NodeEditorPanel:
         cursor_x = imgui.get_cursor_pos_x()
         imgui.begin_group()
         imgui.text(device.name)
-        if device.address:
+        if device.individual_address:
             imgui.same_line()
-            address_width = imgui.calc_text_size(device.address).x
+            address_width = imgui.calc_text_size(device.individual_address).x
             imgui.set_cursor_pos_x(cursor_x + width - address_width)
-            imgui.text_disabled(device.address)
+            imgui.text_disabled(device.individual_address)
         imgui.end_group()
         rect_min = imgui.get_item_rect_min()
         rect_max = imgui.get_item_rect_max()

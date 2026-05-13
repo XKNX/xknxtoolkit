@@ -30,7 +30,7 @@ def upgrade() -> None:
     op.create_table(
         "devices",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("address", sa.String(), nullable=True),
+        sa.Column("individual_address", sa.String(), nullable=True),
         sa.Column("template_id", sa.String(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
