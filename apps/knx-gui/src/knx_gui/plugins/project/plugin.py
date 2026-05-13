@@ -26,6 +26,7 @@ class ProjectPlugin:
             get_areas=self._get_areas,
             get_lines=self._get_lines,
             on_select_device=self._on_select_device,
+            on_move_device=self._on_move_device,
             on_create_area=self._on_create_area,
             on_remove_area=self._on_remove_area,
             on_rename_area=self._on_rename_area,
@@ -110,6 +111,29 @@ class ProjectPlugin:
     def _on_rename_line(self, line: Line, new_name: str) -> None:
         if line.name != new_name:
             self._api.project.rename_line(line.id, line.name, new_name)
+
+    def _on_move_device(self, device: "Device", area_number: int, line_number: int) -> None:
+        devices = self._api.project.devices
+        used_numbers: set[int] = set()
+        for d in devices:
+            if not d.individual_address:
+                continue
+            parts = d.individual_address.split(".")
+            if len(parts) < 3:
+                continue
+            try:
+                a, ln, dev = int(parts[0]), int(parts[1]), int(parts[2])
+            except ValueError:
+                continue
+            if a == area_number and ln == line_number:
+                used_numbers.add(dev)
+
+        device_number = 1
+        while device_number in used_numbers:
+            device_number += 1
+
+        new_address = f"{area_number}.{line_number}.{device_number}"
+        self._handle_individual_address_change(device, new_address)
 
     def _set_selected_device(self, device: "Device") -> None:
         self._api.project.selected_device = device
