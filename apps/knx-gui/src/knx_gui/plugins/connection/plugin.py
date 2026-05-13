@@ -168,8 +168,12 @@ class ConnectionPlugin:
             draw_list.add_circle_filled(center, 4, color_u32(0.8, 0.2, 0.2, 1.0))
             imgui.dummy(imgui.ImVec2(12, 0))
             imgui.same_line()
-            error_short = self._error_message[:60] if self._error_message else "Unknown error"
-            imgui.text_colored(imgui.ImVec4(0.8, 0.2, 0.2, 1.0), f"Error: {error_short}")
+            error_short = (
+                self._error_message[:60] if self._error_message else "Unknown error"
+            )
+            imgui.text_colored(
+                imgui.ImVec4(0.8, 0.2, 0.2, 1.0), f"Error: {error_short}"
+            )
             if self._error_message and imgui.is_item_hovered():
                 imgui.set_tooltip(self._error_message)
         else:
@@ -187,7 +191,9 @@ class ConnectionPlugin:
                     imgui.text_disabled("Gateway")
                     imgui.text(f"  Name: {self._gateway_info.name}")
                     if self._gateway_info.individual_address:
-                        imgui.text(f"  KNX Address: {self._gateway_info.individual_address}")
+                        imgui.text(
+                            f"  KNX Address: {self._gateway_info.individual_address}"
+                        )
                     imgui.text(f"  Core Version: {self._gateway_info.core_version}")
                     services = []
                     if self._gateway_info.supports_tunnelling:

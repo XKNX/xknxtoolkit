@@ -42,7 +42,9 @@ class NodeEditorPlugin:
     def _remove_link(self, link_id: int) -> None:
         self._api.project.remove_link_from_state(link_id)
 
-    def _handle_param_change(self, device: "Device", param_id: str, new_value: str) -> None:
+    def _handle_param_change(
+        self, device: "Device", param_id: str, new_value: str
+    ) -> None:
         self._api.project.set_param(device, param_id, new_value)
 
     def _handle_flag_change(

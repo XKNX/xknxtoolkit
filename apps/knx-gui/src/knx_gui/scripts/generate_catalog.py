@@ -47,7 +47,9 @@ def main() -> None:
     if len(sys.argv) > 1:
         knxprod_paths = [Path(p) for p in sys.argv[1:]]
     else:
-        internal_knxprod = Path(__file__).parent.parent.parent.parent / "internal" / "knxprod"
+        internal_knxprod = (
+            Path(__file__).parent.parent.parent.parent / "internal" / "knxprod"
+        )
         if internal_knxprod.exists():
             knxprod_paths = list(internal_knxprod.glob("*.knxprod"))
             print(f"Loading from: {internal_knxprod}")
