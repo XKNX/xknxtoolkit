@@ -442,7 +442,14 @@ def _parse_dynamic_element(
     for choose_raw in list(getattr(raw, "choose", []) or []):
         chooses.append(_parse_dynamic_choose(choose_raw, module_defs))
 
+    element_id = getattr(raw, "id", None)
+    element_name = getattr(raw, "name", None)
+    header_param_ref_id = getattr(raw, "param_ref_id", None)
+
     return DynamicElement(
+        id=element_id,
+        name=element_name,
+        header_param_ref_id=header_param_ref_id,
         param_ref_ids=param_ref_ids,
         com_object_ref_ids=co_ref_ids,
         children=children,

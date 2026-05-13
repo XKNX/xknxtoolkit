@@ -66,6 +66,9 @@ class Parameter:
 
 @dataclass
 class DynamicElement:
+    id: str | None = None
+    name: str | None = None
+    header_param_ref_id: str | None = None
     param_ref_ids: list[str] = field(default_factory=list)
     com_object_ref_ids: list[str] = field(default_factory=list)
     children: list[DynamicElement] = field(default_factory=list)
