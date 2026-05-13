@@ -94,6 +94,8 @@ class NodeEditorPanel:
         self._enum_popup = EnumPopup("##NodeEnumPopup", on_param_change)
         self._com_flags_table = ComFlagsTable(set_flag)
         self._ga_pins: dict[int, tuple[int, int]] = {}
+        self._ga_nodes_positioned: set[int] = set()
+        self._ga_position_offsets: dict[tuple[int, ...], int] = {}
 
     def setup(self) -> None:
         config = ed.Config()
@@ -125,6 +127,9 @@ class NodeEditorPanel:
             self._ga_pins.clear()
             for ga in self._get_group_addresses():
                 self._render_ga_node(ga)
+        else:
+            self._ga_nodes_positioned.clear()
+            self._ga_position_offsets.clear()
 
         self._render_links()
         self._handle_link_creation()
@@ -633,11 +638,56 @@ class NodeEditorPanel:
                     self._remove_link(link_id.id())
             ed.end_delete()
 
+    def _calc_ga_node_position(self, ga) -> imgui.ImVec2 | None:
+        assignments = self._get_assignments_for_ga(ga.id)
+        if not assignments:
+            return None
+
+        device_node_ids: set[int] = set()
+        for assignment in assignments:
+            pins = self._co_db_id_to_pins.get(assignment.com_object_id)
+            if pins:
+                for _direction, pin_id in pins.items():
+                    key = next(
+                        (k for k, v in self._pin_ids.items() if v == pin_id), None
+                    )
+                    if key:
+                        device_node_ids.add(key[0])
+
+        if not device_node_ids:
+            return None
+
+        total_x, total_y = 0.0, 0.0
+        count = 0
+        for device_node_id in device_node_ids:
+            pos = ed.get_node_position(ed.NodeId(device_node_id))
+            size = ed.get_node_size(ed.NodeId(device_node_id))
+            total_x += pos.x + size.x / 2
+            total_y += pos.y + size.y / 2
+            count += 1
+
+        if count == 0:
+            return None
+
+        device_key = tuple(sorted(device_node_ids))
+        offset_idx = self._ga_position_offsets.get(device_key, 0)
+        self._ga_position_offsets[device_key] = offset_idx + 1
+
+        y_offset = offset_idx * 50.0
+
+        return imgui.ImVec2(total_x / count, total_y / count + y_offset)
+
     def _render_ga_node(self, ga) -> None:
         node_id = GA_NODE_ID_OFFSET + ga.id
         in_pin_id = GA_PIN_ID_OFFSET + ga.id * 2
         out_pin_id = GA_PIN_ID_OFFSET + ga.id * 2 + 1
         self._ga_pins[ga.id] = (in_pin_id, out_pin_id)
+
+        if ga.id not in self._ga_nodes_positioned:
+            pos = self._calc_ga_node_position(ga)
+            if pos:
+                ed.set_node_position(ed.NodeId(node_id), pos)
+                self._ga_nodes_positioned.add(ga.id)
 
         ed.begin_node(ed.NodeId(node_id))
         ed.push_style_color(ed.StyleColor.node_bg, imgui.ImVec4(*GA_NODE_COLOR, 1.0))
