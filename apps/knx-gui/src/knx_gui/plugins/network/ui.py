@@ -96,7 +96,9 @@ class NetworkPanel:
             if imgui.is_item_hovered():
                 draw_list.add_text(text_pos, color_u32(0.9, 0.3, 0.3, 1.0), S.BTN_STOP)
             else:
-                draw_list.add_text(text_pos, color_u32(0.9, 0.3, 0.3, 1.0), S.BTN_RECORDING)
+                draw_list.add_text(
+                    text_pos, color_u32(0.9, 0.3, 0.3, 1.0), S.BTN_RECORDING
+                )
         else:
             draw_list.add_circle_filled(
                 dot_center, dot_radius, color_u32(0.5, 0.5, 0.5, 1.0)
@@ -108,7 +110,9 @@ class NetworkPanel:
             ):
                 self._on_start()
 
-            draw_list.add_text(text_pos, imgui.get_color_u32(imgui.Col_.text), S.BTN_RECORD)
+            draw_list.add_text(
+                text_pos, imgui.get_color_u32(imgui.Col_.text), S.BTN_RECORD
+            )
 
     def _render_toolbar(self) -> None:
         state = self._get_capture_state()

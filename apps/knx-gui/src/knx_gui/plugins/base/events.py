@@ -5,7 +5,9 @@ from typing import Any
 
 class EventBus:
     def __init__(self) -> None:
-        self._typed_handlers: dict[type, list[Callable[[Any], None]]] = defaultdict(list)
+        self._typed_handlers: dict[type, list[Callable[[Any], None]]] = defaultdict(
+            list
+        )
         self._named_handlers: dict[str, list[Callable[..., Any]]] = defaultdict(list)
 
     def subscribe(

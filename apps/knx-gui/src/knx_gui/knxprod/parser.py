@@ -554,9 +554,7 @@ def _parse_applications(knx_app: Any, manufacturer_id: str) -> list[DeviceApplic
             if md_static:
                 com_objects.extend(_extract_com_objects(md_static))
 
-        dynamic_tree = (
-            _parse_dynamic_element(dynamic, module_defs) if dynamic else None
-        )
+        dynamic_tree = _parse_dynamic_element(dynamic, module_defs) if dynamic else None
 
         applications.append(
             DeviceApplication(

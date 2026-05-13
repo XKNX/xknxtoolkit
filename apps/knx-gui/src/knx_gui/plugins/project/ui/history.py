@@ -51,7 +51,9 @@ class HistoryPanel:
                 draw_list = imgui.get_window_draw_list()
                 cursor_pos = imgui.get_cursor_screen_pos()
                 text_height = imgui.get_text_line_height()
-                center = imgui.ImVec2(cursor_pos.x + col_width / 2, cursor_pos.y + text_height / 2)
+                center = imgui.ImVec2(
+                    cursor_pos.x + col_width / 2, cursor_pos.y + text_height / 2
+                )
                 draw_list.add_circle_filled(
                     center, 4, imgui.get_color_u32(imgui.ImVec4(0.2, 0.8, 0.3, 1.0))
                 )
