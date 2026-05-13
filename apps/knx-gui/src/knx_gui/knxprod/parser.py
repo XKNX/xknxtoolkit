@@ -402,7 +402,9 @@ def _register_module_def_args(module_def: Any) -> None:
 
 
 def _parse_dynamic_element(
-    raw: Any, module_defs: dict[str, Any] | None = None
+    raw: Any,
+    module_defs: dict[str, Any] | None = None,
+    text_args: dict[str, str] | None = None,
 ) -> DynamicElement:
     if module_defs is None:
         module_defs = {}
@@ -423,13 +425,13 @@ def _parse_dynamic_element(
             co_ref_ids.append(ref_id)
 
     for pb in list(getattr(raw, "parameter_block", []) or []):
-        children.append(_parse_dynamic_element(pb, module_defs))
+        children.append(_parse_dynamic_element(pb, module_defs, text_args))
 
     for cib in list(getattr(raw, "channel_independent_block", []) or []):
-        children.append(_parse_dynamic_element(cib, module_defs))
+        children.append(_parse_dynamic_element(cib, module_defs, text_args))
 
     for ch in list(getattr(raw, "channel", []) or []):
-        children.append(_parse_dynamic_element(ch, module_defs))
+        children.append(_parse_dynamic_element(ch, module_defs, text_args))
 
     for module_ref in list(getattr(raw, "module", []) or []):
         ref_id = getattr(module_ref, "ref_id", None)
@@ -437,10 +439,20 @@ def _parse_dynamic_element(
             mod_def = module_defs[ref_id]
             mod_dynamic = getattr(mod_def, "dynamic", None)
             if mod_dynamic:
-                children.append(_parse_dynamic_element(mod_dynamic, module_defs))
+                mod_text_args = _extract_text_args(module_ref)
+                mod_element = _parse_dynamic_element(mod_dynamic, module_defs, mod_text_args)
+                if len(mod_element.children) == 1 and not mod_element.param_ref_ids:
+                    inner = mod_element.children[0]
+                    inner.id = getattr(module_ref, "id", None) or inner.id
+                    inner.name = getattr(module_ref, "name", None) or inner.name
+                    children.append(inner)
+                else:
+                    mod_element.id = getattr(module_ref, "id", None) or mod_element.id
+                    mod_element.name = getattr(module_ref, "name", None) or mod_element.name
+                    children.append(mod_element)
 
     for choose_raw in list(getattr(raw, "choose", []) or []):
-        chooses.append(_parse_dynamic_choose(choose_raw, module_defs))
+        chooses.append(_parse_dynamic_choose(choose_raw, module_defs, text_args))
 
     element_id = getattr(raw, "id", None)
     element_name = getattr(raw, "name", None)
@@ -448,6 +460,9 @@ def _parse_dynamic_element(
     element_number_raw = getattr(raw, "number", None)
     element_number = int(element_number_raw) if element_number_raw is not None else None
     header_param_ref_id = getattr(raw, "param_ref_id", None)
+
+    if text_args and element_text:
+        element_text = _substitute_template(element_text, None, text_args)
 
     return DynamicElement(
         id=element_id,
@@ -462,20 +477,49 @@ def _parse_dynamic_element(
     )
 
 
+def _extract_text_args(module_ref: Any) -> dict[str, str]:
+    text_args: dict[str, str] = {}
+    ref_id = getattr(module_ref, "ref_id", None)
+
+    for text_arg in list(getattr(module_ref, "text_arg", []) or []):
+        arg_ref_id = getattr(text_arg, "ref_id", "")
+        arg_value = getattr(text_arg, "value", "")
+        if arg_ref_id and arg_value:
+            parts = arg_ref_id.rsplit("_A-", 1)
+            if len(parts) == 2 and ref_id:
+                for md_arg_name in _get_arg_names_from_module_def(ref_id, arg_ref_id):
+                    text_args[md_arg_name] = arg_value
+            else:
+                text_args[arg_ref_id] = arg_value
+
+    for numeric_arg in list(getattr(module_ref, "numeric_arg", []) or []):
+        arg_ref_id = getattr(numeric_arg, "ref_id", "")
+        arg_value = getattr(numeric_arg, "value", None)
+        if arg_ref_id and arg_value is not None and ref_id:
+            for md_arg_name in _get_arg_names_from_module_def(ref_id, arg_ref_id):
+                text_args[md_arg_name] = str(arg_value)
+
+    return text_args
+
+
 def _parse_dynamic_choose(
-    raw: Any, module_defs: dict[str, Any] | None = None
+    raw: Any,
+    module_defs: dict[str, Any] | None = None,
+    text_args: dict[str, str] | None = None,
 ) -> DynamicChoose:
     param_ref_id = getattr(raw, "param_ref_id", None) or ""
     conditions: list[DynamicWhen] = []
 
     for when_raw in list(getattr(raw, "when", []) or []):
-        conditions.append(_parse_dynamic_when(when_raw, module_defs))
+        conditions.append(_parse_dynamic_when(when_raw, module_defs, text_args))
 
     return DynamicChoose(param_ref_id=param_ref_id, conditions=conditions)
 
 
 def _parse_dynamic_when(
-    raw: Any, module_defs: dict[str, Any] | None = None
+    raw: Any,
+    module_defs: dict[str, Any] | None = None,
+    text_args: dict[str, str] | None = None,
 ) -> DynamicWhen:
     test_raw = getattr(raw, "test", None)
     default = bool(getattr(raw, "default", False))
@@ -485,7 +529,7 @@ def _parse_dynamic_when(
         test_str = str(test_raw)
         test_values = [v.strip() for v in test_str.split() if v.strip()]
 
-    content = _parse_dynamic_element(raw, module_defs)
+    content = _parse_dynamic_element(raw, module_defs, text_args)
 
     return DynamicWhen(test_values=test_values, is_default=default, content=content)
 
