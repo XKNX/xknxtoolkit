@@ -29,6 +29,7 @@ class DevicesPanel:
         get_areas: Callable[[], list[Area]],
         get_lines: Callable[[int], list[Line]],
         on_select_device: Callable[[Device], None],
+        on_move_device: Callable[[Device, int, int], None],
         on_create_area: Callable[[int, str], None],
         on_remove_area: Callable[[Area], None],
         on_rename_area: Callable[[Area, str], None],
@@ -40,12 +41,14 @@ class DevicesPanel:
         self._get_areas = get_areas
         self._get_lines = get_lines
         self._on_select_device = on_select_device
+        self._on_move_device = on_move_device
         self._on_create_area = on_create_area
         self._on_remove_area = on_remove_area
         self._on_rename_area = on_rename_area
         self._on_create_line = on_create_line
         self._on_remove_line = on_remove_line
         self._on_rename_line = on_rename_line
+        self._dragging_device: Device | None = None
 
         self._popup_area_number: int = 0
         self._popup_line_number: int = 0
@@ -106,6 +109,7 @@ class DevicesPanel:
                     )
                     if imgui.tree_node_ex(f"{line_label}##line_{line.id}", line_flags):
                         self._render_line_context_menu(line)
+                        self._render_line_drop_target(area, line)
 
                         line_devices = device_tree.get(area.number, {}).get(
                             line.number, []
@@ -117,6 +121,7 @@ class DevicesPanel:
                             )
                             if imgui.is_item_clicked():
                                 self._on_select_device(device)
+                            self._render_device_drag_source(device)
                         imgui.tree_pop()
                 imgui.tree_pop()
 
@@ -133,6 +138,7 @@ class DevicesPanel:
                     imgui.tree_node_ex(device.name, leaf_flags)
                     if imgui.is_item_clicked():
                         self._on_select_device(device)
+                    self._render_device_drag_source(device)
                 imgui.tree_pop()
 
     def _format_area_label(self, area: Area) -> str:
@@ -317,3 +323,18 @@ class DevicesPanel:
             if area not in area_numbers or line not in area_lines.get(area, set()):
                 unassigned.append(device)
         return unassigned
+
+    def _render_device_drag_source(self, device: Device) -> None:
+        if imgui.begin_drag_drop_source():
+            self._dragging_device = device
+            imgui.set_drag_drop_payload_py_id("DEVICE", device.node_id)
+            imgui.text(device.name)
+            imgui.end_drag_drop_source()
+
+    def _render_line_drop_target(self, area: Area, line: Line) -> None:
+        if imgui.begin_drag_drop_target():
+            payload = imgui.accept_drag_drop_payload_py_id("DEVICE")
+            if payload is not None and self._dragging_device is not None:
+                self._on_move_device(self._dragging_device, area.number, line.number)
+                self._dragging_device = None
+            imgui.end_drag_drop_target()
