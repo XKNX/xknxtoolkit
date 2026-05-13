@@ -11,6 +11,7 @@ from knx_gui.plugins.project.db import (
     DeviceAdded,
     DeviceIndividualAddressChanged,
     DeviceModel,
+    DeviceNameChanged,
     DeviceRemoved,
     LinkCreated,
     LinkModel,
@@ -323,6 +324,16 @@ class ProjectService:
             device_id=device_id,
             old_individual_address=old_individual_address,
             new_individual_address=new_individual_address,
+        )
+        self._db.event_store.append(event)
+
+    def set_device_name(self, device_id: int, old_name: str, new_name: str) -> None:
+        if not self._db:
+            return
+        event = DeviceNameChanged(
+            device_id=device_id,
+            old_name=old_name,
+            new_name=new_name,
         )
         self._db.event_store.append(event)
 

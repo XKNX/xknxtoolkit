@@ -31,6 +31,7 @@ class ProjectPlugin:
             set_selected_device=self._set_selected_device,
             on_param_change=self._handle_param_change,
             on_individual_address_change=self._handle_individual_address_change,
+            on_name_change=self._handle_name_change,
             set_flag=self._handle_flag_change,
         )
 
@@ -86,6 +87,12 @@ class ProjectPlugin:
             self._api.project.set_device_individual_address(
                 device.node_id, old_address, new_address
             )
+
+    def _handle_name_change(self, device: "Device", new_name: str) -> None:
+        old_name = device.name
+        if old_name != new_name:
+            device.name = new_name
+            self._api.project.set_device_name(device.node_id, old_name, new_name)
 
     def _handle_flag_change(
         self, device: "Device", co_id: str, flag_name: str, new_value: bool

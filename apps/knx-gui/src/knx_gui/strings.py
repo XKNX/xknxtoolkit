@@ -60,6 +60,7 @@ class Strings:
 
     # Configure panel
     CONFIGURE_NO_DEVICES = "No devices"
+    CONFIGURE_NAME = "Name"
     CONFIGURE_INDIVIDUAL_ADDRESS = "Individual Address"
     CONFIGURE_MANUFACTURER = "Manufacturer"
     CONFIGURE_APPLICATION = "Application"
@@ -123,6 +124,7 @@ class Strings:
     HISTORY_DEVICE_ADD = "Add device: {name}"
     HISTORY_DEVICE_REMOVE = "Remove device: {name}"
     HISTORY_ADDRESS_CHANGE = "Address: {old} -> {new}"
+    HISTORY_NAME_CHANGE = "Name: {old} -> {new}"
     HISTORY_PARAM_CHANGE = "Parameter: {old} -> {new}"
     HISTORY_DPT_CHANGE = "DPT: {old} -> {new}"
     HISTORY_FLAG_CHANGE = "Flag: {flag} -> {state}"
