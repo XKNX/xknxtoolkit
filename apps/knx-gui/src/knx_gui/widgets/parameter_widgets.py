@@ -175,7 +175,7 @@ def _render_channel(
 
     if is_open:
         req = _render_param_table(
-            device, channel.param_ref_ids, params_by_id, on_change, deferred_enum, "ch"
+            device, channel.param_ref_ids, params_by_id, on_change, deferred_enum, channel.id
         )
         if req is not None:
             popup_request = req
@@ -205,7 +205,7 @@ def _render_block(
 
     if is_open:
         req = _render_param_table(
-            device, block.param_ref_ids, params_by_id, on_change, deferred_enum, "blk"
+            device, block.param_ref_ids, params_by_id, on_change, deferred_enum, block.id
         )
         if req is not None:
             popup_request = req
@@ -235,7 +235,7 @@ def _render_section(
 
     if is_open:
         req = _render_param_table(
-            device, section.param_ref_ids, params_by_id, on_change, deferred_enum, "sec"
+            device, section.param_ref_ids, params_by_id, on_change, deferred_enum, section.id
         )
         if req is not None:
             popup_request = req
@@ -259,7 +259,7 @@ def _render_param_table(
         return None
 
     table_flags = imgui.TableFlags_.no_saved_settings
-    table_id = f"##params_{device.node_id}_{prefix}_{id(param_ref_ids)}"
+    table_id = f"##params_{device.node_id}_{prefix}"
     if imgui.begin_table(table_id, 2, table_flags):
         imgui.table_setup_column("Name", imgui.TableColumnFlags_.width_stretch)
         imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_fixed, 120)
