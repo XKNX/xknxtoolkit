@@ -226,6 +226,43 @@ class DeviceIndividualAddressChanged(Event):
 
 
 @dataclass
+class DeviceNameChanged(Event):
+    event_type: ClassVar[str] = "DeviceNameChanged"
+
+    device_id: int = 0
+    old_name: str = ""
+    new_name: str = ""
+
+    def apply(self, session: Session) -> None:
+        device = session.get(DeviceModel, self.device_id)
+        if device:
+            device.name = self.new_name
+
+    def revert(self, session: Session) -> None:
+        device = session.get(DeviceModel, self.device_id)
+        if device:
+            device.name = self.old_name
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "device_id": self.device_id,
+            "old_name": self.old_name,
+            "new_name": self.new_name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "DeviceNameChanged":
+        return cls(
+            device_id=data["device_id"],
+            old_name=data.get("old_name", ""),
+            new_name=data.get("new_name", ""),
+        )
+
+    def display_text(self) -> str:
+        return S.HISTORY_NAME_CHANGE.format(old=self.old_name, new=self.new_name)
+
+
+@dataclass
 class ParameterChanged(Event):
     event_type: ClassVar[str] = "ParameterChanged"
 
@@ -463,6 +500,7 @@ EVENT_TYPES: dict[str, type[Event]] = {
     "DeviceAdded": DeviceAdded,
     "DeviceRemoved": DeviceRemoved,
     "DeviceIndividualAddressChanged": DeviceIndividualAddressChanged,
+    "DeviceNameChanged": DeviceNameChanged,
     "ParameterChanged": ParameterChanged,
     "ComObjectDptChanged": ComObjectDptChanged,
     "ComObjectFlagChanged": ComObjectFlagChanged,

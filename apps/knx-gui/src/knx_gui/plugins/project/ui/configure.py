@@ -15,6 +15,7 @@ class ConfigurePanel:
         set_selected_device: Callable[[Device], None],
         on_param_change: Callable[[Device, str, str], None],
         on_individual_address_change: Callable[[Device, str], None],
+        on_name_change: Callable[[Device, str], None],
         set_flag: Callable[[Device, str, str, bool], None],
     ) -> None:
         self._get_devices = get_devices
@@ -22,9 +23,11 @@ class ConfigurePanel:
         self._set_selected_device = set_selected_device
         self._on_param_change = on_param_change
         self._on_individual_address_change = on_individual_address_change
+        self._on_name_change = on_name_change
         self._com_flags_table = ComFlagsTable(set_flag)
+        self._name_buffer: str = ""
         self._address_buffer: str = ""
-        self._address_device_id: int | None = None
+        self._buffer_device_id: int | None = None
 
     def render(self) -> None:
         devices = self._get_devices()
@@ -55,18 +58,27 @@ class ConfigurePanel:
 
         imgui.separator()
 
-        if self._address_device_id != device.node_id:
+        if self._buffer_device_id != device.node_id:
+            self._name_buffer = device.name
             self._address_buffer = device.individual_address
-            self._address_device_id = device.node_id
+            self._buffer_device_id = device.node_id
+
+        imgui.align_text_to_frame_padding()
+        imgui.text_disabled(S.CONFIGURE_NAME)
+        imgui.same_line(120.0)
+        imgui.set_next_item_width(-1)
+        _, self._name_buffer = imgui.input_text("##name", self._name_buffer)
+        if imgui.is_item_deactivated_after_edit():
+            self._on_name_change(device, self._name_buffer)
 
         imgui.align_text_to_frame_padding()
         imgui.text_disabled(S.CONFIGURE_INDIVIDUAL_ADDRESS)
         imgui.same_line(120.0)
         imgui.set_next_item_width(-1)
-        changed, self._address_buffer = imgui.input_text(
+        _, self._address_buffer = imgui.input_text(
             "##individual_address", self._address_buffer
         )
-        if changed:
+        if imgui.is_item_deactivated_after_edit():
             self._on_individual_address_change(device, self._address_buffer)
 
         if imgui.collapsing_header(
