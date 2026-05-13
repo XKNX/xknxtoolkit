@@ -32,6 +32,9 @@ PIN_HEIGHT = PIN_RADIUS * 2 + 4
 MIN_PIN_SPACING = 20.0
 SETTINGS_LABEL_OFFSET = 120.0
 HEADER_COLOR = (0.2, 0.4, 0.7)
+GA_NODE_COLOR = (0.3, 0.5, 0.3)
+GA_NODE_ID_OFFSET = 1000000
+GA_PIN_ID_OFFSET = 2000000
 LINK_COLOR = imgui.ImVec4(0.6, 0.6, 0.6, 1.0)
 LINK_LOOSE_COLOR = imgui.ImVec4(0.9, 0.7, 0.2, 1.0)
 LINK_INVALID_COLOR = imgui.ImVec4(0.9, 0.2, 0.2, 1.0)
@@ -90,6 +93,7 @@ class NodeEditorPanel:
         self._dpt_popup_request: ComObject | None = None
         self._enum_popup = EnumPopup("##NodeEnumPopup", on_param_change)
         self._com_flags_table = ComFlagsTable(set_flag)
+        self._ga_pins: dict[int, tuple[int, int]] = {}
 
     def setup(self) -> None:
         config = ed.Config()
@@ -116,6 +120,11 @@ class NodeEditorPanel:
 
         for device in self._get_devices():
             self._render_device_node(device)
+
+        if self._get_show_ga_nodes():
+            self._ga_pins.clear()
+            for ga in self._get_group_addresses():
+                self._render_ga_node(ga)
 
         self._render_links()
         self._handle_link_creation()
@@ -599,10 +608,8 @@ class NodeEditorPanel:
                             start_co_id = self._pin_to_co_db_id.get(start_pin_id.id())
                             end_co_id = self._pin_to_co_db_id.get(end_pin_id.id())
                             start_dir = self._pin_dir.get(start_pin_id.id())
-                            end_dir = self._pin_dir.get(end_pin_id.id())
                             if start_co_id is not None and end_co_id is not None:
                                 start_is_output = start_dir == PinDir.OUTPUT
-                                end_is_output = end_dir == PinDir.OUTPUT
                                 if start_is_output:
                                     self._add_link(start_co_id, end_co_id)
                                 else:
@@ -626,12 +633,53 @@ class NodeEditorPanel:
                     self._remove_link(link_id.id())
             ed.end_delete()
 
+    def _render_ga_node(self, ga) -> None:
+        node_id = GA_NODE_ID_OFFSET + ga.id
+        in_pin_id = GA_PIN_ID_OFFSET + ga.id * 2
+        out_pin_id = GA_PIN_ID_OFFSET + ga.id * 2 + 1
+        self._ga_pins[ga.id] = (in_pin_id, out_pin_id)
+
+        ed.begin_node(ed.NodeId(node_id))
+        ed.push_style_color(ed.StyleColor.node_bg, imgui.ImVec4(*GA_NODE_COLOR, 1.0))
+
+        imgui.text(ga.address)
+        if ga.name:
+            imgui.same_line()
+            imgui.text_disabled(ga.name)
+        imgui.spacing()
+
+        ed.begin_pin(ed.PinId(in_pin_id), ed.PinKind.input)
+        ed.pin_pivot_alignment(imgui.ImVec2(0.0, 0.5))
+        draw_list = imgui.get_window_draw_list()
+        cursor = imgui.get_cursor_screen_pos()
+        center = imgui.ImVec2(cursor.x + PIN_RADIUS, cursor.y + PIN_RADIUS + 2)
+        draw_list.add_circle_filled(center, PIN_RADIUS, color_u32(0.8, 0.8, 0.8, 1.0))
+        imgui.dummy(imgui.ImVec2(PIN_RADIUS * 2, PIN_HEIGHT))
+        ed.end_pin()
+
+        imgui.same_line(spacing=20)
+
+        ed.begin_pin(ed.PinId(out_pin_id), ed.PinKind.output)
+        ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
+        draw_list = imgui.get_window_draw_list()
+        cursor = imgui.get_cursor_screen_pos()
+        center = imgui.ImVec2(cursor.x + PIN_RADIUS, cursor.y + PIN_RADIUS + 2)
+        draw_list.add_circle_filled(center, PIN_RADIUS, color_u32(0.8, 0.8, 0.8, 1.0))
+        imgui.dummy(imgui.ImVec2(PIN_RADIUS * 2, PIN_HEIGHT))
+        ed.end_pin()
+
+        ed.pop_style_color()
+        ed.end_node()
+
     def _compute_visual_links(self) -> list[tuple[int, int, int]]:
         links: list[tuple[int, int, int]] = []
+        show_ga_nodes = self._get_show_ga_nodes()
+
         for ga in self._get_group_addresses():
             assignments = self._get_assignments_for_ga(ga.id)
-            if len(assignments) < 2:
+            if not assignments:
                 continue
+
             sending_pins = []
             receiving_pins = []
             for assignment in assignments:
@@ -646,9 +694,20 @@ class NodeEditorPanel:
                     pin_id = pins.get("in")
                     if pin_id is not None:
                         receiving_pins.append(pin_id)
-            for send_pin in sending_pins:
-                for recv_pin in receiving_pins:
-                    links.append((ga.id, send_pin, recv_pin))
+
+            if show_ga_nodes and ga.id in self._ga_pins:
+                ga_in_pin, ga_out_pin = self._ga_pins[ga.id]
+                link_id_base = ga.id * 10000
+                for idx, send_pin in enumerate(sending_pins):
+                    links.append((link_id_base + idx, send_pin, ga_in_pin))
+                for idx, recv_pin in enumerate(receiving_pins):
+                    links.append((link_id_base + 5000 + idx, ga_out_pin, recv_pin))
+            else:
+                if len(assignments) < 2:
+                    continue
+                for send_pin in sending_pins:
+                    for recv_pin in receiving_pins:
+                        links.append((ga.id, send_pin, recv_pin))
         return links
 
     def _render_links(self) -> None:

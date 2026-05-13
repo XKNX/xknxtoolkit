@@ -40,6 +40,7 @@ class Strings:
     STATUS_CONNECTED_TO = "Connected to {ip}"
     STATUS_DISCONNECTED = "Disconnected"
     STATUS_DEVICES_GAS = "| Devices: {devices} | Group Addresses: {group_addresses}"
+    STATUS_SHOW_GA_NODES = "Show GA Nodes"
 
     # Buttons
     BTN_ADD = "Add"
