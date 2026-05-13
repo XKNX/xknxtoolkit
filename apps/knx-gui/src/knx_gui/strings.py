@@ -96,8 +96,23 @@ class Strings:
 
     # Device tree
     DEVICE_AREA = "Area {area}"
+    DEVICE_AREA_NAMED = "{name} (Area {area})"
     DEVICE_LINE = "Line {area}.{line}"
+    DEVICE_LINE_NAMED = "{name} (Line {area}.{line})"
     DEVICE_UNASSIGNED = "Unassigned ({count})"
+
+    # Context menu
+    CONTEXT_ADD_AREA = "Add Area"
+    CONTEXT_ADD_LINE = "Add Line"
+    CONTEXT_RENAME = "Rename"
+    CONTEXT_DELETE = "Delete"
+
+    # Popups
+    POPUP_NEW_AREA = "New Area"
+    POPUP_NEW_LINE = "New Line"
+    POPUP_RENAME = "Rename"
+    POPUP_NUMBER = "Number"
+    POPUP_NAME = "Name"
 
     # Tooltips
     TOOLTIP_LOCKED = "{name} (locked)"
@@ -130,6 +145,12 @@ class Strings:
     HISTORY_FLAG_CHANGE = "Flag: {flag} -> {state}"
     HISTORY_LINK_CREATE = "Link created"
     HISTORY_LINK_REMOVE = "Link removed"
+    HISTORY_AREA_CREATE = "Area {number} created"
+    HISTORY_AREA_REMOVE = "Area {number} removed"
+    HISTORY_AREA_RENAME = "Area: {old} -> {new}"
+    HISTORY_LINE_CREATE = "Line {number} created"
+    HISTORY_LINE_REMOVE = "Line {number} removed"
+    HISTORY_LINE_RENAME = "Line: {old} -> {new}"
 
 
 S = Strings

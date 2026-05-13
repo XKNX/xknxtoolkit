@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 from knx_gui.plugins.base import PanelDefinition, PluginAPI
 from knx_gui.plugins.project.ui import ConfigurePanel, DevicesPanel, HistoryPanel
+from knx_gui.plugins.project.ui.devices import Area, Line
 from knx_gui.strings import S
 
 if TYPE_CHECKING:
@@ -22,7 +23,15 @@ class ProjectPlugin:
 
         self._devices_panel = DevicesPanel(
             get_devices=lambda: api.project.devices,
+            get_areas=self._get_areas,
+            get_lines=self._get_lines,
             on_select_device=self._on_select_device,
+            on_create_area=self._on_create_area,
+            on_remove_area=self._on_remove_area,
+            on_rename_area=self._on_rename_area,
+            on_create_line=self._on_create_line,
+            on_remove_line=self._on_remove_line,
+            on_rename_line=self._on_rename_line,
         )
 
         self._configure_panel = ConfigurePanel(
@@ -67,8 +76,40 @@ class ProjectPlugin:
         api.project.subscribe("link_added", self._on_link_added)
         api.project.subscribe("link_removed", self._on_link_removed)
 
+    def _get_areas(self) -> list[Area]:
+        return [
+            Area(id=a.id, number=a.area_number, name=a.name)
+            for a in self._api.project.get_areas()
+        ]
+
+    def _get_lines(self, area_id: int) -> list[Line]:
+        return [
+            Line(id=ln.id, area_id=ln.area_id, number=ln.line_number, name=ln.name)
+            for ln in self._api.project.get_lines(area_id)
+        ]
+
     def _on_select_device(self, device: "Device") -> None:
         self._api.project.selected_device = device
+
+    def _on_create_area(self, area_number: int, name: str) -> None:
+        self._api.project.create_area(area_number, name)
+
+    def _on_remove_area(self, area: Area) -> None:
+        self._api.project.remove_area(area.id, area.number, area.name)
+
+    def _on_rename_area(self, area: Area, new_name: str) -> None:
+        if area.name != new_name:
+            self._api.project.rename_area(area.id, area.name, new_name)
+
+    def _on_create_line(self, area_id: int, line_number: int, name: str) -> None:
+        self._api.project.create_line(area_id, line_number, name)
+
+    def _on_remove_line(self, line: Line) -> None:
+        self._api.project.remove_line(line.id, line.area_id, line.number, line.name)
+
+    def _on_rename_line(self, line: Line, new_name: str) -> None:
+        if line.name != new_name:
+            self._api.project.rename_line(line.id, line.name, new_name)
 
     def _set_selected_device(self, device: "Device") -> None:
         self._api.project.selected_device = device

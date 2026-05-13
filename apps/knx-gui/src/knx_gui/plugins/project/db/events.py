@@ -6,8 +6,10 @@ from typing import Any, ClassVar
 from sqlalchemy.orm import Session
 
 from knx_gui.plugins.project.db.models import (
+    AreaModel,
     ComObjectModel,
     DeviceModel,
+    LineModel,
     LinkModel,
     ParameterModel,
 )
@@ -496,16 +498,274 @@ class LinkRemoved(Event):
         return S.HISTORY_LINK_REMOVE
 
 
+@dataclass
+class AreaCreated(Event):
+    event_type: ClassVar[str] = "AreaCreated"
+
+    area_id: int = 0
+    area_number: int = 0
+    name: str = ""
+
+    def apply(self, session: Session) -> int:
+        if self.area_id:
+            area = AreaModel(
+                id=self.area_id, area_number=self.area_number, name=self.name
+            )
+        else:
+            area = AreaModel(area_number=self.area_number, name=self.name)
+        session.add(area)
+        session.flush()
+        self.area_id = area.id
+        return area.id
+
+    def revert(self, session: Session) -> None:
+        area = session.get(AreaModel, self.area_id)
+        if area:
+            session.delete(area)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "area_id": self.area_id,
+            "area_number": self.area_number,
+            "name": self.name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "AreaCreated":
+        return cls(
+            area_id=data["area_id"],
+            area_number=data["area_number"],
+            name=data.get("name", ""),
+        )
+
+    def display_text(self) -> str:
+        return S.HISTORY_AREA_CREATE.format(number=self.area_number)
+
+
+@dataclass
+class AreaRemoved(Event):
+    event_type: ClassVar[str] = "AreaRemoved"
+
+    area_id: int = 0
+    area_number: int = 0
+    name: str = ""
+
+    def apply(self, session: Session) -> None:
+        area = session.get(AreaModel, self.area_id)
+        if area:
+            session.delete(area)
+
+    def revert(self, session: Session) -> None:
+        area = AreaModel(id=self.area_id, area_number=self.area_number, name=self.name)
+        session.add(area)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "area_id": self.area_id,
+            "area_number": self.area_number,
+            "name": self.name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "AreaRemoved":
+        return cls(
+            area_id=data["area_id"],
+            area_number=data["area_number"],
+            name=data.get("name", ""),
+        )
+
+    def display_text(self) -> str:
+        return S.HISTORY_AREA_REMOVE.format(number=self.area_number)
+
+
+@dataclass
+class AreaNameChanged(Event):
+    event_type: ClassVar[str] = "AreaNameChanged"
+
+    area_id: int = 0
+    old_name: str = ""
+    new_name: str = ""
+
+    def apply(self, session: Session) -> None:
+        area = session.get(AreaModel, self.area_id)
+        if area:
+            area.name = self.new_name
+
+    def revert(self, session: Session) -> None:
+        area = session.get(AreaModel, self.area_id)
+        if area:
+            area.name = self.old_name
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "area_id": self.area_id,
+            "old_name": self.old_name,
+            "new_name": self.new_name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "AreaNameChanged":
+        return cls(
+            area_id=data["area_id"],
+            old_name=data.get("old_name", ""),
+            new_name=data.get("new_name", ""),
+        )
+
+    def display_text(self) -> str:
+        return S.HISTORY_AREA_RENAME.format(old=self.old_name, new=self.new_name)
+
+
+@dataclass
+class LineCreated(Event):
+    event_type: ClassVar[str] = "LineCreated"
+
+    line_id: int = 0
+    area_id: int = 0
+    line_number: int = 0
+    name: str = ""
+
+    def apply(self, session: Session) -> int:
+        if self.line_id:
+            line = LineModel(
+                id=self.line_id,
+                area_id=self.area_id,
+                line_number=self.line_number,
+                name=self.name,
+            )
+        else:
+            line = LineModel(
+                area_id=self.area_id,
+                line_number=self.line_number,
+                name=self.name,
+            )
+        session.add(line)
+        session.flush()
+        self.line_id = line.id
+        return line.id
+
+    def revert(self, session: Session) -> None:
+        line = session.get(LineModel, self.line_id)
+        if line:
+            session.delete(line)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "line_id": self.line_id,
+            "area_id": self.area_id,
+            "line_number": self.line_number,
+            "name": self.name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "LineCreated":
+        return cls(
+            line_id=data["line_id"],
+            area_id=data["area_id"],
+            line_number=data["line_number"],
+            name=data.get("name", ""),
+        )
+
+    def display_text(self) -> str:
+        return S.HISTORY_LINE_CREATE.format(number=self.line_number)
+
+
+@dataclass
+class LineRemoved(Event):
+    event_type: ClassVar[str] = "LineRemoved"
+
+    line_id: int = 0
+    area_id: int = 0
+    line_number: int = 0
+    name: str = ""
+
+    def apply(self, session: Session) -> None:
+        line = session.get(LineModel, self.line_id)
+        if line:
+            session.delete(line)
+
+    def revert(self, session: Session) -> None:
+        line = LineModel(
+            id=self.line_id,
+            area_id=self.area_id,
+            line_number=self.line_number,
+            name=self.name,
+        )
+        session.add(line)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "line_id": self.line_id,
+            "area_id": self.area_id,
+            "line_number": self.line_number,
+            "name": self.name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "LineRemoved":
+        return cls(
+            line_id=data["line_id"],
+            area_id=data["area_id"],
+            line_number=data["line_number"],
+            name=data.get("name", ""),
+        )
+
+    def display_text(self) -> str:
+        return S.HISTORY_LINE_REMOVE.format(number=self.line_number)
+
+
+@dataclass
+class LineNameChanged(Event):
+    event_type: ClassVar[str] = "LineNameChanged"
+
+    line_id: int = 0
+    old_name: str = ""
+    new_name: str = ""
+
+    def apply(self, session: Session) -> None:
+        line = session.get(LineModel, self.line_id)
+        if line:
+            line.name = self.new_name
+
+    def revert(self, session: Session) -> None:
+        line = session.get(LineModel, self.line_id)
+        if line:
+            line.name = self.old_name
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "line_id": self.line_id,
+            "old_name": self.old_name,
+            "new_name": self.new_name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "LineNameChanged":
+        return cls(
+            line_id=data["line_id"],
+            old_name=data.get("old_name", ""),
+            new_name=data.get("new_name", ""),
+        )
+
+    def display_text(self) -> str:
+        return S.HISTORY_LINE_RENAME.format(old=self.old_name, new=self.new_name)
+
+
 EVENT_TYPES: dict[str, type[Event]] = {
-    "DeviceAdded": DeviceAdded,
-    "DeviceRemoved": DeviceRemoved,
-    "DeviceIndividualAddressChanged": DeviceIndividualAddressChanged,
-    "DeviceNameChanged": DeviceNameChanged,
-    "ParameterChanged": ParameterChanged,
+    "AreaCreated": AreaCreated,
+    "AreaNameChanged": AreaNameChanged,
+    "AreaRemoved": AreaRemoved,
     "ComObjectDptChanged": ComObjectDptChanged,
     "ComObjectFlagChanged": ComObjectFlagChanged,
+    "DeviceAdded": DeviceAdded,
+    "DeviceIndividualAddressChanged": DeviceIndividualAddressChanged,
+    "DeviceNameChanged": DeviceNameChanged,
+    "DeviceRemoved": DeviceRemoved,
+    "LineCreated": LineCreated,
+    "LineNameChanged": LineNameChanged,
+    "LineRemoved": LineRemoved,
     "LinkCreated": LinkCreated,
     "LinkRemoved": LinkRemoved,
+    "ParameterChanged": ParameterChanged,
 }
 
 
