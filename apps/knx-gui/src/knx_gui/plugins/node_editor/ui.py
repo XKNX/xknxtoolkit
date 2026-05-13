@@ -70,7 +70,6 @@ class NodeEditorPanel:
         remove_link: Callable[[int], None],
         on_param_change: Callable[[Device, str, str], None],
         set_flag: Callable[[Device, str, str, bool], None],
-        get_show_ga_nodes: Callable[[], bool],
     ) -> None:
         self._get_devices = get_devices
         self._get_group_addresses = get_group_addresses
@@ -78,7 +77,7 @@ class NodeEditorPanel:
         self._add_link = add_link
         self._remove_link = remove_link
         self._on_param_change = on_param_change
-        self._get_show_ga_nodes = get_show_ga_nodes
+        self._show_ga_nodes = False
 
         self._editor_context: ed.EditorContext | None = None
         self._next_pin_id: int = 100000
@@ -117,15 +116,22 @@ class NodeEditorPanel:
         if not self._editor_context:
             return
 
-        ed.set_current_editor(self._editor_context)
-        ed.begin("##NodeEditorCanvas", imgui.ImVec2(0, 0))
+        devices = self._get_devices()
+        group_addresses = self._get_group_addresses()
 
-        for device in self._get_devices():
+        toolbar_height = imgui.get_frame_height_with_spacing() + 4
+        available = imgui.get_content_region_avail()
+        canvas_height = available.y - toolbar_height
+
+        ed.set_current_editor(self._editor_context)
+        ed.begin("##NodeEditorCanvas", imgui.ImVec2(0, canvas_height))
+
+        for device in devices:
             self._render_device_node(device)
 
-        if self._get_show_ga_nodes():
+        if self._show_ga_nodes:
             self._ga_pins.clear()
-            for ga in self._get_group_addresses():
+            for ga in group_addresses:
                 self._render_ga_node(ga)
         else:
             self._ga_nodes_positioned.clear()
@@ -136,6 +142,21 @@ class NodeEditorPanel:
         self._handle_link_deletion()
 
         ed.end()
+
+        text = S.STATUS_DEVICES_GAS.format(
+            devices=len(devices),
+            group_addresses=len(group_addresses),
+        )
+        checkbox_width = imgui.calc_text_size(S.STATUS_SHOW_GA_NODES).x + imgui.get_frame_height() + imgui.get_style().item_spacing.x
+        text_width = imgui.calc_text_size(text).x
+        total_width = text_width + imgui.get_style().item_spacing.x + checkbox_width
+        imgui.set_cursor_pos_x(imgui.get_window_width() - total_width - imgui.get_style().window_padding.x)
+        imgui.align_text_to_frame_padding()
+        imgui.text(text)
+        imgui.same_line()
+        changed, value = imgui.checkbox(S.STATUS_SHOW_GA_NODES, self._show_ga_nodes)
+        if changed:
+            self._show_ga_nodes = value
 
         self._render_dpt_popup()
         self._render_enum_popup()
@@ -723,7 +744,7 @@ class NodeEditorPanel:
 
     def _compute_visual_links(self) -> list[tuple[int, int, int]]:
         links: list[tuple[int, int, int]] = []
-        show_ga_nodes = self._get_show_ga_nodes()
+        show_ga_nodes = self._show_ga_nodes
 
         for ga in self._get_group_addresses():
             assignments = self._get_assignments_for_ga(ga.id)

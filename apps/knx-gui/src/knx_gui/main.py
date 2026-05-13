@@ -171,19 +171,6 @@ class KnxGuiApp:
 
     def gui_status_bar(self) -> None:
         self._connection_plugin.render_status_indicator()
-        imgui.same_line()
-        imgui.text(
-            S.STATUS_DEVICES_GAS.format(
-                devices=len(self._project_service.devices),
-                group_addresses=len(self._project_service.group_addresses),
-            )
-        )
-        imgui.same_line()
-        changed, value = imgui.checkbox(
-            S.STATUS_SHOW_GA_NODES, self._node_editor_plugin.show_ga_nodes
-        )
-        if changed:
-            self._node_editor_plugin.show_ga_nodes = value
 
     def gui_menu(self) -> None:
         if imgui.begin_menu(S.MENU_FILE):

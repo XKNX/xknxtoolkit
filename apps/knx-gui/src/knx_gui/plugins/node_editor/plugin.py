@@ -15,7 +15,6 @@ class NodeEditorPlugin:
 
     def __init__(self, api: PluginAPI) -> None:
         self._api = api
-        self._show_ga_nodes = False
 
         self._panel = NodeEditorPanel(
             get_devices=lambda: api.project.devices,
@@ -25,7 +24,6 @@ class NodeEditorPlugin:
             remove_link=self._remove_link,
             on_param_change=self._handle_param_change,
             set_flag=self._handle_flag_change,
-            get_show_ga_nodes=lambda: self._show_ga_nodes,
         )
 
         self._panels = [
@@ -38,14 +36,6 @@ class NodeEditorPlugin:
         ]
 
         api.project.subscribe("device_selected", self._on_device_selected)
-
-    @property
-    def show_ga_nodes(self) -> bool:
-        return self._show_ga_nodes
-
-    @show_ga_nodes.setter
-    def show_ga_nodes(self, value: bool) -> None:
-        self._show_ga_nodes = value
 
     def _add_link(self, output_co_id: int, input_co_id: int) -> int | None:
         ga_id = self._api.project.create_group_address()
