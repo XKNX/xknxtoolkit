@@ -1,6 +1,9 @@
 from knx_gui.plugins.project.db.database import ProjectDatabase
 from knx_gui.plugins.project.db.event_store import EventStore
 from knx_gui.plugins.project.db.events import (
+    AreaCreated,
+    AreaNameChanged,
+    AreaRemoved,
     ComObjectDptChanged,
     ComObjectFlagChanged,
     DeviceAdded,
@@ -8,19 +11,28 @@ from knx_gui.plugins.project.db.events import (
     DeviceNameChanged,
     DeviceRemoved,
     Event,
+    LineCreated,
+    LineNameChanged,
+    LineRemoved,
     LinkCreated,
     LinkRemoved,
     ParameterChanged,
 )
 from knx_gui.plugins.project.db.models import (
+    AreaModel,
     ComObjectModel,
     DeviceModel,
     EventModel,
+    LineModel,
     LinkModel,
     ParameterModel,
 )
 
 __all__ = [
+    "AreaCreated",
+    "AreaModel",
+    "AreaNameChanged",
+    "AreaRemoved",
     "ComObjectDptChanged",
     "ComObjectFlagChanged",
     "ComObjectModel",
@@ -32,6 +44,10 @@ __all__ = [
     "Event",
     "EventModel",
     "EventStore",
+    "LineCreated",
+    "LineModel",
+    "LineNameChanged",
+    "LineRemoved",
     "LinkCreated",
     "LinkModel",
     "LinkRemoved",

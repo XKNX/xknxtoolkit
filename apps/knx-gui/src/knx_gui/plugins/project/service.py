@@ -5,6 +5,10 @@ from typing import TYPE_CHECKING, Any
 from knx_gui.dpt import lookup_or_make_dpt
 from knx_gui.knxprod import DeviceApplication, parse_application_xml
 from knx_gui.plugins.project.db import (
+    AreaCreated,
+    AreaModel,
+    AreaNameChanged,
+    AreaRemoved,
     ComObjectDptChanged,
     ComObjectFlagChanged,
     ComObjectModel,
@@ -13,6 +17,10 @@ from knx_gui.plugins.project.db import (
     DeviceModel,
     DeviceNameChanged,
     DeviceRemoved,
+    LineCreated,
+    LineModel,
+    LineNameChanged,
+    LineRemoved,
     LinkCreated,
     LinkModel,
     LinkRemoved,
@@ -400,6 +408,93 @@ class ProjectService:
         if not self._db:
             return
         event = LinkRemoved(link_id=link_id, start_pin=start_pin, end_pin=end_pin)
+        self._db.event_store.append(event)
+
+    def get_areas(self) -> list[AreaModel]:
+        if not self._db:
+            return []
+        return list(
+            self._db.session.query(AreaModel).order_by(AreaModel.area_number).all()
+        )
+
+    def get_area(self, area_id: int) -> AreaModel | None:
+        if not self._db:
+            return None
+        return self._db.session.get(AreaModel, area_id)
+
+    def get_area_by_number(self, area_number: int) -> AreaModel | None:
+        if not self._db:
+            return None
+        return (
+            self._db.session.query(AreaModel).filter_by(area_number=area_number).first()
+        )
+
+    def get_lines(self, area_id: int) -> list[LineModel]:
+        if not self._db:
+            return []
+        return list(
+            self._db.session.query(LineModel)
+            .filter_by(area_id=area_id)
+            .order_by(LineModel.line_number)
+            .all()
+        )
+
+    def get_line(self, line_id: int) -> LineModel | None:
+        if not self._db:
+            return None
+        return self._db.session.get(LineModel, line_id)
+
+    def get_line_by_number(self, area_id: int, line_number: int) -> LineModel | None:
+        if not self._db:
+            return None
+        return (
+            self._db.session.query(LineModel)
+            .filter_by(area_id=area_id, line_number=line_number)
+            .first()
+        )
+
+    def create_area(self, area_number: int, name: str = "") -> int | None:
+        if not self._db:
+            return None
+        event = AreaCreated(area_id=0, area_number=area_number, name=name)
+        self._db.event_store.append(event)
+        return event.area_id
+
+    def remove_area(self, area_id: int, area_number: int, name: str) -> None:
+        if not self._db:
+            return
+        event = AreaRemoved(area_id=area_id, area_number=area_number, name=name)
+        self._db.event_store.append(event)
+
+    def rename_area(self, area_id: int, old_name: str, new_name: str) -> None:
+        if not self._db:
+            return
+        event = AreaNameChanged(area_id=area_id, old_name=old_name, new_name=new_name)
+        self._db.event_store.append(event)
+
+    def create_line(self, area_id: int, line_number: int, name: str = "") -> int | None:
+        if not self._db:
+            return None
+        event = LineCreated(
+            line_id=0, area_id=area_id, line_number=line_number, name=name
+        )
+        self._db.event_store.append(event)
+        return event.line_id
+
+    def remove_line(
+        self, line_id: int, area_id: int, line_number: int, name: str
+    ) -> None:
+        if not self._db:
+            return
+        event = LineRemoved(
+            line_id=line_id, area_id=area_id, line_number=line_number, name=name
+        )
+        self._db.event_store.append(event)
+
+    def rename_line(self, line_id: int, old_name: str, new_name: str) -> None:
+        if not self._db:
+            return
+        event = LineNameChanged(line_id=line_id, old_name=old_name, new_name=new_name)
         self._db.event_store.append(event)
 
     def undo(self) -> bool:

@@ -70,8 +70,29 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
 
+    op.create_table(
+        "areas",
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("area_number", sa.Integer(), nullable=False, unique=True),
+        sa.Column("name", sa.String(), nullable=False, default=""),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    op.create_table(
+        "lines",
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("area_id", sa.Integer(), nullable=False),
+        sa.Column("line_number", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False, default=""),
+        sa.ForeignKeyConstraint(["area_id"], ["areas.id"]),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("area_id", "line_number"),
+    )
+
 
 def downgrade() -> None:
+    op.drop_table("lines")
+    op.drop_table("areas")
     op.drop_table("links")
     op.drop_table("com_objects")
     op.drop_table("parameters")

@@ -70,3 +70,26 @@ class LinkModel(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     start_pin: Mapped[int] = mapped_column(Integer, nullable=False)
     end_pin: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class AreaModel(Base):
+    __tablename__ = "areas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    area_number: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, default="")
+
+    lines: Mapped[list["LineModel"]] = relationship(
+        back_populates="area", cascade="all, delete-orphan"
+    )
+
+
+class LineModel(Base):
+    __tablename__ = "lines"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    area_id: Mapped[int] = mapped_column(ForeignKey("areas.id"), nullable=False)
+    line_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False, default="")
+
+    area: Mapped["AreaModel"] = relationship(back_populates="lines")
