@@ -5,6 +5,7 @@ from knx_gui.widgets.parameter_widgets import (
     group_parameters,
     render_param_widget,
     render_parameters_grouped,
+    render_parameters_tree,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "group_parameters",
     "render_param_widget",
     "render_parameters_grouped",
+    "render_parameters_tree",
 ]

@@ -444,11 +444,16 @@ def _parse_dynamic_element(
 
     element_id = getattr(raw, "id", None)
     element_name = getattr(raw, "name", None)
+    element_text = getattr(raw, "text", None)
+    element_number_raw = getattr(raw, "number", None)
+    element_number = int(element_number_raw) if element_number_raw is not None else None
     header_param_ref_id = getattr(raw, "param_ref_id", None)
 
     return DynamicElement(
         id=element_id,
         name=element_name,
+        text=element_text,
+        number=element_number,
         header_param_ref_id=header_param_ref_id,
         param_ref_ids=param_ref_ids,
         com_object_ref_ids=co_ref_ids,

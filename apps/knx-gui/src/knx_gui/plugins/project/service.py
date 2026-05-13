@@ -406,7 +406,9 @@ class ProjectService:
         self._next_ga_sub += 1
         return address
 
-    def create_group_address(self, address: str | None = None, name: str = "") -> int | None:
+    def create_group_address(
+        self, address: str | None = None, name: str = ""
+    ) -> int | None:
         if not self._db:
             return None
         if address is None:

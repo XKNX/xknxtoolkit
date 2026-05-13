@@ -4,6 +4,12 @@ from dataclasses import dataclass
 from imgui_bundle import imgui
 
 from knx_gui.knxprod import ParamTypeKind
+from knx_gui.knxprod.parameter_tree import (
+    VisibleBlock,
+    VisibleChannel,
+    VisibleSection,
+    VisibleTree,
+)
 from knx_gui.strings import S
 from knx_gui.types import Device, Parameter
 
@@ -134,6 +140,149 @@ def render_parameters_grouped(
                         popup_request = EnumPopupRequest(device=device, param=req.param)
                 imgui.end_table()
             imgui.tree_pop()
+    return popup_request
+
+
+def render_parameters_tree(
+    device: Device,
+    tree: VisibleTree,
+    on_change: Callable[[Device, str, str], None],
+    deferred_enum: bool = False,
+) -> EnumPopupRequest | None:
+    popup_request: EnumPopupRequest | None = None
+    params_by_id = {p.id: p for p in device.get_visible_parameters()}
+
+    for channel in tree.channels:
+        req = _render_channel(device, channel, params_by_id, on_change, deferred_enum)
+        if req is not None:
+            popup_request = req
+
+    return popup_request
+
+
+def _render_channel(
+    device: Device,
+    channel: VisibleChannel,
+    params_by_id: dict[str, Parameter],
+    on_change: Callable[[Device, str, str], None],
+    deferred_enum: bool,
+) -> EnumPopupRequest | None:
+    popup_request: EnumPopupRequest | None = None
+    label = f"{channel.display_name}##{device.node_id}_{channel.id}"
+    is_open = imgui.tree_node(label)
+    imgui.same_line()
+    imgui.text_disabled(f"({len(channel.param_ref_ids)})")
+
+    if is_open:
+        req = _render_param_table(
+            device, channel.param_ref_ids, params_by_id, on_change, deferred_enum, "ch"
+        )
+        if req is not None:
+            popup_request = req
+
+        for block in channel.blocks:
+            req = _render_block(device, block, params_by_id, on_change, deferred_enum)
+            if req is not None:
+                popup_request = req
+
+        imgui.tree_pop()
+
+    return popup_request
+
+
+def _render_block(
+    device: Device,
+    block: VisibleBlock,
+    params_by_id: dict[str, Parameter],
+    on_change: Callable[[Device, str, str], None],
+    deferred_enum: bool,
+) -> EnumPopupRequest | None:
+    popup_request: EnumPopupRequest | None = None
+    label = f"{block.display_name}##{device.node_id}_{block.id}"
+    is_open = imgui.tree_node(label)
+    imgui.same_line()
+    imgui.text_disabled(f"({len(block.param_ref_ids)})")
+
+    if is_open:
+        req = _render_param_table(
+            device, block.param_ref_ids, params_by_id, on_change, deferred_enum, "blk"
+        )
+        if req is not None:
+            popup_request = req
+
+        for section in block.sections:
+            req = _render_section(device, section, params_by_id, on_change, deferred_enum)
+            if req is not None:
+                popup_request = req
+
+        imgui.tree_pop()
+
+    return popup_request
+
+
+def _render_section(
+    device: Device,
+    section: VisibleSection,
+    params_by_id: dict[str, Parameter],
+    on_change: Callable[[Device, str, str], None],
+    deferred_enum: bool,
+) -> EnumPopupRequest | None:
+    popup_request: EnumPopupRequest | None = None
+    label = f"{section.display_name}##{device.node_id}_{section.id}"
+    is_open = imgui.tree_node(label)
+    imgui.same_line()
+    imgui.text_disabled(f"({len(section.param_ref_ids)})")
+
+    if is_open:
+        req = _render_param_table(
+            device, section.param_ref_ids, params_by_id, on_change, deferred_enum, "sec"
+        )
+        if req is not None:
+            popup_request = req
+        imgui.tree_pop()
+
+    return popup_request
+
+
+def _render_param_table(
+    device: Device,
+    param_ref_ids: list[str],
+    params_by_id: dict[str, Parameter],
+    on_change: Callable[[Device, str, str], None],
+    deferred_enum: bool,
+    prefix: str,
+) -> EnumPopupRequest | None:
+    popup_request: EnumPopupRequest | None = None
+    params = [params_by_id[pid] for pid in param_ref_ids if pid in params_by_id]
+
+    if not params:
+        return None
+
+    table_flags = imgui.TableFlags_.no_saved_settings
+    table_id = f"##params_{device.node_id}_{prefix}_{id(param_ref_ids)}"
+    if imgui.begin_table(table_id, 2, table_flags):
+        imgui.table_setup_column("Name", imgui.TableColumnFlags_.width_stretch)
+        imgui.table_setup_column("Value", imgui.TableColumnFlags_.width_fixed, 120)
+
+        for param in params:
+            imgui.table_next_row()
+            imgui.table_set_column_index(0)
+            display_text = param.text if param.text else param.name
+            imgui.text(display_text)
+            imgui.table_set_column_index(1)
+            imgui.set_next_item_width(-1)
+            widget_id = f"{device.node_id}_{param.id}"
+            req = render_param_widget(
+                param,
+                widget_id,
+                lambda v, d=device, p=param.id: on_change(d, p, v),
+                deferred_enum=deferred_enum,
+            )
+            if req is not None:
+                popup_request = EnumPopupRequest(device=device, param=req.param)
+
+        imgui.end_table()
+
     return popup_request
 
 

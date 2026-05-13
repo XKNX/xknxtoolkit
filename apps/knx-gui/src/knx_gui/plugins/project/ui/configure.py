@@ -4,7 +4,11 @@ from imgui_bundle import imgui
 
 from knx_gui.strings import S
 from knx_gui.types import Device
-from knx_gui.widgets import ComFlagsTable, render_parameters_grouped
+from knx_gui.widgets import (
+    ComFlagsTable,
+    render_parameters_grouped,
+    render_parameters_tree,
+)
 
 
 class ConfigurePanel:
@@ -94,7 +98,11 @@ class ConfigurePanel:
             S.CONFIGURE_PARAMETERS.format(count=len(params)),
             imgui.TreeNodeFlags_.default_open,
         ):
-            render_parameters_grouped(device, params, self._on_param_change)
+            tree = device.get_visible_tree()
+            if tree.channels:
+                render_parameters_tree(device, tree, self._on_param_change)
+            else:
+                render_parameters_grouped(device, params, self._on_param_change)
 
         visible_cos = device.get_visible_com_objects()
         if imgui.collapsing_header(

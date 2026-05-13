@@ -110,7 +110,9 @@ class ProjectPlugin:
         if line.name != new_name:
             self._api.project.rename_line(line.id, line.name, new_name)
 
-    def _on_move_device(self, device: "Device", area_number: int, line_number: int) -> None:
+    def _on_move_device(
+        self, device: "Device", area_number: int, line_number: int
+    ) -> None:
         devices = self._api.project.devices
         used_numbers: set[int] = set()
         for d in devices:

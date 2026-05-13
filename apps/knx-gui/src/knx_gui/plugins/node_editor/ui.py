@@ -143,16 +143,22 @@ class NodeEditorPanel:
             devices=len(devices),
             group_addresses=len(group_addresses),
         )
-        checkbox_width = imgui.calc_text_size(S.STATUS_SHOW_GA_NODES).x + imgui.get_frame_height() + imgui.get_style().item_spacing.x
+        checkbox_width = (
+            imgui.calc_text_size(S.STATUS_SHOW_GA_NODES).x
+            + imgui.get_frame_height()
+            + imgui.get_style().item_spacing.x
+        )
         text_width = imgui.calc_text_size(text).x
         total_width = text_width + imgui.get_style().item_spacing.x + checkbox_width
         toolbar_height = imgui.get_frame_height_with_spacing()
         padding = imgui.get_style().window_padding
 
-        imgui.set_cursor_pos(imgui.ImVec2(
-            imgui.get_window_width() - total_width - padding.x * 2,
-            imgui.get_window_height() - toolbar_height - padding.y * 2,
-        ))
+        imgui.set_cursor_pos(
+            imgui.ImVec2(
+                imgui.get_window_width() - total_width - padding.x * 2,
+                imgui.get_window_height() - toolbar_height - padding.y * 2,
+            )
+        )
         imgui.begin_child(
             "##NodeEditorOverlay",
             imgui.ImVec2(total_width + padding.x, toolbar_height + padding.y),
