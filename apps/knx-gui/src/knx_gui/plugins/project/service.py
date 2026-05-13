@@ -11,19 +11,22 @@ from knx_gui.plugins.project.db import (
     AreaRemoved,
     ComObjectDptChanged,
     ComObjectFlagChanged,
+    ComObjectGroupAddressModel,
+    ComObjectLinked,
     ComObjectModel,
+    ComObjectUnlinked,
     DeviceAdded,
     DeviceIndividualAddressChanged,
     DeviceModel,
     DeviceNameChanged,
     DeviceRemoved,
+    GroupAddressCreated,
+    GroupAddressModel,
+    GroupAddressRemoved,
     LineCreated,
     LineModel,
     LineNameChanged,
     LineRemoved,
-    LinkCreated,
-    LinkModel,
-    LinkRemoved,
     ParameterChanged,
     ParameterModel,
     ProjectDatabase,
@@ -41,10 +44,9 @@ class ProjectService:
         self._listeners: dict[str, list[Callable[..., Any]]] = {}
 
         self._devices: list[Device] = []
-        self._links: list[tuple[int, int, int]] = []
         self._selected_device: Device | None = None
-        self._next_link_id: int = 1000
         self._next_device_id: int = 10
+        self._next_ga_sub: int = 1
 
     def subscribe(self, event: str, handler: Callable[..., Any]) -> Callable[[], None]:
         if event not in self._listeners:
@@ -61,8 +63,21 @@ class ProjectService:
         return self._devices
 
     @property
-    def links(self) -> list[tuple[int, int, int]]:
-        return self._links
+    def group_addresses(self) -> list[GroupAddressModel]:
+        if not self._db:
+            return []
+        return list(self._db.session.query(GroupAddressModel).all())
+
+    def get_assignments_for_ga(
+        self, group_address_id: int
+    ) -> list[ComObjectGroupAddressModel]:
+        if not self._db:
+            return []
+        return list(
+            self._db.session.query(ComObjectGroupAddressModel)
+            .filter_by(group_address_id=group_address_id)
+            .all()
+        )
 
     @property
     def selected_device(self) -> Device | None:
@@ -102,22 +117,6 @@ class ProjectService:
     def clear_devices(self) -> None:
         self._devices.clear()
         self._selected_device = None
-
-    def add_link_to_state(self, start_pin: int, end_pin: int) -> int:
-        link_id = self._next_link_id
-        self._next_link_id += 1
-        self._links.append((link_id, start_pin, end_pin))
-        self._emit("link_added", link_id, start_pin, end_pin)
-        return link_id
-
-    def remove_link_from_state(self, link_id: int) -> None:
-        link_data = next((link for link in self._links if link[0] == link_id), None)
-        self._links = [link for link in self._links if link[0] != link_id]
-        if link_data:
-            self._emit("link_removed", link_data[0], link_data[1], link_data[2])
-
-    def clear_links(self) -> None:
-        self._links.clear()
 
     def find_device_by_individual_address(
         self, individual_address: str
@@ -159,18 +158,21 @@ class ProjectService:
         if not self._db:
             return
         self._load_devices_from_db()
-        self._load_links_from_db()
+        self._load_group_addresses_from_db()
 
-    def _load_links_from_db(self) -> None:
+    def _load_group_addresses_from_db(self) -> None:
         if not self._db:
             return
-        self.clear_links()
-        for link_model in self._db.session.query(LinkModel).all():
-            self._links.append(
-                (link_model.id, link_model.start_pin, link_model.end_pin)
-            )
-        max_link_id = max((link[0] for link in self._links), default=999)
-        self._next_link_id = max_link_id + 1
+        gas = self._db.session.query(GroupAddressModel).all()
+        max_sub = 0
+        for ga in gas:
+            parts = ga.address.split("/")
+            if len(parts) == 3 and parts[0] == "0" and parts[1] == "0":
+                try:
+                    max_sub = max(max_sub, int(parts[2]))
+                except ValueError:
+                    pass
+        self._next_ga_sub = max_sub + 1
 
     def _load_devices_from_db(self) -> None:
         if not self._db:
@@ -206,6 +208,7 @@ class ProjectService:
             ):
                 co = device.find_com_object(co_model.co_id)
                 if co:
+                    co.db_id = co_model.id
                     co.dpt = lookup_or_make_dpt(
                         f"{co_model.dpt_major}.{co_model.dpt_minor}"
                     )
@@ -398,17 +401,88 @@ class ProjectService:
         )
         self._db.event_store.append(event)
 
-    def add_link(self, link_id: int, start_pin: int, end_pin: int) -> None:
+    def _generate_ga_address(self) -> str:
+        address = f"0/0/{self._next_ga_sub}"
+        self._next_ga_sub += 1
+        return address
+
+    def create_group_address(self, address: str | None = None, name: str = "") -> int | None:
+        if not self._db:
+            return None
+        if address is None:
+            address = self._generate_ga_address()
+        event = GroupAddressCreated(group_address_id=0, address=address, name=name)
+        self._db.event_store.append(event)
+        return event.group_address_id
+
+    def remove_group_address(self, ga_id: int, address: str, name: str) -> None:
         if not self._db:
             return
-        event = LinkCreated(link_id=link_id, start_pin=start_pin, end_pin=end_pin)
+        event = GroupAddressRemoved(group_address_id=ga_id, address=address, name=name)
         self._db.event_store.append(event)
 
-    def remove_link(self, link_id: int, start_pin: int, end_pin: int) -> None:
+    def link_com_object_to_ga(
+        self, com_object_id: int, group_address_id: int, is_sending: bool = False
+    ) -> int | None:
+        if not self._db:
+            return None
+        event = ComObjectLinked(
+            assignment_id=0,
+            com_object_id=com_object_id,
+            group_address_id=group_address_id,
+            is_sending=is_sending,
+        )
+        self._db.event_store.append(event)
+        return event.assignment_id
+
+    def unlink_com_object_from_ga(
+        self,
+        assignment_id: int,
+        com_object_id: int,
+        group_address_id: int,
+        is_sending: bool = False,
+    ) -> None:
         if not self._db:
             return
-        event = LinkRemoved(link_id=link_id, start_pin=start_pin, end_pin=end_pin)
+        event = ComObjectUnlinked(
+            assignment_id=assignment_id,
+            com_object_id=com_object_id,
+            group_address_id=group_address_id,
+            is_sending=is_sending,
+        )
         self._db.event_store.append(event)
+
+    def get_group_address(self, ga_id: int) -> GroupAddressModel | None:
+        if not self._db:
+            return None
+        return self._db.session.get(GroupAddressModel, ga_id)
+
+    def get_group_address_by_address(self, address: str) -> GroupAddressModel | None:
+        if not self._db:
+            return None
+        return (
+            self._db.session.query(GroupAddressModel).filter_by(address=address).first()
+        )
+
+    def get_com_object_model(self, device_id: int, co_id: str) -> ComObjectModel | None:
+        if not self._db:
+            return None
+        return (
+            self._db.session.query(ComObjectModel)
+            .filter_by(device_id=device_id, co_id=co_id)
+            .first()
+        )
+
+    def get_assignments_for_com_object(
+        self, com_object_id: int
+    ) -> list[ComObjectGroupAddressModel]:
+        if not self._db:
+            return []
+        return list(
+            self._db.session.query(ComObjectGroupAddressModel)
+            .filter_by(com_object_id=com_object_id)
+            .all()
+        )
 
     def get_areas(self) -> list[AreaModel]:
         if not self._db:

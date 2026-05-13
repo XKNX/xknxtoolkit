@@ -63,11 +63,23 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "links",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("start_pin", sa.Integer(), nullable=False),
-        sa.Column("end_pin", sa.Integer(), nullable=False),
+        "group_addresses",
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("address", sa.String(), nullable=False, unique=True),
+        sa.Column("name", sa.String(), nullable=False, default=""),
         sa.PrimaryKeyConstraint("id"),
+    )
+
+    op.create_table(
+        "com_object_group_addresses",
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("com_object_id", sa.Integer(), nullable=False),
+        sa.Column("group_address_id", sa.Integer(), nullable=False),
+        sa.Column("is_sending", sa.Boolean(), nullable=False, default=False),
+        sa.ForeignKeyConstraint(["com_object_id"], ["com_objects.id"]),
+        sa.ForeignKeyConstraint(["group_address_id"], ["group_addresses.id"]),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("com_object_id", "group_address_id"),
     )
 
     op.create_table(
@@ -93,7 +105,8 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_table("lines")
     op.drop_table("areas")
-    op.drop_table("links")
+    op.drop_table("com_object_group_addresses")
+    op.drop_table("group_addresses")
     op.drop_table("com_objects")
     op.drop_table("parameters")
     op.drop_table("devices")

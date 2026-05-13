@@ -173,9 +173,9 @@ class KnxGuiApp:
         self._connection_plugin.render_status_indicator()
         imgui.same_line()
         imgui.text(
-            S.STATUS_DEVICES_LINKS.format(
+            S.STATUS_DEVICES_GAS.format(
                 devices=len(self._project_service.devices),
-                links=len(self._project_service.links),
+                group_addresses=len(self._project_service.group_addresses),
             )
         )
 

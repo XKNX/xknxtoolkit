@@ -39,7 +39,7 @@ class Strings:
     STATUS_CONNECTED = "Connected: {ip}"
     STATUS_CONNECTED_TO = "Connected to {ip}"
     STATUS_DISCONNECTED = "Disconnected"
-    STATUS_DEVICES_LINKS = "| Devices: {devices} | Links: {links}"
+    STATUS_DEVICES_GAS = "| Devices: {devices} | Group Addresses: {group_addresses}"
 
     # Buttons
     BTN_ADD = "Add"
@@ -143,8 +143,11 @@ class Strings:
     HISTORY_PARAM_CHANGE = "Parameter: {old} -> {new}"
     HISTORY_DPT_CHANGE = "DPT: {old} -> {new}"
     HISTORY_FLAG_CHANGE = "Flag: {flag} -> {state}"
-    HISTORY_LINK_CREATE = "Link created"
-    HISTORY_LINK_REMOVE = "Link removed"
+    HISTORY_GA_CREATE = "Group address {address} created"
+    HISTORY_GA_REMOVE = "Group address {address} removed"
+    HISTORY_GA_RENAME = "Group address: {old} -> {new}"
+    HISTORY_CO_LINKED = "Com object linked to group address"
+    HISTORY_CO_UNLINKED = "Com object unlinked from group address"
     HISTORY_AREA_CREATE = "Area {number} created"
     HISTORY_AREA_REMOVE = "Area {number} removed"
     HISTORY_AREA_RENAME = "Area: {old} -> {new}"

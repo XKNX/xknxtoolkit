@@ -56,6 +56,7 @@ class ComObject:
     dpt: DPT
     flags: ComObjectFlags
     supported_dpts: list[DPT] = field(default_factory=list)
+    db_id: int | None = None
 
 
 _co_id_counter = 0
