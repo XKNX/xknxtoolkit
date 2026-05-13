@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from . import parameter_tree
 
 
 class ParamTypeKind(Enum):
@@ -68,6 +72,8 @@ class Parameter:
 class DynamicElement:
     id: str | None = None
     name: str | None = None
+    text: str | None = None
+    number: int | None = None
     header_param_ref_id: str | None = None
     param_ref_ids: list[str] = field(default_factory=list)
     com_object_ref_ids: list[str] = field(default_factory=list)
@@ -167,3 +173,14 @@ class DeviceApplication:
                 return when
 
         return None
+
+    def get_visible_tree(
+        self, param_values: dict[str, str] | None = None
+    ) -> parameter_tree.VisibleTree:
+        from . import parameter_tree as pt
+
+        if param_values is None:
+            param_values = {p.id: p.value for p in self.parameters}
+
+        tree = pt.build_parameter_tree(self.dynamic)
+        return pt.evaluate_tree(tree, param_values, self.parameters)

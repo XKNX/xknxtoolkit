@@ -89,7 +89,9 @@ class ComObjectGroupAddressModel(Base):
     is_sending: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     com_object: Mapped["ComObjectModel"] = relationship()
-    group_address: Mapped["GroupAddressModel"] = relationship(back_populates="assignments")
+    group_address: Mapped["GroupAddressModel"] = relationship(
+        back_populates="assignments"
+    )
 
 
 class AreaModel(Base):

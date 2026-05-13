@@ -8,6 +8,7 @@ from imgui_bundle import imgui
 
 from knx_gui.dpt import DPT
 from knx_gui.knxprod import DeviceApplication, ParamType
+from knx_gui.knxprod.parameter_tree import VisibleTree
 from xknx.telegram import Telegram as XknxTelegram
 
 
@@ -289,6 +290,9 @@ class Device:
             if co.id == co_id:
                 return co
         return None
+
+    def get_visible_tree(self) -> VisibleTree:
+        return self.app.get_visible_tree(self._param_values)
 
 
 @dataclass
