@@ -119,12 +119,8 @@ class NodeEditorPanel:
         devices = self._get_devices()
         group_addresses = self._get_group_addresses()
 
-        toolbar_height = imgui.get_frame_height_with_spacing() + 4
-        available = imgui.get_content_region_avail()
-        canvas_height = available.y - toolbar_height
-
         ed.set_current_editor(self._editor_context)
-        ed.begin("##NodeEditorCanvas", imgui.ImVec2(0, canvas_height))
+        ed.begin("##NodeEditorCanvas", imgui.ImVec2(0, 0))
 
         for device in devices:
             self._render_device_node(device)
@@ -150,13 +146,26 @@ class NodeEditorPanel:
         checkbox_width = imgui.calc_text_size(S.STATUS_SHOW_GA_NODES).x + imgui.get_frame_height() + imgui.get_style().item_spacing.x
         text_width = imgui.calc_text_size(text).x
         total_width = text_width + imgui.get_style().item_spacing.x + checkbox_width
-        imgui.set_cursor_pos_x(imgui.get_window_width() - total_width - imgui.get_style().window_padding.x)
+        toolbar_height = imgui.get_frame_height_with_spacing()
+        padding = imgui.get_style().window_padding
+
+        imgui.set_cursor_pos(imgui.ImVec2(
+            imgui.get_window_width() - total_width - padding.x * 2,
+            imgui.get_window_height() - toolbar_height - padding.y * 2,
+        ))
+        imgui.begin_child(
+            "##NodeEditorOverlay",
+            imgui.ImVec2(total_width + padding.x, toolbar_height + padding.y),
+            imgui.ChildFlags_.none,
+            imgui.WindowFlags_.no_scrollbar,
+        )
         imgui.align_text_to_frame_padding()
         imgui.text(text)
         imgui.same_line()
         changed, value = imgui.checkbox(S.STATUS_SHOW_GA_NODES, self._show_ga_nodes)
         if changed:
             self._show_ga_nodes = value
+        imgui.end_child()
 
         self._render_dpt_popup()
         self._render_enum_popup()
