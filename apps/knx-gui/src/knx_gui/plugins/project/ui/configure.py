@@ -74,6 +74,8 @@ class ConfigurePanel:
         _, self._name_buffer = imgui.input_text("##name", self._name_buffer)
         if imgui.is_item_deactivated_after_edit():
             self._on_name_change(device, self._name_buffer)
+        if not imgui.is_item_active() and self._name_buffer != device.name:
+            self._name_buffer = device.name
 
         imgui.align_text_to_frame_padding()
         imgui.text_disabled(S.CONFIGURE_INDIVIDUAL_ADDRESS)
@@ -84,6 +86,8 @@ class ConfigurePanel:
         )
         if imgui.is_item_deactivated_after_edit():
             self._on_individual_address_change(device, self._address_buffer)
+        if not imgui.is_item_active() and self._address_buffer != device.individual_address:
+            self._address_buffer = device.individual_address
 
         if imgui.collapsing_header(
             S.CONFIGURE_MANUFACTURER, imgui.TreeNodeFlags_.default_open
