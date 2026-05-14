@@ -166,14 +166,20 @@ def collect_all_visible_refs(
     element: DynamicElement,
     param_values: dict[str, str],
 ) -> tuple[set[str], set[str]]:
-    param_ids, com_ids = _collect_visible_refs(element, param_values)
-    params: set[str] = set(param_ids)
-    coms: set[str] = set(com_ids)
+    params: set[str] = set(element.param_ref_ids)
+    coms: set[str] = set(element.com_object_ref_ids)
 
     for child in element.children:
         child_params, child_coms = collect_all_visible_refs(child, param_values)
         params.update(child_params)
         coms.update(child_coms)
+
+    for choose in element.chooses:
+        matched = _find_matching_when(choose, param_values)
+        if matched and matched.content:
+            content_params, content_coms = collect_all_visible_refs(matched.content, param_values)
+            params.update(content_params)
+            coms.update(content_coms)
 
     return params, coms
 

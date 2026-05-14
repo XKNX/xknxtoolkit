@@ -472,6 +472,26 @@ class TestCollectAllVisibleRefs:
         assert "root_p" in params
         assert "nested_p" in params
 
+    def test_includes_refs_from_children_inside_choose_content(self):
+        from knx_gui.knxprod.parameter_tree import collect_all_visible_refs
+
+        grandchild = make_element(param_ref_ids=["gc_p"], com_object_ref_ids=["gc_co"])
+        child = make_element(param_ref_ids=["child_p"], children=[grandchild])
+        content = make_element(param_ref_ids=["content_p"], children=[child])
+        choose = DynamicChoose(
+            param_ref_id="sel",
+            conditions=[DynamicWhen(test_values=["1"], content=content)],
+        )
+        element = make_element(param_ref_ids=["root_p"], chooses=[choose])
+
+        params, coms = collect_all_visible_refs(element, {"sel": "1"})
+
+        assert "root_p" in params
+        assert "content_p" in params
+        assert "child_p" in params
+        assert "gc_p" in params
+        assert "gc_co" in coms
+
 
 class TestFindMatchingWhen:
     def test_finds_matching_value(self):
