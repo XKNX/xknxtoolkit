@@ -420,6 +420,58 @@ class TestCollectVisibleRefs:
 
         assert params == ["p1"]
 
+    def test_does_not_include_refs_from_children(self):
+        child = make_element(param_ref_ids=["child_p"])
+        element = make_element(param_ref_ids=["root_p"], children=[child])
+
+        params, _ = _collect_visible_refs(element, {})
+
+        assert "root_p" in params
+        assert "child_p" not in params
+
+
+class TestCollectAllVisibleRefs:
+    def test_includes_refs_from_children(self):
+        from knx_gui.knxprod.parameter_tree import collect_all_visible_refs
+
+        child1 = make_element(param_ref_ids=["child1_p"], com_object_ref_ids=["child1_co"])
+        child2 = make_element(param_ref_ids=["child2_p"])
+        element = make_element(param_ref_ids=["root_p"], children=[child1, child2])
+
+        params, coms = collect_all_visible_refs(element, {})
+
+        assert "root_p" in params
+        assert "child1_p" in params
+        assert "child2_p" in params
+        assert "child1_co" in coms
+
+    def test_includes_refs_from_nested_children(self):
+        from knx_gui.knxprod.parameter_tree import collect_all_visible_refs
+
+        grandchild = make_element(param_ref_ids=["gc_p"])
+        child = make_element(children=[grandchild])
+        element = make_element(param_ref_ids=["root_p"], children=[child])
+
+        params, _ = collect_all_visible_refs(element, {})
+
+        assert "root_p" in params
+        assert "gc_p" in params
+
+    def test_includes_refs_from_chooses(self):
+        from knx_gui.knxprod.parameter_tree import collect_all_visible_refs
+
+        content = make_element(param_ref_ids=["nested_p"])
+        choose = DynamicChoose(
+            param_ref_id="sel",
+            conditions=[DynamicWhen(test_values=["1"], content=content)],
+        )
+        element = make_element(param_ref_ids=["root_p"], chooses=[choose])
+
+        params, _ = collect_all_visible_refs(element, {"sel": "1"})
+
+        assert "root_p" in params
+        assert "nested_p" in params
+
 
 class TestFindMatchingWhen:
     def test_finds_matching_value(self):
