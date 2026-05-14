@@ -18,11 +18,7 @@ from knx_gui.types import (
     default_flags_for,
     flag_diff_letters,
 )
-from knx_gui.widgets import (
-    ComFlagsTable,
-    EnumPopup,
-    render_parameters_grouped,
-)
+from knx_gui.widgets import EnumPopup
 
 NODE_PADDING = 8.0
 HEADER_INSET = 1.0
@@ -30,7 +26,6 @@ HEADER_BOTTOM_PADDING = 4.0
 PIN_RADIUS = 5.0
 PIN_HEIGHT = PIN_RADIUS * 2 + 4
 MIN_PIN_SPACING = 20.0
-SETTINGS_LABEL_OFFSET = 120.0
 HEADER_COLOR = (0.2, 0.4, 0.7)
 GA_NODE_COLOR = (0.3, 0.5, 0.3)
 GA_NODE_ID_OFFSET = 1000000
@@ -69,7 +64,6 @@ class NodeEditorPanel:
         add_link: Callable[[int, int], int | None],
         remove_link: Callable[[int], None],
         on_param_change: Callable[[Device, str, str], None],
-        set_flag: Callable[[Device, str, str, bool], None],
     ) -> None:
         self._get_devices = get_devices
         self._get_group_addresses = get_group_addresses
@@ -91,7 +85,6 @@ class NodeEditorPanel:
         self._dpt_popup_target: ComObject | None = None
         self._dpt_popup_request: ComObject | None = None
         self._enum_popup = EnumPopup("##NodeEnumPopup", on_param_change)
-        self._com_flags_table = ComFlagsTable(set_flag)
         self._ga_pins: dict[int, tuple[int, int]] = {}
         self._ga_nodes_positioned: set[int] = set()
         self._ga_position_offsets: dict[tuple[int, ...], int] = {}
@@ -334,28 +327,12 @@ class NodeEditorPanel:
             else 0
         )
 
-        tree_indent = imgui.get_style().indent_spacing
-        max_value_w = max(
-            imgui.calc_text_size(device.app.manufacturer_id).x,
-            imgui.calc_text_size(device.app.application_id).x,
-        )
-        manufacturer_width = tree_indent + SETTINGS_LABEL_OFFSET + max_value_w
+        header_width = imgui.calc_text_size(device.name).x
+        if device.individual_address:
+            header_width += spacing + imgui.calc_text_size(device.individual_address).x
 
-        max_pin_name_w = imgui.calc_text_size("Object").x
-        for co in device.com_objects:
-            max_pin_name_w = max(max_pin_name_w, imgui.calc_text_size(co.name).x)
-        item_spacing = imgui.get_style().item_spacing.x
-        checkbox_w = imgui.get_frame_height()
-        com_objects_width = (
-            tree_indent
-            + max_pin_name_w
-            + 8
-            + len(FLAG_LABELS) * (checkbox_w + item_spacing)
-        )
-
-        settings_width = max(manufacturer_width, com_objects_width)
         pin_row_width = in_total_w + MIN_PIN_SPACING + out_total_w
-        node_width = max(pin_row_width, settings_width)
+        node_width = max(pin_row_width, header_width)
         mid_spacing = node_width - in_total_w - out_total_w
 
         return NodeLayout(
@@ -501,34 +478,6 @@ class NodeEditorPanel:
             else:
                 imgui.dummy(imgui.ImVec2(layout.out_total_w, PIN_HEIGHT))
 
-    def _render_label_value(self, label: str, value: str) -> None:
-        imgui.text_disabled(label)
-        imgui.same_line(SETTINGS_LABEL_OFFSET)
-        imgui.text(value)
-
-    def _render_node_settings(self, device: Device, width: float) -> None:
-        if imgui.tree_node(f"{S.CONFIGURE_MANUFACTURER}##{device.node_id}"):
-            self._render_label_value(
-                S.CONFIGURE_MANUFACTURER, device.app.manufacturer_id
-            )
-            self._render_label_value(S.CONFIGURE_APPLICATION, device.app.application_id)
-            imgui.tree_pop()
-        params = device.get_visible_parameters()
-        if params:
-            is_open = imgui.tree_node(f"{S.NODE_PARAMETERS}##{device.node_id}")
-            imgui.same_line()
-            imgui.text_disabled(f"({len(params)})")
-            if is_open:
-                req = render_parameters_grouped(
-                    device, params, self._on_param_change, deferred_enum=True
-                )
-                if req is not None:
-                    self._enum_popup.request(device, req.param)
-                imgui.tree_pop()
-        if imgui.tree_node(f"{S.NODE_COM_FLAGS}##{device.node_id}"):
-            self._com_flags_table.render(device, device.get_visible_com_objects())
-            imgui.tree_pop()
-
     def _render_enum_popup(self) -> None:
         self._enum_popup.render()
 
@@ -562,9 +511,6 @@ class NodeEditorPanel:
 
         imgui.dummy(imgui.ImVec2(layout.node_width, 1))
         content_max_x = imgui.get_item_rect_max().x
-
-        imgui.spacing()
-        self._render_node_settings(device, layout.node_width)
 
         ed.end_node()
         self._draw_node_header_bg(device.node_id, header, content_max_x)
