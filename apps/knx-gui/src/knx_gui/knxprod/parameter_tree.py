@@ -1,12 +1,91 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from .types import DynamicChoose, DynamicElement, DynamicWhen
 
 if TYPE_CHECKING:
     from .types import Parameter
+
+Condition = Callable[[dict[str, str]], bool]
+
+
+def always_visible(_: dict[str, str]) -> bool:
+    return True
+
+
+def make_condition(param_ref_id: str, test_values: list[str], is_default: bool) -> Condition:
+    if is_default and not test_values:
+        return always_visible
+
+    def check(param_values: dict[str, str]) -> bool:
+        value = param_values.get(param_ref_id, "")
+        return value in test_values
+
+    return check
+
+
+def combine_conditions(parent: Condition, child: Condition) -> Condition:
+    if parent is always_visible:
+        return child
+    if child is always_visible:
+        return parent
+
+    def check(param_values: dict[str, str]) -> bool:
+        return parent(param_values) and child(param_values)
+
+    return check
+
+
+@dataclass
+class TreeNode:
+    id: str
+    name: str | None
+    text: str | None
+    header_param_ref_id: str | None
+    element: DynamicElement
+    children: list[TreeNode] = field(default_factory=list)
+    visibility: Condition = always_visible
+
+
+def build_tree(dynamic: DynamicElement | None) -> list[TreeNode]:
+    if dynamic is None:
+        return []
+    return _build_children(dynamic, always_visible)
+
+
+def _build_children(element: DynamicElement, parent_condition: Condition) -> list[TreeNode]:
+    nodes: list[TreeNode] = []
+
+    for child in element.children:
+        node = _build_node(child, parent_condition)
+        nodes.append(node)
+
+    for choose in element.chooses:
+        for when in choose.conditions:
+            when_condition = make_condition(choose.param_ref_id, when.test_values, when.is_default)
+            combined = combine_conditions(parent_condition, when_condition)
+
+            if when.content:
+                for child in when.content.children:
+                    node = _build_node(child, combined)
+                    nodes.append(node)
+                nodes.extend(_build_children(when.content, combined))
+
+    return nodes
+
+
+def _build_node(element: DynamicElement, condition: Condition) -> TreeNode:
+    return TreeNode(
+        id=element.id or "node",
+        name=element.name,
+        text=element.text,
+        header_param_ref_id=element.header_param_ref_id,
+        element=element,
+        children=_build_children(element, condition),
+        visibility=condition,
+    )
 
 
 @dataclass
@@ -23,74 +102,52 @@ def evaluate_tree(
     param_values: dict[str, str],
     params_by_id: dict[str, Parameter],
 ) -> list[VisibleNode]:
-    if dynamic is None:
-        return []
-
-    root_params, root_coms = _collect_visible(dynamic, param_values)
-    children = _evaluate_children(dynamic, param_values, params_by_id)
-
-    if root_params or root_coms:
-        root_name = _resolve_name(dynamic, params_by_id, "Settings")
-        root_node = VisibleNode(
-            id=dynamic.id or "root",
-            display_name=root_name,
-            param_ref_ids=root_params,
-            com_object_ref_ids=root_coms,
-            children=[],
-        )
-        return [root_node] + children
-
-    return children
+    tree = build_tree(dynamic)
+    return evaluate_tree_cached(tree, param_values, params_by_id)
 
 
-def _evaluate_children(
-    element: DynamicElement,
+def evaluate_tree_cached(
+    tree: list[TreeNode],
     param_values: dict[str, str],
     params_by_id: dict[str, Parameter],
 ) -> list[VisibleNode]:
-    nodes: list[VisibleNode] = []
-
-    for child in element.children:
-        node = _evaluate_element(child, param_values, params_by_id)
-        if node:
-            nodes.append(node)
-
-    for choose in element.chooses:
-        matched = _find_matching_when(choose, param_values)
-        if matched and matched.content:
-            for child in matched.content.children:
-                node = _evaluate_element(child, param_values, params_by_id)
-                if node:
-                    nodes.append(node)
-            nodes.extend(_evaluate_children(matched.content, param_values, params_by_id))
-
+    nodes = _evaluate_nodes(tree, param_values, params_by_id)
+    _flatten_generic(nodes)
     _number_duplicates(nodes)
     return nodes
 
 
-def _evaluate_element(
-    element: DynamicElement,
+def _evaluate_nodes(
+    nodes: list[TreeNode],
     param_values: dict[str, str],
     params_by_id: dict[str, Parameter],
-) -> VisibleNode | None:
-    param_ids, com_ids = _collect_visible(element, param_values)
-    children = _evaluate_children(element, param_values, params_by_id)
+) -> list[VisibleNode]:
+    result: list[VisibleNode] = []
 
-    if not param_ids and not com_ids and not children:
-        return None
+    for node in nodes:
+        if not node.visibility(param_values):
+            continue
 
-    display_name = _resolve_name(element, params_by_id, "Settings")
+        param_ids, com_ids = _collect_visible_refs(node.element, param_values)
+        visible_children = _evaluate_nodes(node.children, param_values, params_by_id)
 
-    return VisibleNode(
-        id=element.id or "node",
-        display_name=display_name,
-        param_ref_ids=param_ids,
-        com_object_ref_ids=com_ids,
-        children=children,
-    )
+        if not param_ids and not com_ids and not visible_children:
+            continue
+
+        display_name = _resolve_name(node, params_by_id)
+
+        result.append(VisibleNode(
+            id=node.id,
+            display_name=display_name or "?",
+            param_ref_ids=param_ids,
+            com_object_ref_ids=com_ids,
+            children=visible_children,
+        ))
+
+    return result
 
 
-def _collect_visible(
+def _collect_visible_refs(
     element: DynamicElement,
     param_values: dict[str, str],
 ) -> tuple[list[str], list[str]]:
@@ -100,7 +157,7 @@ def _collect_visible(
     for choose in element.chooses:
         matched = _find_matching_when(choose, param_values)
         if matched and matched.content:
-            nested_params, nested_coms = _collect_visible(matched.content, param_values)
+            nested_params, nested_coms = _collect_visible_refs(matched.content, param_values)
             param_ids.extend(nested_params)
             com_ids.extend(nested_coms)
 
@@ -123,16 +180,24 @@ def _find_matching_when(
     return None
 
 
-def _resolve_name(
-    element: DynamicElement,
-    params_by_id: dict[str, Parameter],
-    fallback: str,
-) -> str:
-    if element.header_param_ref_id:
-        param = params_by_id.get(element.header_param_ref_id)
+def _resolve_name(node: TreeNode, params_by_id: dict[str, Parameter]) -> str | None:
+    if node.header_param_ref_id:
+        param = params_by_id.get(node.header_param_ref_id)
         if param and param.text:
             return param.text
-    return element.text or element.name or element.id or fallback
+    return node.text or node.name
+
+
+def _flatten_generic(nodes: list[VisibleNode]) -> None:
+    i = 0
+    while i < len(nodes):
+        node = nodes[i]
+        name_lower = node.display_name.lower()
+        if name_lower in ("generic", "channel", "?") and node.children and not node.param_ref_ids:
+            nodes[i:i+1] = node.children
+        else:
+            _flatten_generic(node.children)
+            i += 1
 
 
 def _number_duplicates(nodes: list[VisibleNode]) -> None:

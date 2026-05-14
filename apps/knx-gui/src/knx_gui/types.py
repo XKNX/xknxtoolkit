@@ -188,6 +188,7 @@ class Device:
     com_objects: list[ComObject] = field(default_factory=list)
     _param_values: dict[str, str] = field(default_factory=dict)
     _cached_visible_params: list[Parameter] = field(default_factory=list)
+    _cached_visible_tree: list[VisibleNode] = field(default_factory=list)
     _params_dirty: bool = True
     _cached_visible_cos: list[ComObject] = field(default_factory=list)
     _cos_dirty: bool = True
@@ -292,7 +293,10 @@ class Device:
         return None
 
     def get_visible_tree(self) -> list[VisibleNode]:
-        return self.app.get_visible_tree(self._param_values)
+        if not self._params_dirty and self._cached_visible_tree:
+            return self._cached_visible_tree
+        self._cached_visible_tree = self.app.get_visible_tree(self._param_values)
+        return self._cached_visible_tree
 
 
 @dataclass
