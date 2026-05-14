@@ -49,13 +49,13 @@ def generate_demo(output_path: Path, catalog_path: Path) -> None:
 
     area_event = AreaCreated(area_id=0, area_number=1, name="Building")
     db.event_store.append(area_event)
-    print(f"Created: Area 1 (Building)")
+    print("Created: Area 1 (Building)")
 
     line_event = LineCreated(
         line_id=0, area_id=area_event.area_id, line_number=1, name="Floor 1"
     )
     db.event_store.append(line_event)
-    print(f"Created: Line 1.1 (Floor 1)")
+    print("Created: Line 1.1 (Floor 1)")
 
     for demo_device in DEMO_DEVICES:
         xml_data = get_application_xml(catalog, demo_device.template_id)
