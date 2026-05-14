@@ -23,7 +23,6 @@ class NodeEditorPlugin:
             add_link=self._add_link,
             remove_link=self._remove_link,
             on_param_change=self._handle_param_change,
-            set_flag=self._handle_flag_change,
         )
 
         self._panels = [
@@ -63,11 +62,6 @@ class NodeEditorPlugin:
         self, device: "Device", param_id: str, new_value: str
     ) -> None:
         self._api.project.set_param(device, param_id, new_value)
-
-    def _handle_flag_change(
-        self, device: "Device", co_id: str, flag_name: str, new_value: bool
-    ) -> None:
-        self._api.project.set_flag(device, co_id, flag_name, new_value)
 
     def _on_device_selected(self, device: "Device | None") -> None:
         if device:
