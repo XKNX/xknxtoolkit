@@ -9,7 +9,7 @@ from imgui_bundle import imgui
 
 from knx_gui.plugins.base import PanelDefinition, PluginAPI
 from knx_gui.plugins.connection.interface import ObservableKNXIPInterfaceThreaded
-from knx_gui.strings import S
+from knx_gui.plugins.connection.strings import S
 from knx_gui.types import color_u32
 from xknx import XKNX
 from xknx.io.connection import ConnectionConfig, ConnectionType

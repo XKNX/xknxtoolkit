@@ -12,7 +12,7 @@ from knx_gui.plugins.connection import ConnectionPlugin
 from knx_gui.plugins.network import NetworkPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
-from knx_gui.strings import S
+from knx_gui.strings import S, set_locale
 
 
 class KnxGuiApp:
@@ -253,7 +253,23 @@ def create_dockable_windows(app: KnxGuiApp) -> list[hello_imgui.DockableWindow]:
     return windows
 
 
+def _detect_locale() -> str:
+    import locale
+
+    try:
+        locale.setlocale(locale.LC_ALL, "")
+        lang, _ = locale.getlocale()
+        if lang:
+            return lang.split("_")[0]
+    except (ValueError, locale.Error):
+        pass
+
+    return "en"
+
+
 def main() -> None:
+    set_locale(_detect_locale())
+
     catalog_path = Path(__file__).parent.parent.parent / "demo.xknxcatalog"
     app = KnxGuiApp(catalog_path)
 

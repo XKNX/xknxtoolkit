@@ -1,8 +1,8 @@
 from knx_gui.plugins.base import PanelDefinition, PluginAPI
 from knx_gui.plugins.network.service import NetworkService
+from knx_gui.plugins.network.strings import S
 from knx_gui.plugins.network.ui import CaptureState as UICaptureState
 from knx_gui.plugins.network.ui import NetworkPanel
-from knx_gui.strings import S
 
 
 class NetworkPlugin:

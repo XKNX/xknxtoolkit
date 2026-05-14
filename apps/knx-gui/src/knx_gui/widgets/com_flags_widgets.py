@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 from imgui_bundle import imgui
 
-from knx_gui.strings import S
+from knx_gui.plugins.node_editor.strings import S
 from knx_gui.types import (
     FLAG_LABELS,
     ComObject,

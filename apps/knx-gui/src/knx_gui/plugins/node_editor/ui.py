@@ -5,7 +5,7 @@ from imgui_bundle import imgui
 from imgui_bundle import imgui_node_editor as ed
 
 from knx_gui.dpt import DPT, DPTMatch, dpt_color, dpt_match
-from knx_gui.strings import S
+from knx_gui.plugins.node_editor.strings import S
 from knx_gui.types import (
     FLAG_LABELS,
     ComObject,
