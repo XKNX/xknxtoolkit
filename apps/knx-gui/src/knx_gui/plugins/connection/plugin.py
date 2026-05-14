@@ -1,7 +1,7 @@
 import asyncio
 import math
 import threading
-from collections.abc import Callable, Coroutine
+from collections.abc import Coroutine
 from enum import Enum
 from typing import Any
 
@@ -28,15 +28,8 @@ class ConnectionState(Enum):
 class ConnectionPlugin:
     name = "connection"
 
-    def __init__(
-        self,
-        api: PluginAPI,
-        raw_cemi_callback: Callable[[bytes], None] | None = None,
-        on_connected: Callable[[], None] | None = None,
-    ) -> None:
+    def __init__(self, api: PluginAPI) -> None:
         self._api = api
-        self._raw_cemi_callback = raw_cemi_callback
-        self._on_connected = on_connected
         self._state = ConnectionState.DISCONNECTED
         self._error_message: str | None = None
         self._controller_ip: str = "192.168.1.1"
@@ -101,7 +94,7 @@ class ConnectionPlugin:
             self._interface = ObservableKNXIPInterfaceThreaded(
                 xknx=self._xknx,
                 connection_config=config,
-                raw_cemi_callback=self._raw_cemi_callback,
+                raw_cemi_callback=self._api.connection.dispatch_raw_cemi,
             )
             await self._interface.start()
             try:
@@ -109,8 +102,7 @@ class ConnectionPlugin:
             except Exception:
                 self._gateway_info = None
             self._state = ConnectionState.CONNECTED
-            if self._on_connected:
-                self._on_connected()
+            self._api.connection.dispatch_connected()
         except Exception as e:
             self._state = ConnectionState.ERROR
             self._error_message = str(e)

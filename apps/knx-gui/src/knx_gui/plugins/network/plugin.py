@@ -11,6 +11,8 @@ class NetworkPlugin:
     def __init__(self, api: PluginAPI) -> None:
         self._api = api
         self._service = NetworkService()
+        api.connection.add_raw_cemi_listener(self._service.add_raw)
+        api.connection.add_connected_listener(self._service.start)
         self._panel = NetworkPanel(
             get_telegrams=lambda: self._service.telegrams,
             get_capture_state=lambda: UICaptureState(self._service.state.value),
@@ -27,10 +29,6 @@ class NetworkPlugin:
                 render=self._panel.render,
             ),
         ]
-
-    @property
-    def service(self) -> NetworkService:
-        return self._service
 
     def _on_focus_source(self, address: str) -> None:
         device = self._api.project.find_device_by_address(address)

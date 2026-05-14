@@ -9,6 +9,7 @@ from knx_gui.knxprod import DeviceApplication
 from knx_gui.plugins.base import API_VERSION, PanelDefinition, PluginAPI
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
 from knx_gui.plugins.connection import ConnectionPlugin
+from knx_gui.plugins.connection.service import ConnectionService
 from knx_gui.plugins.network import NetworkPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
@@ -30,20 +31,18 @@ class KnxGuiApp:
         self._save_project_dialog: pfd.save_file | None = None
 
         self._project_service = ProjectService(self._catalog_service)
+        self._connection_service = ConnectionService()
 
         self._plugin_api = PluginAPI(
             api_version=API_VERSION,
             project=self._project_service,
             catalog=self._catalog_service,
+            connection=self._connection_service,
         )
 
         self._catalog_plugin = CatalogPlugin(self._plugin_api)
+        self._connection_plugin = ConnectionPlugin(self._plugin_api)
         self._network_plugin = NetworkPlugin(self._plugin_api)
-        self._connection_plugin = ConnectionPlugin(
-            self._plugin_api,
-            raw_cemi_callback=self._network_plugin.service.add_raw,
-            on_connected=self._network_plugin.service.start,
-        )
         self._node_editor_plugin = NodeEditorPlugin(self._plugin_api)
         self._project_plugin = ProjectPlugin(
             self._plugin_api,
