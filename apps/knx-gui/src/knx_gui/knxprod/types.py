@@ -133,20 +133,23 @@ class DeviceApplication:
         if self.dynamic is None:
             return self.parameters
 
-        visible_ids = self._collect_refs_from_tree(param_values, "param_ref_ids")
+        visible_ids = self._collect_visible_param_ids(param_values)
         return [p for p in self.parameters if p.id in visible_ids]
 
     def visible_com_objects(
         self, param_values: dict[str, str] | None = None
     ) -> list[ComObject]:
-        if self.dynamic is None:
-            return self.com_objects
+        from . import com_object_tree
 
-        visible_ids = self._collect_refs_from_tree(param_values, "com_object_ref_ids")
-        return [co for co in self.com_objects if co.id in visible_ids]
+        if param_values is None:
+            param_values = {p.id: p.value for p in self.parameters}
 
-    def _collect_refs_from_tree(
-        self, param_values: dict[str, str] | None, attr: str
+        return com_object_tree.filter_visible_com_objects(
+            self.com_objects, self.dynamic, param_values
+        )
+
+    def _collect_visible_param_ids(
+        self, param_values: dict[str, str] | None
     ) -> set[str]:
         if param_values is None:
             param_values = {p.id: p.value for p in self.parameters}
@@ -156,5 +159,5 @@ class DeviceApplication:
         if not self.dynamic:
             return set()
 
-        params, coms = pt.collect_all_visible_refs(self.dynamic, param_values)
-        return params if attr == "param_ref_ids" else coms
+        params, _ = pt.collect_all_visible_refs(self.dynamic, param_values)
+        return params
