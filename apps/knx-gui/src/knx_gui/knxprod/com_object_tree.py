@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from .parameter_tree import collect_all_visible_refs
 
 if TYPE_CHECKING:
-    from .types import ComObject, DynamicElement, Parameter
+    from .types import ComObject, DynamicElement
 
 
 def visible_com_object_ids(

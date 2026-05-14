@@ -1,14 +1,7 @@
-import pytest
 
 from knx_gui.knxprod.parameter_tree import (
     TreeNode,
     VisibleNode,
-    always_visible,
-    build_tree,
-    combine_conditions,
-    evaluate_tree,
-    evaluate_tree_cached,
-    make_condition,
     _build_children,
     _build_node,
     _collect_visible_refs,
@@ -17,6 +10,12 @@ from knx_gui.knxprod.parameter_tree import (
     _flatten_generic,
     _number_duplicates,
     _resolve_name,
+    always_visible,
+    build_tree,
+    combine_conditions,
+    evaluate_tree,
+    evaluate_tree_cached,
+    make_condition,
 )
 from knx_gui.knxprod.types import (
     DynamicChoose,
