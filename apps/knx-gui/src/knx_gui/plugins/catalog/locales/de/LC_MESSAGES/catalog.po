@@ -1,0 +1,20 @@
+# German translations for catalog plugin
+msgid ""
+msgstr ""
+"Language: de\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Catalog"
+msgstr "Katalog"
+
+msgid "Failed to load archive"
+msgstr "Archiv konnte nicht geladen werden"
+
+msgid "Loaded: {path}"
+msgstr "Geladen: {path}"
+
+msgid "Found {count} application(s)"
+msgstr "{count} Anwendung(en) gefunden"
+
+msgid "({count} com objects)"
+msgstr "({count} Kommunikationsobjekte)"

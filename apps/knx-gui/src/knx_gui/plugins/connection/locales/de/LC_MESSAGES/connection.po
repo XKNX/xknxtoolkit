@@ -1,0 +1,23 @@
+# German translations for connection plugin
+msgid ""
+msgstr ""
+"Language: de\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Connection"
+msgstr "Verbindung"
+
+msgid "Connect"
+msgstr "Verbinden"
+
+msgid "Disconnect"
+msgstr "Trennen"
+
+msgid "Connected: {ip}"
+msgstr "Verbunden: {ip}"
+
+msgid "Connected to {ip}"
+msgstr "Verbunden mit {ip}"
+
+msgid "Disconnected"
+msgstr "Nicht verbunden"

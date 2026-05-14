@@ -1,0 +1,68 @@
+# German translations for base/common strings
+msgid ""
+msgstr ""
+"Language: de\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "XKNX Toolkit"
+msgstr "XKNX Toolkit"
+
+msgid "Add"
+msgstr "Hinzufügen"
+
+msgid "Close"
+msgstr "Schließen"
+
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgid "Copy"
+msgstr "Kopieren"
+
+msgid "Clear"
+msgstr "Löschen"
+
+msgid "Stop"
+msgstr "Stoppen"
+
+msgid "All files"
+msgstr "Alle Dateien"
+
+msgid "File"
+msgstr "Datei"
+
+msgid "New Project"
+msgstr "Neues Projekt"
+
+msgid "Open Project"
+msgstr "Projekt öffnen"
+
+msgid "Load .knxprod..."
+msgstr ".knxprod laden..."
+
+msgid "Exit"
+msgstr "Beenden"
+
+msgid "Edit"
+msgstr "Bearbeiten"
+
+msgid "Undo"
+msgstr "Rückgängig"
+
+msgid "Redo"
+msgstr "Wiederholen"
+
+msgid "Open KNX product archive"
+msgstr "KNX Produktarchiv öffnen"
+
+msgid "KNX product (*.knxprod)"
+msgstr "KNX Produkt (*.knxprod)"
+
+msgid "Open XKNX project"
+msgstr "XKNX Projekt öffnen"
+
+msgid "Save XKNX project"
+msgstr "XKNX Projekt speichern"
+
+msgid "XKNX project (*.xknx)"
+msgstr "XKNX Projekt (*.xknx)"
