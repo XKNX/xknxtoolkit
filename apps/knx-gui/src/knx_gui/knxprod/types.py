@@ -174,13 +174,21 @@ class DeviceApplication:
 
         return None
 
+    _cached_tree: list[parameter_tree.TreeNode] | None = None
+    _cached_params_by_id: dict[str, Parameter] | None = None
+
     def get_visible_tree(
         self, param_values: dict[str, str] | None = None
     ) -> list[parameter_tree.VisibleNode]:
         from . import parameter_tree as pt
 
+        if self._cached_tree is None:
+            self._cached_tree = pt.build_tree(self.dynamic)
+            self._cached_params_by_id = {p.id: p for p in self.parameters}
+
         if param_values is None:
             param_values = {p.id: p.value for p in self.parameters}
 
-        params_by_id = {p.id: p for p in self.parameters}
-        return pt.evaluate_tree(self.dynamic, param_values, params_by_id)
+        return pt.evaluate_tree_cached(
+            self._cached_tree, param_values, self._cached_params_by_id or {}
+        )
