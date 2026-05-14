@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 from imgui_bundle import imgui
 
-from knx_gui.strings import S
+from knx_gui.plugins.project.strings import S
 from knx_gui.types import Device
 from knx_gui.widgets import (
     ComFlagsTable,

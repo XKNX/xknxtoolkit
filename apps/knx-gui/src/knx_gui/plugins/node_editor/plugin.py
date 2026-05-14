@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING
 
 from knx_gui.plugins.base import PanelDefinition, PluginAPI
+from knx_gui.plugins.node_editor.strings import S
 from knx_gui.plugins.node_editor.ui import NodeEditorPanel
-from knx_gui.strings import S
 
 if TYPE_CHECKING:
     from knx_gui.types import Device

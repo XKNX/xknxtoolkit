@@ -14,7 +14,7 @@ from knx_gui.plugins.project.db.models import (
     LineModel,
     ParameterModel,
 )
-from knx_gui.strings import S
+from knx_gui.plugins.project.strings import S
 
 
 @dataclass

@@ -1,0 +1,65 @@
+# Dutch translations for node_editor plugin
+msgid ""
+msgstr ""
+"Language: nl\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Node Editor"
+msgstr "Node Editor"
+
+msgid "Devices: {devices} | Group Addresses: {group_addresses}"
+msgstr "Apparaten: {devices} | Groepsadressen: {group_addresses}"
+
+msgid "Show GA Nodes"
+msgstr "Toon GA Nodes"
+
+msgid "Select DPT"
+msgstr "Selecteer DPT"
+
+msgid "Default for {direction}:"
+msgstr "Standaard voor {direction}:"
+
+msgid "(modified)"
+msgstr "(gewijzigd)"
+
+msgid "(image)"
+msgstr "(afbeelding)"
+
+msgid "Com Flags"
+msgstr "Com Vlaggen"
+
+msgid "Parameters"
+msgstr "Parameters"
+
+msgid "This change will hide the following communication objects:"
+msgstr "Deze wijziging verbergt de volgende communicatieobjecten:"
+
+msgid "{count} link(s) will be removed."
+msgstr "{count} koppeling(en) worden verwijderd."
+
+msgid "Cannot connect two outputs"
+msgstr "Kan geen twee uitgangen verbinden"
+
+msgid "Cannot connect two inputs"
+msgstr "Kan geen twee ingangen verbinden"
+
+msgid "Incompatible DPTs"
+msgstr "Incompatibele DPTs"
+
+msgid "Warning: same byte format, different semantics"
+msgstr "Waarschuwing: zelfde byte formaat, andere betekenis"
+
+msgid "DPT {code} - {name}"
+msgstr "DPT {code} - {name}"
+
+msgid "From: DPT {code} - {name}"
+msgstr "Van: DPT {code} - {name}"
+
+msgid "To:   DPT {code} - {name}"
+msgstr "Naar: DPT {code} - {name}"
+
+msgid "Remove Links"
+msgstr "Koppelingen Verwijderen"
+
+msgid "{name} (locked)"
+msgstr "{name} (vergrendeld)"

@@ -200,11 +200,7 @@ self._myplugin = MyPlugin(self._plugin_api)
 self._plugins.append(self._myplugin)
 ```
 
-5. Add panel label to `strings.py`:
-
-```python
-PANEL_MYPANEL = "My Panel"
-```
+5. Create plugin strings with translations (see Translations section below)
 
 ## Dependencies Between Plugins
 
@@ -224,3 +220,72 @@ self._project_plugin = ProjectPlugin(
 ```
 
 This avoids circular imports while allowing cross-plugin coordination.
+
+## Translations (i18n)
+
+Each plugin manages its own translations using gettext.
+
+### Plugin Structure
+
+```
+plugins/myplugin/
+  plugin.py
+  strings.py              # plugin strings
+  locales/
+    nl/LC_MESSAGES/
+      myplugin.po         # Dutch translations source
+      myplugin.mo         # compiled translations
+```
+
+### Creating strings.py
+
+```python
+from pathlib import Path
+from knx_gui.strings import create_translator
+
+_locale_dir = Path(__file__).parent / "locales"
+_ = create_translator("myplugin", _locale_dir)
+
+class MyPluginStrings:
+    @property
+    def PANEL_TITLE(self) -> str:
+        return _("My Panel")
+
+    @property
+    def BTN_DO_THING(self) -> str:
+        return _("Do Thing")
+
+S = MyPluginStrings()
+```
+
+To inherit common strings (buttons like Add, Close, Cancel), extend `BaseStrings`:
+
+```python
+from knx_gui.strings import BaseStrings, create_translator
+
+class MyPluginStrings(BaseStrings):
+    # now has BTN_ADD, BTN_CLOSE, BTN_CANCEL, etc.
+    ...
+```
+
+### Creating Translation Files
+
+1. Create `.po` file at `locales/<lang>/LC_MESSAGES/<domain>.po`:
+
+```
+msgid "My Panel"
+msgstr "Mijn Paneel"
+
+msgid "Do Thing"
+msgstr "Doe Ding"
+```
+
+2. Compile to `.mo`:
+
+```bash
+msgfmt -o myplugin.mo myplugin.po
+```
+
+### Language Detection
+
+Language is detected from system locale at startup, falls back to English.

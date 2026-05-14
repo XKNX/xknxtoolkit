@@ -2,9 +2,9 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from knx_gui.plugins.base import PanelDefinition, PluginAPI
+from knx_gui.plugins.project.strings import S
 from knx_gui.plugins.project.ui import ConfigurePanel, DevicesPanel, HistoryPanel
 from knx_gui.plugins.project.ui.devices import Area, Line
-from knx_gui.strings import S
 
 if TYPE_CHECKING:
     from knx_gui.types import Device

@@ -4,7 +4,7 @@ from enum import Enum
 
 from imgui_bundle import imgui
 
-from knx_gui.strings import S
+from knx_gui.plugins.network.strings import S
 from knx_gui.types import TelegramRecord, color_u32
 
 

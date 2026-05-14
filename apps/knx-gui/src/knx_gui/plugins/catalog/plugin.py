@@ -1,8 +1,8 @@
 from knx_gui.knxprod import parse_application_xml
 from knx_gui.plugins.base import PanelDefinition, PluginAPI
 from knx_gui.plugins.catalog.db import ApplicationModel
+from knx_gui.plugins.catalog.strings import S
 from knx_gui.plugins.catalog.ui import CatalogPanel
-from knx_gui.strings import S
 
 
 class CatalogPlugin:

@@ -1,0 +1,143 @@
+# Dutch translations for project plugin
+msgid ""
+msgstr ""
+"Language: nl\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Devices"
+msgstr "Apparaten"
+
+msgid "Configure"
+msgstr "Configureren"
+
+msgid "History"
+msgstr "Geschiedenis"
+
+msgid "No devices"
+msgstr "Geen apparaten"
+
+msgid "Name"
+msgstr "Naam"
+
+msgid "Individual Address"
+msgstr "Individueel Adres"
+
+msgid "Manufacturer"
+msgstr "Fabrikant"
+
+msgid "Application"
+msgstr "Applicatie"
+
+msgid "Hardware"
+msgstr "Hardware"
+
+msgid "Firmware"
+msgstr "Firmware"
+
+msgid "Parameters ({count})"
+msgstr "Parameters ({count})"
+
+msgid "Com Flags ({count})"
+msgstr "Com Vlaggen ({count})"
+
+msgid "Area {area}"
+msgstr "Gebied {area}"
+
+msgid "{name} (Area {area})"
+msgstr "{name} (Gebied {area})"
+
+msgid "Line {area}.{line}"
+msgstr "Lijn {area}.{line}"
+
+msgid "{name} (Line {area}.{line})"
+msgstr "{name} (Lijn {area}.{line})"
+
+msgid "Unassigned ({count})"
+msgstr "Niet toegewezen ({count})"
+
+msgid "Add Area"
+msgstr "Gebied Toevoegen"
+
+msgid "Add Line"
+msgstr "Lijn Toevoegen"
+
+msgid "Rename"
+msgstr "Hernoemen"
+
+msgid "Delete"
+msgstr "Verwijderen"
+
+msgid "New Area"
+msgstr "Nieuw Gebied"
+
+msgid "New Line"
+msgstr "Nieuwe Lijn"
+
+msgid "Number"
+msgstr "Nummer"
+
+msgid "Project: {name}"
+msgstr "Project: {name}"
+
+msgid "(unsaved)"
+msgstr "(niet opgeslagen)"
+
+msgid "No history"
+msgstr "Geen geschiedenis"
+
+msgid "Restore"
+msgstr "Herstellen"
+
+msgid "Add device: {name}"
+msgstr "Apparaat toevoegen: {name}"
+
+msgid "Remove device: {name}"
+msgstr "Apparaat verwijderen: {name}"
+
+msgid "Address: {old} -> {new}"
+msgstr "Adres: {old} -> {new}"
+
+msgid "Name: {old} -> {new}"
+msgstr "Naam: {old} -> {new}"
+
+msgid "Parameter: {old} -> {new}"
+msgstr "Parameter: {old} -> {new}"
+
+msgid "DPT: {old} -> {new}"
+msgstr "DPT: {old} -> {new}"
+
+msgid "Flag: {flag} -> {state}"
+msgstr "Vlag: {flag} -> {state}"
+
+msgid "Group address {address} created"
+msgstr "Groepsadres {address} aangemaakt"
+
+msgid "Group address {address} removed"
+msgstr "Groepsadres {address} verwijderd"
+
+msgid "Group address: {old} -> {new}"
+msgstr "Groepsadres: {old} -> {new}"
+
+msgid "Com object linked to group address"
+msgstr "Com object gekoppeld aan groepsadres"
+
+msgid "Com object unlinked from group address"
+msgstr "Com object ontkoppeld van groepsadres"
+
+msgid "Area {number} created"
+msgstr "Gebied {number} aangemaakt"
+
+msgid "Area {number} removed"
+msgstr "Gebied {number} verwijderd"
+
+msgid "Area: {old} -> {new}"
+msgstr "Gebied: {old} -> {new}"
+
+msgid "Line {number} created"
+msgstr "Lijn {number} aangemaakt"
+
+msgid "Line {number} removed"
+msgstr "Lijn {number} verwijderd"
+
+msgid "Line: {old} -> {new}"
+msgstr "Lijn: {old} -> {new}"
