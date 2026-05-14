@@ -50,7 +50,7 @@ class CatalogPlugin:
         )
         if device_id:
             self._api.project.add_device_to_state_with_id(
-                app=app, node_id=device_id, address=""
+                app=app, node_id=device_id, individual_address=""
             )
             print(f"[catalog] added device {app.name} (id={device_id})")
 
