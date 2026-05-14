@@ -279,6 +279,8 @@ def _extract_parameters(
         return []
 
     base_params: list[Any] = list(getattr(parameters, "parameter", []) or [])
+    for union in list(getattr(parameters, "union", []) or []):
+        base_params.extend(list(getattr(union, "parameter", []) or []))
     base_by_id: dict[str, Any] = {}
     for p in base_params:
         p_id = getattr(p, "id", None)
