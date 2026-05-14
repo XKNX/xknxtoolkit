@@ -1,0 +1,20 @@
+# German translations for network plugin
+msgid ""
+msgstr ""
+"Language: de\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Network"
+msgstr "Netzwerk"
+
+msgid "Telegrams"
+msgstr "Telegramme"
+
+msgid "({count} selected)"
+msgstr "({count} ausgewählt)"
+
+msgid "Record"
+msgstr "Aufnehmen"
+
+msgid "Recording"
+msgstr "Aufnahme"

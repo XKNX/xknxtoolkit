@@ -1,0 +1,143 @@
+# German translations for project plugin
+msgid ""
+msgstr ""
+"Language: de\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Devices"
+msgstr "Geräte"
+
+msgid "Configure"
+msgstr "Konfigurieren"
+
+msgid "History"
+msgstr "Verlauf"
+
+msgid "No devices"
+msgstr "Keine Geräte"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Individual Address"
+msgstr "Physikalische Adresse"
+
+msgid "Manufacturer"
+msgstr "Hersteller"
+
+msgid "Application"
+msgstr "Anwendung"
+
+msgid "Hardware"
+msgstr "Hardware"
+
+msgid "Firmware"
+msgstr "Firmware"
+
+msgid "Parameters ({count})"
+msgstr "Parameter ({count})"
+
+msgid "Com Flags ({count})"
+msgstr "Kom Flags ({count})"
+
+msgid "Area {area}"
+msgstr "Bereich {area}"
+
+msgid "{name} (Area {area})"
+msgstr "{name} (Bereich {area})"
+
+msgid "Line {area}.{line}"
+msgstr "Linie {area}.{line}"
+
+msgid "{name} (Line {area}.{line})"
+msgstr "{name} (Linie {area}.{line})"
+
+msgid "Unassigned ({count})"
+msgstr "Nicht zugewiesen ({count})"
+
+msgid "Add Area"
+msgstr "Bereich hinzufügen"
+
+msgid "Add Line"
+msgstr "Linie hinzufügen"
+
+msgid "Rename"
+msgstr "Umbenennen"
+
+msgid "Delete"
+msgstr "Löschen"
+
+msgid "New Area"
+msgstr "Neuer Bereich"
+
+msgid "New Line"
+msgstr "Neue Linie"
+
+msgid "Number"
+msgstr "Nummer"
+
+msgid "Project: {name}"
+msgstr "Projekt: {name}"
+
+msgid "(unsaved)"
+msgstr "(nicht gespeichert)"
+
+msgid "No history"
+msgstr "Kein Verlauf"
+
+msgid "Restore"
+msgstr "Wiederherstellen"
+
+msgid "Add device: {name}"
+msgstr "Gerät hinzufügen: {name}"
+
+msgid "Remove device: {name}"
+msgstr "Gerät entfernen: {name}"
+
+msgid "Address: {old} -> {new}"
+msgstr "Adresse: {old} -> {new}"
+
+msgid "Name: {old} -> {new}"
+msgstr "Name: {old} -> {new}"
+
+msgid "Parameter: {old} -> {new}"
+msgstr "Parameter: {old} -> {new}"
+
+msgid "DPT: {old} -> {new}"
+msgstr "DPT: {old} -> {new}"
+
+msgid "Flag: {flag} -> {state}"
+msgstr "Flag: {flag} -> {state}"
+
+msgid "Group address {address} created"
+msgstr "Gruppenadresse {address} erstellt"
+
+msgid "Group address {address} removed"
+msgstr "Gruppenadresse {address} entfernt"
+
+msgid "Group address: {old} -> {new}"
+msgstr "Gruppenadresse: {old} -> {new}"
+
+msgid "Com object linked to group address"
+msgstr "Kommunikationsobjekt mit Gruppenadresse verknüpft"
+
+msgid "Com object unlinked from group address"
+msgstr "Kommunikationsobjekt von Gruppenadresse getrennt"
+
+msgid "Area {number} created"
+msgstr "Bereich {number} erstellt"
+
+msgid "Area {number} removed"
+msgstr "Bereich {number} entfernt"
+
+msgid "Area: {old} -> {new}"
+msgstr "Bereich: {old} -> {new}"
+
+msgid "Line {number} created"
+msgstr "Linie {number} erstellt"
+
+msgid "Line {number} removed"
+msgstr "Linie {number} entfernt"
+
+msgid "Line: {old} -> {new}"
+msgstr "Linie: {old} -> {new}"

@@ -1,0 +1,65 @@
+# German translations for node_editor plugin
+msgid ""
+msgstr ""
+"Language: de\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Node Editor"
+msgstr "Node Editor"
+
+msgid "Devices: {devices} | Group Addresses: {group_addresses}"
+msgstr "Geräte: {devices} | Gruppenadressen: {group_addresses}"
+
+msgid "Show GA Nodes"
+msgstr "GA Nodes anzeigen"
+
+msgid "Select DPT"
+msgstr "DPT auswählen"
+
+msgid "Default for {direction}:"
+msgstr "Standard für {direction}:"
+
+msgid "(modified)"
+msgstr "(geändert)"
+
+msgid "(image)"
+msgstr "(Bild)"
+
+msgid "Com Flags"
+msgstr "Kom Flags"
+
+msgid "Parameters"
+msgstr "Parameter"
+
+msgid "This change will hide the following communication objects:"
+msgstr "Diese Änderung verbirgt die folgenden Kommunikationsobjekte:"
+
+msgid "{count} link(s) will be removed."
+msgstr "{count} Verknüpfung(en) werden entfernt."
+
+msgid "Cannot connect two outputs"
+msgstr "Zwei Ausgänge können nicht verbunden werden"
+
+msgid "Cannot connect two inputs"
+msgstr "Zwei Eingänge können nicht verbunden werden"
+
+msgid "Incompatible DPTs"
+msgstr "Inkompatible DPTs"
+
+msgid "Warning: same byte format, different semantics"
+msgstr "Warnung: gleiches Byte-Format, andere Semantik"
+
+msgid "DPT {code} - {name}"
+msgstr "DPT {code} - {name}"
+
+msgid "From: DPT {code} - {name}"
+msgstr "Von: DPT {code} - {name}"
+
+msgid "To:   DPT {code} - {name}"
+msgstr "Nach: DPT {code} - {name}"
+
+msgid "Remove Links"
+msgstr "Verknüpfungen entfernen"
+
+msgid "{name} (locked)"
+msgstr "{name} (gesperrt)"
