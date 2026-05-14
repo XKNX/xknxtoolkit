@@ -21,7 +21,6 @@ class Strings:
     MENU_FILE = "File"
     MENU_NEW_PROJECT = "New Project"
     MENU_OPEN_PROJECT = "Open Project"
-    MENU_SAVE_PROJECT = "Save Project"
     MENU_LOAD_KNXPROD = "Load .knxprod..."
     MENU_EXIT = "Exit"
 

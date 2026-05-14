@@ -259,6 +259,7 @@ class ProjectService:
             path = path.with_suffix(".xknx")
         self._db = ProjectDatabase(path)
         self._db.create()
+        self._reload_from_db()
 
     def open(self, path: Path) -> None:
         if self._db:
