@@ -210,6 +210,8 @@ class KnxGuiApp:
                 self._redo()
             imgui.end_menu()
 
+        hello_imgui.show_view_menu(hello_imgui.get_runner_params())
+
         self._connection_plugin.render_menu()
 
         self._poll_dialogs()
@@ -275,7 +277,7 @@ def main() -> None:
 
     runner_params.imgui_window_params.show_menu_bar = True
     runner_params.imgui_window_params.show_menu_app = False
-    runner_params.imgui_window_params.show_menu_view = True
+    runner_params.imgui_window_params.show_menu_view = False
     runner_params.callbacks.show_menus = app.gui_menu
 
     runner_params.imgui_window_params.show_status_bar = True
