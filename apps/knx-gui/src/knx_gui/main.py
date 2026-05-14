@@ -178,10 +178,6 @@ class KnxGuiApp:
                 self._new_project()
             if imgui.menu_item(S.MENU_OPEN_PROJECT, "", False)[0]:
                 self._open_project()
-            imgui.begin_disabled(not self._project_service.is_open)
-            if imgui.menu_item(S.MENU_SAVE_PROJECT, "", False)[0]:
-                pass
-            imgui.end_disabled()
             imgui.separator()
             if imgui.menu_item(S.MENU_LOAD_KNXPROD, "", False)[0]:
                 self._open_file_dialog = pfd.open_file(
