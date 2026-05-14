@@ -20,8 +20,9 @@ def make_condition(param_ref_id: str, test_values: list[str], is_default: bool) 
         return always_visible
 
     def check(param_values: dict[str, str]) -> bool:
-        value = param_values.get(param_ref_id, "")
-        return value in test_values
+        if param_ref_id not in param_values:
+            return True
+        return param_values[param_ref_id] in test_values
 
     return check
 
@@ -68,9 +69,6 @@ def _build_children(element: DynamicElement, parent_condition: Condition) -> lis
             combined = combine_conditions(parent_condition, when_condition)
 
             if when.content:
-                for child in when.content.children:
-                    node = _build_node(child, combined)
-                    nodes.append(node)
                 nodes.extend(_build_children(when.content, combined))
 
     return nodes
