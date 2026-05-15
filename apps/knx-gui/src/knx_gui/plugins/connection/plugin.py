@@ -102,6 +102,7 @@ class ConnectionPlugin:
             except Exception:
                 self._gateway_info = None
             self._state = ConnectionState.CONNECTED
+            self._api.connection.set_connection(self._xknx, asyncio.get_running_loop())
             self._api.connection.dispatch_connected()
         except Exception as e:
             self._state = ConnectionState.ERROR
@@ -125,6 +126,7 @@ class ConnectionPlugin:
             self._gateway_info = None
             self._xknx = None
             self._state = ConnectionState.DISCONNECTED
+            self._api.connection.set_connection(None, None)
 
     def shutdown(self) -> None:
         if self._interface is not None:
