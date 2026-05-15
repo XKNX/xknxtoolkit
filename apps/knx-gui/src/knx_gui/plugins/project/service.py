@@ -34,6 +34,7 @@ from knx_gui.plugins.project.db import (
 from knx_gui.types import ComObject, Device
 
 if TYPE_CHECKING:
+    from knx_gui.plugins.base import Logger
     from knx_gui.plugins.catalog.service import CatalogService
 
 
@@ -42,6 +43,10 @@ class ProjectService:
         self._catalog = catalog
         self._db: ProjectDatabase | None = None
         self._listeners: dict[str, list[Callable[..., Any]]] = {}
+        self._log: Logger
+
+    def set_logger(self, log: "Logger") -> None:
+        self._log = log
 
         self._devices: list[Device] = []
         self._selected_device: Device | None = None
@@ -182,9 +187,10 @@ class ProjectService:
         for device_model in self._db.session.query(DeviceModel).all():
             app = self._get_app_for_template(device_model.template_id)
             if not app:
-                print(
-                    f"[project] skipping device {device_model.id}: "
-                    f"template '{device_model.template_id}' not found"
+                self._log.warning(
+                    "skipping device: template not found",
+                    device_id=device_model.id,
+                    template_id=device_model.template_id,
                 )
                 continue
             device = self.add_device_to_state_with_id(
@@ -257,6 +263,7 @@ class ProjectService:
         self._db = ProjectDatabase(path)
         self._db.create()
         self._reload_from_db()
+        self._log.info("project created", path=str(path))
 
     def open(self, path: Path) -> None:
         if self._db:
@@ -264,11 +271,13 @@ class ProjectService:
         self._db = ProjectDatabase(path)
         self._db.open()
         self._reload_from_db()
+        self._log.info("project opened", path=str(path), devices=len(self._devices))
 
     def close(self) -> None:
         if self._db:
             self._db.close()
             self._db = None
+            self._log.info("project closed")
 
     def add_device(
         self,

@@ -31,6 +31,7 @@ class ConnectionPlugin:
     def __init__(self, api: PluginAPI) -> None:
         self._api = api
         api.connection.set_logger(Logger(api.log, "connection"))
+        self._log = Logger(api.log, "connection")
         self._state = ConnectionState.DISCONNECTED
         self._error_message: str | None = None
         self._controller_ip: str = "192.168.1.1"
@@ -105,12 +106,32 @@ class ConnectionPlugin:
             self._state = ConnectionState.CONNECTED
             self._api.connection.set_connection(self._xknx, asyncio.get_running_loop())
             self._api.connection.dispatch_connected()
+            self._log.info("connected", ip=self._controller_ip)
+            if self._gateway_info:
+                services = [
+                    s
+                    for s, enabled in [
+                        ("tunneling", self._gateway_info.supports_tunnelling),
+                        ("tunneling_tcp", self._gateway_info.supports_tunnelling_tcp),
+                        ("routing", self._gateway_info.supports_routing),
+                        ("secure", self._gateway_info.supports_secure),
+                    ]
+                    if enabled
+                ]
+                self._log.info(
+                    "gateway info",
+                    name=self._gateway_info.name,
+                    knx_address=str(self._gateway_info.individual_address or ""),
+                    core_version=str(self._gateway_info.core_version),
+                    services=",".join(services),
+                )
         except Exception as e:
             self._state = ConnectionState.ERROR
             self._error_message = str(e)
             self._interface = None
             self._gateway_info = None
             self._xknx = None
+            self._log.error("connection failed", ip=self._controller_ip, error=str(e))
 
     def disconnect(self) -> None:
         if self._state in (ConnectionState.DISCONNECTED, ConnectionState.DISCONNECTING):
@@ -128,6 +149,7 @@ class ConnectionPlugin:
             self._xknx = None
             self._state = ConnectionState.DISCONNECTED
             self._api.connection.set_connection(None, None)
+            self._log.info("disconnected")
 
     def shutdown(self) -> None:
         if self._interface is not None:

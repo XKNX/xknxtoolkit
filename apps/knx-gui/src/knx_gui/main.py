@@ -6,7 +6,7 @@ from imgui_bundle import portable_file_dialogs as pfd
 from xknxmono.product.errors import ArchiveError
 
 from knx_gui.knxprod import DeviceApplication
-from knx_gui.plugins.base import API_VERSION, PanelDefinition, PluginAPI
+from knx_gui.plugins.base import API_VERSION, Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.cat import CatPlugin
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
 from knx_gui.plugins.connection import ConnectionPlugin
@@ -53,6 +53,7 @@ class KnxGuiApp:
             get_selected_node_ids=self._node_editor_plugin.get_selected_node_ids,
         )
 
+        self._log = Logger(self._log_service, "app")
         self._cat_plugin = CatPlugin(self._plugin_api)
         self._logger_plugin = LoggerPlugin(self._log_service)
 
@@ -138,26 +139,22 @@ class KnxGuiApp:
             self._redo()
 
     def _load_knxprod(self, path: str) -> None:
-        print(f"[knxprod] loading {path} into catalog")
+        self._log.info("loading knxprod", path=path)
         try:
             added = self._catalog_service.import_knxprod(Path(path))
             if added:
-                print(f"[knxprod] added {len(added)} application(s) to catalog")
-                for app_id in added:
-                    print(f"[knxprod]   - {app_id}")
+                self._log.info("added applications to catalog", count=len(added))
             else:
-                print("[knxprod] no new applications (already in catalog)")
+                self._log.info("no new applications", path=path)
         except ArchiveError as e:
-            print(f"[knxprod] archive error: {e}")
+            self._log.error("archive error", path=path, error=str(e))
         except (OSError, ValueError) as e:
-            print(f"[knxprod] error: {type(e).__name__}: {e}")
+            self._log.error("import error", path=path, error=f"{type(e).__name__}: {e}")
 
     def _add_candidate_as_device(
         self, app: DeviceApplication, template_id: str | None = None
     ) -> None:
-        print(
-            f"[knxprod] adding {app.name} ({len(app.com_objects)} total, {len(app.visible_com_objects())} visible)"
-        )
+        self._log.info("adding device", name=app.name)
         if template_id is None:
             template_id = f"{app.manufacturer_id}_{app.application_id}"
 
@@ -172,10 +169,6 @@ class KnxGuiApp:
             )
         else:
             self._project_service.add_device_to_state(app=app, address="")
-
-        print(
-            f"[knxprod] device added; total devices: {len(self._project_service.devices)}"
-        )
 
     def gui_status_bar(self) -> None:
         self._connection_plugin.render_status_indicator()

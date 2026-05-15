@@ -1,4 +1,4 @@
-from knx_gui.plugins.base import PanelDefinition, PluginAPI
+from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.network.service import NetworkService
 from knx_gui.plugins.network.strings import S
 from knx_gui.plugins.network.ui import CaptureState as UICaptureState
@@ -11,6 +11,7 @@ class NetworkPlugin:
     def __init__(self, api: PluginAPI) -> None:
         self._api = api
         self._service = NetworkService()
+        self._service.set_logger(Logger(api.log, "network"))
         api.connection.add_raw_cemi_listener(self._service.add_raw)
         api.connection.add_connected_listener(self._service.start)
         self._panel = NetworkPanel(

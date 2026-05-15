@@ -1,11 +1,14 @@
 from collections.abc import Callable
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from knx_gui.types import TelegramRecord
 from xknx.cemi import CEMIFrame
 from xknx.telegram import Telegram
+
+if TYPE_CHECKING:
+    from knx_gui.plugins.base import Logger
 
 
 class CaptureState(Enum):
@@ -18,6 +21,10 @@ class NetworkService:
         self._telegrams: list[TelegramRecord] = []
         self._state = CaptureState.STOPPED
         self._listeners: dict[str, list[Callable[..., Any]]] = {}
+        self._log: Logger
+
+    def set_logger(self, log: "Logger") -> None:
+        self._log = log
 
     @property
     def state(self) -> CaptureState:
@@ -82,5 +89,6 @@ class NetworkService:
                 payload=data.payload,
                 tpci=data.tpci,
             )
-        except Exception:
+        except Exception as e:
+            self._log.error("failed to parse CEMI frame", error=str(e))
             return None
