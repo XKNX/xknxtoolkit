@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from knx_gui.plugins.base import PanelDefinition, PluginAPI
+from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.project.strings import S
 from knx_gui.plugins.project.ui import ConfigurePanel, DevicesPanel, HistoryPanel
 from knx_gui.plugins.project.ui.devices import Area, Line
@@ -20,6 +20,7 @@ class ProjectPlugin:
     ) -> None:
         self._api = api
         self._get_selected_node_ids = get_selected_node_ids
+        api.project.set_logger(Logger(api.log, "project"))
 
         self._devices_panel = DevicesPanel(
             get_devices=lambda: api.project.devices,

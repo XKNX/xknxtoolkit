@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from knx_gui.plugins.base import PanelDefinition, PluginAPI
+from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.node_editor.strings import S
 from knx_gui.plugins.node_editor.ui import NodeEditorPanel
 
@@ -15,6 +15,7 @@ class NodeEditorPlugin:
 
     def __init__(self, api: PluginAPI) -> None:
         self._api = api
+        self._log = Logger(api.log, "node_editor")
 
         self._panel = NodeEditorPanel(
             get_devices=lambda: api.project.devices,
@@ -42,6 +43,7 @@ class NodeEditorPlugin:
             return None
         self._api.project.link_com_object_to_ga(output_co_id, ga_id, is_sending=True)
         self._api.project.link_com_object_to_ga(input_co_id, ga_id, is_sending=False)
+        self._log.debug("link added", ga_id=ga_id, output=output_co_id, input=input_co_id)
         return ga_id
 
     def _remove_link(self, ga_id: int) -> None:
@@ -57,6 +59,7 @@ class NodeEditorPlugin:
                 assignment.is_sending,
             )
         self._api.project.remove_group_address(ga_id, ga.address, ga.name)
+        self._log.debug("link removed", ga_id=ga_id, address=ga.address)
 
     def _handle_param_change(
         self, device: "Device", param_id: str, new_value: str

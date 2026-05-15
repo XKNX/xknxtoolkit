@@ -1,5 +1,5 @@
 from knx_gui.knxprod import parse_application_xml
-from knx_gui.plugins.base import PanelDefinition, PluginAPI
+from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.catalog.db import ApplicationModel
 from knx_gui.plugins.catalog.strings import S
 from knx_gui.plugins.catalog.ui import CatalogPanel
@@ -10,6 +10,7 @@ class CatalogPlugin:
 
     def __init__(self, api: PluginAPI) -> None:
         self._api = api
+        self._log = Logger(api.log, "catalog")
         self._panel = CatalogPanel(
             get_entries=api.catalog.get_entries,
             on_select=self._on_select,
@@ -26,7 +27,7 @@ class CatalogPlugin:
     def _on_select(self, application_id: str) -> None:
         xml_data = self._api.catalog.get_application_xml(application_id)
         if not xml_data:
-            print(f"[catalog] application not found: {application_id}")
+            self._log.warning("application not found", application_id=application_id)
             return
 
         app_model = (
@@ -39,7 +40,7 @@ class CatalogPlugin:
 
         apps = parse_application_xml(xml_data, app_model.manufacturer_id)
         if not apps:
-            print(f"[catalog] no applications parsed from {application_id}")
+            self._log.warning("no applications parsed", application_id=application_id)
             return
 
         app = apps[0]
@@ -52,7 +53,7 @@ class CatalogPlugin:
             self._api.project.add_device_to_state_with_id(
                 app=app, node_id=device_id, individual_address=""
             )
-            print(f"[catalog] added device {app.name} (id={device_id})")
+            self._log.info("device added", name=app.name, id=device_id)
 
     @property
     def panels(self) -> list[PanelDefinition]:
