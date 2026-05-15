@@ -5,9 +5,9 @@ from imgui_bundle import hello_imgui, imgui
 from imgui_bundle import portable_file_dialogs as pfd
 from xknxmono.product.errors import ArchiveError
 
-from knx_gui.cat.follower import CatFollower
 from knx_gui.knxprod import DeviceApplication
 from knx_gui.plugins.base import API_VERSION, PanelDefinition, PluginAPI
+from knx_gui.plugins.cat import CatPlugin
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
 from knx_gui.plugins.connection import ConnectionPlugin
 from knx_gui.plugins.connection.service import ConnectionService
@@ -50,7 +50,7 @@ class KnxGuiApp:
             get_selected_node_ids=self._node_editor_plugin.get_selected_node_ids,
         )
 
-        self._cat = CatFollower()
+        self._cat_plugin = CatPlugin(self._plugin_api)
 
         self._plugins: list[Any] = [
             self._catalog_plugin,
@@ -62,10 +62,7 @@ class KnxGuiApp:
 
     def setup(self) -> None:
         self._node_editor_plugin.setup()
-        self._cat.load()
-
-    def render_cat(self) -> None:
-        self._cat.render()
+        self._cat_plugin.on_load()
 
     def shutdown(self) -> None:
         self._connection_plugin.shutdown()
@@ -307,7 +304,7 @@ def main() -> None:
 
     runner_params.callbacks.post_init = app.setup
     runner_params.callbacks.before_exit = app.shutdown
-    runner_params.callbacks.post_render_dockable_windows = app.render_cat
+    runner_params.callbacks.post_render_dockable_windows = app._cat_plugin.render
 
     hello_imgui.run(runner_params)
 
