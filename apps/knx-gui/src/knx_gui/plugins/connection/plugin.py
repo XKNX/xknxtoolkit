@@ -7,7 +7,7 @@ from typing import Any
 
 from imgui_bundle import imgui
 
-from knx_gui.plugins.base import PanelDefinition, PluginAPI
+from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.connection.interface import ObservableKNXIPInterfaceThreaded
 from knx_gui.plugins.connection.strings import S
 from knx_gui.types import color_u32
@@ -30,6 +30,7 @@ class ConnectionPlugin:
 
     def __init__(self, api: PluginAPI) -> None:
         self._api = api
+        api.connection.set_logger(Logger(api.log, "connection"))
         self._state = ConnectionState.DISCONNECTED
         self._error_message: str | None = None
         self._controller_ip: str = "192.168.1.1"
