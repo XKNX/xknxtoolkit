@@ -95,6 +95,24 @@ class DynamicChoose:
 
 
 @dataclass
+class LdCtrlStep:
+    kind: str
+    applies_to: str
+    details: str
+
+
+@dataclass
+class LoadProcedure:
+    steps: list[LdCtrlStep] = field(default_factory=list)
+
+
+@dataclass
+class LoadProcedures:
+    style: str
+    procedures: list[LoadProcedure] = field(default_factory=list)
+
+
+@dataclass
 class DeviceApplication:
     application_id: str
     name: str
@@ -102,6 +120,7 @@ class DeviceApplication:
     com_objects: list[ComObject]
     parameters: list[Parameter]
     dynamic: DynamicElement | None = None
+    load_procedures: LoadProcedures | None = None
 
     _cached_tree: list[parameter_tree.TreeNode] | None = None
     _cached_params_by_id: dict[str, Parameter] | None = None

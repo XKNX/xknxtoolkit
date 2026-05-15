@@ -14,6 +14,9 @@ from .types import (
     DynamicElement,
     DynamicWhen,
     EnumOption,
+    LdCtrlStep,
+    LoadProcedure,
+    LoadProcedures,
     Parameter,
     ParamType,
     ParamTypeKind,
@@ -536,6 +539,94 @@ def _parse_dynamic_when(
     return DynamicWhen(test_values=test_values, is_default=default, content=content)
 
 
+_LDCTRL_FIELDS = [
+    "ld_ctrl_unload",
+    "ld_ctrl_load",
+    "ld_ctrl_max_length",
+    "ld_ctrl_clear_cached_object_types",
+    "ld_ctrl_load_completed",
+    "ld_ctrl_abs_segment",
+    "ld_ctrl_rel_segment",
+    "ld_ctrl_task_segment",
+    "ld_ctrl_task_ptr",
+    "ld_ctrl_task_ctrl1",
+    "ld_ctrl_task_ctrl2",
+    "ld_ctrl_write_prop",
+    "ld_ctrl_compare_prop",
+    "ld_ctrl_load_image_prop",
+    "ld_ctrl_write_mem",
+    "ld_ctrl_compare_mem",
+    "ld_ctrl_load_image_mem",
+    "ld_ctrl_write_rel_mem",
+    "ld_ctrl_compare_rel_mem",
+    "ld_ctrl_load_image_rel_mem",
+    "ld_ctrl_invoke_function_prop",
+    "ld_ctrl_read_function_prop",
+    "ld_ctrl_clear_lcfilter_table",
+    "ld_ctrl_declare_prop_desc",
+    "ld_ctrl_merge",
+    "ld_ctrl_connect",
+    "ld_ctrl_disconnect",
+    "ld_ctrl_set_control_variable",
+    "ld_ctrl_map_error",
+    "ld_ctrl_progress_text",
+    "ld_ctrl_restart",
+    "ld_ctrl_master_reset",
+    "ld_ctrl_delay",
+]
+
+_DETAIL_ATTRS = [
+    "lsm_idx",
+    "obj_idx",
+    "obj_type",
+    "occurrence",
+    "prop_id",
+    "seg_type",
+    "address",
+    "size",
+    "count",
+    "mem_type",
+]
+
+
+def _ldctrl_kind(field_name: str) -> str:
+    return "".join(p.capitalize() for p in field_name.removeprefix("ld_ctrl_").split("_"))
+
+
+def _ldctrl_details(cmd: Any) -> str:
+    parts = [f"{a}={v}" for a in _DETAIL_ATTRS if (v := getattr(cmd, a, None)) is not None]
+    return ", ".join(parts)
+
+
+def _ldctrl_applies_to(cmd: Any) -> str:
+    val = getattr(cmd, "applies_to", None)
+    return str(val).split(".")[-1].lower() if val is not None else "auto"
+
+
+def _extract_load_procedures(static: Any, app_program: Any) -> LoadProcedures | None:
+    load_procedures_raw = getattr(static, "load_procedures", None)
+    if load_procedures_raw is None:
+        return None
+
+    style_raw = getattr(app_program, "load_procedure_style", None)
+    style = str(style_raw).split(".")[-1] if style_raw is not None else "DefaultProcedure"
+
+    procedures: list[LoadProcedure] = []
+    for proc_raw in list(getattr(load_procedures_raw, "load_procedure", []) or []):
+        steps: list[LdCtrlStep] = []
+        for field_name in _LDCTRL_FIELDS:
+            kind = _ldctrl_kind(field_name)
+            for cmd in list(getattr(proc_raw, field_name, []) or []):
+                steps.append(LdCtrlStep(
+                    kind=kind,
+                    applies_to=_ldctrl_applies_to(cmd),
+                    details=_ldctrl_details(cmd),
+                ))
+        procedures.append(LoadProcedure(steps=steps))
+
+    return LoadProcedures(style=style, procedures=procedures)
+
+
 def _walk_application_programs(knx: Any) -> list[Any]:
     apps: list[Any] = []
     manufacturer_data = getattr(knx, "manufacturer_data", None)
@@ -613,6 +704,7 @@ def _parse_applications(knx_app: Any, manufacturer_id: str) -> list[DeviceApplic
                 com_objects.extend(_extract_com_objects(md_static))
 
         dynamic_tree = _parse_dynamic_element(dynamic, module_defs) if dynamic else None
+        load_procedures = _extract_load_procedures(static, app_program)
 
         applications.append(
             DeviceApplication(
@@ -622,6 +714,7 @@ def _parse_applications(knx_app: Any, manufacturer_id: str) -> list[DeviceApplic
                 com_objects=com_objects,
                 parameters=parameters,
                 dynamic=dynamic_tree,
+                load_procedures=load_procedures,
             )
         )
     return applications
