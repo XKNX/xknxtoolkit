@@ -124,6 +124,37 @@ class ConfigurePanel:
         ):
             self._com_flags_table.render(device, visible_cos)
 
+        lp = device.app.load_procedures
+        if lp is not None:
+            total_steps = sum(len(p.steps) for p in lp.procedures)
+            if imgui.collapsing_header(
+                S.CONFIGURE_LOAD_PROCEDURES.format(count=total_steps)
+            ):
+                imgui.text_disabled(lp.style)
+                for i, proc in enumerate(lp.procedures):
+                    label = f"Procedure {i + 1}  ({len(proc.steps)} steps)##lp{i}"
+                    if imgui.tree_node(label):
+                        _table_flags = (
+                            imgui.TableFlags_.borders_outer
+                            | imgui.TableFlags_.borders_inner_v
+                            | imgui.TableFlags_.sizing_stretch_prop
+                        )
+                        if imgui.begin_table(f"##lpt{i}", 3, _table_flags):
+                            imgui.table_setup_column("Kind", imgui.TableColumnFlags_.width_stretch, 0.3)
+                            imgui.table_setup_column("Applies To", imgui.TableColumnFlags_.width_stretch, 0.15)
+                            imgui.table_setup_column("Details", imgui.TableColumnFlags_.width_stretch, 0.55)
+                            imgui.table_headers_row()
+                            for step in proc.steps:
+                                imgui.table_next_row()
+                                imgui.table_set_column_index(0)
+                                imgui.text(step.kind)
+                                imgui.table_set_column_index(1)
+                                imgui.text_disabled(step.applies_to)
+                                imgui.table_set_column_index(2)
+                                imgui.text_disabled(step.details)
+                            imgui.end_table()
+                        imgui.tree_pop()
+
     def _render_label_value(self, label: str, value: str) -> None:
         imgui.text_disabled(label)
         imgui.same_line(120.0)

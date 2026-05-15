@@ -62,6 +62,10 @@ class ProjectStrings:
         return _("Com Flags ({count})")
 
     @property
+    def CONFIGURE_LOAD_PROCEDURES(self) -> str:
+        return _("Load Procedures ({count})")
+
+    @property
     def DEVICE_AREA(self) -> str:
         return _("Area {area}")
 
