@@ -43,6 +43,7 @@ class ProjectPlugin:
             on_individual_address_change=self._handle_individual_address_change,
             on_name_change=self._handle_name_change,
             set_flag=self._handle_flag_change,
+            on_program_device=api.connection.assign_individual_address_for_device,
         )
 
         self._history_panel = HistoryPanel(

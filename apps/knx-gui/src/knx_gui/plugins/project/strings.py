@@ -34,6 +34,10 @@ class ProjectStrings:
         return _("Individual Address")
 
     @property
+    def BTN_PROGRAM_DEVICE(self) -> str:
+        return _("Program Device")
+
+    @property
     def CONFIGURE_MANUFACTURER(self) -> str:
         return _("Manufacturer")
 

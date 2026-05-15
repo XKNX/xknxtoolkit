@@ -21,6 +21,7 @@ class ConfigurePanel:
         on_individual_address_change: Callable[[Device, str], None],
         on_name_change: Callable[[Device, str], None],
         set_flag: Callable[[Device, str, str, bool], None],
+        on_program_device: Callable[[Device], None] | None = None,
     ) -> None:
         self._get_devices = get_devices
         self._get_selected_device = get_selected_device
@@ -28,6 +29,7 @@ class ConfigurePanel:
         self._on_param_change = on_param_change
         self._on_individual_address_change = on_individual_address_change
         self._on_name_change = on_name_change
+        self._on_program_device = on_program_device
         self._com_flags_table = ComFlagsTable(set_flag)
         self._name_buffer: str = ""
         self._address_buffer: str = ""
@@ -88,6 +90,13 @@ class ConfigurePanel:
             self._on_individual_address_change(device, self._address_buffer)
         if not imgui.is_item_active() and self._address_buffer != device.individual_address:
             self._address_buffer = device.individual_address
+
+        if self._on_program_device is not None:
+            enabled = bool(device.individual_address)
+            imgui.begin_disabled(not enabled)
+            if imgui.button(S.BTN_PROGRAM_DEVICE):
+                self._on_program_device(device)
+            imgui.end_disabled()
 
         if imgui.collapsing_header(
             S.CONFIGURE_MANUFACTURER, imgui.TreeNodeFlags_.default_open
