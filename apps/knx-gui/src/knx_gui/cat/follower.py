@@ -54,10 +54,12 @@ class CatFollower:
         if abs(mx) > 100_000 or abs(my) > 100_000:
             return
 
-        # Snap to mouse if cat is at an invalid/uninitialized position
+        # Place cat in bottom-left corner on first valid frame
         if abs(self._x) > 100_000 or abs(self._y) > 100_000:
-            self._x, self._y = mx, my
-            self._target_x, self._target_y = mx, my
+            vp = imgui.get_main_viewport()
+            self._x = vp.pos.x + _SLOT_W * _SCALE * 0.5
+            self._y = vp.pos.y + vp.size.y - 24
+            self._target_x, self._target_y = self._x, self._y
 
         if imgui.is_mouse_clicked(imgui.MouseButton_.left):
             self._target_x, self._target_y = mx, my
