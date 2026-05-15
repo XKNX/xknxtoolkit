@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from collections.abc import Callable, Coroutine
 from concurrent.futures import Future
 from typing import TYPE_CHECKING, Any
@@ -14,18 +13,20 @@ from xknx.management.procedures import (
 )
 
 if TYPE_CHECKING:
+    from knx_gui.plugins.base import Logger
     from knx_gui.types import Device
     from xknx import XKNX
 
-logger = logging.getLogger("knx_gui.connection")
-
-
 class ConnectionService:
     def __init__(self) -> None:
+        self._log: Logger
         self._raw_cemi_listeners: list[Callable[[bytes], None]] = []
         self._connected_listeners: list[Callable[[], None]] = []
         self._xknx: XKNX | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
+
+    def set_logger(self, log: Logger) -> None:
+        self._log = log
 
     def add_raw_cemi_listener(self, callback: Callable[[bytes], None]) -> None:
         self._raw_cemi_listeners.append(callback)
@@ -63,7 +64,7 @@ class ConnectionService:
         self, timeout: float = 3.0
     ) -> Future[Any] | None:
         if self._xknx is None:
-            logger.warning("read_programming_mode_devices called while disconnected")
+            self._log.warning("read_programming_mode_devices called while disconnected")
             return None
         return self.run_async(nm_individual_address_read(self._xknx, timeout=timeout))
 
@@ -71,23 +72,23 @@ class ConnectionService:
         self, serial: bytes, address: str
     ) -> Future[Any] | None:
         if self._xknx is None:
-            logger.warning("assign_individual_address_by_serial called while disconnected")
+            self._log.warning("assign_individual_address_by_serial called while disconnected")
             return None
-        logger.debug("Assigning individual address %s to serial %s", address, serial.hex())
+        self._log.debug("Assigning individual address by serial", address=address, serial=serial.hex())
         return self.run_async(
             nm_individual_address_serial_number_write(self._xknx, serial, address)
         )
 
     def assign_individual_address(self, address: str) -> Future[Any] | None:
         if self._xknx is None:
-            logger.warning("assign_individual_address called while disconnected")
+            self._log.warning("assign_individual_address called while disconnected")
             return None
-        logger.debug("Assigning individual address %s", address)
+        self._log.debug("Assigning individual address", address=address)
         return self.run_async(nm_individual_address_write(self._xknx, address))
 
     def assign_individual_address_for_device(self, device: Device) -> Future[Any] | None:
         if not device.individual_address:
-            logger.warning("Device %r has no individual address assigned", device.name)
+            self._log.warning("Device has no individual address assigned", device=device.name)
             return None
         return self.assign_individual_address(device.individual_address)
 

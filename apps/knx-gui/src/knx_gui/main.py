@@ -11,6 +11,7 @@ from knx_gui.plugins.cat import CatPlugin
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
 from knx_gui.plugins.connection import ConnectionPlugin
 from knx_gui.plugins.connection.service import ConnectionService
+from knx_gui.plugins.logger import LoggerPlugin, LogService
 from knx_gui.plugins.network import NetworkPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
@@ -33,12 +34,14 @@ class KnxGuiApp:
 
         self._project_service = ProjectService(self._catalog_service)
         self._connection_service = ConnectionService()
+        self._log_service = LogService()
 
         self._plugin_api = PluginAPI(
             api_version=API_VERSION,
             project=self._project_service,
             catalog=self._catalog_service,
             connection=self._connection_service,
+            log=self._log_service,
         )
 
         self._catalog_plugin = CatalogPlugin(self._plugin_api)
@@ -51,6 +54,7 @@ class KnxGuiApp:
         )
 
         self._cat_plugin = CatPlugin(self._plugin_api)
+        self._logger_plugin = LoggerPlugin(self._log_service)
 
         self._plugins: list[Any] = [
             self._catalog_plugin,
@@ -58,6 +62,7 @@ class KnxGuiApp:
             self._network_plugin,
             self._node_editor_plugin,
             self._project_plugin,
+            self._logger_plugin,
         ]
 
     def setup(self) -> None:
