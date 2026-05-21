@@ -7,8 +7,8 @@ from enum import Enum
 from imgui_bundle import imgui
 
 from knx_gui.dpt import DPT
-from knx_gui.knxprod import DeviceApplication, ParamType
-from knx_gui.knxprod.parameter_tree import VisibleNode
+from xknxmono.product import DeviceApplication, ParamType
+from xknxmono.product.dynamic import VisibleNode
 from xknx.telegram import Telegram as XknxTelegram
 
 

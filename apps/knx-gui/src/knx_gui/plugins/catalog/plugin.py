@@ -1,4 +1,4 @@
-from knx_gui.knxprod import parse_application_xml
+from xknxmono.product import parse_application_xml
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.catalog.db import ApplicationModel
 from knx_gui.plugins.catalog.strings import S

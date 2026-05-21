@@ -1,13 +1,13 @@
-from knx_gui.knxprod.com_object_tree import (
-    filter_visible_com_objects,
-    visible_com_object_ids,
-)
-from knx_gui.knxprod.types import (
+from xknxmono.product import (
     ComObject,
     ComObjectFlags,
     DynamicChoose,
     DynamicElement,
     DynamicWhen,
+)
+from xknxmono.product.dynamic import (
+    filter_visible_com_objects,
+    visible_com_object_ids,
 )
 
 

@@ -5,7 +5,7 @@ from imgui_bundle import hello_imgui, imgui
 from imgui_bundle import portable_file_dialogs as pfd
 from xknxmono.product.errors import ArchiveError
 
-from knx_gui.knxprod import DeviceApplication
+from xknxmono.product import DeviceApplication
 from knx_gui.plugins.base import API_VERSION, Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.cat import CatPlugin
 from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService

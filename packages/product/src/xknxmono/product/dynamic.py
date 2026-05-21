@@ -4,10 +4,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .types import DynamicChoose, DynamicElement, DynamicWhen
+from .application import DynamicChoose, DynamicElement, DynamicWhen
 
 if TYPE_CHECKING:
-    from .types import Parameter
+    from .application import ComObject, Parameter
 
 Condition = Callable[[dict[str, str]], bool]
 
@@ -232,3 +232,24 @@ def _number_duplicates(nodes: list[VisibleNode]) -> None:
             idx = indices.get(node.display_name, 0) + 1
             indices[node.display_name] = idx
             node.display_name = f"{node.display_name} {idx}"
+
+
+def visible_com_object_ids(
+    dynamic: DynamicElement | None,
+    param_values: dict[str, str],
+) -> set[str]:
+    if dynamic is None:
+        return set()
+    _, com_ids = collect_all_visible_refs(dynamic, param_values)
+    return com_ids
+
+
+def filter_visible_com_objects(
+    com_objects: list[ComObject],
+    dynamic: DynamicElement | None,
+    param_values: dict[str, str],
+) -> list[ComObject]:
+    if dynamic is None:
+        return com_objects
+    visible_ids = visible_com_object_ids(dynamic, param_values)
+    return [co for co in com_objects if co.id in visible_ids]

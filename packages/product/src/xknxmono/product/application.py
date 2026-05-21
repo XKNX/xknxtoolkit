@@ -5,7 +5,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from . import parameter_tree
+    from . import dynamic
 
 
 class ParamTypeKind(Enum):
@@ -122,28 +122,28 @@ class DeviceApplication:
     dynamic: DynamicElement | None = None
     load_procedures: LoadProcedures | None = None
 
-    _cached_tree: list[parameter_tree.TreeNode] | None = None
+    _cached_tree: list[dynamic.TreeNode] | None = None
     _cached_params_by_id: dict[str, Parameter] | None = None
 
     def _get_visible_tree(
         self, param_values: dict[str, str] | None = None
-    ) -> list[parameter_tree.VisibleNode]:
-        from . import parameter_tree as pt
+    ) -> list[dynamic.VisibleNode]:
+        from . import dynamic as dy
 
         if self._cached_tree is None:
-            self._cached_tree = pt.build_tree(self.dynamic)
+            self._cached_tree = dy.build_tree(self.dynamic)
             self._cached_params_by_id = {p.id: p for p in self.parameters}
 
         if param_values is None:
             param_values = {p.id: p.value for p in self.parameters}
 
-        return pt.evaluate_tree_cached(
+        return dy.evaluate_tree_cached(
             self._cached_tree, param_values, self._cached_params_by_id or {}
         )
 
     def get_visible_tree(
         self, param_values: dict[str, str] | None = None
-    ) -> list[parameter_tree.VisibleNode]:
+    ) -> list[dynamic.VisibleNode]:
         return self._get_visible_tree(param_values)
 
     def visible_parameters(
@@ -158,12 +158,12 @@ class DeviceApplication:
     def visible_com_objects(
         self, param_values: dict[str, str] | None = None
     ) -> list[ComObject]:
-        from . import com_object_tree
+        from . import dynamic as dy
 
         if param_values is None:
             param_values = {p.id: p.value for p in self.parameters}
 
-        return com_object_tree.filter_visible_com_objects(
+        return dy.filter_visible_com_objects(
             self.com_objects, self.dynamic, param_values
         )
 
@@ -173,10 +173,10 @@ class DeviceApplication:
         if param_values is None:
             param_values = {p.id: p.value for p in self.parameters}
 
-        from . import parameter_tree as pt
+        from . import dynamic as dy
 
         if not self.dynamic:
             return set()
 
-        params, _ = pt.collect_all_visible_refs(self.dynamic, param_values)
+        params, _ = dy.collect_all_visible_refs(self.dynamic, param_values)
         return params

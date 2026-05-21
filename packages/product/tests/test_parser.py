@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from knx_gui.knxprod import ParamTypeKind, parse_archive
-from knx_gui.knxprod.parser import _substitute_template
+from xknxmono.product import ParamTypeKind, parse_archive
+from xknxmono.product.parser import _substitute_template
 
 MDT_ARCHIVE = Path(
     "/Users/user/Documents/projects/personal/xknxproduct/tests/resources/MDT/MDT_AKD-02x0CC-02_KP_V31.knxprod"

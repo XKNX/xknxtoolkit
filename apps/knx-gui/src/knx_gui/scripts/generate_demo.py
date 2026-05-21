@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from knx_gui.knxprod import parse_application_xml
+from xknxmono.product import parse_application_xml
 from knx_gui.plugins.catalog.db import (
     ApplicationModel,
     CatalogDatabase,

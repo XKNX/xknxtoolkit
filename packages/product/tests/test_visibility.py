@@ -1,4 +1,4 @@
-from knx_gui.knxprod.types import (
+from xknxmono.product import (
     ComObject,
     ComObjectFlags,
     DeviceApplication,

@@ -3,10 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from xknxmono.product.archive import ProductArchive
-from xknxmono.product.data import load_archive
-
-from .types import (
+from .application import (
     ComObject,
     ComObjectFlags,
     DeviceApplication,
@@ -21,6 +18,8 @@ from .types import (
     ParamType,
     ParamTypeKind,
 )
+from .archive import ProductArchive
+from .data import load_archive
 
 
 def _flag_enabled(value: Any) -> bool:

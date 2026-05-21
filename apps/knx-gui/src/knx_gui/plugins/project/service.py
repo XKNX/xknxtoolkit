@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from knx_gui.dpt import lookup_or_make_dpt
-from knx_gui.knxprod import DeviceApplication, parse_application_xml
+from xknxmono.product import DeviceApplication, parse_application_xml
 from knx_gui.plugins.project.db import (
     AreaCreated,
     AreaModel,
