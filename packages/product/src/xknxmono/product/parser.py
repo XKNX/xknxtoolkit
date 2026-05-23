@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from .application import (
+    AbsoluteSegment,
+    Code,
     ComObject,
     ComObjectFlags,
     DeviceApplication,
@@ -17,6 +19,7 @@ from .application import (
     Parameter,
     ParamType,
     ParamTypeKind,
+    RelativeSegment,
 )
 from .archive import ProductArchive
 from .data import load_archive
@@ -602,6 +605,42 @@ def _ldctrl_applies_to(cmd: Any) -> str:
     return str(val).split(".")[-1].lower() if val is not None else "auto"
 
 
+def _extract_code(static: Any) -> Code | None:
+    code_raw = getattr(static, "code", None)
+    if code_raw is None:
+        return None
+
+    abs_segs = [
+        AbsoluteSegment(
+            id=seg.id,
+            address=seg.address,
+            size=seg.size,
+            data=seg.data,
+            mask=getattr(seg, "mask", None),
+            name=getattr(seg, "name", None),
+            user_memory=bool(getattr(seg, "user_memory", False)),
+        )
+        for seg in list(getattr(code_raw, "absolute_segment", []) or [])
+    ]
+
+    rel_segs = [
+        RelativeSegment(
+            id=seg.id,
+            offset=seg.offset,
+            size=seg.size,
+            data=seg.data,
+            mask=getattr(seg, "mask", None),
+            name=getattr(seg, "name", None),
+        )
+        for seg in list(getattr(code_raw, "relative_segment", []) or [])
+    ]
+
+    if not abs_segs and not rel_segs:
+        return None
+
+    return Code(absolute_segments=abs_segs, relative_segments=rel_segs)
+
+
 def _extract_load_procedures(static: Any, app_program: Any) -> LoadProcedures | None:
     load_procedures_raw = getattr(static, "load_procedures", None)
     if load_procedures_raw is None:
@@ -704,6 +743,7 @@ def _parse_applications(knx_app: Any, manufacturer_id: str) -> list[DeviceApplic
 
         dynamic_tree = _parse_dynamic_element(dynamic, module_defs) if dynamic else None
         load_procedures = _extract_load_procedures(static, app_program)
+        code = _extract_code(static)
 
         applications.append(
             DeviceApplication(
@@ -714,6 +754,7 @@ def _parse_applications(knx_app: Any, manufacturer_id: str) -> list[DeviceApplic
                 parameters=parameters,
                 dynamic=dynamic_tree,
                 load_procedures=load_procedures,
+                code=code,
             )
         )
     return applications
