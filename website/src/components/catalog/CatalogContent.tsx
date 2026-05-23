@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { Suspense, useEffect, useState, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import MultiSelect from './MultiSelect'
 import {
@@ -38,7 +38,7 @@ function parseList(param: string | null): string[] {
   return param ? param.split(',').filter(Boolean) : []
 }
 
-export default function CatalogContent() {
+function CatalogContentInner() {
   const params = useSearchParams()
   const router = useRouter()
 
@@ -202,7 +202,7 @@ export default function CatalogContent() {
   })
 
   return (
-    <div id="products" className="flex flex-col flex-1 border border-fd-border rounded-lg overflow-hidden">
+    <div id="products" className="flex flex-col border border-fd-border rounded-lg overflow-hidden" style={{ height: 'calc(100dvh - var(--fd-nav-height, 3.5rem) - 2rem)' }}>
       <div className="flex-1 overflow-y-auto overflow-x-auto">
         <table className="w-full text-sm table-fixed">
           <colgroup>
@@ -268,5 +268,13 @@ export default function CatalogContent() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function CatalogContent() {
+  return (
+    <Suspense>
+      <CatalogContentInner />
+    </Suspense>
   )
 }

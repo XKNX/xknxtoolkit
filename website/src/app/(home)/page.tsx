@@ -1,25 +1,25 @@
-import Link from 'next/link';
+import Link from "next/link";
 
 const packages = [
   {
-    name: 'xknx-models',
+    name: "xknx-models",
     description:
-      'KNX XML schema bindings generated from official XSD files for versions 10–14 and 20–23. Includes version detection and XML load/serialize helpers.',
+      "KNX XML schema bindings generated from official XSD files for versions 10–14 and 20–23. Includes version detection and XML load/serialize helpers.",
   },
   {
-    name: 'xknx-product',
+    name: "xknx-product",
     description:
-      'Read and validate .knxprod archives (ZIP files). Parses manufacturer, catalog, hardware, and application program XMLs.',
+      "Read and validate .knxprod archives (ZIP files). Parses manufacturer, catalog, hardware, and application program XMLs.",
   },
   {
-    name: 'xknx-project',
+    name: "xknx-project",
     description:
-      'Project state management for KNX installations. Load, inspect, and manipulate ETS project data.',
+      "Project state management for KNX installations. Load, inspect, and manipulate ETS project data.",
   },
   {
-    name: 'xknx-keys',
+    name: "xknx-keys",
     description:
-      'Parse and serialize KNX keyring XML files. Manage security keys for KNX IP secure and data secure.',
+      "Parse and serialize KNX keyring XML files. Manage security keys for KNX IP secure and data secure.",
   },
 ];
 
@@ -34,7 +34,7 @@ export default function HomePage() {
         </p>
         <div className="flex gap-3 flex-wrap justify-center">
           <Link
-            href="/docs"
+            href="/docs/home"
             className="rounded-md bg-fd-primary text-fd-primary-foreground px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
           >
             Read the docs
@@ -57,7 +57,9 @@ export default function HomePage() {
             className="rounded-lg border border-fd-border p-6 flex flex-col gap-2"
           >
             <h2 className="font-semibold font-mono text-sm">{pkg.name}</h2>
-            <p className="text-fd-muted-foreground text-sm">{pkg.description}</p>
+            <p className="text-fd-muted-foreground text-sm">
+              {pkg.description}
+            </p>
           </div>
         ))}
       </section>

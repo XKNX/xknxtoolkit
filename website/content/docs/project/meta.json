@@ -1,0 +1,7 @@
+{
+  "title": "Project",
+  "description": "A demo for Fumadocs OpenAPI",
+  "root": true,
+  "icon": "Network",
+  "pages": ["index", "---Python API---", "api"]
+}

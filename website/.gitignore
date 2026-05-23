@@ -10,6 +10,14 @@ out/
 .env
 .env*.local
 
+# generated docs (run npm run generate:docs to rebuild)
+content/docs/models/api/
+content/docs/product/api/
+content/docs/catalog/api/
+content/docs/project/api/
+content/docs/keyring/api/
+
+
 # misc
 .DS_Store
 *.pem

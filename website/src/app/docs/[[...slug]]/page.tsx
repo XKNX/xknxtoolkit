@@ -1,4 +1,4 @@
-import { getPageImage, getPageMarkdownUrl, source } from '@/lib/source';
+import { getPageImage, getPageMarkdownUrl, source } from "@/lib/source";
 import {
   DocsBody,
   DocsDescription,
@@ -6,17 +6,30 @@ import {
   DocsTitle,
   MarkdownCopyButton,
   ViewOptionsPopover,
-} from 'fumadocs-ui/layouts/docs/page';
-import { notFound } from 'next/navigation';
-import { getMDXComponents } from '@/components/mdx';
-import type { Metadata } from 'next';
-import { createRelativeLink } from 'fumadocs-ui/mdx';
-import { gitConfig } from '@/lib/shared';
+} from "fumadocs-ui/layouts/docs/page";
+import { notFound } from "next/navigation";
+import { getMDXComponents } from "@/components/mdx";
+import type { Metadata } from "next";
+import { createRelativeLink } from "fumadocs-ui/mdx";
+import { gitConfig } from "@/lib/shared";
 
-export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
+export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
   const params = await props.params;
   const page = source.getPage(params.slug);
   if (!page) notFound();
+
+  if (page.type === "openapi") {
+    const { APIPage } = await import("@/components/api-page");
+    return (
+      <DocsPage full>
+        <h1 className="text-[1.75em] font-semibold">{page.data.title}</h1>
+
+        <DocsBody>
+          <APIPage {...page.data.getAPIPageProps()} />
+        </DocsBody>
+      </DocsPage>
+    );
+  }
 
   const MDX = page.data.body;
   const markdownUrl = getPageMarkdownUrl(page).url;
@@ -24,7 +37,9 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription className="mb-0">{page.data.description}</DocsDescription>
+      <DocsDescription className="mb-0">
+        {page.data.description}
+      </DocsDescription>
       <div className="flex flex-row gap-2 items-center border-b pb-6">
         <MarkdownCopyButton markdownUrl={markdownUrl} />
         <ViewOptionsPopover
@@ -48,7 +63,9 @@ export async function generateStaticParams() {
   return source.generateParams();
 }
 
-export async function generateMetadata(props: PageProps<'/docs/[[...slug]]'>): Promise<Metadata> {
+export async function generateMetadata(
+  props: PageProps<"/docs/[[...slug]]">,
+): Promise<Metadata> {
   const params = await props.params;
   const page = source.getPage(params.slug);
   if (!page) notFound();

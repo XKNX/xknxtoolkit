@@ -1,6 +1,5 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
-import type { Node, Root } from "fumadocs-core/page-tree";
-import { BookIcon } from "lucide-react";
+import { BookIcon, DatabaseIcon } from "lucide-react";
 import { appName, gitConfig } from "./shared";
 
 export function baseOptions(): BaseLayoutProps {
@@ -14,32 +13,8 @@ export function homeOptions(): BaseLayoutProps {
   return {
     ...baseOptions(),
     links: [
-      { icon: <BookIcon />, text: "Docs", url: "/docs" },
-      { icon: <BookIcon />, text: "Catalog", url: "/catalog" },
-    ],
-  };
-}
-
-export function makeSharedTree(docsNodes: Node[], catalogNodes: Node[] = []): Root {
-  return {
-    name: appName,
-    children: [
-      {
-        type: "folder",
-        name: "Documentation",
-        icon: <BookIcon />,
-        root: true,
-        index: { type: "page", name: "Documentation", url: "/docs" },
-        children: docsNodes,
-      },
-      {
-        type: "folder",
-        name: "Catalog",
-        icon: <BookIcon />,
-        root: true,
-        index: { type: "page", name: "Catalog", url: "/catalog" },
-        children: catalogNodes,
-      },
+      { icon: <BookIcon />, text: "Docs", url: "/docs/home" },
+      { icon: <DatabaseIcon />, text: "Catalog", url: "/catalog" },
     ],
   };
 }

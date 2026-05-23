@@ -1,0 +1,14 @@
+{
+  "title": "Catalog",
+  "description": "A demo for Fumadocs OpenAPI",
+  "root": true,
+  "icon": "Database",
+  "pages": [
+    "browse-hardware",
+    "index",
+    "---Python API---",
+    "api",
+    "---REST API---",
+    "...(generated)"
+  ]
+}

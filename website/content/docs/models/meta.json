@@ -1,0 +1,7 @@
+{
+  "title": "Models",
+  "description": "A demo for Fumadocs OpenAPI",
+  "root": true,
+  "icon": "Layers",
+  "pages": ["index", "---Python API---", "api"]
+}
