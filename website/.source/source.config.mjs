@@ -14,9 +14,7 @@ var docs = defineDocs({
   }
 });
 var source_config_default = defineConfig({
-  mdxOptions: {
-    // MDX options
-  }
+  mdxOptions: {}
 });
 export {
   source_config_default as default,
