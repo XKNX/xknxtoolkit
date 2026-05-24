@@ -77,8 +77,8 @@ const packages = [
   },
   {
     name: "project",
-    module: "xknx.project",
-    namespace: "xknx",
+    module: "xknxmono.project",
+    namespace: "xknxmono",
     moduleName: "project",
     srcDir: "packages/project/src",
     apiOutDir: "content/docs/project/api",
@@ -87,8 +87,8 @@ const packages = [
   },
   {
     name: "keyring",
-    module: "xknx.keyring",
-    namespace: "xknx",
+    module: "xknxmono.keyring",
+    namespace: "xknxmono",
     moduleName: "keyring",
     srcDir: "packages/keyring/src",
     apiOutDir: "content/docs/keyring/api",

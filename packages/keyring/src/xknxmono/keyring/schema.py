@@ -6,7 +6,7 @@ from xsdata.formats.dataclass.parsers import XmlParser
 from xsdata.formats.dataclass.serializers import XmlSerializer
 from xsdata.formats.dataclass.serializers.config import SerializerConfig
 
-from xknx.keyring.generated.knx_keyring import Keyring
+from xknxmono.keyring.generated.knx_keyring import Keyring
 
 __NAMESPACE__ = "http://knx.org/xml/keyring/1"
 
