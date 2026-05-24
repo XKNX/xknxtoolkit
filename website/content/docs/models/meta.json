@@ -3,5 +3,5 @@
   "description": "xknx-models",
   "root": true,
   "icon": "Layers",
-  "pages": ["---Introduction---", "index", "---Python API---", "api"]
+  "pages": ["---Introduction---", "index", "---Python API---", "api", "---About---", "changelog"]
 }

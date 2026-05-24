@@ -6,6 +6,7 @@ import {
   existsSync,
   readdirSync,
   copyFileSync,
+  rmSync,
 } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -96,10 +97,17 @@ const packages = [
   },
 ];
 
-// Clean up generated api dirs before regenerating
+// Derive changelog output path from the api output dir (sibling of api/)
+function changelogOutPath(pkg) {
+  return join(websiteRoot, pkg.apiOutDir, "../changelog.mdx");
+}
+
+// Clean up generated api dirs and changelog files before regenerating
 for (const pkg of packages) {
   const apiDir = join(websiteRoot, pkg.apiOutDir);
   await rimraf(apiDir);
+  const changelogPath = changelogOutPath(pkg);
+  if (existsSync(changelogPath)) rmSync(changelogPath);
 }
 
 for (const pkg of packages) {
@@ -163,5 +171,18 @@ for (const pkg of packages) {
       copyFileSync(src, dest);
     }
     console.log(`  overlaid hand-written .mdx from docs/ → ${pkg.docsOutDir}/`);
+  }
+
+  // Convert CHANGELOG.md → changelog.mdx and write next to index.mdx
+  const changelogSrc = join(pkgDir, "CHANGELOG.md");
+  if (existsSync(changelogSrc)) {
+    const md = readFileSync(changelogSrc, "utf-8");
+    // Strip the leading "# Changelog" h1 — the frontmatter title serves that role
+    const body = md.replace(/^#\s+Changelog\s*\n/, "");
+    const fm = frontmatter({ title: "Changelog", description: `Release history for ${pkg.name}.`, icon: "History" });
+    const dest = changelogOutPath(pkg);
+    mkdirSync(dirname(dest), { recursive: true });
+    writeFileSync(dest, `${fm}\n\n${body}`);
+    console.log(`  converted CHANGELOG.md → ${pkg.apiOutDir}/../changelog.mdx`);
   }
 }

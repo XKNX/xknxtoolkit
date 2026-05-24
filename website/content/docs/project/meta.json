@@ -3,5 +3,5 @@
   "description": "xknx-project",
   "root": true,
   "icon": "Network",
-  "pages": ["---Introduction---", "index", "---Python API---", "api"]
+  "pages": ["---Introduction---", "index", "---Python API---", "api", "---About---", "changelog"]
 }

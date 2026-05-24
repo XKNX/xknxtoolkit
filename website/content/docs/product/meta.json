@@ -3,5 +3,5 @@
   "description": "xknx-product",
   "root": true,
   "icon": "Shapes",
-  "pages": ["---Introduction---", "index", "---Python API---", "api"]
+  "pages": ["---Introduction---", "index", "---Python API---", "api", "---About---", "changelog"]
 }

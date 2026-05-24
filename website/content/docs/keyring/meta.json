@@ -3,5 +3,5 @@
   "description": "xknx-keyring",
   "root": true,
   "icon": "Key",
-  "pages": ["---Introduction---", "index", "---Python API---", "api"]
+  "pages": ["---Introduction---", "index", "---Python API---", "api", "---About---", "changelog"]
 }

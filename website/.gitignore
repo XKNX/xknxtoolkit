@@ -12,10 +12,15 @@ out/
 
 # generated docs (run npm run generate:docs to rebuild)
 content/docs/models/api/
+content/docs/models/changelog.mdx
 content/docs/product/api/
+content/docs/product/changelog.mdx
 content/docs/catalog/api/
+content/docs/catalog/changelog.mdx
 content/docs/project/api/
+content/docs/project/changelog.mdx
 content/docs/keyring/api/
+content/docs/keyring/changelog.mdx
 
 
 # misc
