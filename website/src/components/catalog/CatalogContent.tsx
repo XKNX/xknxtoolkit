@@ -102,7 +102,7 @@ function CatalogContentInner() {
       else next.set(k, v)
     }
     if (!keepPage) next.delete('page')
-    router.push(`/catalog?${next}`)
+    router.push(`/docs/catalog/browse-hardware?${next}`)
   }
 
   function pushList(key: string, values: string[]) {
@@ -235,7 +235,7 @@ function CatalogContentInner() {
               <tr
                 key={row.id}
                 className={`cursor-pointer hover:bg-fd-accent transition-colors ${i > 0 ? 'border-t border-fd-border' : ''}`}
-                onClick={() => router.push(`/catalog/hardware/${encodeURIComponent(row.original.id)}`)}
+                onClick={() => router.push(`/docs/catalog/hardware/${encodeURIComponent(row.original.id)}`)}
               >
                 {row.getVisibleCells().map(cell => (
                   <td key={cell.id} className="px-3 py-2">

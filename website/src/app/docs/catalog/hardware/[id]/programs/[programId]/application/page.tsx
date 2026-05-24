@@ -171,7 +171,7 @@ export default async function ApplicationPage({
   return (
     <DocsPage footer={{ enabled: false }} breadcrumb={{ enabled: false }} toc={toc}>
       <Link
-        href={`/catalog/hardware/${encodeURIComponent(id)}`}
+        href={`/docs/catalog/hardware/${encodeURIComponent(id)}`}
         className="text-sm text-fd-muted-foreground hover:text-fd-foreground transition-colors"
       >
         ← Back to hardware

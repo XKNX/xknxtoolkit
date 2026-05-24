@@ -93,7 +93,7 @@ export default async function HardwarePage({ params }: { params: Promise<{ id: s
 
   return (
     <DocsPage footer={{ enabled: false }} breadcrumb={{ enabled: false }} toc={toc}>
-      <Link href="/catalog" className="text-sm text-fd-muted-foreground hover:text-fd-foreground transition-colors">
+      <Link href="/docs/catalog/browse-hardware" className="text-sm text-fd-muted-foreground hover:text-fd-foreground transition-colors">
         ← Back to catalog
       </Link>
 
@@ -146,7 +146,7 @@ export default async function HardwarePage({ params }: { params: Promise<{ id: s
                   </div>
                   {prog.application && (
                     <Link
-                      href={`/catalog/hardware/${encodeURIComponent(id)}/programs/${encodeURIComponent(prog.id)}/application`}
+                      href={`/docs/catalog/hardware/${encodeURIComponent(id)}/programs/${encodeURIComponent(prog.id)}/application`}
                       className="text-xs text-fd-primary hover:underline shrink-0"
                     >
                       View application →

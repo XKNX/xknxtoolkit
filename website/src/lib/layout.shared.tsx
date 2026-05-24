@@ -14,7 +14,7 @@ export function homeOptions(): BaseLayoutProps {
     ...baseOptions(),
     links: [
       { icon: <BookIcon />, text: "Docs", url: "/docs/home" },
-      { icon: <DatabaseIcon />, text: "Catalog", url: "/catalog" },
+      { icon: <DatabaseIcon />, text: "Catalog", url: "/docs/catalog/browse-hardware" },
     ],
   };
 }
