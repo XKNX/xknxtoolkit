@@ -1,26 +1,86 @@
 ---
-title: XKNX Toolkit
-description: Documentation for XKNX Toolkit
+title: Quick Start
+description: Get up and running with XKNX Toolkit
+icon: Zap
 ---
 
-XKNX Toolkit is a Python library suite for working with KNX automation system files. It provides typed, well-tested packages for reading ETS project exports, product archives, security keyrings, and the underlying XML data models.
+Welcome to the **XKNX Toolkit user guide**. This handbook covers everything you need to install and use the application — browsing KNX product catalogs, inspecting ETS project exports, working with keyring files, and more.
 
-## Packages
-
-<Cards>
-  <Card title="xknx-models" description="KNX XML schema bindings and version detection" href="/docs/models" />
-  <Card title="xknx-product" description="Read and validate .knxprod archives" href="/docs/product" />
-  <Card title="xknx-project" description="Project state management for KNX installations" href="/docs/project" />
-  <Card title="xknx-keys" description="Parse and serialize KNX keyring XML" href="/docs/keys" />
-</Cards>
+If you are a developer looking to integrate KNX file handling into your own Python project, head over to the [Developer Docs](/docs) instead.
 
 ## Installation
 
-Install the individual packages you need via pip:
+Download the latest release for your platform from the [GitHub releases page](https://github.com/xknx/xknxtoolkit/releases).
 
-```bash
-pip install xknx-models
-pip install xknx-product
-pip install xknx-project
-pip install xknx-keys
-```
+<Tabs items={["Windows", "macOS", "Linux"]}>
+  <Tab value="Windows">
+    ### Windows (x64)
+
+    1. Download `xknx-toolkit-setup-x64.exe` from the latest release.
+    2. Run the installer and follow the setup wizard.
+    3. Once installed, launch **XKNX Toolkit** from the Start Menu or the desktop shortcut.
+
+    **Minimum requirements:** Windows 10 (64-bit) or later.
+
+    > **Windows SmartScreen warning**
+    > Because the installer is not yet code-signed you may see a SmartScreen prompt. Click **More info → Run anyway** to proceed.
+
+    #### Portable build
+
+    Prefer no installer? Download `xknx-toolkit-win-x64-portable.zip`, extract it anywhere, and run `xknx-toolkit.exe` directly — no installation required.
+  </Tab>
+  <Tab value="macOS">
+    ### macOS (Apple Silicon & Intel)
+
+    Download the `.dmg` that matches your Mac:
+
+    | Build | Chip |
+    |---|---|
+    | `xknx-toolkit-arm64.dmg` | Apple Silicon (M1 and later) |
+    | `xknx-toolkit-x64.dmg` | Intel |
+
+    1. Open the `.dmg` file.
+    2. Drag **XKNX Toolkit** into your `Applications` folder.
+    3. On first launch, right-click the app and choose **Open** to bypass Gatekeeper.
+
+    **Minimum requirements:** macOS 13 Ventura or later.
+
+    #### Homebrew
+
+    ```bash
+    brew install --cask xknx-toolkit
+    ```
+  </Tab>
+  <Tab value="Linux">
+    ### Linux
+
+    #### AppImage (universal)
+
+    The AppImage runs on most x86-64 distributions without any installation:
+
+    ```bash
+    chmod +x xknx-toolkit-x86_64.AppImage
+    ./xknx-toolkit-x86_64.AppImage
+    ```
+
+    #### Debian / Ubuntu
+
+    ```bash
+    sudo dpkg -i xknx-toolkit_amd64.deb
+    xknx-toolkit
+    ```
+
+    #### Fedora / RHEL
+
+    ```bash
+    sudo rpm -i xknx-toolkit.x86_64.rpm
+    xknx-toolkit
+    ```
+
+    **Minimum requirements:** kernel 5.4+, glibc 2.31+, a display server (X11 or Wayland).
+  </Tab>
+</Tabs>
+
+## First Steps
+
+Once the application is running, open an ETS project export (`.knxproj`) or a product archive (`.knxprod`) via **File → Open** to get started. The [Catalog Browser](/handbook/catalog/hardware) lets you explore KNX hardware and its application programs without needing a project file.
