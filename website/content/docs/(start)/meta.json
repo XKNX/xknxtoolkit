@@ -1,6 +1,6 @@
 {
-  "title": "Home",
+  "title": "Documentation",
   "root": true,
-  "icon": "House",
-  "pages": ["index", "test"]
+  "icon": "BookOpen",
+  "pages": ["index"]
 }

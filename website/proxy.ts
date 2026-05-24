@@ -1,15 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
-import { docsContentRoute, docsRoute } from '@/lib/shared';
+import { NextRequest, NextResponse } from "next/server";
+import { isMarkdownPreferred, rewritePath } from "fumadocs-core/negotiation";
+import {
+  handbookContentRoute,
+  handbookRoute,
+  docsContentRoute,
+  docsRoute,
+} from "@/lib/shared";
 
-const { rewrite: rewriteDocs } = rewritePath(
-  `${docsRoute}{/*path}`,
-  `${docsContentRoute}{/*path}/content.md`,
-);
-const { rewrite: rewriteSuffix } = rewritePath(
-  `${docsRoute}{/*path}.md`,
-  `${docsContentRoute}{/*path}/content.md`,
-);
+const rewriteDocs = (...args) => {
+  const handbook = rewritePath(
+    `${handbookRoute}{/*path}`,
+    `${handbookContentRoute}{/*path}/content.md`,
+  );
+  const docs = rewritePath(
+    `${docsRoute}{/*path}`,
+    `${docsContentRoute}{/*path}/content.md`,
+  );
+  return handbook(...args) ?? docs(...args);
+};
+
+const rewriteSuffix = (...args) => {
+  const handbook = rewritePath(
+    `${handbookRoute}{/*path}.md`,
+    `${handbookContentRoute}{/*path}/content.md`,
+  );
+  const docs = rewritePath(
+    `${docsRoute}{/*path}.md`,
+    `${docsContentRoute}{/*path}/content.md`,
+  );
+  return handbook(...args) ?? docs(...args);
+};
 
 export default function proxy(request: NextRequest) {
   const result = rewriteSuffix(request.nextUrl.pathname);

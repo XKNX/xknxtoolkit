@@ -1,0 +1,6 @@
+{
+  "title": "Catalog",
+  "root": true,
+  "icon": "LayoutGrid",
+  "pages": ["---Catalog Browser---", "hardware"]
+}

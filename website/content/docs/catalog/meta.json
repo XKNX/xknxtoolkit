@@ -6,8 +6,6 @@
   "pages": [
     "---Introduction---",
     "index",
-    "---Catalog Browser---",
-    "browse-hardware",
     "---Python API---",
     "api",
     "---REST API---",

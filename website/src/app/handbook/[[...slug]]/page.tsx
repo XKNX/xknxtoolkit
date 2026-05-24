@@ -1,4 +1,8 @@
-import { getPageImage, getPageMarkdownUrl, source } from "@/lib/source/docs";
+import {
+  getPageImage,
+  getPageMarkdownUrl,
+  source,
+} from "@/lib/source/handbook";
 import {
   DocsBody,
   DocsDescription,
@@ -13,28 +17,15 @@ import type { Metadata } from "next";
 import { createRelativeLink } from "fumadocs-ui/mdx";
 import { gitConfig } from "@/lib/shared";
 
-export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
+export default async function Page(props: PageProps<"/handbook/[[...slug]]">) {
   const params = await props.params;
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  if (page.type === "openapi") {
-    const { APIPage } = await import("@/components/api-page");
-    return (
-      <DocsPage full>
-        <h1 className="text-[1.75em] font-semibold">{page.data.title}</h1>
-
-        <DocsBody>
-          <APIPage {...page.data.getAPIPageProps()} />
-        </DocsBody>
-      </DocsPage>
-    );
-  }
-
   const MDX = page.data.body;
 
   // Catalog browser needs full viewport width and no prose constraints
-  if (page.slugs.join("/") === "catalog/browse-hardware") {
+  if (page.slugs.join("/") === "catalog/hardware") {
     return (
       <DocsPage full className="!max-w-none">
         <div className="flex-1 min-w-0">
@@ -80,7 +71,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata(
-  props: PageProps<"/docs/[[...slug]]">,
+  props: PageProps<"/handbook/[[...slug]]">,
 ): Promise<Metadata> {
   const params = await props.params;
   const page = source.getPage(params.slug);

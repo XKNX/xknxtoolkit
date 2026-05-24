@@ -1,0 +1,6 @@
+{
+  "title": "Handbook",
+  "root": true,
+  "icon": "BookOpen",
+  "pages": ["---Introduction---", "index"]
+}

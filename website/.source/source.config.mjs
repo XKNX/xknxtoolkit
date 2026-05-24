@@ -1,6 +1,18 @@
 // source.config.ts
 import { defineConfig, defineDocs } from "fumadocs-mdx/config";
 import { metaSchema, pageSchema } from "fumadocs-core/source/schema";
+var handbook = defineDocs({
+  dir: "content/handbook",
+  docs: {
+    schema: pageSchema,
+    postprocess: {
+      includeProcessedMarkdown: true
+    }
+  },
+  meta: {
+    schema: metaSchema
+  }
+});
 var docs = defineDocs({
   dir: "content/docs",
   docs: {
@@ -18,5 +30,6 @@ var source_config_default = defineConfig({
 });
 export {
   source_config_default as default,
-  docs
+  docs,
+  handbook
 };

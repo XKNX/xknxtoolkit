@@ -1,8 +1,8 @@
 import { docs } from "collections/server";
 import { loader } from "fumadocs-core/source";
 import { lucideIconsPlugin } from "fumadocs-core/source/lucide-icons";
-import { docsContentRoute, docsImageRoute, docsRoute } from "./shared";
-import { openapi } from "./openapi";
+import { docsContentRoute, docsImageRoute, docsRoute } from "../shared";
+import { openapi } from "../openapi";
 
 export const source = loader(
   {
@@ -20,12 +20,6 @@ export const source = loader(
     plugins: [lucideIconsPlugin(), openapi.loaderPlugin()],
   },
 );
-
-export const catalogRestSource = loader({
-  baseUrl: "/catalog/rest",
-  source: await openapi.staticSource({ groupBy: "tag" }),
-  plugins: [openapi.loaderPlugin()],
-});
 
 export function getPageImage(page: (typeof source)["$inferPage"]) {
   const segments = [...page.slugs, "image.png"];

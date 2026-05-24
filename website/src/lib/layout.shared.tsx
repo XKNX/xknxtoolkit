@@ -13,8 +13,8 @@ export function homeOptions(): BaseLayoutProps {
   return {
     ...baseOptions(),
     links: [
-      { icon: <BookIcon />, text: "Docs", url: "/docs/home" },
-      { icon: <DatabaseIcon />, text: "Catalog", url: "/docs/catalog/browse-hardware" },
+      { icon: <DatabaseIcon />, text: "Handbook", url: "/handbook" },
+      { icon: <BookIcon />, text: "Documentation", url: "/docs" },
     ],
   };
 }
