@@ -32,6 +32,22 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
   }
 
   const MDX = page.data.body;
+
+  // Catalog browser needs full viewport width and no prose constraints
+  if (page.slugs.join("/") === "catalog/browse-hardware") {
+    return (
+      <DocsPage full className="!max-w-none">
+        <div className="flex-1 min-w-0">
+          <MDX
+            components={getMDXComponents({
+              a: createRelativeLink(source, page),
+            })}
+          />
+        </div>
+      </DocsPage>
+    );
+  }
+
   const markdownUrl = getPageMarkdownUrl(page).url;
 
   return (

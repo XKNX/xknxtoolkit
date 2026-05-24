@@ -1,11 +1,13 @@
 {
   "title": "Catalog",
-  "description": "A demo for Fumadocs OpenAPI",
+  "description": "xknx-catalog",
   "root": true,
   "icon": "Database",
   "pages": [
-    "browse-hardware",
+    "---Introduction---",
     "index",
+    "---Catalog Browser---",
+    "browse-hardware",
     "---Python API---",
     "api",
     "---REST API---",

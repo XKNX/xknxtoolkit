@@ -1,3 +1,4 @@
+"""Pydantic response schemas for the catalog API endpoints."""
 import base64
 import datetime
 
@@ -5,12 +6,16 @@ from pydantic import BaseModel, field_serializer
 
 
 class ManufacturerOut(BaseModel):
+    """API response schema for a KNX manufacturer."""
+
     id: str
     name: str | None
     model_config = {"from_attributes": True}
 
 
 class ApplicationOut(BaseModel):
+    """API response schema for an ETS application program."""
+
     id: str
     name: str
     application_number: int | None
@@ -21,6 +26,8 @@ class ApplicationOut(BaseModel):
 
 
 class HardwareProgramOut(BaseModel):
+    """API response schema for a hardware program, including its medium types and linked application."""
+
     id: str
     hardware_id: str
     medium_types: list[str]
@@ -32,6 +39,8 @@ class HardwareProgramOut(BaseModel):
 
 
 class HardwareOut(BaseModel):
+    """API response schema for a hardware item, including all its associated programs."""
+
     id: str
     manufacturer_id: str
     name: str | None
@@ -53,6 +62,8 @@ class HardwareOut(BaseModel):
 
 
 class CatalogSectionOut(BaseModel):
+    """API response schema for a catalog section node, with nested children."""
+
     id: str
     name: str
     number: str | None
@@ -64,6 +75,8 @@ class CatalogSectionOut(BaseModel):
 # --- On-demand application detail (loaded from .knxprod at request time) ---
 
 class ComObjectFlagsOut(BaseModel):
+    """Communication flags for a KNX group object."""
+
     communication: bool
     read: bool
     write: bool
@@ -73,6 +86,8 @@ class ComObjectFlagsOut(BaseModel):
 
 
 class ComObjectOut(BaseModel):
+    """API response schema for a KNX group object (communication object)."""
+
     id: str
     name: str
     number: int
@@ -81,11 +96,15 @@ class ComObjectOut(BaseModel):
 
 
 class EnumOptionOut(BaseModel):
+    """A single option in an enumeration parameter type."""
+
     value: str
     text: str
 
 
 class ParamTypeOut(BaseModel):
+    """The type descriptor for an application parameter (enumeration, integer, etc.)."""
+
     kind: str
     options: list[EnumOptionOut] = []
     min_value: int | None
@@ -94,6 +113,8 @@ class ParamTypeOut(BaseModel):
 
 
 class ParameterOut(BaseModel):
+    """API response schema for an application parameter with its current value and type."""
+
     id: str
     ref_id: str
     name: str
@@ -103,6 +124,8 @@ class ParameterOut(BaseModel):
 
 
 class AbsoluteSegmentOut(BaseModel):
+    """An absolute memory segment from the application code, with address and binary data encoded as base64."""
+
     id: str
     address: int
     size: int
@@ -114,10 +137,13 @@ class AbsoluteSegmentOut(BaseModel):
 
     @field_serializer("data", "mask")
     def _encode(self, v: bytes | None) -> str | None:
+        """Serialize binary data and mask fields as base64 strings."""
         return base64.b64encode(v).decode() if v is not None else None
 
 
 class RelativeSegmentOut(BaseModel):
+    """A relative memory segment from the application code, with offset and binary data encoded as base64."""
+
     id: str
     offset: int
     size: int
@@ -128,16 +154,21 @@ class RelativeSegmentOut(BaseModel):
 
     @field_serializer("data", "mask")
     def _encode(self, v: bytes | None) -> str | None:
+        """Serialize binary data and mask fields as base64 strings."""
         return base64.b64encode(v).decode() if v is not None else None
 
 
 class CodeOut(BaseModel):
+    """The complete loadable code for an application program, split into absolute and relative segments."""
+
     absolute_segments: list[AbsoluteSegmentOut]
     relative_segments: list[RelativeSegmentOut]
     model_config = {"from_attributes": True}
 
 
 class ApplicationDetailOut(BaseModel):
+    """Full on-demand detail for an application program, parsed live from the .knxprod archive."""
+
     application_id: str
     name: str
     manufacturer_id: str

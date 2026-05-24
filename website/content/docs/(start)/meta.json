@@ -1,6 +1,5 @@
 {
   "title": "Home",
-  "description": "A demo for Fumadocs OpenAPI",
   "root": true,
   "icon": "House",
   "pages": ["index", "test"]

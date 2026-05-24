@@ -22,11 +22,13 @@ from xknxmono.catalog.models import (
 
 
 def _walk_manufacturer_data(knx: Any):
+    """Yield each manufacturer entry from a parsed KNX XML root object."""
     md = getattr(knx, "manufacturer_data", None)
     yield from getattr(md, "manufacturer", []) or []
 
 
 def _ingest_applications(session: Session, data_applications: list[Any]) -> None:
+    """Upsert all application programs from the parsed application XML objects into the database."""
     for app_knx in data_applications:
         for mfr in _walk_manufacturer_data(app_knx):
             app_programs = getattr(mfr, "application_programs", None)
@@ -44,6 +46,7 @@ def _ingest_applications(session: Session, data_applications: list[Any]) -> None
 def _ingest_hardware(
     session: Session, hw_knx: Any, mfr_id: str, knxprod_path: str
 ) -> None:
+    """Upsert hardware items and their hardware programs from the parsed Hardware.xml object."""
     if not session.get(Manufacturer, mfr_id):
         session.add(Manufacturer(id=mfr_id, name=None))
 
@@ -106,6 +109,7 @@ def _ingest_hardware(
 def _ingest_section(
     session: Session, section: Any, mfr_id: str, parent_id: str | None
 ) -> None:
+    """Recursively upsert a catalog section and its children and product references."""
     session.merge(CatalogSection(
         id=section.id,
         manufacturer_id=mfr_id,
@@ -122,6 +126,7 @@ def _ingest_section(
 
 
 def _ingest_catalog(session: Session, cat_knx: Any, mfr_id: str) -> None:
+    """Upsert all top-level catalog sections for a manufacturer from the parsed Catalog.xml object."""
     for mfr in _walk_manufacturer_data(cat_knx):
         cat_container = getattr(mfr, "catalog", None)
         for section in getattr(cat_container, "catalog_section", []) or []:

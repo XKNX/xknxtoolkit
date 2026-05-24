@@ -1,7 +1,7 @@
 {
   "title": "Project",
-  "description": "A demo for Fumadocs OpenAPI",
+  "description": "xknx-project",
   "root": true,
   "icon": "Network",
-  "pages": ["index", "---Python API---", "api"]
+  "pages": ["---Introduction---", "index", "---Python API---", "api"]
 }

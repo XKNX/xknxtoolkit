@@ -1,7 +1,7 @@
 {
   "title": "Keyring",
-  "description": "A demo for Fumadocs OpenAPI",
+  "description": "xknx-keyring",
   "root": true,
   "icon": "Key",
-  "pages": ["index", "---Python API---", "api"]
+  "pages": ["---Introduction---", "index", "---Python API---", "api"]
 }

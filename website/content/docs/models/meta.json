@@ -1,7 +1,7 @@
 {
   "title": "Models",
-  "description": "A demo for Fumadocs OpenAPI",
+  "description": "xknx-models",
   "root": true,
   "icon": "Layers",
-  "pages": ["index", "---Python API---", "api"]
+  "pages": ["---Introduction---", "index", "---Python API---", "api"]
 }

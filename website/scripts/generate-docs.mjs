@@ -96,10 +96,10 @@ const packages = [
   },
 ];
 
-// Clean up old stale content dirs from previous structure
+// Clean up generated api dirs before regenerating
 for (const pkg of packages) {
-  const oldDir = join(websiteContent, "docs", pkg.name);
-  await rimraf(oldDir);
+  const apiDir = join(websiteRoot, pkg.apiOutDir);
+  await rimraf(apiDir);
 }
 
 for (const pkg of packages) {

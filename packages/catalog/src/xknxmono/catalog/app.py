@@ -1,3 +1,4 @@
+"""FastAPI application factory and entry point for the catalog API server."""
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,4 +31,5 @@ app.include_router(upload.router)
 
 
 def main():
+    """Start the catalog API server on 0.0.0.0:8000 with auto-reload."""
     uvicorn.run("xknxmono.catalog.app:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,3 +1,4 @@
+"""Catalog sections router: return the hierarchical product catalog for a manufacturer."""
 from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -14,6 +15,7 @@ _cache: dict[str, list[CatalogSectionOut]] = {}
 
 
 def collect_section_ids(db: Session, section_id: str) -> list[str]:
+    """Return the given section ID and all descendant section IDs using a recursive CTE."""
     result = db.execute(text("""
         WITH RECURSIVE subtree(id) AS (
             SELECT id FROM catalog_sections WHERE id = :sid
@@ -26,6 +28,7 @@ def collect_section_ids(db: Session, section_id: str) -> list[str]:
 
 
 def _build_tree(sections: list[CatalogSection]) -> list[CatalogSectionOut]:
+    """Build a nested tree of CatalogSectionOut objects from a flat list of sections."""
     by_parent: dict[str | None, list[CatalogSection]] = defaultdict(list)
     for s in sections:
         by_parent[s.parent_id].append(s)
@@ -48,6 +51,7 @@ def _build_tree(sections: list[CatalogSection]) -> list[CatalogSectionOut]:
 
 @router.get("/{manufacturer_id}/catalog-sections", response_model=list[CatalogSectionOut])
 def list_catalog_sections(manufacturer_id: str, db: Session = Depends(get_db)):
+    """Return the full catalog section tree for a manufacturer, with results cached in memory."""
     if not db.get(Manufacturer, manufacturer_id):
         raise HTTPException(404, "Manufacturer not found")
     if manufacturer_id not in _cache:

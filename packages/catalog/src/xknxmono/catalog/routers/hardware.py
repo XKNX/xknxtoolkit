@@ -1,3 +1,4 @@
+"""Hardware router: list and retrieve KNX hardware items and their application program details."""
 import datetime
 from typing import Annotated
 
@@ -31,6 +32,7 @@ router = APIRouter(prefix="/hardware", tags=["Hardware"])
 
 
 def _program_out(p: HardwareProgram) -> HardwareProgramOut:
+    """Convert a HardwareProgram ORM object to its API response schema."""
     return HardwareProgramOut(
         id=p.id,
         hardware_id=p.hardware_id,
@@ -43,6 +45,7 @@ def _program_out(p: HardwareProgram) -> HardwareProgramOut:
 
 
 def _hardware_out(h: Hardware) -> HardwareOut:
+    """Convert a Hardware ORM object to its API response schema."""
     return HardwareOut(
         id=h.id,
         manufacturer_id=h.manufacturer_id,
@@ -65,6 +68,7 @@ def _hardware_out(h: Hardware) -> HardwareOut:
 
 
 def _base_query():
+    """Return a base SQLAlchemy select for Hardware with programs and medium types eagerly loaded."""
     return select(Hardware).options(
         selectinload(Hardware.programs).selectinload(HardwareProgram.medium_types),
         selectinload(Hardware.programs).selectinload(HardwareProgram.application),
@@ -93,6 +97,7 @@ def list_hardware(
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
+    """List hardware items with optional filters for manufacturer, medium type, flags, registration, and free-text search."""
     q = _base_query()
 
     needs_program_join = bool(
@@ -156,6 +161,10 @@ def get_program_application(
     accept: Annotated[str, Header()] = "application/json",
     db: Session = Depends(get_db),
 ):
+    """Return full application detail for a hardware program, parsed from the source .knxprod archive.
+
+    Accepts ``application/xml`` to return the raw XML instead of the parsed JSON response.
+    """
     program = db.scalars(
         select(HardwareProgram)
         .options(selectinload(HardwareProgram.hardware))
@@ -244,6 +253,7 @@ def get_program_application(
 
 @router.get("/{hardware_id}", response_model=HardwareOut)
 def get_hardware(hardware_id: str, db: Session = Depends(get_db)):
+    """Return a single hardware item by its ID, including all associated programs."""
     hw = db.scalars(
         _base_query().where(Hardware.id == hardware_id)
     ).first()

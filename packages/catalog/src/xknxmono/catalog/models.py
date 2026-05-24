@@ -1,3 +1,4 @@
+"""SQLAlchemy ORM models for the catalog database: manufacturers, hardware, applications, and catalog sections."""
 import datetime
 
 from sqlalchemy import Boolean, Date, Float, ForeignKey, Integer, String, Text
@@ -5,10 +6,12 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
-    pass
+    """SQLAlchemy declarative base for all catalog ORM models."""
 
 
 class Manufacturer(Base):
+    """A KNX manufacturer identified by its M-XXXX ID."""
+
     __tablename__ = "manufacturers"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -18,6 +21,8 @@ class Manufacturer(Base):
 
 
 class Application(Base):
+    """An ETS application program, referenced by one or more hardware programs."""
+
     __tablename__ = "applications"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -31,6 +36,8 @@ class Application(Base):
 
 
 class Hardware(Base):
+    """A physical KNX device as described in a manufacturer's Hardware.xml."""
+
     __tablename__ = "hardware"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -57,6 +64,8 @@ class Hardware(Base):
 
 
 class HardwareProgram(Base):
+    """A Hardware2Program entry linking a hardware item to an application program and a source .knxprod file."""
+
     __tablename__ = "hardware_programs"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -74,6 +83,8 @@ class HardwareProgram(Base):
 
 
 class HardwareProgramMediumType(Base):
+    """A KNX medium type (e.g. TP, IP, RF) supported by a hardware program."""
+
     __tablename__ = "hardware_program_medium_types"
 
     hardware_program_id: Mapped[str] = mapped_column(ForeignKey("hardware_programs.id"), primary_key=True)
@@ -83,6 +94,8 @@ class HardwareProgramMediumType(Base):
 
 
 class CatalogSection(Base):
+    """A node in a manufacturer's catalog hierarchy, optionally containing products and child sections."""
+
     __tablename__ = "catalog_sections"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -96,6 +109,8 @@ class CatalogSection(Base):
 
 
 class CatalogSectionProduct(Base):
+    """Many-to-many join between a catalog section and the hardware programs it lists."""
+
     __tablename__ = "catalog_section_products"
 
     section_id: Mapped[str] = mapped_column(ForeignKey("catalog_sections.id"), primary_key=True, index=True)
