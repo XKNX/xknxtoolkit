@@ -179,7 +179,7 @@ for (const pkg of packages) {
     const md = readFileSync(changelogSrc, "utf-8");
     // Strip the leading "# Changelog" h1 — the frontmatter title serves that role
     const body = md.replace(/^#\s+Changelog\s*\n/, "");
-    const fm = frontmatter({ title: "Changelog", description: `Release history for ${pkg.name}.`, icon: "History" });
+    const fm = frontmatter({ title: "Changelog", description: `Release history for xknx-${pkg.name}.`, icon: "History" });
     const dest = changelogOutPath(pkg);
     mkdirSync(dirname(dest), { recursive: true });
     writeFileSync(dest, `${fm}\n\n${body}`);
