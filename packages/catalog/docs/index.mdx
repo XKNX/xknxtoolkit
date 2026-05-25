@@ -46,8 +46,8 @@ with Session(get_engine()) as db:
     results = list_hardware(
         db,
         HardwareFilters(
-            manufacturer_ids=["M-0001"],
-            medium_types=["TP"],
+            manufacturer_id=["M-0001"],
+            medium_type=["TP"],
             limit=20,
         ),
     )

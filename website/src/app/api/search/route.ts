@@ -6,22 +6,24 @@ const docsSearch = createFromSource(source, { language: "english" });
 
 const CATALOG_API = process.env.CATALOG_API_URL ?? "http://localhost:8000";
 
-interface Product {
+interface HardwareResult {
   id: string;
-  product_name: string | null;
-  catalog_item_name: string | null;
+  name: string | null;
   order_number: string | null;
+  manufacturer_id: string;
 }
 
 async function searchCatalog(query: string): Promise<SortedResult[]> {
   const qs = new URLSearchParams({ search: query, limit: "5" });
-  const products: Product[] = await fetch(`${CATALOG_API}/products?${qs}`).then((r) => r.json());
-  return products.map((p) => ({
-    id: `catalog-${p.id}`,
-    url: `/catalog/products/${encodeURIComponent(p.id)}`,
+  const items: HardwareResult[] = await fetch(`${CATALOG_API}/hardware?${qs}`).then((r) =>
+    r.json(),
+  );
+  return items.map((h) => ({
+    id: `catalog-${h.id}`,
+    url: `/handbook/catalog/hardware/${encodeURIComponent(h.id)}`,
     type: "page" as const,
-    content: p.catalog_item_name ?? p.product_name ?? p.order_number ?? "",
-    breadcrumbs: ["Catalog"],
+    content: h.name ?? h.order_number ?? h.id,
+    breadcrumbs: ["Catalog", h.manufacturer_id],
   }));
 }
 

@@ -14,7 +14,7 @@ Example::
   upload_knxprod(Path("device.knxprod").read_bytes(), dest_dir=Path("data/knxprod"))
 
   with Session(get_engine()) as db:
-      results = list_hardware(db, HardwareFilters(manufacturer_ids=["M-0001"], limit=10))
+      results = list_hardware(db, HardwareFilters(manufacturer_id=["M-0001"], limit=10))
       for hw in results:
           print(hw.name, hw.order_number)
 """

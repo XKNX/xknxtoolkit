@@ -8,10 +8,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from xknxmono.product.errors import ArchiveError
-
-from xknxmono.catalog.db import get_knxprod_dir
-from xknxmono.catalog.core.upload import upload_knxprod
+from xknxmono.catalog.core.upload import upload_knxprod  # noqa: E402
+from xknxmono.catalog.db import get_knxprod_dir  # noqa: E402
+from xknxmono.product.errors import ArchiveError  # noqa: E402
 
 
 def main() -> None:

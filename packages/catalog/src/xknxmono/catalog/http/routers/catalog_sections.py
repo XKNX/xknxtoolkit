@@ -10,18 +10,18 @@ from xknxmono.catalog.core.catalog_sections import (
 )
 from xknxmono.catalog.core.manufacturers import get_manufacturer
 from xknxmono.catalog.db import get_db
-from xknxmono.catalog.http.schemas import CatalogSectionOut
+from xknxmono.catalog.http.schemas import CatalogSectionResponse
 
 router = APIRouter(prefix="/manufacturers", tags=["Manufacturers"])
 
 DbDep = Annotated[Session, Depends(get_db)]
 
-_cache: dict[str, list[CatalogSectionOut]] = {}
+_cache: dict[str, list[CatalogSectionResponse]] = {}
 
 
-def _node_to_out(node: CatalogSectionNode) -> CatalogSectionOut:
+def _node_to_out(node: CatalogSectionNode) -> CatalogSectionResponse:
   """Convert a :class:`~xknxmono.catalog.core.catalog_sections.CatalogSectionNode` to its API response schema."""
-  return CatalogSectionOut(
+  return CatalogSectionResponse(
     id=node.id,
     name=node.name,
     number=node.number,
@@ -31,7 +31,7 @@ def _node_to_out(node: CatalogSectionNode) -> CatalogSectionOut:
   )
 
 
-@router.get("/{manufacturer_id}/catalog-sections", response_model=list[CatalogSectionOut])
+@router.get("/{manufacturer_id}/catalog-sections", response_model=list[CatalogSectionResponse])
 def list_catalog_sections_endpoint(manufacturer_id: str, db: DbDep):
   """Return the full catalog section tree for a manufacturer, with results cached in memory."""
   if not get_manufacturer(db, manufacturer_id):

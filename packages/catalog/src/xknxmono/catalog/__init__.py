@@ -11,7 +11,7 @@ This package provides two layers:
   upload_knxprod(Path("device.knxprod").read_bytes(), dest_dir=Path("data/knxprod"))
 
   with Session(get_engine()) as db:
-      results = list_hardware(db, HardwareFilters(manufacturer_ids=["M-0001"]))
+      results = list_hardware(db, HardwareFilters(manufacturer_id=["M-0001"]))
 
 **HTTP layer** — a FastAPI application serving the same data over REST::
 

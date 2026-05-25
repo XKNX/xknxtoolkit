@@ -25,13 +25,13 @@ class HardwareFilters:
 
   All fields default to their "no filter" state so callers only set what they
   need. String and boolean filters are ANDed together. Repeatable list filters
-  (``manufacturer_ids``, ``medium_types``) match any item in the list (OR within
+  (``manufacturer_id``, ``medium_type``) match any item in the list (OR within
   the list, AND with other filters).
   """
 
-  manufacturer_ids: list[str] = field(default_factory=list[str])
+  manufacturer_id: list[str] = field(default_factory=list[str])
   """Restrict results to hardware belonging to these manufacturer M-XXXX IDs."""
-  medium_types: list[str] = field(default_factory=list[str])
+  medium_type: list[str] = field(default_factory=list[str])
   """Restrict results to hardware that supports at least one of these medium types (e.g. ``"TP"``, ``"IP"``, ``"RF"``)."""
   section_id: str | None = None
   """Restrict results to hardware listed in this catalog section or any of its descendants."""
@@ -99,7 +99,7 @@ def list_hardware(
   q = _base_query()
 
   needs_program_join = bool(
-    filters.medium_types
+    filters.medium_type
     or filters.is_secure_enabled is not None
     or filters.mask_version is not None
     or filters.registration_status is not None
@@ -111,8 +111,8 @@ def list_hardware(
   if needs_program_join:
     q = q.join(Hardware.programs)
 
-  if filters.manufacturer_ids:
-    q = q.where(Hardware.manufacturer_id.in_(filters.manufacturer_ids))
+  if filters.manufacturer_id:
+    q = q.where(Hardware.manufacturer_id.in_(filters.manufacturer_id))
   if filters.is_rail_mounted is not None:
     q = q.where(Hardware.is_rail_mounted == filters.is_rail_mounted)
   if filters.is_coupler is not None:
@@ -128,9 +128,9 @@ def list_hardware(
   if filters.search:
     term = f"%{filters.search}%"
     q = q.where(Hardware.name.ilike(term) | Hardware.order_number.ilike(term))
-  if filters.medium_types:
+  if filters.medium_type:
     q = q.join(HardwareProgram.medium_types).where(
-      HardwareProgramMediumType.medium_type.in_(filters.medium_types)
+      HardwareProgramMediumType.medium_type.in_(filters.medium_type)
     )
   if filters.is_secure_enabled is not None or filters.mask_version is not None:
     q = q.join(HardwareProgram.application, isouter=True)
