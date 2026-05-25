@@ -77,22 +77,12 @@ interface ApplicationDetail {
   code: Code | null;
 }
 
-function FlagCell({
-  active,
-  label,
-  abbr,
-}: {
-  active: boolean;
-  label: string;
-  abbr: string;
-}) {
+function FlagCell({ active, label, abbr }: { active: boolean; label: string; abbr: string }) {
   return (
     <span
       title={label}
       className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold ${
-        active
-          ? "bg-fd-primary/15 text-fd-primary"
-          : "text-fd-muted-foreground/30"
+        active ? "bg-fd-primary/15 text-fd-primary" : "text-fd-muted-foreground/30"
       }`}
     >
       {abbr}
@@ -117,9 +107,7 @@ function ParamValueDisplay({ param }: { param: Parameter }) {
     return (
       <span className="text-xs">
         {match ? match.text : param.value}
-        <span className="text-fd-muted-foreground/50 ml-1">
-          ({param.value})
-        </span>
+        <span className="text-fd-muted-foreground/50 ml-1">({param.value})</span>
       </span>
     );
   }
@@ -129,16 +117,12 @@ function ParamValueDisplay({ param }: { param: Parameter }) {
 function ParamTypeDisplay({ pt }: { pt: ParamType }) {
   if (pt.kind === "enum") {
     return (
-      <span className="text-xs text-fd-muted-foreground">
-        enum ({pt.options.length} options)
-      </span>
+      <span className="text-xs text-fd-muted-foreground">enum ({pt.options.length} options)</span>
     );
   }
   if (pt.kind === "number" || pt.kind === "unsigned" || pt.kind === "signed") {
     const range =
-      pt.min_value != null && pt.max_value != null
-        ? ` [${pt.min_value}–${pt.max_value}]`
-        : "";
+      pt.min_value != null && pt.max_value != null ? ` [${pt.min_value}–${pt.max_value}]` : "";
     const bits = pt.size_bits != null ? ` ${pt.size_bits}b` : "";
     return (
       <span className="text-xs text-fd-muted-foreground font-mono">
@@ -167,8 +151,7 @@ export default async function ApplicationPage({
   const app: ApplicationDetail = await res.json();
 
   const totalSegments =
-    (app.code?.absolute_segments.length ?? 0) +
-    (app.code?.relative_segments.length ?? 0);
+    (app.code?.absolute_segments.length ?? 0) + (app.code?.relative_segments.length ?? 0);
 
   const toc = [
     ...(totalSegments > 0
@@ -195,11 +178,7 @@ export default async function ApplicationPage({
   ];
 
   return (
-    <DocsPage
-      footer={{ enabled: false }}
-      breadcrumb={{ enabled: false }}
-      toc={toc}
-    >
+    <DocsPage footer={{ enabled: false }} breadcrumb={{ enabled: false }} toc={toc}>
       <Link
         href={`/handbook/catalog/hardware/${encodeURIComponent(id)}`}
         className="text-sm text-fd-muted-foreground hover:text-fd-foreground transition-colors"
@@ -207,12 +186,8 @@ export default async function ApplicationPage({
         ← Back to hardware
       </Link>
 
-      <h1 className="text-2xl font-semibold text-fd-foreground mt-4">
-        {app.name}
-      </h1>
-      <div className="text-fd-muted-foreground mt-1 text-sm">
-        {app.manufacturer_id}
-      </div>
+      <h1 className="text-2xl font-semibold text-fd-foreground mt-4">{app.name}</h1>
+      <div className="text-fd-muted-foreground mt-1 text-sm">{app.manufacturer_id}</div>
       <div className="mt-1 text-xs text-fd-muted-foreground/50 font-mono break-all">
         {app.application_id}
       </div>
@@ -235,8 +210,7 @@ export default async function ApplicationPage({
                       {seg.name ?? seg.id.split("_AS-")[1] ?? seg.id}
                     </span>
                     <span className="text-xs text-fd-muted-foreground font-mono">
-                      addr 0x{seg.address.toString(16).toUpperCase()} ·{" "}
-                      {seg.size} B
+                      addr 0x{seg.address.toString(16).toUpperCase()} · {seg.size} B
                     </span>
                     {seg.user_memory && (
                       <span className="text-xs px-1.5 py-0.5 rounded bg-fd-secondary text-fd-secondary-foreground">
@@ -247,9 +221,7 @@ export default async function ApplicationPage({
                   {seg.data ? (
                     <SegmentHexViewer data={seg.data} height="280px" />
                   ) : (
-                    <div className="text-xs text-fd-muted-foreground/50 italic">
-                      No data
-                    </div>
+                    <div className="text-xs text-fd-muted-foreground/50 italic">No data</div>
                   )}
                 </div>
               ))}
@@ -262,16 +234,13 @@ export default async function ApplicationPage({
                       {seg.name ?? seg.id.split("_RS-")[1] ?? seg.id}
                     </span>
                     <span className="text-xs text-fd-muted-foreground font-mono">
-                      offset 0x{seg.offset.toString(16).toUpperCase()} ·{" "}
-                      {seg.size} B
+                      offset 0x{seg.offset.toString(16).toUpperCase()} · {seg.size} B
                     </span>
                   </div>
                   {seg.data ? (
                     <SegmentHexViewer data={seg.data} height="280px" />
                   ) : (
-                    <div className="text-xs text-fd-muted-foreground/50 italic">
-                      No data
-                    </div>
+                    <div className="text-xs text-fd-muted-foreground/50 italic">No data</div>
                   )}
                 </div>
               ))}
@@ -291,15 +260,9 @@ export default async function ApplicationPage({
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b border-fd-border text-left">
-                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground w-12">
-                    #
-                  </th>
-                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground">
-                    Name
-                  </th>
-                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground">
-                    DPT
-                  </th>
+                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground w-12">#</th>
+                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground">Name</th>
+                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground">DPT</th>
                   <th className="pb-2 text-xs font-medium text-fd-muted-foreground">
                     <span title="C=Communication R=Read W=Write T=Transmit U=Update I=Read on Init">
                       Flags
@@ -309,10 +272,7 @@ export default async function ApplicationPage({
               </thead>
               <tbody className="divide-y divide-fd-border/50">
                 {app.com_objects.map((co) => (
-                  <tr
-                    key={co.id}
-                    className="hover:bg-fd-muted/30 transition-colors"
-                  >
+                  <tr key={co.id} className="hover:bg-fd-muted/30 transition-colors">
                     <td className="py-2 pr-4 text-fd-muted-foreground font-mono text-xs">
                       {co.number}
                     </td>
@@ -320,48 +280,20 @@ export default async function ApplicationPage({
                     <td className="py-2 pr-4">
                       <div className="flex flex-wrap gap-1">
                         {co.dpt_codes.length > 0 ? (
-                          co.dpt_codes.map((d, i) => (
-                            <DptBadge key={`${d}-${i}`} code={d} />
-                          ))
+                          co.dpt_codes.map((d, i) => <DptBadge key={`${d}-${i}`} code={d} />)
                         ) : (
-                          <span className="text-xs text-fd-muted-foreground/40">
-                            —
-                          </span>
+                          <span className="text-xs text-fd-muted-foreground/40">—</span>
                         )}
                       </div>
                     </td>
                     <td className="py-2">
                       <div className="flex gap-0.5">
-                        <FlagCell
-                          active={co.flags.communication}
-                          label="Communication"
-                          abbr="C"
-                        />
-                        <FlagCell
-                          active={co.flags.read}
-                          label="Read"
-                          abbr="R"
-                        />
-                        <FlagCell
-                          active={co.flags.write}
-                          label="Write"
-                          abbr="W"
-                        />
-                        <FlagCell
-                          active={co.flags.transmit}
-                          label="Transmit"
-                          abbr="T"
-                        />
-                        <FlagCell
-                          active={co.flags.update}
-                          label="Update"
-                          abbr="U"
-                        />
-                        <FlagCell
-                          active={co.flags.read_on_init}
-                          label="Read on Init"
-                          abbr="I"
-                        />
+                        <FlagCell active={co.flags.communication} label="Communication" abbr="C" />
+                        <FlagCell active={co.flags.read} label="Read" abbr="R" />
+                        <FlagCell active={co.flags.write} label="Write" abbr="W" />
+                        <FlagCell active={co.flags.transmit} label="Transmit" abbr="T" />
+                        <FlagCell active={co.flags.update} label="Update" abbr="U" />
+                        <FlagCell active={co.flags.read_on_init} label="Read on Init" abbr="I" />
                       </div>
                     </td>
                   </tr>
@@ -384,35 +316,20 @@ export default async function ApplicationPage({
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b border-fd-border text-left">
-                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground">
-                    Name
-                  </th>
-                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground">
-                    Text
-                  </th>
-                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground">
-                    Value
-                  </th>
-                  <th className="pb-2 text-xs font-medium text-fd-muted-foreground">
-                    Type
-                  </th>
+                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground">Name</th>
+                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground">Text</th>
+                  <th className="pb-2 pr-4 text-xs font-medium text-fd-muted-foreground">Value</th>
+                  <th className="pb-2 text-xs font-medium text-fd-muted-foreground">Type</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-fd-border/50">
                 {app.parameters.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="hover:bg-fd-muted/30 transition-colors"
-                  >
+                  <tr key={p.id} className="hover:bg-fd-muted/30 transition-colors">
                     <td className="py-2 pr-4 text-fd-foreground">
-                      {p.name || (
-                        <span className="text-fd-muted-foreground/40">—</span>
-                      )}
+                      {p.name || <span className="text-fd-muted-foreground/40">—</span>}
                     </td>
                     <td className="py-2 pr-4 text-fd-muted-foreground text-xs">
-                      {p.text || (
-                        <span className="text-fd-muted-foreground/40">—</span>
-                      )}
+                      {p.text || <span className="text-fd-muted-foreground/40">—</span>}
                     </td>
                     <td className="py-2 pr-4">
                       <ParamValueDisplay param={p} />
@@ -421,9 +338,7 @@ export default async function ApplicationPage({
                       {p.param_type ? (
                         <ParamTypeDisplay pt={p.param_type} />
                       ) : (
-                        <span className="text-xs text-fd-muted-foreground/40">
-                          —
-                        </span>
+                        <span className="text-xs text-fd-muted-foreground/40">—</span>
                       )}
                     </td>
                   </tr>

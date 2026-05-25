@@ -60,9 +60,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
       <div className="text-xs text-fd-muted-foreground">{label}</div>
-      <div className="text-sm font-medium text-fd-foreground mt-0.5">
-        {value}
-      </div>
+      <div className="text-sm font-medium text-fd-foreground mt-0.5">{value}</div>
     </div>
   );
 }
@@ -81,50 +79,30 @@ function Badge({
     amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   };
   return (
-    <span
-      className={`text-xs px-2 py-0.5 rounded font-medium ${styles[color]}`}
-    >
-      {children}
-    </span>
+    <span className={`text-xs px-2 py-0.5 rounded font-medium ${styles[color]}`}>{children}</span>
   );
 }
 
-export default async function HardwarePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function HardwarePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const hardware: Hardware = await fetch(
-    `${API}/hardware/${encodeURIComponent(id)}`,
-  ).then((r) => r.json());
+  const hardware: Hardware = await fetch(`${API}/hardware/${encodeURIComponent(id)}`).then((r) =>
+    r.json(),
+  );
   const manufacturer: Manufacturer = await fetch(
     `${API}/manufacturers/${hardware.manufacturer_id}`,
   ).then((r) => r.json());
 
-  const allMediumTypes = [
-    ...new Set(hardware.programs.flatMap((p) => p.medium_types)),
-  ];
-  const isSecure = hardware.programs.some(
-    (p) => p.application?.is_secure_enabled,
-  );
+  const allMediumTypes = [...new Set(hardware.programs.flatMap((p) => p.medium_types))];
+  const isSecure = hardware.programs.some((p) => p.application?.is_secure_enabled);
 
   const toc = [
     { title: "Overview", url: "#overview", depth: 2 },
-    ...(hardware.programs.length > 0
-      ? [{ title: "Programs", url: "#programs", depth: 2 }]
-      : []),
-    ...(hardware.description
-      ? [{ title: "Description", url: "#description", depth: 2 }]
-      : []),
+    ...(hardware.programs.length > 0 ? [{ title: "Programs", url: "#programs", depth: 2 }] : []),
+    ...(hardware.description ? [{ title: "Description", url: "#description", depth: 2 }] : []),
   ];
 
   return (
-    <DocsPage
-      footer={{ enabled: false }}
-      breadcrumb={{ enabled: false }}
-      toc={toc}
-    >
+    <DocsPage footer={{ enabled: false }} breadcrumb={{ enabled: false }} toc={toc}>
       <Link
         href="/handbook/catalog/browse-hardware"
         className="text-sm text-fd-muted-foreground hover:text-fd-foreground transition-colors"
@@ -132,10 +110,7 @@ export default async function HardwarePage({
         ← Back to catalog
       </Link>
 
-      <h1
-        id="overview"
-        className="text-2xl font-semibold text-fd-foreground mt-4"
-      >
+      <h1 id="overview" className="text-2xl font-semibold text-fd-foreground mt-4">
         {hardware.name ?? hardware.id}
       </h1>
       <div className="text-fd-muted-foreground mt-1">
@@ -197,18 +172,13 @@ export default async function HardwarePage({
           </h2>
           <div className="space-y-4">
             {hardware.programs.map((prog) => (
-              <div
-                key={prog.id}
-                className="rounded-lg border border-fd-border p-4"
-              >
+              <div key={prog.id} className="rounded-lg border border-fd-border p-4">
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div className="flex gap-2 flex-wrap">
                     {prog.medium_types.map((mt) => (
                       <Badge key={mt}>{MEDIUM_LABELS[mt] ?? mt}</Badge>
                     ))}
-                    {prog.application?.is_secure_enabled && (
-                      <Badge color="blue">Secure</Badge>
-                    )}
+                    {prog.application?.is_secure_enabled && <Badge color="blue">Secure</Badge>}
                   </div>
                   {prog.application && (
                     <Link
@@ -222,40 +192,17 @@ export default async function HardwarePage({
                 <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                   {prog.application && (
                     <>
-                      <Field
-                        label="Application"
-                        value={prog.application.name}
-                      />
-                      <Field
-                        label="Mask version"
-                        value={prog.application.mask_version}
-                      />
-                      <Field
-                        label="App number"
-                        value={prog.application.application_number}
-                      />
-                      <Field
-                        label="App version"
-                        value={prog.application.application_version}
-                      />
+                      <Field label="Application" value={prog.application.name} />
+                      <Field label="Mask version" value={prog.application.mask_version} />
+                      <Field label="App number" value={prog.application.application_number} />
+                      <Field label="App version" value={prog.application.application_version} />
                     </>
                   )}
-                  <Field
-                    label="Registration status"
-                    value={prog.registration_status}
-                  />
-                  <Field
-                    label="Registration number"
-                    value={prog.registration_number}
-                  />
-                  <Field
-                    label="Registration date"
-                    value={prog.registration_date}
-                  />
+                  <Field label="Registration status" value={prog.registration_status} />
+                  <Field label="Registration number" value={prog.registration_number} />
+                  <Field label="Registration date" value={prog.registration_date} />
                 </div>
-                <div className="mt-3 text-xs text-fd-muted-foreground/40 break-all">
-                  {prog.id}
-                </div>
+                <div className="mt-3 text-xs text-fd-muted-foreground/40 break-all">{prog.id}</div>
               </div>
             ))}
           </div>
@@ -264,18 +211,12 @@ export default async function HardwarePage({
 
       {hardware.description && (
         <div id="description" className="mt-8">
-          <h2 className="text-lg font-semibold text-fd-foreground mb-2">
-            Description
-          </h2>
-          <p className="text-sm text-fd-foreground whitespace-pre-line">
-            {hardware.description}
-          </p>
+          <h2 className="text-lg font-semibold text-fd-foreground mb-2">Description</h2>
+          <p className="text-sm text-fd-foreground whitespace-pre-line">{hardware.description}</p>
         </div>
       )}
 
-      <div className="mt-8 text-xs text-fd-muted-foreground/40 break-all">
-        {hardware.id}
-      </div>
+      <div className="mt-8 text-xs text-fd-muted-foreground/40 break-all">{hardware.id}</div>
     </DocsPage>
   );
 }

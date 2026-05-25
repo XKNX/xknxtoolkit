@@ -9,6 +9,9 @@
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx && uv tool install ./node_modules/fumadocs-python --reinstall && uv pip install --python ../.venv ./node_modules/fumadocs-python",
     "lint": "oxlint",
+    "format:src": "prettier --write \"src/**/*.{ts,tsx}\" \"*.ts\" \"scripts/**/*.{js,mjs}\"",
+    "format:docs": "prettier --write \"content/**/*.mdx\" \"../packages/*/docs/**/*.mdx\"",
+    "format": "npm run format:src && npm run format:docs",
     "generate:docs": "node scripts/generate-docs.mjs",
     "generate:openapi": "cd ../packages/catalog && uv run export-openapi openapi.json"
   },
@@ -35,6 +38,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "oxlint": "^1.65.0",
+    "prettier": "^3.5.3",
     "postcss": "^8.5.14",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3"

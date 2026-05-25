@@ -1,50 +1,50 @@
-'use client'
+"use client";
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo } from "react";
 
-const COLS = 16
-const GROUP = 8
+const COLS = 16;
+const GROUP = 8;
 
 function h2(n: number) {
-  return n.toString(16).toUpperCase().padStart(2, '0')
+  return n.toString(16).toUpperCase().padStart(2, "0");
 }
 
 function isPrintable(b: number) {
-  return b >= 0x20 && b < 0x7f
+  return b >= 0x20 && b < 0x7f;
 }
 
 function formatSize(n: number): string {
-  const hex = n.toString(16).toUpperCase()
-  if (n < 1024) return `${n} B (0x${hex})`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(2)} KB (0x${hex})`
-  return `${(n / (1024 * 1024)).toFixed(2)} MB (0x${hex})`
+  const hex = n.toString(16).toUpperCase();
+  if (n < 1024) return `${n} B (0x${hex})`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(2)} KB (0x${hex})`;
+  return `${(n / (1024 * 1024)).toFixed(2)} MB (0x${hex})`;
 }
 
 function offWidth(len: number) {
-  return Math.max(3, Math.ceil(Math.log(Math.max(len, 1)) / Math.log(16)))
+  return Math.max(3, Math.ceil(Math.log(Math.max(len, 1)) / Math.log(16)));
 }
 
 interface InspectorProps {
-  data: Uint8Array
-  cursor: number | null
-  littleEndian: boolean
-  onToggleEndian: (v: boolean) => void
+  data: Uint8Array;
+  cursor: number | null;
+  littleEndian: boolean;
+  onToggleEndian: (v: boolean) => void;
 }
 
 function Inspector({ data, cursor, littleEndian, onToggleEndian }: InspectorProps) {
   const values = useMemo(() => {
-    if (cursor === null || cursor >= data.length) return null
-    const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
-    const rem = data.byteLength - cursor
-    const byte = data[cursor]
+    if (cursor === null || cursor >= data.length) return null;
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    const rem = data.byteLength - cursor;
+    const byte = data[cursor];
 
-    const safe = <T,>(n: number, fn: () => T): T | null => (rem >= n ? fn() : null)
-    const fmt = (v: number | bigint | null) => (v === null ? '—' : String(v))
+    const safe = <T,>(n: number, fn: () => T): T | null => (rem >= n ? fn() : null);
+    const fmt = (v: number | bigint | null) => (v === null ? "—" : String(v));
     const fmtF = (v: number | null, p: number) =>
-      v === null ? '—' : isFinite(v) ? v.toPrecision(p) : String(v)
+      v === null ? "—" : isFinite(v) ? v.toPrecision(p) : String(v);
 
     return {
-      binary: byte.toString(2).padStart(8, '0'),
+      binary: byte.toString(2).padStart(8, "0"),
       int8: fmt(view.getInt8(cursor)),
       uint8: fmt(view.getUint8(cursor)),
       int16: fmt(safe(2, () => view.getInt16(cursor, littleEndian))),
@@ -53,36 +53,42 @@ function Inspector({ data, cursor, littleEndian, onToggleEndian }: InspectorProp
       uint32: fmt(safe(4, () => view.getUint32(cursor, littleEndian))),
       int64: fmt(safe(8, () => view.getBigInt64(cursor, littleEndian))),
       uint64: fmt(safe(8, () => view.getBigUint64(cursor, littleEndian))),
-      float32: fmtF(safe(4, () => view.getFloat32(cursor, littleEndian)), 7),
-      float64: fmtF(safe(8, () => view.getFloat64(cursor, littleEndian)), 10),
-    }
-  }, [cursor, data, littleEndian])
+      float32: fmtF(
+        safe(4, () => view.getFloat32(cursor, littleEndian)),
+        7,
+      ),
+      float64: fmtF(
+        safe(8, () => view.getFloat64(cursor, littleEndian)),
+        10,
+      ),
+    };
+  }, [cursor, data, littleEndian]);
 
   const rows = values
     ? ([
-        ['Binary', values.binary],
-        ['Int8', values.int8],
-        ['Uint8', values.uint8],
-        ['Int16', values.int16],
-        ['Uint16', values.uint16],
-        ['Int32', values.int32],
-        ['Uint32', values.uint32],
-        ['Int64', values.int64],
-        ['Uint64', values.uint64],
-        ['Float32', values.float32],
-        ['Float64', values.float64],
+        ["Binary", values.binary],
+        ["Int8", values.int8],
+        ["Uint8", values.uint8],
+        ["Int16", values.int16],
+        ["Uint16", values.uint16],
+        ["Int32", values.int32],
+        ["Uint32", values.uint32],
+        ["Int64", values.int64],
+        ["Uint64", values.uint64],
+        ["Float32", values.float32],
+        ["Float64", values.float64],
       ] as [string, string][])
-    : []
+    : [];
 
   return (
     <div className="w-52 shrink-0 border-l border-[#333] p-3 space-y-1 select-none">
       <div className="text-[#858585] font-semibold mb-2 text-[11px]">Inspector</div>
       <div className="text-[11px] text-[#606060]">
-        Offset:{' '}
+        Offset:{" "}
         {cursor !== null ? (
           <span className="text-[#d4d4d4]">0x{cursor.toString(16).toUpperCase()}</span>
         ) : (
-          'none'
+          "none"
         )}
       </div>
       {values ? (
@@ -102,31 +108,31 @@ function Inspector({ data, cursor, littleEndian, onToggleEndian }: InspectorProp
           <input
             type="checkbox"
             checked={littleEndian}
-            onChange={e => onToggleEndian(e.target.checked)}
+            onChange={(e) => onToggleEndian(e.target.checked)}
             className="w-3 h-3 accent-blue-500"
           />
           <span className="text-[#606060]">Little Endian</span>
         </label>
       </div>
     </div>
-  )
+  );
 }
 
 export interface HexViewerProps {
-  data: Uint8Array
-  height?: string
+  data: Uint8Array;
+  height?: string;
 }
 
-export function HexViewer({ data, height = '420px' }: HexViewerProps) {
-  const [cursor, setCursor] = useState<number | null>(null)
-  const [littleEndian, setLittleEndian] = useState(true)
+export function HexViewer({ data, height = "420px" }: HexViewerProps) {
+  const [cursor, setCursor] = useState<number | null>(null);
+  const [littleEndian, setLittleEndian] = useState(true);
 
-  const ow = offWidth(data.length)
-  const rowCount = Math.ceil(data.length / COLS)
+  const ow = offWidth(data.length);
+  const rowCount = Math.ceil(data.length / COLS);
 
   function handleByte(idx: number, hasData: boolean) {
-    if (!hasData) return
-    setCursor(prev => (prev === idx ? null : idx))
+    if (!hasData) return;
+    setCursor((prev) => (prev === idx ? null : idx));
   }
 
   return (
@@ -140,8 +146,8 @@ export function HexViewer({ data, height = '420px' }: HexViewerProps) {
           {Array.from({ length: COLS }, (_, i) => (
             <span
               key={i}
-              className={`shrink-0 text-center${i === GROUP - 1 ? ' mr-2' : ''}`}
-              style={{ width: '3ch' }}
+              className={`shrink-0 text-center${i === GROUP - 1 ? " mr-2" : ""}`}
+              style={{ width: "3ch" }}
             >
               {h2(i)}
             </span>
@@ -151,18 +157,12 @@ export function HexViewer({ data, height = '420px' }: HexViewerProps) {
 
         {/* Data rows */}
         {Array.from({ length: rowCount }, (_, row) => {
-          const offset = row * COLS
+          const offset = row * COLS;
           return (
-            <div
-              key={row}
-              className="flex items-center px-3 py-px hover:bg-[#272727]"
-            >
+            <div key={row} className="flex items-center px-3 py-px hover:bg-[#272727]">
               {/* Offset */}
-              <span
-                className="text-[#505050] shrink-0 select-none"
-                style={{ width: `${ow}ch` }}
-              >
-                {offset.toString(16).toUpperCase().padStart(ow, '0')}
+              <span className="text-[#505050] shrink-0 select-none" style={{ width: `${ow}ch` }}>
+                {offset.toString(16).toUpperCase().padStart(ow, "0")}
               </span>
 
               <span className="w-3 shrink-0" />
@@ -170,66 +170,58 @@ export function HexViewer({ data, height = '420px' }: HexViewerProps) {
               {/* Hex bytes */}
               <div className="flex shrink-0">
                 {Array.from({ length: COLS }, (_, col) => {
-                  const idx = offset + col
-                  const hasData = idx < data.length
-                  const byte = hasData ? data[idx] : null
-                  const selected = idx === cursor
+                  const idx = offset + col;
+                  const hasData = idx < data.length;
+                  const byte = hasData ? data[idx] : null;
+                  const selected = idx === cursor;
 
                   return (
                     <span
                       key={col}
                       className={[
-                        'shrink-0 text-center rounded cursor-pointer',
-                        col === GROUP - 1 ? 'mr-2' : '',
+                        "shrink-0 text-center rounded cursor-pointer",
+                        col === GROUP - 1 ? "mr-2" : "",
                         selected
-                          ? 'bg-blue-600 text-white'
+                          ? "bg-blue-600 text-white"
                           : byte === null
-                          ? ''
-                          : byte === 0
-                          ? 'text-[#404040] hover:bg-[#2e2e2e]'
-                          : 'hover:bg-[#2e2e2e]',
-                      ].join(' ')}
-                      style={{ width: '3ch' }}
+                            ? ""
+                            : byte === 0
+                              ? "text-[#404040] hover:bg-[#2e2e2e]"
+                              : "hover:bg-[#2e2e2e]",
+                      ].join(" ")}
+                      style={{ width: "3ch" }}
                       onClick={() => handleByte(idx, hasData)}
                     >
-                      {byte !== null ? h2(byte) : ''}
+                      {byte !== null ? h2(byte) : ""}
                     </span>
-                  )
+                  );
                 })}
               </div>
 
               {/* ASCII */}
               <div className="ml-4 pl-3 border-l border-[#2a2a2a] flex text-[#606060]">
                 {Array.from({ length: COLS }, (_, col) => {
-                  const idx = offset + col
-                  const hasData = idx < data.length
-                  const byte = hasData ? data[idx] : null
-                  const selected = idx === cursor
+                  const idx = offset + col;
+                  const hasData = idx < data.length;
+                  const byte = hasData ? data[idx] : null;
+                  const selected = idx === cursor;
 
                   return (
                     <span
                       key={col}
                       className={[
-                        'cursor-pointer rounded',
-                        selected
-                          ? 'bg-blue-600 text-white'
-                          : hasData
-                          ? 'hover:bg-[#2e2e2e]'
-                          : '',
-                      ].join(' ')}
+                        "cursor-pointer rounded",
+                        selected ? "bg-blue-600 text-white" : hasData ? "hover:bg-[#2e2e2e]" : "",
+                      ].join(" ")}
                       onClick={() => handleByte(idx, hasData)}
                     >
-                      {byte !== null
-                        ? isPrintable(byte)
-                          ? String.fromCharCode(byte)
-                          : '.'
-                        : ' '}
+                      {byte !== null ? (isPrintable(byte) ? String.fromCharCode(byte) : ".") : " "}
                     </span>
-                  )
+                  );
                 })}
               </div>
             </div>
-          )
+          );
         })}
 
         {/* Footer */}
@@ -246,5 +238,5 @@ export function HexViewer({ data, height = '420px' }: HexViewerProps) {
         onToggleEndian={setLittleEndian}
       />
     </div>
-  )
+  );
 }

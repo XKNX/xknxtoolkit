@@ -29,8 +29,8 @@ export default function HomePage() {
       <section className="flex flex-col items-center justify-center text-center py-24 px-4 gap-6">
         <h1 className="text-5xl font-bold tracking-tight">XKNX Toolkit</h1>
         <p className="text-fd-muted-foreground text-lg max-w-xl">
-          A Python library suite for working with KNX project files, product
-          archives, security keys, and data models.
+          A Python library suite for working with KNX project files, product archives, security
+          keys, and data models.
         </p>
         <div className="flex gap-3 flex-wrap justify-center">
           <Link
@@ -57,9 +57,7 @@ export default function HomePage() {
             className="rounded-lg border border-fd-border p-6 flex flex-col gap-2"
           >
             <h2 className="font-semibold font-mono text-sm">{pkg.name}</h2>
-            <p className="text-fd-muted-foreground text-sm">
-              {pkg.description}
-            </p>
+            <p className="text-fd-muted-foreground text-sm">{pkg.description}</p>
           </div>
         ))}
       </section>

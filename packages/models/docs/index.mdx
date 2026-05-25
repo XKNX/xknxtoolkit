@@ -36,13 +36,13 @@ version = detect_version(xml_bytes)  # e.g. "20"
 
 ## API reference
 
-| Symbol | Description |
-|---|---|
-| `load_xml(source, version?)` | Parse XML bytes into a typed `Knx` object |
-| `serialize_xml(obj, version)` | Serialize a `Knx` object back to XML bytes |
-| `detect_version(xml_bytes)` | Extract the schema version from the XML namespace declaration |
-| `get_model_class(version)` | Return the `Knx` dataclass for a given version string |
-| `SUPPORTED_VERSIONS` | Frozenset of all supported version strings |
-| `VersionError` | Raised when a version cannot be detected or is unsupported |
+| Symbol                        | Description                                                   |
+| ----------------------------- | ------------------------------------------------------------- |
+| `load_xml(source, version?)`  | Parse XML bytes into a typed `Knx` object                     |
+| `serialize_xml(obj, version)` | Serialize a `Knx` object back to XML bytes                    |
+| `detect_version(xml_bytes)`   | Extract the schema version from the XML namespace declaration |
+| `get_model_class(version)`    | Return the `Knx` dataclass for a given version string         |
+| `SUPPORTED_VERSIONS`          | Frozenset of all supported version strings                    |
+| `VersionError`                | Raised when a version cannot be detected or is unsupported    |
 
 Version sub-modules (`v10`–`v14`, `v20`–`v23`) are re-exported from the package root and contain the full xsdata-generated class hierarchy for that schema version.

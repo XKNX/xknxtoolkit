@@ -15,9 +15,7 @@ interface Product {
 
 async function searchCatalog(query: string): Promise<SortedResult[]> {
   const qs = new URLSearchParams({ search: query, limit: "5" });
-  const products: Product[] = await fetch(`${CATALOG_API}/products?${qs}`).then(
-    (r) => r.json(),
-  );
+  const products: Product[] = await fetch(`${CATALOG_API}/products?${qs}`).then((r) => r.json());
   return products.map((p) => ({
     id: `catalog-${p.id}`,
     url: `/catalog/products/${encodeURIComponent(p.id)}`,

@@ -1,0 +1,18 @@
+{
+  "overrides": [
+    {
+      "files": ["*.ts", "*.tsx"],
+      "options": {
+        "printWidth": 100
+      }
+    },
+    {
+      "files": ["*.md", "*.mdx"],
+      "options": {
+        "parser": "mdx",
+        "proseWrap": "preserve",
+        "printWidth": 120
+      }
+    }
+  ]
+}
