@@ -1,3 +1,9 @@
+---
+title: KNX Product File Format (`.knxprod`)
+description: Read and validate .knxprod device archives.
+icon: FileBraces
+---
+
 # KNX Product File Format (`.knxprod`)
 
 A `.knxprod` file is a ZIP archive distributed by KNX device manufacturers. It contains the full definition of one or more devices: their hardware, firmware application programs, and ETS catalog entries.
@@ -82,8 +88,8 @@ Represents a physical hardware variant. One file can contain multiple `<Hardware
 
 | Attribute | Versions | Description |
 |---|---|---|
-| `RFDeviceMode` | v12–v19 | RF device operating mode. |
-| `RuntimeUnidirectional` | v12–v19 | Device operates in unidirectional RF mode at runtime. |
+| `RFDeviceMode` | v12–v14 | RF device operating mode. |
+| `RuntimeUnidirectional` | v12–v14 | Device operates in unidirectional RF mode at runtime. |
 | `RFRxCapabilities` | v20 only | RF receive capability flags. Moved to `<Hardware2Program>` in v21. |
 | `RFTxCapabilities` | v20 only | RF transmit capability flags. Moved to `<Hardware2Program>` in v21. |
 
@@ -358,7 +364,7 @@ Child elements:
 
 #### `<Code>`
 
-Firmware binary data embedded in the archive. Contains the actual memory image that ETS downloads to the device. Not needed for parameter or com-object parsing.
+Firmware binary data embedded in the archive. Contains the actual memory image that ETS downloads to the device.
 
 Child elements:
 

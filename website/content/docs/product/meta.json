@@ -3,5 +3,13 @@
   "description": "xknx-product",
   "root": true,
   "icon": "Shapes",
-  "pages": ["---Introduction---", "index", "---Python API---", "api", "---About---", "changelog"]
+  "pages": [
+    "---Introduction---",
+    "index",
+    "knx-product-file-format",
+    "---Python API---",
+    "api",
+    "---About---",
+    "changelog"
+  ]
 }
