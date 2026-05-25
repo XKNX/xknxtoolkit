@@ -177,8 +177,13 @@ for (const pkg of packages) {
   const changelogSrc = join(pkgDir, "CHANGELOG.md");
   if (existsSync(changelogSrc)) {
     const md = readFileSync(changelogSrc, "utf-8");
-    // Strip the leading "# Changelog" h1 — the frontmatter title serves that role
-    const body = md.replace(/^#\s+Changelog\s*\n/, "");
+    // Strip the leading "# Changelog" h1 — the frontmatter title serves that role.
+    // Also strip reference-style link definitions at the bottom (e.g. "[1.0.0]: https://...")
+    // to avoid <a> nested inside heading anchor <a> hydration errors in the browser.
+    const body = md
+      .replace(/^#\s+Changelog\s*\n/, "")
+      .replace(/^\[.*?\]:.*$/gm, "")
+      .trimEnd() + "\n";
     const fm = frontmatter({ title: "Changelog", description: `Release history for xknx-${pkg.name}.`, icon: "History" });
     const dest = changelogOutPath(pkg);
     mkdirSync(dirname(dest), { recursive: true });
