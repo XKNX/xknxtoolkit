@@ -1,0 +1,90 @@
+---
+title: Schema Version Changelog
+description: What changed between schema versions 10–23.
+icon: History
+---
+
+
+The namespace `http://knx.org/xml/project/{version}` identifies the schema version in every XML file in the archive. Versions 10–14 correspond to ETS 4/5 releases; versions 20–23 to ETS 6.
+
+## v10 → v11
+
+- **`ApplicationProgramT`**: added `CreatedFromLegacySchemaVersion` (bool flag set when the file was generated from a pre-v11 source).
+- **`ParameterT` / `ParameterRefT`**: added `SuffixText` — a unit label appended after the parameter value in the ETS UI (e.g. `"ms"`, `"°C"`).
+- **`Hardware2ProgramT`**: added `CheckSums` and `LoadedImage` (pre-built firmware image embedded in archive).
+- **`TypePicture`**: new parameter type for binary image data.
+- **`SplitInfoT`**: new element tracking installation split information.
+- Enum `OptionsTextParameterEncoding` replaced by `OptionsTextParameterEncodingSelector`.
+
+## v11 → v12
+
+- **`ApplicationProgramT`**: added `InternalDescription`.
+- **`ComObjectT`**: `VisibleDescription` removed; replaced by `InternalDescription` (manufacturer-internal, not shown in ETS).
+- **`ComObjectRefT`**: same — `VisibleDescription` removed, `InternalDescription` and `TextParameterRefId` added.
+- **`HardwareT`**: added `IsRFRetransmitter`, `RFDeviceMode`, `RuntimeUnidirectional`, `InternalDescription`.
+- **`ParameterT` / `ParameterRefT`**: added `InternalDescription`; `ParameterRefT` also gains `TextParameterRefId`.
+- **`ChannelT`**: added `TextParameterRefId`, `InternalDescription`.
+- **`ParameterBlockT`**: added `TextParameterRefId`.
+- **`CatalogSectionT`**: added `InternalDescription`.
+- New functional block and group address reference types added (`FunctionalBlock`, `GroupAddressRefT`, `FunctionT`).
+- `AddInData` renamed to `AddinData`.
+
+## v12 → v13
+
+- **KNX Security introduced.**
+- **`ApplicationProgramT`**: added `IsSecureEnabled`, `MaxUserEntries`, `MaxTunnelingUserEntries`, `MaxSecurityIndividualAddressEntries`, `MaxSecurityGroupKeyTableEntries`, `MaxSecurityP2PKeyTableEntries`, `TunnelingAddressIndices`.
+- **`ComObjectT`**: added `SecurityRequired` (`None` / `Auth` / `AuthAndConf`).
+- **`ComObjectRefT`**: added `Roles` (semantic role tokens for automatic group address linking), `SecurityRequired`.
+- New classes: `BusInterfaceT`, `DeviceCertificateT`, `ChannelInstanceT`, `SecurityT`.
+
+## v13 → v14
+
+- **`ApplicationProgramStaticT`**: `<Options>` gains `PartialDownloadOnlyVisibleParameters`, `Comparable`, `Reconstructable`, `DownloadInvisibleParameters`.
+- **`ApplicationProgramT`**: added `ContextHelpFile`, `IconFile`; removed `TunnelingAddressIndices` (a space-separated list of address indices for KNX Security tunneling, present only in v13 — dropped without replacement in v14).
+- **`ApplicationProgramStaticT`**: major expansion — added `<BusInterfaces>`, `<Messages>`, `<ParameterValidations>`, `<Script>`, `<SecurityRoles>`.
+- **`ParameterT`**: added `CustomerAdjustable`, `InitialValue`.
+- **`ParameterRefT`**: added `CustomerAdjustable`, `ForbidGrantingUseByCustomer`, `InitialValue`.
+- **`ChannelT`**: added `Icon`, `HelpContext`.
+- **`ParameterBlockT`**: added `Inline`, `Layout`, `Cell`, `Icon`, `HelpContext`, `ShowInComObjectTree`. Grid layout support: `<Rows>` and `<Columns>` child elements.
+- **`ParameterSeparatorT`**: added `UIHint`, `TextParameterRefId`, `InternalDescription`, `Cell`, `Icon`.
+- New Dynamic leaf element: `<Button>` — a plugin-triggering push-button widget.
+- New parameter type `TypeRawData`.
+- New UI layout types: `Column`, `Row`, `SpaceT`, `ParameterBlockLayoutT`.
+- LdCtrl classes renamed with `T` suffix throughout.
+
+## v14 → v20
+
+- **Major release. Module system introduced.**
+- **`ApplicationProgramT`**: added `ModuleDefs`, `Semantics`, `MaxSecurityProxyGroupKeyTableEntries`, `MaxSecurityProxyIndividualAddressTableEntries`.
+- **`ApplicationProgramStaticT`**: added `<Allocators>`; `<Options>` gains `SupportsExtendedMemoryServices`, `SupportsExtendedPropertyServices`, `SupportsIPSystemBroadcast`, `NotLoadable`, `CustomerAdjustableParameters`; `<ParameterCalculations>` now also present in `ModuleDefStaticT`.
+- **`ApplicationProgramDynamicT`**: added `<Module>` and `<Repeat>` — applications can now instantiate module definitions and repeat them.
+- **`ButtonT`**: added `Name` attribute.
+- **`ComObjectT`**: added all five flag lock attributes (`ReadFlagLocked`, `WriteFlagLocked`, `TransmitFlagLocked`, `UpdateFlagLocked`, `ReadOnInitFlagLocked`) and `MayRead`.
+- **`ComObjectRefT`**: same flag locks plus `Semantics`.
+- **`ChannelT`**: added `Semantics`.
+- **`ParameterBlockT`**: added `Semantics`.
+- **`HardwareT`**: added `Tp256`, `RFRxCapabilities`, `RFTxCapabilities`; removed `RFDeviceMode`, `RuntimeUnidirectional`.
+- **`Hardware2ProgramT`**: added `CouplerCapabilities`.
+- **`ParameterRefT`**: added `Semantics`.
+- New module infrastructure: `ModuleDefT`, `ModuleDefStaticT`, `ModuleDefDynamicT`, `ModuleT`, `RepeatT`, `AllocatorT`, `SubModuleDefs`, `TextArg`, `NumericArg`, `ModuleArgT`.
+- `ModuleDefDynamic` gains `<ParameterBlock>` at top level (not available in `ApplicationProgramDynamic`).
+- Module com objects use `<ComObjects>` with `BaseNumber` instead of `<ComObjectTable>`.
+
+## v20 → v21
+
+- **`ApplicationProgramT`**: added `HardwareType`; removed `MaxSecurityProxyIndividualAddressTableEntries`.
+- **`HardwareT`**: added `Semantics`; `RFRxCapabilities` and `RFTxCapabilities` **moved** to `<Hardware2Program>`.
+- **`Hardware2ProgramT`**: now carries `RFRxCapabilities`, `RFTxCapabilities`, `Semantics`.
+- New: `Tag` / `Tags` elements; `Segment`; `ProjectTypeT` enum.
+
+## v21 → v22
+
+- **`ComObjectT`**: added `IoTpointReference` — links a com object to an IoT data point.
+- **`Hardware2ProgramT`**: added `SleepCycleTimeSeconds` for RF battery devices.
+- New: `IoTpointParameterT` class supporting IoT integration.
+
+## v22 → v23
+
+- **`ApplicationProgramT`**: added `CloudConnect` and `Profile` — cloud connectivity configuration.
+- New: `IoT` and `Profile` classes.
+- New enum: `ApplicationProgramTCloudConnect`.

@@ -1,0 +1,25 @@
+---
+title: Overview
+description: Archive layout and structure of the .knxprod format.
+icon: FileBraces
+---
+
+
+A `.knxprod` file is a ZIP archive distributed by KNX device manufacturers. It contains the full definition of one or more devices: their hardware, firmware application programs, and ETS catalog entries.
+
+Supported schema versions: **10, 11, 12, 13, 14, 20, 21, 22, 23** (namespace `http://knx.org/xml/project/{version}`).
+
+---
+
+# Archive structure
+
+```
+knx_master.xml                   — version metadata; namespace determines schema version
+M-XXXX/                          — one directory per manufacturer (hex ID, e.g. M-00FA)
+  Catalog.xml                    — product catalog / ETS tree
+  Hardware.xml                   — hardware and product definitions
+  M-XXXX_A-<name>.xml            — one application XML per device program
+  M-XXXX.signature               — optional archive signature
+```
+
+The manufacturer code `M-XXXX` is a four-hex-digit string that appears throughout cross-file references (e.g. `M-00FA`).

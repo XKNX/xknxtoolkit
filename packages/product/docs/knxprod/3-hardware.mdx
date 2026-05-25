@@ -1,0 +1,140 @@
+---
+title: Hardware XML
+description: Hardware, product, and application program link elements.
+icon: Cpu
+---
+
+
+Root structure:
+
+```xml
+<KNX>
+  <ManufacturerData>
+    <Manufacturer RefId="M-XXXX">
+      <Hardware>
+        <Hardware ...>
+          <Products>
+            <Product ... />
+          </Products>
+          <Hardware2Programs>
+            <Hardware2Program ...>
+              <ApplicationProgramRef RefId="..." />
+            </Hardware2Program>
+          </Hardware2Programs>
+        </Hardware>
+      </Hardware>
+    </Manufacturer>
+  </ManufacturerData>
+</KNX>
+```
+
+## `<Hardware>` element
+
+Represents a physical hardware variant. One file can contain multiple `<Hardware>` elements (e.g. different bus interface types of the same product family).
+
+| Attribute | Since | Type | Req | Description |
+|---|---|---|---|---|
+| `Id` | v10 | string | yes | Unique identifier, referenced by `Hardware2Program` cross-links. |
+| `Name` | v10 | string ≤255 | yes | Human-readable hardware name. |
+| `SerialNumber` | v10 | string ≤50 | yes | Manufacturer's serial number for this hardware. |
+| `VersionNumber` | v10 | int 0–32767 | yes | Hardware revision number. |
+| `BusCurrent` | v10 | float | no | Current drawn from the KNX bus in milliamps. |
+| `HasIndividualAddress` | v10 | bool | yes | Device occupies a KNX individual address on the bus. |
+| `HasApplicationProgram` | v10 | bool | yes | Device has a downloadable application program (primary). |
+| `HasApplicationProgram2` | v10 | bool | no | Device has a second application program slot. |
+| `IsAccessory` | v10 | bool | no | Device is an accessory (not a standalone bus device). |
+| `IsPowerSupply` | v10 | bool | no | Device supplies power to the KNX bus. |
+| `IsChoke` | v10 | bool | no | Device is a bus choke (inductance). |
+| `IsCoupler` | v10 | bool | no | Device is a KNX coupler (area/line). |
+| `IsPowerLineRepeater` | v10 | bool | no | Device acts as a PL (powerline) repeater. |
+| `IsPowerLineSignalFilter` | v10 | bool | no | Device is a PL signal filter. |
+| `IsCable` | v10 | bool | no | Entry represents a cable accessory, not an active device. |
+| `IsIPEnabled` | v10 | bool | no | Device supports KNXnet/IP. |
+| `IsRFRetransmitter` | v12 | bool | no | Device retransmits RF telegrams. |
+| `OriginalManufacturer` | v10 | string | no | Manufacturer ID if this hardware is an OEM copy of another manufacturer's product. |
+| `NoDownloadWithoutPlugin` | v10 | bool | no | ETS must not download this device without a vendor plugin. |
+| `NonRegRelevantDataVersion` | v10 | int | no | Internal version counter for non-registration data. |
+| `InternalDescription` | v12 | string | no | Free-text note for manufacturer tooling; not shown in ETS. |
+| `Tp256` | v20 | bool | no | Device supports TP 256 addressing mode. |
+| `Semantics` | v21 | string | no | Semantic classification for tooling. |
+
+**Removed attributes:**
+
+| Attribute | Versions | Description |
+|---|---|---|
+| `RFDeviceMode` | v12–v14 | RF device operating mode. |
+| `RuntimeUnidirectional` | v12–v14 | Device operates in unidirectional RF mode at runtime. |
+| `RFRxCapabilities` | v20 only | RF receive capability flags. Moved to `<Hardware2Program>` in v21. |
+| `RFTxCapabilities` | v20 only | RF transmit capability flags. Moved to `<Hardware2Program>` in v21. |
+
+
+---
+
+### `<Product>` element
+
+Represents a single orderable product SKU within a hardware definition.
+
+| Attribute | Since | Type | Req | Description |
+|---|---|---|---|---|
+| `Id` | v10 | string | yes | Unique identifier; referenced from `Catalog.xml` via `ProductRefId`. |
+| `Text` | v10 | string ≤255 | yes | Display name in the ETS catalog. |
+| `OrderNumber` | v10 | string ≤50 | yes | Manufacturer's ordering number (e.g. `2CDG110187R0011`). |
+| `IsRailMounted` | v10 | bool | yes | Device mounts on a DIN rail. |
+| `WidthInMillimeter` | v10 | float | no | Physical width in millimeters (used for DIN rail space calculation). |
+| `VisibleDescription` | v10 | string | no | Short description shown in ETS catalog. |
+| `DefaultLanguage` | v10 | string | no | BCP-47 language tag for default display text. |
+| `NonRegRelevantDataVersion` | v10 | int | no | Internal version counter. |
+| `Hash` | v10 | base64 | no | Content hash for integrity checking. |
+| `InternalDescription` | v12 | string | no | Manufacturer-internal note. |
+
+#### `<Baggages>`
+
+List of `<Baggage RefId="...">` pointing to external resource files (PDF datasheets, images, etc.)
+
+#### `<Attributes>`
+
+List of `<Attribute Name="..." Value="...">` for ETS display attributes (e.g. colour, certification marks). Attribute names are drawn from a fixed enum (`DeviceBusVoltage`, `DevicePeiType`, `HardwareType`, etc.)
+
+---
+
+### `<Hardware2Program>` element
+
+Links a hardware variant to one or two application programs and specifies the supported bus media.
+
+| Attribute | Since | Type | Req | Description |
+|---|---|---|---|---|
+| `Id` | v10 | string | yes | Unique identifier; referenced from `Catalog.xml` via `Hardware2ProgramRefId`. |
+| `MediumTypes` | v10 | token list | no | Space-separated KNX medium types this combination supports: `TP` (twisted pair), `PL110` (powerline), `RF` (radio frequency), `IP`. |
+| `Hash` | v10 | base64 | no | Content hash. |
+| `CheckSums` | v11 | base64 | no | Additional checksums for the linked application program data. |
+| `LoadedImage` | v11 | base64 | no | Pre-built firmware image embedded directly in the archive. |
+| `CouplerCapabilities` | v20 | token list | no | Coupler-specific capability flags. |
+| `RFRxCapabilities` | v21 | enum | no | RF receive capability flags. Moved here from `<Hardware>` in v21. |
+| `RFTxCapabilities` | v21 | enum | no | RF transmit capability flags. Moved here from `<Hardware>` in v21. |
+| `Semantics` | v21 | string | no | Semantic classification for tooling. |
+| `SleepCycleTimeSeconds` | v22 | int | no | Sleep cycle duration in seconds for RF battery-powered devices. |
+
+---
+
+#### `<ApplicationProgramRef>` element
+
+Links a `<Hardware2Program>` to one application program. Up to two may be present (primary + secondary slot).
+
+| Attribute | Since | Description |
+|---|---|---|
+| `RefId` | v10 | Matches `ApplicationProgram/@Id` in the corresponding `M-XXXX_A-*.xml`. |
+
+---
+
+#### `<RegistrationInfo>` element
+
+KNX registration/certification metadata attached to a `<Hardware2Program>`. Only present on products that have been officially registered with the KNX Association.
+
+| Attribute | Since | Description |
+|---|---|---|
+| `RegistrationStatus` | v10 | Certification status: `Certified`, `Registered`, `InProgress`, or `Unknown`. |
+| `RegistrationNumber` | v10 | KNX-assigned registration number in the form `YYYY/NNN`. |
+| `OriginalRegistrationNumber` | v10 | Registration number of the product this was derived from (OEM / white-label case). |
+| `RegistrationDate` | v10 | ISO date on which registration was granted. |
+| `RegistrationSignature` | v10 | Base64-encoded cryptographic signature issued by the KNX Association. |
+| `RegistrationKey` | v10 | Key type used for the signature (default `KnxConv`). |

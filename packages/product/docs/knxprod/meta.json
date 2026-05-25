@@ -1,0 +1,10 @@
+{
+  "title": "KNX Product File Format",
+  "pages": [
+    "1-introduction",
+    "3-hardware",
+    "2-catalog",
+    "4-application",
+    "5-changelog"
+  ]
+}

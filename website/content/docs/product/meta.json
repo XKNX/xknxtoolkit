@@ -6,7 +6,8 @@
   "pages": [
     "---Introduction---",
     "index",
-    "knx-product-file-format",
+    "---KNX Product File Format---",
+    "...knxprod",
     "---Python API---",
     "api",
     "---About---",

@@ -1,0 +1,36 @@
+---
+title: Catalog XML
+description: ETS product tree structure and catalog entry elements.
+icon: BookOpen
+---
+
+
+
+Defines the ETS product tree. Not parsed into `DeviceApplication`; used to link catalog entries to hardware/application IDs.
+
+## `<CatalogSection>` element
+
+Hierarchical category node (can be nested).
+
+| Attribute | Since | Description |
+|---|---|---|
+| `Id` | v10 | Unique ID. |
+| `Name` | v10 | Category name (≤255 chars). |
+| `Number` | v10 | Ordering number (≤20 chars). |
+| `VisibleDescription` | v10 | Short description. |
+| `DefaultLanguage` | v10 | BCP-47 language tag. |
+| `InternalDescription` | v12 | Manufacturer-internal note. |
+
+## `<CatalogItem>` element
+
+A leaf entry representing one orderable product.
+
+| Attribute | Since | Description |
+|---|---|---|
+| `Id` | v10 | Unique ID. |
+| `Name` | v10 | Display name (≤255 chars). |
+| `Number` | v10 | Ordering number within its section. |
+| `VisibleDescription` | v10 | Short description. |
+| `ProductRefId` | v10 | References `Hardware.xml/Hardware/Products/Product/@Id`. |
+| `Hardware2ProgramRefId` | v10 | References `Hardware.xml/Hardware/Hardware2Programs/Hardware2Program/@Id`. |
+| `DefaultLanguage` | v10 | BCP-47 language tag. |
