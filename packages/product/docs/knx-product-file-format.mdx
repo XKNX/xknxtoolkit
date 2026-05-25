@@ -93,14 +93,10 @@ Represents a physical hardware variant. One file can contain multiple `<Hardware
 | `RFRxCapabilities` | v20 only | RF receive capability flags. Moved to `<Hardware2Program>` in v21. |
 | `RFTxCapabilities` | v20 only | RF transmit capability flags. Moved to `<Hardware2Program>` in v21. |
 
-Child elements:
-
-- `<Products>` — contains one or more `<Product>` elements (orderable variants of this hardware)
-- `<Hardware2Programs>` — contains one or more `<Hardware2Program>` elements (links to application programs)
 
 ---
 
-### `<Product>` element
+#### `<Product>` element
 
 Represents a single orderable product SKU within a hardware definition.
 
@@ -117,14 +113,17 @@ Represents a single orderable product SKU within a hardware definition.
 | `Hash` | v10 | base64 | no | Content hash for integrity checking. |
 | `InternalDescription` | v12 | string | no | Manufacturer-internal note. |
 
-Child elements:
+##### `<Baggages>`
 
-- `<Baggages>` — list of `<Baggage RefId="...">` pointing to external resource files (PDF datasheets, images, etc.)
-- `<Attributes>` — list of `<Attribute Name="..." Value="...">` for ETS display attributes (e.g. colour, certification marks). Attribute names are drawn from a fixed enum (`DeviceBusVoltage`, `DevicePeiType`, `HardwareType`, etc.)
+List of `<Baggage RefId="...">` pointing to external resource files (PDF datasheets, images, etc.)
+
+##### `<Attributes>`
+
+List of `<Attribute Name="..." Value="...">` for ETS display attributes (e.g. colour, certification marks). Attribute names are drawn from a fixed enum (`DeviceBusVoltage`, `DevicePeiType`, `HardwareType`, etc.)
 
 ---
 
-### `<Hardware2Program>` element
+#### `<Hardware2Program>` element
 
 Links a hardware variant to one or two application programs and specifies the supported bus media.
 
@@ -141,11 +140,9 @@ Links a hardware variant to one or two application programs and specifies the su
 | `Semantics` | v21 | string | no | Semantic classification for tooling. |
 | `SleepCycleTimeSeconds` | v22 | int | no | Sleep cycle duration in seconds for RF battery-powered devices. |
 
-Child elements: `<ApplicationProgramRef>`, `<RegistrationInfo>`.
-
 ---
 
-### `<ApplicationProgramRef>` element
+##### `<ApplicationProgramRef>` element
 
 Links a `<Hardware2Program>` to one application program. Up to two may be present (primary + secondary slot).
 
@@ -155,7 +152,7 @@ Links a `<Hardware2Program>` to one application program. Up to two may be presen
 
 ---
 
-### `<RegistrationInfo>` element
+##### `<RegistrationInfo>` element
 
 KNX registration/certification metadata attached to a `<Hardware2Program>`. Only present on products that have been officially registered with the KNX Association.
 
@@ -228,8 +225,6 @@ Top-level descriptor of a device firmware application.
 | `TunnelingAddressIndices` | v13 only | Space-separated list of address indices for KNX Security tunneling. Dropped without replacement in v14. |
 | `MaxSecurityProxyIndividualAddressTableEntries` | v20 only | Maximum proxy individual address table entries (KNX Security). Dropped in v21. |
 
-Child elements: `<Static>`, `<Dynamic>`, `<ModuleDefs>`.
-
 ---
 
 ### `<Static>` section
@@ -242,9 +237,9 @@ Only present in `ApplicationProgram/Static` — module definitions do not define
 
 Each `<ParameterType Id="...">` holds exactly one of:
 
-**`<TypeRestriction>`** — enumeration type
+##### `<TypeRestriction>`
 
-Contains one or more `<Enumeration>` children:
+Enumeration type. Contains one or more `<Enumeration>` children:
 
 | Attribute | Since | Description |
 |---|---|---|
@@ -253,7 +248,9 @@ Contains one or more `<Enumeration>` children:
 | `Id` | v10 | Optional unique ID for this enum entry. |
 | `DisplayOrder` | v10 | Optional integer controlling display order in ETS. |
 
-**`<TypeNumber>`** — integer or checkbox type
+##### `<TypeNumber>`
+
+Integer or checkbox type.
 
 | Attribute | Since | Description |
 |---|---|---|
@@ -262,22 +259,30 @@ Contains one or more `<Enumeration>` children:
 | `SizeInBit` | v10 | Storage width in bits. |
 | `UIHint` | v10 | If `"Checkbox"`, renders as a boolean toggle instead of a numeric input. |
 
-**`<TypeText>`** — free-text string type
+##### `<TypeText>`
+
+Free-text string type.
 
 | Attribute | Since | Description |
 |---|---|---|
 | `SizeInBit` | v10 | Maximum string length in bits (divide by 8 for bytes). |
 
-**`<TypeTime>`** — time duration type (seconds)
+##### `<TypeTime>`
+
+Time duration type (seconds).
 
 | Attribute | Since | Description |
 |---|---|---|
 | `MinInclusive` | v10 | Minimum value in seconds. |
 | `MaxInclusive` | v10 | Maximum value in seconds. |
 
-**`<TypePicture>`** *(since v11)* — binary image data (no user-editable attributes).
+##### `<TypePicture>` *(since v11)*
 
-**`<TypeRawData>`** *(since v14)* — raw binary data (no user-editable attributes).
+Binary image data (no user-editable attributes).
+
+##### `<TypeRawData>` *(since v14)*
+
+Raw binary data (no user-editable attributes).
 
 ---
 
@@ -300,12 +305,17 @@ Each `<Parameter>` (or `<Parameter>` inside a `<Union>`):
 | `InitialValue` | v14 | Factory-reset value, if different from `Value`. |
 | `CustomerAdjustable` | v14 | When `true`, end-customers may adjust this parameter in ETS without full engineering access. |
 
-Child elements:
+##### `<Memory>`
 
-- `<Memory CodeSegment="..." Offset="..." BitOffset="...">` — locates the parameter's storage in device memory (code segment reference, byte offset, bit offset within the byte).
-- `<Property ObjIdx="..." PropId="...">` — alternative storage: the parameter maps to a KNX interface object property rather than a memory address.
+`<Memory CodeSegment="..." Offset="..." BitOffset="...">` — locates the parameter's storage in device memory (code segment reference, byte offset, bit offset within the byte).
 
-`<Union>` groups parameters that share the same memory address (only one is active at a time based on conditions).
+##### `<Property>`
+
+`<Property ObjIdx="..." PropId="...">` — alternative storage: the parameter maps to a KNX interface object property rather than a memory address.
+
+##### `<Union>`
+
+Groups parameters that share the same memory address (only one is active at a time based on conditions).
 
 ---
 
@@ -354,11 +364,21 @@ Each `<ParameterCalculation>`:
 | `LRTransformationFunc` | v10 | Function name for the left-to-right transformation (display value → raw device value). |
 | `LRTransformationParameters` | v10 | Extra arguments passed to `LRTransformationFunc`. |
 
-Child elements:
-- `<LParameters>` — list of `<ParameterRefRef>` identifying the left-side (display) parameters.
-- `<RParameters>` — list of `<ParameterRefRef>` identifying the right-side (raw) parameters.
-- `<RLTransformation>` — optional inline script body for the RL direction (alternative to `RLTransformationFunc`).
-- `<LRTransformation>` — optional inline script body for the LR direction.
+##### `<LParameters>`
+
+List of `<ParameterRefRef>` identifying the left-side (display) parameters.
+
+##### `<RParameters>`
+
+List of `<ParameterRefRef>` identifying the right-side (raw) parameters.
+
+##### `<RLTransformation>`
+
+Optional inline script body for the RL direction (alternative to `RLTransformationFunc`).
+
+##### `<LRTransformation>`
+
+Optional inline script body for the LR direction.
 
 ---
 
@@ -366,9 +386,9 @@ Child elements:
 
 Firmware binary data embedded in the archive. Contains the actual memory image that ETS downloads to the device.
 
-Child elements:
+##### `<AbsoluteSegment>`
 
-**`<AbsoluteSegment>`** — a code block placed at a fixed device memory address.
+A code block placed at a fixed device memory address.
 
 | Attribute | Since | Description |
 |---|---|---|
@@ -382,7 +402,9 @@ Child elements:
 
 Contains `<Data>` (base64 binary) and optional `<Mask>` (base64 bitmask of writable bits).
 
-**`<RelativeSegment>`** — a code block placed at an offset within a load-state-machine segment.
+##### `<RelativeSegment>`
+
+A code block placed at an offset within a load-state-machine segment.
 
 | Attribute | Since | Description |
 |---|---|---|
@@ -408,7 +430,7 @@ The table element itself carries two device memory layout attributes:
 | `CodeSegment` | v10 | Reference to the memory segment that holds the group object table on the device. |
 | `Offset` | v10 | Byte offset within that segment (0–1 048 575). |
 
-Each `<ComObject>` child:
+##### `<ComObject>`
 
 | Attribute | Since | Type | Req | Description |
 |---|---|---|---|---|
@@ -725,9 +747,9 @@ Child element: `<Data>` — the binary payload (base64-encoded).
 
 Specifies memory regions and properties that ETS should skip when comparing the device's current state against the expected application state (e.g. volatile runtime counters that should not trigger a "device differs" warning).
 
-Child elements:
+##### `<ExcludeMemory>`
 
-**`<ExcludeMemory>`** — excludes a memory range from comparison.
+Excludes a memory range from comparison.
 
 | Attribute | Since | Description |
 |---|---|---|
@@ -736,7 +758,9 @@ Child elements:
 | `Size` | v10 | Number of bytes to exclude. |
 | `InternalDescription` | v12 | Manufacturer-internal note. |
 
-**`<ExcludeProperty>`** — excludes a KNX interface object property from comparison.
+##### `<ExcludeProperty>`
+
+Excludes a KNX interface object property from comparison.
 
 | Attribute | Since | Description |
 |---|---|---|
@@ -863,7 +887,7 @@ Conditional switch on a parameter value. There are four context-specific Choose 
 |---|---|---|
 | `ParamRefId` | v10 | The `ParameterRef/@Id` whose current value drives the branch selection. |
 
-#### `<When>` element
+##### `<When>`
 
 | Attribute | Since | Description |
 |---|---|---|
@@ -887,10 +911,13 @@ Instantiates a `<ModuleDef>` with specific text argument values.
 | `Name` | v20 | Instance display name. |
 | `RefId` | v20 | Points to `<ModuleDef/@Id>` in the `<ModuleDefs>` section. |
 
-Child elements:
+##### `<TextArg>`
 
-- `<TextArg RefId="..." Value="...">` — supplies a string value for a named module argument.
-- `<NumericArg RefId="..." Value="...">` — supplies a numeric value for a named module argument.
+`<TextArg RefId="..." Value="...">` — supplies a string value for a named module argument.
+
+##### `<NumericArg>`
+
+`<NumericArg RefId="..." Value="...">` — supplies a numeric value for a named module argument.
 
 ---
 
@@ -1010,7 +1037,7 @@ Inside a `<When>` branch, renames an existing `<ParameterBlock>` (by ref). Used 
 
 Grid layout definitions for a `<ParameterBlock Layout="Grid">`. A block may contain one `<Rows>` and one `<Columns>` child; each holds an ordered list of `<Row>` or `<Column>` items that define the grid structure. Individual parameters, separators, and buttons reference a cell via their `Cell="row,col"` attribute.
 
-**`<Row>` attributes:**
+##### `<Row>`
 
 | Attribute | Description |
 |---|---|
@@ -1021,7 +1048,7 @@ Grid layout definitions for a `<ParameterBlock Layout="Grid">`. A block may cont
 | `CollapseIfEmpty` | When `true`, hide the row if it contains no visible items (default `false`). |
 | `InternalDescription` | Manufacturer-internal note. |
 
-**`<Column>` attributes:**
+##### `<Column>`
 
 | Attribute | Description |
 |---|---|
@@ -1045,14 +1072,23 @@ Each `<ModuleDef>`:
 | `Id` | v20 | Unique ID; referenced by `<Module/@RefId>`. |
 | `Name` | v20 | Internal name for tooling. |
 
-Child elements:
+Module arguments are substituted into `Text` attributes via `{{ArgumentName}}` placeholders (see [Template substitution](#template-substitution) below).
 
-- `<Arguments>` — list of `<Argument Id="..." Name="...">` declaring the template parameters.
-- `<Static>` — subset of `ApplicationProgram/Static`. Contains: `<Parameters>`, `<ParameterRefs>`, `<ParameterCalculations>`, `<ParameterValidations>`, `<ComObjects>` (not `<ComObjectTable>`; each `<ComObject>` gains a `BaseNumber` attribute), `<ComObjectRefs>`, `<LoadProcedures>`, `<Allocators>`. Does **not** contain `<ParameterTypes>`, `<ComObjectTable>`, `<AddressTable>`, `<AssociationTable>`, `<Code>`, or `<BusInterfaces>` — those are application-level concerns.
-- `<Dynamic>` — superset of `ApplicationProgram/Dynamic`. Contains all the same elements (`<ChannelIndependentBlock>`, `<Channel>`, `<Choose>`, `<Module>`, `<Repeat>`) and additionally allows `<ParameterBlock>` at the top level, which the application-level `<Dynamic>` does not permit.
-- `<SubModuleDefs>` — nested module definitions, allowing multi-level module composition.
+#### `<Arguments>`
 
-Module arguments are substituted into `Text` attributes via `{{ArgumentName}}` placeholders (see Template substitution below).
+List of `<Argument Id="..." Name="...">` declaring the template parameters.
+
+#### `<Static>`
+
+Subset of `ApplicationProgram/Static`. Contains: `<Parameters>`, `<ParameterRefs>`, `<ParameterCalculations>`, `<ParameterValidations>`, `<ComObjects>` (not `<ComObjectTable>`; each `<ComObject>` gains a `BaseNumber` attribute), `<ComObjectRefs>`, `<LoadProcedures>`, `<Allocators>`. Does **not** contain `<ParameterTypes>`, `<ComObjectTable>`, `<AddressTable>`, `<AssociationTable>`, `<Code>`, or `<BusInterfaces>` — those are application-level concerns.
+
+#### `<Dynamic>`
+
+Superset of `ApplicationProgram/Dynamic`. Contains all the same elements (`<ChannelIndependentBlock>`, `<Channel>`, `<Choose>`, `<Module>`, `<Repeat>`) and additionally allows `<ParameterBlock>` at the top level, which the application-level `<Dynamic>` does not permit.
+
+#### `<SubModuleDefs>`
+
+Nested module definitions, allowing multi-level module composition.
 
 ---
 
