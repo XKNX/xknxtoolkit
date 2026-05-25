@@ -11,7 +11,7 @@ load_dotenv()
 from xknxmono.product.errors import ArchiveError
 
 from xknxmono.catalog.db import get_knxprod_dir
-from xknxmono.catalog.ingest import ingest_file
+from xknxmono.catalog.core.upload import upload_knxprod
 
 
 def main() -> None:
@@ -32,7 +32,7 @@ def main() -> None:
         if i % 100 == 0 or i == total:
             print(f"  [{i}/{total}] {fp.name}")
         try:
-            ingest_file(fp.read_bytes(), dest_dir)
+            upload_knxprod(fp.read_bytes(), dest_dir)
         except ArchiveError as e:
             print(f"  SKIP {fp.name}: {e}", file=sys.stderr)
             errors += 1

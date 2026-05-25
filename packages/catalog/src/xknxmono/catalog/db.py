@@ -7,10 +7,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import Session
-
-from xknxmono.catalog.models import Base
+from sqlalchemy import create_engine, event  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
+from xknxmono.catalog.models import Base  # noqa: E402
 
 _PACKAGE_DIR = Path(__file__).parents[3]
 

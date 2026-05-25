@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.scripts]
-xknxcatalog = "xknxmono.catalog.app:main"
+xknxcatalog = "xknxmono.catalog.http.app:main"
 export-openapi = "scripts.export_openapi:main"
 ingest-catalog = "scripts.ingest:main"
 

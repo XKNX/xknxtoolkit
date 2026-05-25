@@ -7,7 +7,7 @@ _DEFAULT_OUT = Path(__file__).resolve().parents[4] / "openapi.json"
 
 
 def main():
-    from xknxmono.catalog.app import app
+    from xknxmono.catalog.http.app import app
 
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else _DEFAULT_OUT
     spec = app.openapi()

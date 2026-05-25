@@ -42,7 +42,7 @@ function writeStrip2(files, { outDir, namespace, moduleName }) {
 
 // Package config:
 // - apiOutDir: where MDX API docs are written
-// - docsOutDir: where hand-written .mdx docs are copied (null for catalog)
+// - docsOutDir: where hand-written .mdx docs are copied
 // - apiBaseUrl: the URL base for API pages
 const packages = [
   {
@@ -72,7 +72,7 @@ const packages = [
     moduleName: "catalog",
     srcDir: "packages/catalog/src",
     apiOutDir: "content/docs/catalog/api",
-    docsOutDir: null,
+    docsOutDir: "content/docs/catalog",
     apiBaseUrl: "/docs/catalog/api",
   },
   {

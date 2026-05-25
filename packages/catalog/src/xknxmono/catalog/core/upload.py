@@ -6,9 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session
-from xknxmono.product.archive import ProductArchive
-from xknxmono.product.data import load_archive
-
 from xknxmono.catalog.db import get_engine
 from xknxmono.catalog.models import (
     Application,
@@ -19,6 +16,8 @@ from xknxmono.catalog.models import (
     HardwareProgramMediumType,
     Manufacturer,
 )
+from xknxmono.product.archive import ProductArchive
+from xknxmono.product.data import load_archive
 
 
 def _walk_manufacturer_data(knx: Any):
@@ -133,7 +132,7 @@ def _ingest_catalog(session: Session, cat_knx: Any, mfr_id: str) -> None:
             _ingest_section(session, section, mfr_id, None)
 
 
-def ingest_file(content: bytes, dest_dir: Path) -> Path:
+def upload_knxprod(content: bytes, dest_dir: Path) -> Path:
     """Ingest .knxprod bytes. Returns the path where the file was saved.
 
     Skips silently if the same content (by SHA3-256) was already ingested.
@@ -143,14 +142,13 @@ def ingest_file(content: bytes, dest_dir: Path) -> Path:
     if path.exists():
         return path
 
-    with ProductArchive(content) as archive:
-        with Session(get_engine()) as session:
-            for mfr_id in archive.manufacturer_ids:
-                data = load_archive(archive, mfr_id)
-                _ingest_applications(session, data.applications)
-                _ingest_hardware(session, data.hardware, mfr_id, str(path))
-                _ingest_catalog(session, data.catalog, mfr_id)
-            session.commit()
+    with ProductArchive(content) as archive, Session(get_engine()) as session:
+        for mfr_id in archive.manufacturer_ids:
+            data = load_archive(archive, mfr_id)
+            _ingest_applications(session, data.applications)
+            _ingest_hardware(session, data.hardware, mfr_id, str(path))
+            _ingest_catalog(session, data.catalog, mfr_id)
+        session.commit()
 
     path.write_bytes(content)
     return path
