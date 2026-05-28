@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import ForwardRef
 
 from xsdata.models.datatype import XmlDate, XmlDateTime
 
@@ -111,6 +112,285 @@ class ApplicationProgramRefT:
     )
 
 
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTAddressTable:
+    """
+    :ivar code_segment: registration-relevant
+    :ivar offset: registration-relevant
+    :ivar max_entries: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    code_segment: None | str = field(
+        default=None,
+        metadata={
+            "name": "CodeSegment",
+            "type": "Attribute",
+        },
+    )
+    offset: None | int = field(
+        default=None,
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+            "max_inclusive": 1048575,
+        },
+    )
+    max_entries: int = field(
+        metadata={
+            "name": "MaxEntries",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTAssociationTable:
+    """
+    :ivar code_segment: registration-relevant
+    :ivar offset: registration-relevant
+    :ivar max_entries: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    code_segment: None | str = field(
+        default=None,
+        metadata={
+            "name": "CodeSegment",
+            "type": "Attribute",
+        },
+    )
+    offset: None | int = field(
+        default=None,
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+            "max_inclusive": 1048575,
+        },
+    )
+    max_entries: int = field(
+        metadata={
+            "name": "MaxEntries",
+            "type": "Attribute",
+        }
+    )
+
+
+class ApplicationProgramStaticTBusInterfacesBusInterfaceAccessType(Enum):
+    TUNNELING = "Tunneling"
+    USB = "USB"
+    ROUTING = "Routing"
+    INTERNAL = "Internal"
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTDeviceCompareExcludeMemory:
+    class Meta:
+        global_type = False
+
+    code_segment: str = field(
+        metadata={
+            "name": "CodeSegment",
+            "type": "Attribute",
+        }
+    )
+    offset: int = field(
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+            "max_inclusive": 1048575,
+        }
+    )
+    size: int = field(
+        metadata={
+            "name": "Size",
+            "type": "Attribute",
+            "max_inclusive": 1048575,
+        }
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTDeviceCompareExcludeProperty:
+    class Meta:
+        global_type = False
+
+    object_index: None | int = field(
+        default=None,
+        metadata={
+            "name": "ObjectIndex",
+            "type": "Attribute",
+        },
+    )
+    object_type: None | int = field(
+        default=None,
+        metadata={
+            "name": "ObjectType",
+            "type": "Attribute",
+        },
+    )
+    occurrence: int = field(
+        default=0,
+        metadata={
+            "name": "Occurrence",
+            "type": "Attribute",
+        },
+    )
+    property_id: int = field(
+        metadata={
+            "name": "PropertyId",
+            "type": "Attribute",
+        }
+    )
+    offset: int = field(
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+        }
+    )
+    size: int = field(
+        metadata={
+            "name": "Size",
+            "type": "Attribute",
+            "max_inclusive": 1048575,
+        }
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTExtensionBaggage:
+    class Meta:
+        global_type = False
+
+    ref_id: str = field(
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTMessagesMessage:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+    text: str = field(
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+
+
+class ApplicationProgramStaticTOptionsCustomerAdjustableParameters(Enum):
+    WRITE = "Write"
+    SYNC = "Sync"
+
+
+class ApplicationProgramStaticTOptionsNotLoadable(Enum):
+    SKIP_SILENTLY = "SkipSilently"
+    DISPLAY_ERROR = "DisplayError"
+
+
+class ApplicationProgramStaticTOptionsParameterByteOrder(Enum):
+    BIG_ENDIAN = "BigEndian"
+    LITTLE_ENDIAN = "LittleEndian"
+
+
+class ApplicationProgramStaticTOptionsTextParameterEncodingSelector(Enum):
+    USE_WINDOWS_ANSI_CODE_PAGE = "UseWindowsAnsiCodePage"
+    USE_PROJECT_CODE_PAGE = "UseProjectCodePage"
+    USE_TEXT_PARAMETER_ENCODING_CODE_PAGE = "UseTextParameterEncodingCodePage"
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTScript:
+    class Meta:
+        global_type = False
+
+    value: str = field(default="")
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTSecurityRolesSecurityRole:
+    """
+    :ivar id: registration-relevant
+    :ivar text:
+    :ivar mask: registration-relevant
+    :ivar role_id:
+    """
+
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    text: str = field(
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    mask: int = field(
+        metadata={
+            "name": "Mask",
+            "type": "Attribute",
+        }
+    )
+    role_id: None | int = field(
+        default=None,
+        metadata={
+            "name": "RoleID",
+            "type": "Attribute",
+        },
+    )
+
+
 class ApplicationProgramTypeT(Enum):
     APPLICATION_PROGRAM = "ApplicationProgram"
     PEI_PROGRAM = "PeiProgram"
@@ -121,11 +401,71 @@ class ApplicationProgramTCloudConnect(Enum):
     BROKER = "Broker"
 
 
-class ArgumentAlignment(Enum):
-    VALUE_1 = 1
-    VALUE_2 = 2
-    VALUE_4 = 4
-    VALUE_8 = 8
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramTProfileIoT:
+    """
+    :ivar supports_co_apblock_wise_transfer: registration-relevant
+    :ivar max_associations_per_group_object: registration-relevant
+    :ivar max_recipient_table_entries: registration-relevant
+    :ivar max_publisher_table_entries: registration-relevant
+    :ivar max_access_token_list_entries: registration-relevant
+    :ivar max_group_address_routing_table_entries: registration-relevant
+    :ivar routable_datapoint_main_types: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    supports_co_apblock_wise_transfer: bool = field(
+        default=True,
+        metadata={
+            "name": "SupportsCoAPBlockWiseTransfer",
+            "type": "Attribute",
+        },
+    )
+    max_associations_per_group_object: int = field(
+        default=20,
+        metadata={
+            "name": "MaxAssociationsPerGroupObject",
+            "type": "Attribute",
+        },
+    )
+    max_recipient_table_entries: int = field(
+        default=0,
+        metadata={
+            "name": "MaxRecipientTableEntries",
+            "type": "Attribute",
+        },
+    )
+    max_publisher_table_entries: int = field(
+        default=0,
+        metadata={
+            "name": "MaxPublisherTableEntries",
+            "type": "Attribute",
+        },
+    )
+    max_access_token_list_entries: int = field(
+        default=0,
+        metadata={
+            "name": "MaxAccessTokenListEntries",
+            "type": "Attribute",
+        },
+    )
+    max_group_address_routing_table_entries: None | int = field(
+        default=None,
+        metadata={
+            "name": "MaxGroupAddressRoutingTableEntries",
+            "type": "Attribute",
+        },
+    )
+    routable_datapoint_main_types: list[str] = field(
+        default_factory=list,
+        metadata={
+            "name": "RoutableDatapointMainTypes",
+            "type": "Attribute",
+            "tokens": True,
+        },
+    )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -167,12 +507,6 @@ class AssignT:
             "type": "Attribute",
         },
     )
-
-
-class AttributeName(Enum):
-    CATALOG_NAME = "CatalogName"
-    SERIES = "Series"
-    COLOUR = "Colour"
 
 
 @dataclass(slots=True, kw_only=True)
@@ -265,97 +599,17 @@ class BusAccessT:
     )
 
 
-class BusInterfaceAccessType(Enum):
-    TUNNELING = "Tunneling"
-    USB = "USB"
-    ROUTING = "Routing"
-    INTERNAL = "Internal"
-
-
 @dataclass(slots=True, kw_only=True)
-class BusInterfaceT:
+class BusInterfaceTConnectorsConnector:
     class Meta:
-        name = "BusInterface_t"
+        global_type = False
 
-    connectors: None | BusInterfaceT.Connectors = field(
-        default=None,
+    group_address_ref_id: str = field(
         metadata={
-            "name": "Connectors",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    ref_id: str = field(
-        metadata={
-            "name": "RefId",
+            "name": "GroupAddressRefId",
             "type": "Attribute",
         }
     )
-    name: None | str = field(
-        default=None,
-        metadata={
-            "name": "Name",
-            "type": "Attribute",
-            "max_length": 255,
-        },
-    )
-    description: None | str = field(
-        default=None,
-        metadata={
-            "name": "Description",
-            "type": "Attribute",
-        },
-    )
-    comment: None | str = field(
-        default=None,
-        metadata={
-            "name": "Comment",
-            "type": "Attribute",
-        },
-    )
-    password: None | str = field(
-        default=None,
-        metadata={
-            "name": "Password",
-            "type": "Attribute",
-            "max_length": 20,
-        },
-    )
-    password_hash: None | bytes = field(
-        default=None,
-        metadata={
-            "name": "PasswordHash",
-            "type": "Attribute",
-            "format": "base64",
-        },
-    )
-    is_secure_enabled: bool = field(
-        default=True,
-        metadata={
-            "name": "IsSecureEnabled",
-            "type": "Attribute",
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class Connectors:
-        connector: list[BusInterfaceT.Connectors.Connector] = field(
-            default_factory=list,
-            metadata={
-                "name": "Connector",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Connector:
-            group_address_ref_id: str = field(
-                metadata={
-                    "name": "GroupAddressRefId",
-                    "type": "Attribute",
-                }
-            )
 
 
 class ButtonTEventHandlerOnline(Enum):
@@ -407,26 +661,10 @@ class CapabilityT(Enum):
 
 
 @dataclass(slots=True, kw_only=True)
-class CatalogSectionT:
+class CatalogSectionTCatalogItem:
     class Meta:
-        name = "CatalogSection_t"
+        global_type = False
 
-    catalog_section: list[CatalogSectionT] = field(
-        default_factory=list,
-        metadata={
-            "name": "CatalogSection",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    catalog_item: list[CatalogSectionT.CatalogItem] = field(
-        default_factory=list,
-        metadata={
-            "name": "CatalogItem",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
     id: str = field(
         metadata={
             "name": "Id",
@@ -440,17 +678,29 @@ class CatalogSectionT:
             "max_length": 255,
         }
     )
-    number: str = field(
+    number: int = field(
         metadata={
             "name": "Number",
             "type": "Attribute",
-            "max_length": 20,
         }
     )
     visible_description: None | str = field(
         default=None,
         metadata={
             "name": "VisibleDescription",
+            "type": "Attribute",
+        },
+    )
+    product_ref_id: str = field(
+        metadata={
+            "name": "ProductRefId",
+            "type": "Attribute",
+        }
+    )
+    hardware2_program_ref_id: None | str = field(
+        default=None,
+        metadata={
+            "name": "Hardware2ProgramRefId",
             "type": "Attribute",
         },
     )
@@ -476,68 +726,39 @@ class CatalogSectionT:
         },
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class CatalogItem:
-        id: str = field(
-            metadata={
-                "name": "Id",
-                "type": "Attribute",
-            }
-        )
-        name: str = field(
-            metadata={
-                "name": "Name",
-                "type": "Attribute",
-                "max_length": 255,
-            }
-        )
-        number: int = field(
-            metadata={
-                "name": "Number",
-                "type": "Attribute",
-            }
-        )
-        visible_description: None | str = field(
-            default=None,
-            metadata={
-                "name": "VisibleDescription",
-                "type": "Attribute",
-            },
-        )
-        product_ref_id: str = field(
-            metadata={
-                "name": "ProductRefId",
-                "type": "Attribute",
-            }
-        )
-        hardware2_program_ref_id: None | str = field(
-            default=None,
-            metadata={
-                "name": "Hardware2ProgramRefId",
-                "type": "Attribute",
-            },
-        )
-        default_language: None | str = field(
-            default=None,
-            metadata={
-                "name": "DefaultLanguage",
-                "type": "Attribute",
-            },
-        )
-        non_reg_relevant_data_version: int = field(
-            default=0,
-            metadata={
-                "name": "NonRegRelevantDataVersion",
-                "type": "Attribute",
-            },
-        )
-        internal_description: None | str = field(
-            default=None,
-            metadata={
-                "name": "InternalDescription",
-                "type": "Attribute",
-            },
-        )
+
+@dataclass(slots=True, kw_only=True)
+class ChannelChooseT:
+    """
+    :ivar when: registration-relevant list
+    :ivar param_ref_id: registration-relevant
+    :ivar internal_description:
+    """
+
+    class Meta:
+        name = "ChannelChoose_t"
+
+    when: list[ChannelChooseTWhen] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+    param_ref_id: str = field(
+        metadata={
+            "name": "ParamRefId",
+            "type": "Attribute",
+        }
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -585,6 +806,90 @@ class ChannelInstanceT:
         default=None,
         metadata={
             "name": "Context",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ComObjectParameterBlockTRowsRow:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    text: None | str = field(
+        default=None,
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    text_parameter_ref_id: None | str = field(
+        default=None,
+        metadata={
+            "name": "TextParameterRefId",
+            "type": "Attribute",
+        },
+    )
+    collapse_if_empty: bool = field(
+        default=False,
+        metadata={
+            "name": "CollapseIfEmpty",
+            "type": "Attribute",
+        },
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ComObjectParameterChooseT:
+    """
+    :ivar when: registration-relevant list
+    :ivar param_ref_id: registration-relevant
+    :ivar internal_description:
+    """
+
+    class Meta:
+        name = "ComObjectParameterChoose_t"
+
+    when: list[ComObjectParameterChooseTWhen] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+    param_ref_id: str = field(
+        metadata={
+            "name": "ParamRefId",
+            "type": "Attribute",
+        }
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
             "type": "Attribute",
         },
     )
@@ -712,6 +1017,306 @@ class CouplerCapabilityT(Enum):
     SEGMENT_COUPLER = "SegmentCoupler"
 
 
+@dataclass(slots=True, kw_only=True)
+class DatapointTypeTDatapointSubtypesDatapointSubtypeFormatBit:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+        },
+    )
+    set: str = field(
+        metadata={
+            "name": "Set",
+            "type": "Attribute",
+        }
+    )
+    cleared: str = field(
+        metadata={
+            "name": "Cleared",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DatapointTypeTDatapointSubtypesDatapointSubtypeFormatEnumerationEnumValue:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    value: int = field(
+        metadata={
+            "name": "Value",
+            "type": "Attribute",
+        }
+    )
+    text: str = field(
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DatapointTypeTDatapointSubtypesDatapointSubtypeFormatFloat:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    width: int = field(
+        metadata={
+            "name": "Width",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+        },
+    )
+    unit: None | str = field(
+        default=None,
+        metadata={
+            "name": "Unit",
+            "type": "Attribute",
+        },
+    )
+    coefficient: None | float = field(
+        default=None,
+        metadata={
+            "name": "Coefficient",
+            "type": "Attribute",
+        },
+    )
+    min_value: None | float = field(
+        default=None,
+        metadata={
+            "name": "MinValue",
+            "type": "Attribute",
+        },
+    )
+    max_value: None | float = field(
+        default=None,
+        metadata={
+            "name": "MaxValue",
+            "type": "Attribute",
+        },
+    )
+    offset: None | float = field(
+        default=None,
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DatapointTypeTDatapointSubtypesDatapointSubtypeFormatRefType:
+    class Meta:
+        global_type = False
+
+    ref_id: str = field(
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DatapointTypeTDatapointSubtypesDatapointSubtypeFormatReserved:
+    class Meta:
+        global_type = False
+
+    width: int = field(
+        metadata={
+            "name": "Width",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DatapointTypeTDatapointSubtypesDatapointSubtypeFormatSignedInteger:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    width: int = field(
+        metadata={
+            "name": "Width",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+        },
+    )
+    unit: None | str = field(
+        default=None,
+        metadata={
+            "name": "Unit",
+            "type": "Attribute",
+        },
+    )
+    min_inclusive: None | int = field(
+        default=None,
+        metadata={
+            "name": "MinInclusive",
+            "type": "Attribute",
+        },
+    )
+    max_inclusive: None | int = field(
+        default=None,
+        metadata={
+            "name": "MaxInclusive",
+            "type": "Attribute",
+        },
+    )
+    coefficient: None | float = field(
+        default=None,
+        metadata={
+            "name": "Coefficient",
+            "type": "Attribute",
+        },
+    )
+    offset: None | int = field(
+        default=None,
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DatapointTypeTDatapointSubtypesDatapointSubtypeFormatUnsignedInteger:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    width: int = field(
+        metadata={
+            "name": "Width",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+        },
+    )
+    unit: None | str = field(
+        default=None,
+        metadata={
+            "name": "Unit",
+            "type": "Attribute",
+        },
+    )
+    min_inclusive: None | int = field(
+        default=None,
+        metadata={
+            "name": "MinInclusive",
+            "type": "Attribute",
+        },
+    )
+    max_inclusive: None | int = field(
+        default=None,
+        metadata={
+            "name": "MaxInclusive",
+            "type": "Attribute",
+        },
+    )
+    coefficient: None | float = field(
+        default=None,
+        metadata={
+            "name": "Coefficient",
+            "type": "Attribute",
+        },
+    )
+    offset: None | int = field(
+        default=None,
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DependentChannelChooseT:
+    """
+    :ivar when: registration-relevant list
+    :ivar param_ref_id: registration-relevant
+    :ivar internal_description:
+    """
+
+    class Meta:
+        name = "DependentChannelChoose_t"
+
+    when: list[DependentChannelChooseTWhen] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+    param_ref_id: str = field(
+        metadata={
+            "name": "ParamRefId",
+            "type": "Attribute",
+        }
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+
+
 class DeprecationStatusT(Enum):
     ACTIVE = "active"
     DEPRECATED = "deprecated"
@@ -760,6 +1365,109 @@ class DeviceInstanceRefT:
     )
 
 
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTAdditionalAddressesAddress:
+    class Meta:
+        global_type = False
+
+    address: None | int = field(
+        default=None,
+        metadata={
+            "name": "Address",
+            "type": "Attribute",
+            "min_inclusive": 1,
+            "max_inclusive": 255,
+        },
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    description: None | str = field(
+        default=None,
+        metadata={
+            "name": "Description",
+            "type": "Attribute",
+        },
+    )
+    comment: None | str = field(
+        default=None,
+        metadata={
+            "name": "Comment",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTBinaryDataBinaryData:
+    class Meta:
+        global_type = False
+
+    data: None | bytes = field(
+        default=None,
+        metadata={
+            "name": "Data",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "format": "base64",
+        },
+    )
+    id: None | str = field(
+        default=None,
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        },
+    )
+    ref_id: None | str = field(
+        default=None,
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        },
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    do_not_copy: bool = field(
+        default=False,
+        metadata={
+            "name": "DoNotCopy",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTRfFastAckSlotsSlot:
+    class Meta:
+        global_type = False
+
+    group_address_ref_id: str = field(
+        metadata={
+            "name": "GroupAddressRefId",
+            "type": "Attribute",
+        }
+    )
+    number: int = field(
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+            "max_inclusive": 63,
+        }
+    )
+
+
 class DownloadBehaviorT(Enum):
     NONE = "None"
     BACKGROUND = "Background"
@@ -769,30 +1477,6 @@ class DownloadBehaviorT(Enum):
 class EnableT(Enum):
     ENABLED = "Enabled"
     DISABLED = "Disabled"
-
-
-class FeatureName(Enum):
-    PARAMETER_BYTE_ORDER = "ParameterByteOrder"
-    FIRST_APP_OBJECT_IDX = "FirstAppObjectIdx"
-    MAX_INDIVIDUAL_ADDRESS = "MaxIndividualAddress"
-    MAX_GROUP_ADDRESS = "MaxGroupAddress"
-    POLLING_GROUP_SUPPORT = "PollingGroupSupport"
-    AUTHORIZE_LEVELS = "AuthorizeLevels"
-    RESTART_TIME = "RestartTime"
-    UNLOADED_INDIVIDUAL_ADDRESS = "UnloadedIndividualAddress"
-    ASSOCIATION_TABLE_FLAVOUR = "AssociationTableFlavour"
-    VERIFY_MODE = "VerifyMode"
-    MGMT_CONN_TYPES = "MgmtConnTypes"
-    PROPERTY_MAPPED_LSMS = "PropertyMappedLsms"
-    ALLOC_EXTRA_BYTE = "AllocExtraByte"
-    MASKDATA_VERSION = "MaskdataVersion"
-    DOWNLOAD_STAMP = "DownloadStamp"
-    GROUP_OBJECT_TABLE_FLAVOUR = "GroupObjectTableFlavour"
-    INTERFACE_OBJECT_DISCOVERY_BY_IO_LIST = "InterfaceObjectDiscoveryByIoList"
-    INTERFACE_OBJECT_DISCOVERY_BY_NETWORK_PARAMETER_READ = "InterfaceObjectDiscoveryByNetworkParameterRead"
-    SUPPORTS_CONFIRMED_RESTART = "SupportsConfirmedRestart"
-    SUPPORTS_INTERFACE_OBJECTS = "SupportsInterfaceObjects"
-    MAY_SUPPORT_LONG_FRAMES = "MaySupportLongFrames"
 
 
 @dataclass(slots=True, kw_only=True)
@@ -827,6 +1511,53 @@ class FixupT:
             "name": "CodeSegment",
             "type": "Attribute",
         }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class FunctionTypeTFunctionPoint:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    text: str = field(
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    role: str = field(
+        metadata={
+            "name": "Role",
+            "type": "Attribute",
+        }
+    )
+    datapoint_type: str = field(
+        metadata={
+            "name": "DatapointType",
+            "type": "Attribute",
+        }
+    )
+    characteristics: list[str] = field(
+        default_factory=list,
+        metadata={
+            "name": "Characteristics",
+            "type": "Attribute",
+            "tokens": True,
+        },
+    )
+    semantics: None | str = field(
+        default=None,
+        metadata={
+            "name": "Semantics",
+            "type": "Attribute",
+        },
     )
 
 
@@ -883,6 +1614,102 @@ class GroupAddressStyleT(Enum):
     FREE = "Free"
 
 
+class HardwareTProductsProductAttributesAttributeName(Enum):
+    CATALOG_NAME = "CatalogName"
+    SERIES = "Series"
+    COLOUR = "Colour"
+
+
+@dataclass(slots=True, kw_only=True)
+class HardwareTProductsProductBaggagesBaggage:
+    class Meta:
+        global_type = False
+
+    ref_id: str = field(
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        }
+    )
+
+
+class HawkConfigurationDataTFeaturesFeatureName(Enum):
+    PARAMETER_BYTE_ORDER = "ParameterByteOrder"
+    FIRST_APP_OBJECT_IDX = "FirstAppObjectIdx"
+    MAX_INDIVIDUAL_ADDRESS = "MaxIndividualAddress"
+    MAX_GROUP_ADDRESS = "MaxGroupAddress"
+    POLLING_GROUP_SUPPORT = "PollingGroupSupport"
+    AUTHORIZE_LEVELS = "AuthorizeLevels"
+    RESTART_TIME = "RestartTime"
+    UNLOADED_INDIVIDUAL_ADDRESS = "UnloadedIndividualAddress"
+    ASSOCIATION_TABLE_FLAVOUR = "AssociationTableFlavour"
+    VERIFY_MODE = "VerifyMode"
+    MGMT_CONN_TYPES = "MgmtConnTypes"
+    PROPERTY_MAPPED_LSMS = "PropertyMappedLsms"
+    ALLOC_EXTRA_BYTE = "AllocExtraByte"
+    MASKDATA_VERSION = "MaskdataVersion"
+    DOWNLOAD_STAMP = "DownloadStamp"
+    GROUP_OBJECT_TABLE_FLAVOUR = "GroupObjectTableFlavour"
+    INTERFACE_OBJECT_DISCOVERY_BY_IO_LIST = "InterfaceObjectDiscoveryByIoList"
+    INTERFACE_OBJECT_DISCOVERY_BY_NETWORK_PARAMETER_READ = (
+        "InterfaceObjectDiscoveryByNetworkParameterRead"
+    )
+    SUPPORTS_CONFIRMED_RESTART = "SupportsConfirmedRestart"
+    SUPPORTS_INTERFACE_OBJECTS = "SupportsInterfaceObjects"
+    MAY_SUPPORT_LONG_FRAMES = "MaySupportLongFrames"
+
+
+class HawkConfigurationDataTProceduresProcedureValue(Enum):
+    AP1 = "ap1"
+    CFG = "cfg"
+
+
+class HawkConfigurationDataTResourcesResourceResourceTypeFlavour(Enum):
+    BYTE_ORDER_BIG_ENDIAN = "ByteOrder_BigEndian"
+    BYTE_ORDER_LITTLE_ENDIAN = "ByteOrder_LittleEndian"
+    MANAGEMENT_STYLE_BCU2 = "ManagementStyle_Bcu2"
+    PTR_STANDARD_MEMORY = "Ptr_StandardMemory"
+    PTR_STANDARD_MEMORY100 = "Ptr_StandardMemory100"
+    ADDRESS_TABLE_BCU1 = "AddressTable_Bcu1"
+    ADDRESS_TABLE_BCU1_PL = "AddressTable_Bcu1PL"
+    ADDRESS_TABLE_SYSTEM_B = "AddressTable_SystemB"
+    ASSOCIATION_TABLE_BCU1 = "AssociationTable_Bcu1"
+    ASSOCIATION_TABLE_BCU2 = "AssociationTable_Bcu2"
+    ASSOCIATION_TABLE_M112 = "AssociationTable_M112"
+    ASSOCIATION_TABLE_SYSTEM_B = "AssociationTable_SystemB"
+    ASSOCIATION_TABLE_SYSTEM_BSMALL = "AssociationTable_SystemBSmall"
+    ASSOCIATION_TABLE_SYSTEM_BBIG = "AssociationTable_SystemBBig"
+    GROUP_OBJECT_TABLE_BCU10 = "GroupObjectTable_Bcu10"
+    GROUP_OBJECT_TABLE_BCU11 = "GroupObjectTable_Bcu11"
+    GROUP_OBJECT_TABLE_BCU1_PL = "GroupObjectTable_Bcu1PL"
+    GROUP_OBJECT_TABLE_BCU2 = "GroupObjectTable_Bcu2"
+    GROUP_OBJECT_TABLE_M112 = "GroupObjectTable_M112"
+    GROUP_OBJECT_TABLE_SYSTEM_B = "GroupObjectTable_SystemB"
+    GROUP_OBJECT_TABLE_SYSTEM300 = "GroupObjectTable_System300"
+    LOAD_CONTROL_BCU2 = "LoadControl_Bcu2"
+    LOAD_CONTROL_M112 = "LoadControl_M112"
+    RUN_CONTROL_BCU2 = "RunControl_Bcu2"
+    RUN_CONTROL_M112 = "RunControl_M112"
+    RUN_CONTROL_BCU1 = "RunControl_Bcu1"
+    VOLTAGE_ADC = "Voltage_Adc"
+    PEI_TYPE_PROP = "PeiType_Prop"
+    PEI_TYPE_ADC = "PeiType_Adc"
+    RE_CONFIG_BCU1_PL = "ReConfig_Bcu1PL"
+    FREQUENCY_CHANNEL_BCU1_PL = "FrequencyChannel_Bcu1PL"
+    SENSITIVITY_BCU1_PL = "Sensitivity_Bcu1PL"
+    RUNERROR_BCU1 = "Runerror_Bcu1"
+    PROGRAMMING_MODE_BCU1 = "ProgrammingMode_Bcu1"
+    PROGRAMMING_MODE_PROP = "ProgrammingMode_Prop"
+    LC_10 = "Lc_10"
+    LC_11 = "Lc_11"
+    HARDWARE_CONFIG_IDENTICAL = "HardwareConfig_Identical"
+    HARDWARE_CONFIG_VERSION = "HardwareConfig_Version"
+    STAMP_SYSTEM_B = "Stamp_SystemB"
+    LC_12 = "Lc_12"
+    PL_MC = "PlMc"
+    RE_CONFIG_RF = "ReConfig_Rf"
+
+
 class HorizontalAlignmentT(Enum):
     LEFT = "Left"
     MIDDLE = "Middle"
@@ -894,12 +1721,6 @@ class HorizontalAlignmentT(Enum):
 class IpconfigAssignT(Enum):
     FIXED = "Fixed"
     AUTO = "Auto"
-
-
-class InstallationSplitType(Enum):
-    NONE = "None"
-    MASTER = "Master"
-    SPLIT = "Split"
 
 
 @dataclass(slots=True, kw_only=True)
@@ -920,83 +1741,56 @@ class IoTpointParameterT:
 
 
 @dataclass(slots=True, kw_only=True)
-class LanguageDataT:
+class LanguageDataTTranslationUnitTranslationElementTranslation:
     class Meta:
-        name = "LanguageData_t"
+        global_type = False
 
-    translation_unit: list[LanguageDataT.TranslationUnit] = field(
+    attribute_name: str = field(
+        metadata={
+            "name": "AttributeName",
+            "type": "Attribute",
+        }
+    )
+    text: str = field(
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class LdCtrlBaseChooseT:
+    """
+    :ivar when: registration-relevant list
+    :ivar param_ref_id: registration-relevant
+    :ivar internal_description:
+    """
+
+    class Meta:
+        name = "LdCtrlBaseChoose_t"
+
+    when: list[LdCtrlBaseChooseTWhen] = field(
         default_factory=list,
         metadata={
-            "name": "TranslationUnit",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
             "min_occurs": 1,
         },
     )
-    identifier: str = field(
+    param_ref_id: str = field(
         metadata={
-            "name": "Identifier",
+            "name": "ParamRefId",
             "type": "Attribute",
         }
     )
-
-    @dataclass(slots=True, kw_only=True)
-    class TranslationUnit:
-        translation_element: list[LanguageDataT.TranslationUnit.TranslationElement] = field(
-            default_factory=list,
-            metadata={
-                "name": "TranslationElement",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-        ref_id: str = field(
-            metadata={
-                "name": "RefId",
-                "type": "Attribute",
-            }
-        )
-        version: int = field(
-            default=0,
-            metadata={
-                "name": "Version",
-                "type": "Attribute",
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class TranslationElement:
-            translation: list[LanguageDataT.TranslationUnit.TranslationElement.Translation] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Translation",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
-            ref_id: str = field(
-                metadata={
-                    "name": "RefId",
-                    "type": "Attribute",
-                }
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class Translation:
-                attribute_name: str = field(
-                    metadata={
-                        "name": "AttributeName",
-                        "type": "Attribute",
-                    }
-                )
-                text: str = field(
-                    metadata={
-                        "name": "Text",
-                        "type": "Attribute",
-                    }
-                )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
 
 
 class LdCtrlControlVariableT(Enum):
@@ -1035,10 +1829,53 @@ class LoadProcedureStyleT(Enum):
     MERGED_PROCEDURE = "MergedProcedure"
 
 
-class ManufacturerImportRestriction(Enum):
-    OWN = "Own"
-    ANY = "Any"
-    GROUP = "Group"
+@dataclass(slots=True, kw_only=True)
+class ManufacturerDataTManufacturerBaggagesBaggageFileInfo:
+    class Meta:
+        global_type = False
+
+    version: None | str = field(
+        default=None,
+        metadata={
+            "name": "Version",
+            "type": "Attribute",
+            "pattern": r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+",
+        },
+    )
+    time_info: None | XmlDateTime = field(
+        default=None,
+        metadata={
+            "name": "TimeInfo",
+            "type": "Attribute",
+        },
+    )
+    hidden: bool = field(
+        default=False,
+        metadata={
+            "name": "Hidden",
+            "type": "Attribute",
+        },
+    )
+    read_only: bool = field(
+        default=False,
+        metadata={
+            "name": "ReadOnly",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MaskVersionTDownwardCompatibleMasksDownwardCompatibleMask:
+    class Meta:
+        global_type = False
+
+    ref_id: str = field(
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        }
+    )
 
 
 class MaskVersionTManagementModel(Enum):
@@ -1048,6 +1885,280 @@ class MaskVersionTManagementModel(Enum):
     BCU2 = "Bcu2"
     PROPERTY_BASED = "PropertyBased"
     SYSTEM_B = "SystemB"
+
+
+@dataclass(slots=True, kw_only=True)
+class MaskVersionTMaskEntriesMaskEntry:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    address: int = field(
+        metadata={
+            "name": "Address",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 50,
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTFunctionalBlocksFunctionalBlockParametersParameter:
+    class Meta:
+        global_type = False
+
+    property: str = field(
+        metadata={
+            "name": "Property",
+            "type": "Attribute",
+        }
+    )
+    description: None | str = field(
+        default=None,
+        metadata={
+            "name": "Description",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTInterfaceObjectPropertiesInterfaceObjectProperty:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    number: int = field(
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+        }
+    )
+    object_type: None | str = field(
+        default=None,
+        metadata={
+            "name": "ObjectType",
+            "type": "Attribute",
+        },
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    text: None | str = field(
+        default=None,
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    pdt: list[str] = field(
+        default_factory=list,
+        metadata={
+            "name": "PDT",
+            "type": "Attribute",
+            "tokens": True,
+        },
+    )
+    dpt: None | str = field(
+        default=None,
+        metadata={
+            "name": "DPT",
+            "type": "Attribute",
+        },
+    )
+    array: bool = field(
+        default=False,
+        metadata={
+            "name": "Array",
+            "type": "Attribute",
+        },
+    )
+    access_policy: None | str = field(
+        default=None,
+        metadata={
+            "name": "AccessPolicy",
+            "type": "Attribute",
+            "pattern": r"[0-3][0-9A-F]{2}/[0-3][0-9A-F]{2}",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTInterfaceObjectTypesInterfaceObjectType:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    number: int = field(
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    text: None | str = field(
+        default=None,
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+
+
+class MasterDataTManufacturersManufacturerImportRestriction(Enum):
+    OWN = "Own"
+    ANY = "Any"
+    GROUP = "Group"
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTManufacturersManufacturerPublicKeysPublicKeyRsakeyValue:
+    class Meta:
+        global_type = False
+
+    modulus: bytes = field(
+        metadata={
+            "name": "Modulus",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "format": "base64",
+        }
+    )
+    exponent: bytes = field(
+        metadata={
+            "name": "Exponent",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "format": "base64",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTMediumTypesMediumType:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    number: int = field(
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 20,
+        }
+    )
+    text: None | str = field(
+        default=None,
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 50,
+        },
+    )
+    domain_address_length: int = field(
+        metadata={
+            "name": "DomainAddressLength",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTProductLanguagesLanguage:
+    class Meta:
+        global_type = False
+
+    identifier: None | str = field(
+        default=None,
+        metadata={
+            "name": "Identifier",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTPropertyDataTypesPropertyDataType:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    number: int = field(
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    size: None | int = field(
+        default=None,
+        metadata={
+            "name": "Size",
+            "type": "Attribute",
+        },
+    )
+    read_size: None | int = field(
+        default=None,
+        metadata={
+            "name": "ReadSize",
+            "type": "Attribute",
+        },
+    )
 
 
 class MemberStatusT(Enum):
@@ -1151,95 +2262,35 @@ class ModuleDefArgTypeT(Enum):
     TEXT = "Text"
 
 
-@dataclass(slots=True, kw_only=True)
-class ModuleInstanceT:
-    class Meta:
-        name = "ModuleInstance_t"
+class ModuleDefTArgumentsArgumentAlignment(Enum):
+    VALUE_1 = 1
+    VALUE_2 = 2
+    VALUE_4 = 4
+    VALUE_8 = 8
 
-    arguments: None | ModuleInstanceT.Arguments = field(
-        default=None,
-        metadata={
-            "name": "Arguments",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    id: None | str = field(
-        default=None,
-        metadata={
-            "name": "Id",
-            "type": "Attribute",
-        },
-    )
-    ref_id: None | str = field(
-        default=None,
+
+@dataclass(slots=True, kw_only=True)
+class ModuleInstanceTArgumentsArgument:
+    class Meta:
+        global_type = False
+
+    ref_id: str = field(
         metadata={
             "name": "RefId",
             "type": "Attribute",
-        },
+        }
     )
-    repeat_index: list[str] = field(
-        default_factory=list,
+    value: str = field(
         metadata={
-            "name": "RepeatIndex",
+            "name": "Value",
             "type": "Attribute",
-            "pattern": r"\d+x\d+",
-            "tokens": True,
-        },
+        }
     )
-
-    @dataclass(slots=True, kw_only=True)
-    class Arguments:
-        argument: list[ModuleInstanceT.Arguments.Argument] = field(
-            default_factory=list,
-            metadata={
-                "name": "Argument",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Argument:
-            ref_id: str = field(
-                metadata={
-                    "name": "RefId",
-                    "type": "Attribute",
-                }
-            )
-            value: str = field(
-                metadata={
-                    "name": "Value",
-                    "type": "Attribute",
-                }
-            )
 
 
 class NodeTType(Enum):
     FOLDER = "Folder"
     CHANNEL = "Channel"
-
-
-class OptionsCustomerAdjustableParameters(Enum):
-    WRITE = "Write"
-    SYNC = "Sync"
-
-
-class OptionsNotLoadable(Enum):
-    SKIP_SILENTLY = "SkipSilently"
-    DISPLAY_ERROR = "DisplayError"
-
-
-class OptionsParameterByteOrder(Enum):
-    BIG_ENDIAN = "BigEndian"
-    LITTLE_ENDIAN = "LittleEndian"
-
-
-class OptionsTextParameterEncodingSelector(Enum):
-    USE_WINDOWS_ANSI_CODE_PAGE = "UseWindowsAnsiCodePage"
-    USE_PROJECT_CODE_PAGE = "UseProjectCodePage"
-    USE_TEXT_PARAMETER_ENCODING_CODE_PAGE = "UseTextParameterEncodingCodePage"
 
 
 @dataclass(slots=True, kw_only=True)
@@ -1372,14 +2423,152 @@ class ParameterSeparatorTUihint(Enum):
     ERROR = "Error"
 
 
+class ParameterTypeTTypeColorSpace(Enum):
+    RGB = "RGB"
+    HSV = "HSV"
+    RGBW = "RGBW"
+
+
+class ParameterTypeTTypeDateEncoding(Enum):
+    DPT_11 = "DPT 11"
+
+
+class ParameterTypeTTypeFloatEncoding(Enum):
+    DPT_9 = "DPT 9"
+    IEEE_754_SINGLE = "IEEE-754 Single"
+    IEEE_754_DOUBLE = "IEEE-754 Double"
+
+
+class ParameterTypeTTypeFloatUihint(Enum):
+    SLIDER = "Slider"
+
+
+class ParameterTypeTTypeIpaddressAddressType(Enum):
+    HOST_ADDRESS = "HostAddress"
+    GATEWAY_ADDRESS = "GatewayAddress"
+    UNICAST_ADDRESS = "UnicastAddress"
+    BROADCAST_ADDRESS = "BroadcastAddress"
+    MULTICAST_ADDRESS = "MulticastAddress"
+    SUBNET_MASK = "SubnetMask"
+
+
+class ParameterTypeTTypeIpaddressVersion(Enum):
+    IPV4 = "IPv4"
+    IPV6 = "IPv6"
+
+
+class ParameterTypeTTypeNumberType(Enum):
+    SIGNED_INT = "signedInt"
+    UNSIGNED_INT = "unsignedInt"
+
+
+class ParameterTypeTTypeNumberUihint(Enum):
+    SLIDER = "Slider"
+    CHECK_BOX = "CheckBox"
+    PROGRESS_BAR = "ProgressBar"
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterTypeTTypeRawData:
+    """
+    :ivar max_size: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    max_size: int = field(
+        metadata={
+            "name": "MaxSize",
+            "type": "Attribute",
+            "min_inclusive": 1,
+            "max_inclusive": 1048572,
+        }
+    )
+
+
+class ParameterTypeTTypeRestrictionBase(Enum):
+    VALUE = "Value"
+    BINARY_VALUE = "BinaryValue"
+
+
+class ParameterTypeTTypeRestrictionUihint(Enum):
+    TEXT = "Text"
+    DROP_DOWN = "DropDown"
+    BUTTONS = "Buttons"
+    SEGMENTED = "Segmented"
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterTypeTTypeText:
+    """
+    :ivar size_in_bit: registration-relevant
+    :ivar pattern:
+    """
+
+    class Meta:
+        global_type = False
+
+    size_in_bit: int = field(
+        metadata={
+            "name": "SizeInBit",
+            "type": "Attribute",
+            "min_inclusive": 8,
+            "max_inclusive": 1048575,
+        }
+    )
+    pattern: None | str = field(
+        default=None,
+        metadata={
+            "name": "Pattern",
+            "type": "Attribute",
+        },
+    )
+
+
+class ParameterTypeTTypeTimeUihint(Enum):
+    TIME_SS = "Time_ss"
+    TIME_SSF = "Time_ssf"
+    TIME_SSFF = "Time_ssff"
+    TIME_SSFFF = "Time_ssfff"
+    TIME_MMSS = "Time_mmss"
+    TIME_MMSSF = "Time_mmssf"
+    TIME_MMSSFF = "Time_mmssff"
+    TIME_MMSSFFF = "Time_mmssfff"
+    TIME_HHMM = "Time_hhmm"
+    TIME_HHMMSS = "Time_hhmmss"
+    TIME_HHMMSSF = "Time_hhmmssf"
+    TIME_HHMMSSFF = "Time_hhmmssff"
+    TIME_HHMMSSFFF = "Time_hhmmssfff"
+    TIME_DHH = "Time_dhh"
+    TIME_DHHMM = "Time_dhhmm"
+    TIME_DHHMMSS = "Time_dhhmmss"
+    DURATION_MMSS = "Duration_mmss"
+    DURATION_MMSSF = "Duration_mmssf"
+    DURATION_MMSSFF = "Duration_mmssff"
+    DURATION_MMSSFFF = "Duration_mmssfff"
+    DURATION_HHMM = "Duration_hhmm"
+    DURATION_HHMMSS = "Duration_hhmmss"
+    DURATION_HHMMSSF = "Duration_hhmmssf"
+    DURATION_HHMMSSFF = "Duration_hhmmssff"
+    DURATION_HHMMSSFFF = "Duration_hhmmssfff"
+
+
+class ParameterTypeTTypeTimeUnit(Enum):
+    HOURS = "Hours"
+    MINUTES = "Minutes"
+    SECONDS = "Seconds"
+    HUNDRED_MILLISECONDS = "HundredMilliseconds"
+    TEN_MILLISECONDS = "TenMilliseconds"
+    MILLISECONDS = "Milliseconds"
+    PACKED_SECONDS_AND_MILLISECONDS = "PackedSecondsAndMilliseconds"
+    PACKED_DAYS_HOURS_MINUTES_AND_SECONDS = "PackedDaysHoursMinutesAndSeconds"
+    PACKED_MINUTES_SECONDS_AND_MILLISECONDS = "PackedMinutesSecondsAndMilliseconds"
+
+
 class ProcedureTypeT(Enum):
     LOAD = "Load"
     UNLOAD = "Unload"
-
-
-class ProcedureValue(Enum):
-    AP1 = "ap1"
-    CFG = "cfg"
 
 
 @dataclass(slots=True, kw_only=True)
@@ -1431,6 +2620,68 @@ class ProjectTypeT(Enum):
     CITY_PROJECT = "City Project"
     TRANSPORTATION = "Transportation"
     OTHER_OTHER = "Other (Other)"
+
+
+class ProjectTInstallationsInstallationSplitType(Enum):
+    NONE = "None"
+    MASTER = "Master"
+    SPLIT = "Split"
+
+
+@dataclass(slots=True, kw_only=True)
+class ProjectTProjectInformationHistoryEntriesHistoryEntry:
+    class Meta:
+        global_type = False
+
+    date: XmlDateTime = field(
+        metadata={
+            "name": "Date",
+            "type": "Attribute",
+        }
+    )
+    user: None | str = field(
+        default=None,
+        metadata={
+            "name": "User",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    text: str = field(
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+        }
+    )
+    detail: None | str = field(
+        default=None,
+        metadata={
+            "name": "Detail",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ProjectTProjectInformationTagsTag:
+    class Meta:
+        global_type = False
+
+    text: str = field(
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 20,
+        }
+    )
+    color: str = field(
+        metadata={
+            "name": "Color",
+            "type": "Attribute",
+            "length": 7,
+            "pattern": r"#[0-9A-F]{6}",
+        }
+    )
 
 
 class PropTypeT(Enum):
@@ -1780,52 +3031,6 @@ class ResourceNameT(Enum):
     GROUP_FILTER_TABLE_USE = "GroupFilterTableUse"
 
 
-class ResourceTypeFlavour(Enum):
-    BYTE_ORDER_BIG_ENDIAN = "ByteOrder_BigEndian"
-    BYTE_ORDER_LITTLE_ENDIAN = "ByteOrder_LittleEndian"
-    MANAGEMENT_STYLE_BCU2 = "ManagementStyle_Bcu2"
-    PTR_STANDARD_MEMORY = "Ptr_StandardMemory"
-    PTR_STANDARD_MEMORY100 = "Ptr_StandardMemory100"
-    ADDRESS_TABLE_BCU1 = "AddressTable_Bcu1"
-    ADDRESS_TABLE_BCU1_PL = "AddressTable_Bcu1PL"
-    ADDRESS_TABLE_SYSTEM_B = "AddressTable_SystemB"
-    ASSOCIATION_TABLE_BCU1 = "AssociationTable_Bcu1"
-    ASSOCIATION_TABLE_BCU2 = "AssociationTable_Bcu2"
-    ASSOCIATION_TABLE_M112 = "AssociationTable_M112"
-    ASSOCIATION_TABLE_SYSTEM_B = "AssociationTable_SystemB"
-    ASSOCIATION_TABLE_SYSTEM_BSMALL = "AssociationTable_SystemBSmall"
-    ASSOCIATION_TABLE_SYSTEM_BBIG = "AssociationTable_SystemBBig"
-    GROUP_OBJECT_TABLE_BCU10 = "GroupObjectTable_Bcu10"
-    GROUP_OBJECT_TABLE_BCU11 = "GroupObjectTable_Bcu11"
-    GROUP_OBJECT_TABLE_BCU1_PL = "GroupObjectTable_Bcu1PL"
-    GROUP_OBJECT_TABLE_BCU2 = "GroupObjectTable_Bcu2"
-    GROUP_OBJECT_TABLE_M112 = "GroupObjectTable_M112"
-    GROUP_OBJECT_TABLE_SYSTEM_B = "GroupObjectTable_SystemB"
-    GROUP_OBJECT_TABLE_SYSTEM300 = "GroupObjectTable_System300"
-    LOAD_CONTROL_BCU2 = "LoadControl_Bcu2"
-    LOAD_CONTROL_M112 = "LoadControl_M112"
-    RUN_CONTROL_BCU2 = "RunControl_Bcu2"
-    RUN_CONTROL_M112 = "RunControl_M112"
-    RUN_CONTROL_BCU1 = "RunControl_Bcu1"
-    VOLTAGE_ADC = "Voltage_Adc"
-    PEI_TYPE_PROP = "PeiType_Prop"
-    PEI_TYPE_ADC = "PeiType_Adc"
-    RE_CONFIG_BCU1_PL = "ReConfig_Bcu1PL"
-    FREQUENCY_CHANNEL_BCU1_PL = "FrequencyChannel_Bcu1PL"
-    SENSITIVITY_BCU1_PL = "Sensitivity_Bcu1PL"
-    RUNERROR_BCU1 = "Runerror_Bcu1"
-    PROGRAMMING_MODE_BCU1 = "ProgrammingMode_Bcu1"
-    PROGRAMMING_MODE_PROP = "ProgrammingMode_Prop"
-    LC_10 = "Lc_10"
-    LC_11 = "Lc_11"
-    HARDWARE_CONFIG_IDENTICAL = "HardwareConfig_Identical"
-    HARDWARE_CONFIG_VERSION = "HardwareConfig_Version"
-    STAMP_SYSTEM_B = "Stamp_SystemB"
-    LC_12 = "Lc_12"
-    PL_MC = "PlMc"
-    RE_CONFIG_RF = "ReConfig_Rf"
-
-
 class SecurityModeT(Enum):
     AUTO = "Auto"
     ON = "On"
@@ -1955,101 +3160,17 @@ class ToDoStatusT(Enum):
     ACCOMPLISHED = "Accomplished"
 
 
-class TypeColorSpace(Enum):
-    RGB = "RGB"
-    HSV = "HSV"
-    RGBW = "RGBW"
+@dataclass(slots=True, kw_only=True)
+class TopologyTAreaLineSegmentAdditionalGroupAddressesGroupAddress:
+    class Meta:
+        global_type = False
 
-
-class TypeDateEncoding(Enum):
-    DPT_11 = "DPT 11"
-
-
-class TypeFloatEncoding(Enum):
-    DPT_9 = "DPT 9"
-    IEEE_754_SINGLE = "IEEE-754 Single"
-    IEEE_754_DOUBLE = "IEEE-754 Double"
-
-
-class TypeFloatUihint(Enum):
-    SLIDER = "Slider"
-
-
-class TypeIpaddressAddressType(Enum):
-    HOST_ADDRESS = "HostAddress"
-    GATEWAY_ADDRESS = "GatewayAddress"
-    UNICAST_ADDRESS = "UnicastAddress"
-    BROADCAST_ADDRESS = "BroadcastAddress"
-    MULTICAST_ADDRESS = "MulticastAddress"
-    SUBNET_MASK = "SubnetMask"
-
-
-class TypeIpaddressVersion(Enum):
-    IPV4 = "IPv4"
-    IPV6 = "IPv6"
-
-
-class TypeNumberType(Enum):
-    SIGNED_INT = "signedInt"
-    UNSIGNED_INT = "unsignedInt"
-
-
-class TypeNumberUihint(Enum):
-    SLIDER = "Slider"
-    CHECK_BOX = "CheckBox"
-    PROGRESS_BAR = "ProgressBar"
-
-
-class TypeRestrictionBase(Enum):
-    VALUE = "Value"
-    BINARY_VALUE = "BinaryValue"
-
-
-class TypeRestrictionUihint(Enum):
-    TEXT = "Text"
-    DROP_DOWN = "DropDown"
-    BUTTONS = "Buttons"
-    SEGMENTED = "Segmented"
-
-
-class TypeTimeUihint(Enum):
-    TIME_SS = "Time_ss"
-    TIME_SSF = "Time_ssf"
-    TIME_SSFF = "Time_ssff"
-    TIME_SSFFF = "Time_ssfff"
-    TIME_MMSS = "Time_mmss"
-    TIME_MMSSF = "Time_mmssf"
-    TIME_MMSSFF = "Time_mmssff"
-    TIME_MMSSFFF = "Time_mmssfff"
-    TIME_HHMM = "Time_hhmm"
-    TIME_HHMMSS = "Time_hhmmss"
-    TIME_HHMMSSF = "Time_hhmmssf"
-    TIME_HHMMSSFF = "Time_hhmmssff"
-    TIME_HHMMSSFFF = "Time_hhmmssfff"
-    TIME_DHH = "Time_dhh"
-    TIME_DHHMM = "Time_dhhmm"
-    TIME_DHHMMSS = "Time_dhhmmss"
-    DURATION_MMSS = "Duration_mmss"
-    DURATION_MMSSF = "Duration_mmssf"
-    DURATION_MMSSFF = "Duration_mmssff"
-    DURATION_MMSSFFF = "Duration_mmssfff"
-    DURATION_HHMM = "Duration_hhmm"
-    DURATION_HHMMSS = "Duration_hhmmss"
-    DURATION_HHMMSSF = "Duration_hhmmssf"
-    DURATION_HHMMSSFF = "Duration_hhmmssff"
-    DURATION_HHMMSSFFF = "Duration_hhmmssfff"
-
-
-class TypeTimeUnit(Enum):
-    HOURS = "Hours"
-    MINUTES = "Minutes"
-    SECONDS = "Seconds"
-    HUNDRED_MILLISECONDS = "HundredMilliseconds"
-    TEN_MILLISECONDS = "TenMilliseconds"
-    MILLISECONDS = "Milliseconds"
-    PACKED_SECONDS_AND_MILLISECONDS = "PackedSecondsAndMilliseconds"
-    PACKED_DAYS_HOURS_MINUTES_AND_SECONDS = "PackedDaysHoursMinutesAndSeconds"
-    PACKED_MINUTES_SECONDS_AND_MILLISECONDS = "PackedMinutesSecondsAndMilliseconds"
+    address: int = field(
+        metadata={
+            "name": "Address",
+            "type": "Attribute",
+        }
+    )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -2102,6 +3223,608 @@ class WhenT:
         metadata={
             "name": "InternalDescription",
             "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTAllocators:
+    class Meta:
+        global_type = False
+
+    allocator: list[AllocatorT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Allocator",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTBinaryData:
+    class Meta:
+        global_type = False
+
+    binary_data: list[BinaryDataT] = field(
+        default_factory=list,
+        metadata={
+            "name": "BinaryData",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTBusInterfacesBusInterface:
+    """
+    :ivar id: registration-relevant
+    :ivar address_index: registration-relevant
+    :ivar access_type: registration-relevant
+    :ivar text:
+    """
+
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    address_index: int = field(
+        metadata={
+            "name": "AddressIndex",
+            "type": "Attribute",
+        }
+    )
+    access_type: ApplicationProgramStaticTBusInterfacesBusInterfaceAccessType = field(
+        metadata={
+            "name": "AccessType",
+            "type": "Attribute",
+        }
+    )
+    text: None | str = field(
+        default=None,
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTCodeAbsoluteSegment(SegmentBaseT):
+    """
+    :ivar memory_type:
+    :ivar address: registration-relevant
+    :ivar user_memory: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    memory_type: None | MemoryTypeT = field(
+        default=None,
+        metadata={
+            "name": "MemoryType",
+            "type": "Attribute",
+        },
+    )
+    address: int = field(
+        metadata={
+            "name": "Address",
+            "type": "Attribute",
+            "max_inclusive": 1048575,
+        }
+    )
+    user_memory: bool = field(
+        default=False,
+        metadata={
+            "name": "UserMemory",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTCodeRelativeSegment(SegmentBaseT):
+    """
+    :ivar load_state_machine: registration-relevant
+    :ivar offset: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    load_state_machine: int = field(
+        metadata={
+            "name": "LoadStateMachine",
+            "type": "Attribute",
+        }
+    )
+    offset: int = field(
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+            "max_inclusive": 1048575,
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTDeviceCompare:
+    class Meta:
+        global_type = False
+
+    exclude_memory: list[ApplicationProgramStaticTDeviceCompareExcludeMemory] = field(
+        default_factory=list,
+        metadata={
+            "name": "ExcludeMemory",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    exclude_property: list[ApplicationProgramStaticTDeviceCompareExcludeProperty] = field(
+        default_factory=list,
+        metadata={
+            "name": "ExcludeProperty",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    standard_com_tables_expectable: ComTableExpectationT = field(
+        default=ComTableExpectationT.TRY,
+        metadata={
+            "name": "StandardComTablesExpectable",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTExtension:
+    class Meta:
+        global_type = False
+
+    baggage: list[ApplicationProgramStaticTExtensionBaggage] = field(
+        default_factory=list,
+        metadata={
+            "name": "Baggage",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    ets_download_plugin: None | str = field(
+        default=None,
+        metadata={
+            "name": "EtsDownloadPlugin",
+            "type": "Attribute",
+        },
+    )
+    ets_ui_plugin: None | str = field(
+        default=None,
+        metadata={
+            "name": "EtsUiPlugin",
+            "type": "Attribute",
+        },
+    )
+    ets_data_handler: None | str = field(
+        default=None,
+        metadata={
+            "name": "EtsDataHandler",
+            "type": "Attribute",
+        },
+    )
+    ets_data_handler_capabilities: list[CapabilityT] = field(
+        default_factory=list,
+        metadata={
+            "name": "EtsDataHandlerCapabilities",
+            "type": "Attribute",
+            "tokens": True,
+        },
+    )
+    requires_external_software: bool = field(
+        default=False,
+        metadata={
+            "name": "RequiresExternalSoftware",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTFixupList:
+    """
+    :ivar fixup: registration-relevant set
+    """
+
+    class Meta:
+        global_type = False
+
+    fixup: list[FixupT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Fixup",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTMessages:
+    class Meta:
+        global_type = False
+
+    message: list[ApplicationProgramStaticTMessagesMessage] = field(
+        default_factory=list,
+        metadata={
+            "name": "Message",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTOptions:
+    """
+    :ivar prefer_partial_download_if_application_loaded:
+    :ivar easy_ctrl_mode_mode_style_empty_group_com_tables:
+    :ivar set_object_table_length_always_to_one:
+    :ivar text_parameter_encoding:
+    :ivar text_parameter_encoding_selector:
+    :ivar text_parameter_zero_terminate:
+    :ivar parameter_byte_order:
+    :ivar partial_download_only_visible_parameters:
+    :ivar legacy_no_partial_download:
+    :ivar legacy_no_memory_verify_mode:
+    :ivar legacy_no_optimistic_write:
+    :ivar legacy_do_not_report_property_write_errors:
+    :ivar legacy_no_background_download:
+    :ivar legacy_do_not_check_manufacturer_id:
+    :ivar legacy_always_reload_app_if_co_visibility_changed:
+    :ivar legacy_never_reload_app_if_co_visibility_changed:
+    :ivar legacy_do_not_support_undo_delete:
+    :ivar legacy_allow_partial_download_if_ap2_mismatch:
+    :ivar legacy_keep_object_table_gaps:
+    :ivar legacy_proxy_communication_objects:
+    :ivar device_info_ignore_run_state:
+    :ivar device_info_ignore_loaded_state:
+    :ivar device_compare_allow_compatible_manufacturer_id:
+    :ivar line_coupler0912_new_programming_style: registration-relevant
+    :ivar max_routing_apdu_length: registration-relevant
+    :ivar comparable:
+    :ivar reconstructable:
+    :ivar download_invisible_parameters:
+    :ivar supports_extended_memory_services: registration-relevant
+    :ivar supports_extended_property_services: registration-relevant
+    :ivar supports_ip_system_broadcast: registration-relevant
+    :ivar not_loadable: registration-relevant
+    :ivar not_loadable_message_ref:
+    :ivar customer_adjustable_parameters: registration-relevant
+    :ivar master_reset_on_crcmismatch: registration-relevant
+    :ivar prompt_before_full_download:
+    :ivar legacy_patch_manufacturer_id_in_task_segment: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    prefer_partial_download_if_application_loaded: bool = field(
+        default=False,
+        metadata={
+            "name": "PreferPartialDownloadIfApplicationLoaded",
+            "type": "Attribute",
+        },
+    )
+    easy_ctrl_mode_mode_style_empty_group_com_tables: bool = field(
+        default=False,
+        metadata={
+            "name": "EasyCtrlModeModeStyleEmptyGroupComTables",
+            "type": "Attribute",
+        },
+    )
+    set_object_table_length_always_to_one: bool = field(
+        default=False,
+        metadata={
+            "name": "SetObjectTableLengthAlwaysToOne",
+            "type": "Attribute",
+        },
+    )
+    text_parameter_encoding: None | TextEncodingT = field(
+        default=None,
+        metadata={
+            "name": "TextParameterEncoding",
+            "type": "Attribute",
+        },
+    )
+    text_parameter_encoding_selector: ApplicationProgramStaticTOptionsTextParameterEncodingSelector = field(
+        default=ApplicationProgramStaticTOptionsTextParameterEncodingSelector.USE_TEXT_PARAMETER_ENCODING_CODE_PAGE,
+        metadata={
+            "name": "TextParameterEncodingSelector",
+            "type": "Attribute",
+        },
+    )
+    text_parameter_zero_terminate: bool = field(
+        default=False,
+        metadata={
+            "name": "TextParameterZeroTerminate",
+            "type": "Attribute",
+        },
+    )
+    parameter_byte_order: ApplicationProgramStaticTOptionsParameterByteOrder = field(
+        default=ApplicationProgramStaticTOptionsParameterByteOrder.BIG_ENDIAN,
+        metadata={
+            "name": "ParameterByteOrder",
+            "type": "Attribute",
+        },
+    )
+    partial_download_only_visible_parameters: bool = field(
+        default=False,
+        metadata={
+            "name": "PartialDownloadOnlyVisibleParameters",
+            "type": "Attribute",
+        },
+    )
+    legacy_no_partial_download: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyNoPartialDownload",
+            "type": "Attribute",
+        },
+    )
+    legacy_no_memory_verify_mode: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyNoMemoryVerifyMode",
+            "type": "Attribute",
+        },
+    )
+    legacy_no_optimistic_write: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyNoOptimisticWrite",
+            "type": "Attribute",
+        },
+    )
+    legacy_do_not_report_property_write_errors: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyDoNotReportPropertyWriteErrors",
+            "type": "Attribute",
+        },
+    )
+    legacy_no_background_download: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyNoBackgroundDownload",
+            "type": "Attribute",
+        },
+    )
+    legacy_do_not_check_manufacturer_id: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyDoNotCheckManufacturerId",
+            "type": "Attribute",
+        },
+    )
+    legacy_always_reload_app_if_co_visibility_changed: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyAlwaysReloadAppIfCoVisibilityChanged",
+            "type": "Attribute",
+        },
+    )
+    legacy_never_reload_app_if_co_visibility_changed: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyNeverReloadAppIfCoVisibilityChanged",
+            "type": "Attribute",
+        },
+    )
+    legacy_do_not_support_undo_delete: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyDoNotSupportUndoDelete",
+            "type": "Attribute",
+        },
+    )
+    legacy_allow_partial_download_if_ap2_mismatch: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyAllowPartialDownloadIfAp2Mismatch",
+            "type": "Attribute",
+        },
+    )
+    legacy_keep_object_table_gaps: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyKeepObjectTableGaps",
+            "type": "Attribute",
+        },
+    )
+    legacy_proxy_communication_objects: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyProxyCommunicationObjects",
+            "type": "Attribute",
+        },
+    )
+    device_info_ignore_run_state: bool = field(
+        default=False,
+        metadata={
+            "name": "DeviceInfoIgnoreRunState",
+            "type": "Attribute",
+        },
+    )
+    device_info_ignore_loaded_state: bool = field(
+        default=False,
+        metadata={
+            "name": "DeviceInfoIgnoreLoadedState",
+            "type": "Attribute",
+        },
+    )
+    device_compare_allow_compatible_manufacturer_id: bool = field(
+        default=False,
+        metadata={
+            "name": "DeviceCompareAllowCompatibleManufacturerId",
+            "type": "Attribute",
+        },
+    )
+    line_coupler0912_new_programming_style: bool = field(
+        default=False,
+        metadata={
+            "name": "LineCoupler0912NewProgrammingStyle",
+            "type": "Attribute",
+        },
+    )
+    max_routing_apdu_length: None | int = field(
+        default=None,
+        metadata={
+            "name": "MaxRoutingApduLength",
+            "type": "Attribute",
+        },
+    )
+    comparable: None | bool = field(
+        default=None,
+        metadata={
+            "name": "Comparable",
+            "type": "Attribute",
+        },
+    )
+    reconstructable: None | bool = field(
+        default=None,
+        metadata={
+            "name": "Reconstructable",
+            "type": "Attribute",
+        },
+    )
+    download_invisible_parameters: DownloadBehaviorT = field(
+        default=DownloadBehaviorT.DEFAULT_VALUE,
+        metadata={
+            "name": "DownloadInvisibleParameters",
+            "type": "Attribute",
+        },
+    )
+    supports_extended_memory_services: bool = field(
+        default=False,
+        metadata={
+            "name": "SupportsExtendedMemoryServices",
+            "type": "Attribute",
+        },
+    )
+    supports_extended_property_services: bool = field(
+        default=False,
+        metadata={
+            "name": "SupportsExtendedPropertyServices",
+            "type": "Attribute",
+        },
+    )
+    supports_ip_system_broadcast: bool = field(
+        default=False,
+        metadata={
+            "name": "SupportsIpSystemBroadcast",
+            "type": "Attribute",
+        },
+    )
+    not_loadable: None | ApplicationProgramStaticTOptionsNotLoadable = field(
+        default=None,
+        metadata={
+            "name": "NotLoadable",
+            "type": "Attribute",
+        },
+    )
+    not_loadable_message_ref: None | str = field(
+        default=None,
+        metadata={
+            "name": "NotLoadableMessageRef",
+            "type": "Attribute",
+        },
+    )
+    customer_adjustable_parameters: (
+        None | ApplicationProgramStaticTOptionsCustomerAdjustableParameters
+    ) = field(
+        default=None,
+        metadata={
+            "name": "CustomerAdjustableParameters",
+            "type": "Attribute",
+        },
+    )
+    master_reset_on_crcmismatch: bool = field(
+        default=False,
+        metadata={
+            "name": "MasterResetOnCRCMismatch",
+            "type": "Attribute",
+        },
+    )
+    prompt_before_full_download: bool = field(
+        default=False,
+        metadata={
+            "name": "PromptBeforeFullDownload",
+            "type": "Attribute",
+        },
+    )
+    legacy_patch_manufacturer_id_in_task_segment: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyPatchManufacturerIdInTaskSegment",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTSecurityRoles:
+    class Meta:
+        global_type = False
+
+    security_role: list[ApplicationProgramStaticTSecurityRolesSecurityRole] = field(
+        default_factory=list,
+        metadata={
+            "name": "SecurityRole",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramTProfile:
+    class Meta:
+        global_type = False
+
+    io_t: None | ApplicationProgramTProfileIoT = field(
+        default=None,
+        metadata={
+            "name": "IoT",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class BusInterfaceTConnectors:
+    class Meta:
+        global_type = False
+
+    connector: list[BusInterfaceTConnectorsConnector] = field(
+        default_factory=list,
+        metadata={
+            "name": "Connector",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
         },
     )
 
@@ -2200,6 +3923,77 @@ class ButtonT:
         default=None,
         metadata={
             "name": "EventHandlerOnline",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class CatalogSectionT:
+    class Meta:
+        name = "CatalogSection_t"
+
+    catalog_section: list[CatalogSectionT] = field(
+        default_factory=list,
+        metadata={
+            "name": "CatalogSection",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    catalog_item: list[CatalogSectionTCatalogItem] = field(
+        default_factory=list,
+        metadata={
+            "name": "CatalogItem",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    number: str = field(
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+            "max_length": 20,
+        }
+    )
+    visible_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "VisibleDescription",
+            "type": "Attribute",
+        },
+    )
+    default_language: None | str = field(
+        default=None,
+        metadata={
+            "name": "DefaultLanguage",
+            "type": "Attribute",
+        },
+    )
+    non_reg_relevant_data_version: int = field(
+        default=0,
+        metadata={
+            "name": "NonRegRelevantDataVersion",
+            "type": "Attribute",
+        },
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
             "type": "Attribute",
         },
     )
@@ -2331,6 +4125,79 @@ class ComObjectInstanceRefT:
         metadata={
             "name": "Context",
             "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ComObjectParameterBlockTColumnsColumn:
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    text: None | str = field(
+        default=None,
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    text_parameter_ref_id: None | str = field(
+        default=None,
+        metadata={
+            "name": "TextParameterRefId",
+            "type": "Attribute",
+        },
+    )
+    width: str = field(
+        metadata={
+            "name": "Width",
+            "type": "Attribute",
+            "pattern": r"(100|\d\d|\d)%",
+        }
+    )
+    text_alignment: None | TextAlignmentT = field(
+        default=None,
+        metadata={
+            "name": "TextAlignment",
+            "type": "Attribute",
+        },
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ComObjectParameterBlockTRows:
+    class Meta:
+        global_type = False
+
+    row: list[ComObjectParameterBlockTRowsRow] = field(
+        default_factory=list,
+        metadata={
+            "name": "Row",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
         },
     )
 
@@ -2791,17 +4658,20 @@ class DatapointRoleT:
 
 
 @dataclass(slots=True, kw_only=True)
-class DatapointTypeT:
+class DatapointTypeTDatapointSubtypesDatapointSubtypeFormatEnumeration:
     class Meta:
-        name = "DatapointType_t"
+        global_type = False
 
-    datapoint_subtypes: None | DatapointTypeT.DatapointSubtypes = field(
-        default=None,
-        metadata={
-            "name": "DatapointSubtypes",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
+    enum_value: list[DatapointTypeTDatapointSubtypesDatapointSubtypeFormatEnumerationEnumValue] = (
+        field(
+            default_factory=list,
+            metadata={
+                "name": "EnumValue",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/23",
+                "min_occurs": 1,
+            },
+        )
     )
     id: str = field(
         metadata={
@@ -2809,32 +4679,58 @@ class DatapointTypeT:
             "type": "Attribute",
         }
     )
-    number: int = field(
+    width: int = field(
         metadata={
-            "name": "Number",
+            "name": "Width",
             "type": "Attribute",
         }
     )
-    name: str = field(
+    name: None | str = field(
+        default=None,
         metadata={
             "name": "Name",
             "type": "Attribute",
-            "max_length": 255,
-        }
-    )
-    text: None | str = field(
-        default=None,
-        metadata={
-            "name": "Text",
-            "type": "Attribute",
-            "max_length": 255,
         },
     )
-    size_in_bit: int = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class DatapointTypeTDatapointSubtypesDatapointSubtypeFormatString:
+    class Meta:
+        global_type = False
+
+    id: str = field(
         metadata={
-            "name": "SizeInBit",
+            "name": "Id",
             "type": "Attribute",
         }
+    )
+    width: int = field(
+        metadata={
+            "name": "Width",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+        },
+    )
+    unit: None | str = field(
+        default=None,
+        metadata={
+            "name": "Unit",
+            "type": "Attribute",
+        },
+    )
+    encoding: None | TextEncodingT = field(
+        default=None,
+        metadata={
+            "name": "Encoding",
+            "type": "Attribute",
+        },
     )
     variable_length: bool = field(
         default=False,
@@ -2843,474 +4739,94 @@ class DatapointTypeT:
             "type": "Attribute",
         },
     )
-    default: None | bool = field(
-        default=None,
+    null_terminated: bool = field(
+        default=False,
         metadata={
-            "name": "Default",
-            "type": "Attribute",
-        },
-    )
-    pdt: None | str = field(
-        default=None,
-        metadata={
-            "name": "PDT",
+            "name": "NullTerminated",
             "type": "Attribute",
         },
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class DatapointSubtypes:
-        datapoint_subtype: list[DatapointTypeT.DatapointSubtypes.DatapointSubtype] = field(
-            default_factory=list,
-            metadata={
-                "name": "DatapointSubtype",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
 
-        @dataclass(slots=True, kw_only=True)
-        class DatapointSubtype:
-            format: None | DatapointTypeT.DatapointSubtypes.DatapointSubtype.Format = field(
-                default=None,
-                metadata={
-                    "name": "Format",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            number: int = field(
-                metadata={
-                    "name": "Number",
-                    "type": "Attribute",
-                }
-            )
-            name: str = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 255,
-                }
-            )
-            text: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Text",
-                    "type": "Attribute",
-                    "max_length": 255,
-                },
-            )
-            default: bool = field(
-                default=False,
-                metadata={
-                    "name": "Default",
-                    "type": "Attribute",
-                },
-            )
-            pdt: None | str = field(
-                default=None,
-                metadata={
-                    "name": "PDT",
-                    "type": "Attribute",
-                },
-            )
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTAdditionalAddresses:
+    class Meta:
+        global_type = False
 
-            @dataclass(slots=True, kw_only=True)
-            class Format:
-                bit: list[DatapointTypeT.DatapointSubtypes.DatapointSubtype.Format.Bit] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "Bit",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
-                unsigned_integer: list[DatapointTypeT.DatapointSubtypes.DatapointSubtype.Format.UnsignedInteger] = (
-                    field(
-                        default_factory=list,
-                        metadata={
-                            "name": "UnsignedInteger",
-                            "type": "Element",
-                            "namespace": "http://knx.org/xml/project/23",
-                        },
-                    )
-                )
-                signed_integer: list[DatapointTypeT.DatapointSubtypes.DatapointSubtype.Format.SignedInteger] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "SignedInteger",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
-                string: list[DatapointTypeT.DatapointSubtypes.DatapointSubtype.Format.String] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "String",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
-                float_value: list[DatapointTypeT.DatapointSubtypes.DatapointSubtype.Format.Float] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "Float",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
-                enumeration: list[DatapointTypeT.DatapointSubtypes.DatapointSubtype.Format.Enumeration] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "Enumeration",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
-                reserved: list[DatapointTypeT.DatapointSubtypes.DatapointSubtype.Format.Reserved] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "Reserved",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
-                ref_type: list[DatapointTypeT.DatapointSubtypes.DatapointSubtype.Format.RefType] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "RefType",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
+    address: list[DeviceInstanceTAdditionalAddressesAddress] = field(
+        default_factory=list,
+        metadata={
+            "name": "Address",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+            "max_occurs": 254,
+        },
+    )
 
-                @dataclass(slots=True, kw_only=True)
-                class Bit:
-                    id: str = field(
-                        metadata={
-                            "name": "Id",
-                            "type": "Attribute",
-                        }
-                    )
-                    name: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Name",
-                            "type": "Attribute",
-                        },
-                    )
-                    set: str = field(
-                        metadata={
-                            "name": "Set",
-                            "type": "Attribute",
-                        }
-                    )
-                    cleared: str = field(
-                        metadata={
-                            "name": "Cleared",
-                            "type": "Attribute",
-                        }
-                    )
 
-                @dataclass(slots=True, kw_only=True)
-                class UnsignedInteger:
-                    id: str = field(
-                        metadata={
-                            "name": "Id",
-                            "type": "Attribute",
-                        }
-                    )
-                    width: int = field(
-                        metadata={
-                            "name": "Width",
-                            "type": "Attribute",
-                        }
-                    )
-                    name: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Name",
-                            "type": "Attribute",
-                        },
-                    )
-                    unit: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Unit",
-                            "type": "Attribute",
-                        },
-                    )
-                    min_inclusive: None | int = field(
-                        default=None,
-                        metadata={
-                            "name": "MinInclusive",
-                            "type": "Attribute",
-                        },
-                    )
-                    max_inclusive: None | int = field(
-                        default=None,
-                        metadata={
-                            "name": "MaxInclusive",
-                            "type": "Attribute",
-                        },
-                    )
-                    coefficient: None | float = field(
-                        default=None,
-                        metadata={
-                            "name": "Coefficient",
-                            "type": "Attribute",
-                        },
-                    )
-                    offset: None | int = field(
-                        default=None,
-                        metadata={
-                            "name": "Offset",
-                            "type": "Attribute",
-                        },
-                    )
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTBinaryData:
+    class Meta:
+        global_type = False
 
-                @dataclass(slots=True, kw_only=True)
-                class SignedInteger:
-                    id: str = field(
-                        metadata={
-                            "name": "Id",
-                            "type": "Attribute",
-                        }
-                    )
-                    width: int = field(
-                        metadata={
-                            "name": "Width",
-                            "type": "Attribute",
-                        }
-                    )
-                    name: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Name",
-                            "type": "Attribute",
-                        },
-                    )
-                    unit: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Unit",
-                            "type": "Attribute",
-                        },
-                    )
-                    min_inclusive: None | int = field(
-                        default=None,
-                        metadata={
-                            "name": "MinInclusive",
-                            "type": "Attribute",
-                        },
-                    )
-                    max_inclusive: None | int = field(
-                        default=None,
-                        metadata={
-                            "name": "MaxInclusive",
-                            "type": "Attribute",
-                        },
-                    )
-                    coefficient: None | float = field(
-                        default=None,
-                        metadata={
-                            "name": "Coefficient",
-                            "type": "Attribute",
-                        },
-                    )
-                    offset: None | int = field(
-                        default=None,
-                        metadata={
-                            "name": "Offset",
-                            "type": "Attribute",
-                        },
-                    )
+    binary_data: list[DeviceInstanceTBinaryDataBinaryData] = field(
+        default_factory=list,
+        metadata={
+            "name": "BinaryData",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
 
-                @dataclass(slots=True, kw_only=True)
-                class String:
-                    id: str = field(
-                        metadata={
-                            "name": "Id",
-                            "type": "Attribute",
-                        }
-                    )
-                    width: int = field(
-                        metadata={
-                            "name": "Width",
-                            "type": "Attribute",
-                        }
-                    )
-                    name: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Name",
-                            "type": "Attribute",
-                        },
-                    )
-                    unit: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Unit",
-                            "type": "Attribute",
-                        },
-                    )
-                    encoding: None | TextEncodingT = field(
-                        default=None,
-                        metadata={
-                            "name": "Encoding",
-                            "type": "Attribute",
-                        },
-                    )
-                    variable_length: bool = field(
-                        default=False,
-                        metadata={
-                            "name": "VariableLength",
-                            "type": "Attribute",
-                        },
-                    )
-                    null_terminated: bool = field(
-                        default=False,
-                        metadata={
-                            "name": "NullTerminated",
-                            "type": "Attribute",
-                        },
-                    )
 
-                @dataclass(slots=True, kw_only=True)
-                class Float:
-                    id: str = field(
-                        metadata={
-                            "name": "Id",
-                            "type": "Attribute",
-                        }
-                    )
-                    width: int = field(
-                        metadata={
-                            "name": "Width",
-                            "type": "Attribute",
-                        }
-                    )
-                    name: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Name",
-                            "type": "Attribute",
-                        },
-                    )
-                    unit: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Unit",
-                            "type": "Attribute",
-                        },
-                    )
-                    coefficient: None | float = field(
-                        default=None,
-                        metadata={
-                            "name": "Coefficient",
-                            "type": "Attribute",
-                        },
-                    )
-                    min_value: None | float = field(
-                        default=None,
-                        metadata={
-                            "name": "MinValue",
-                            "type": "Attribute",
-                        },
-                    )
-                    max_value: None | float = field(
-                        default=None,
-                        metadata={
-                            "name": "MaxValue",
-                            "type": "Attribute",
-                        },
-                    )
-                    offset: None | float = field(
-                        default=None,
-                        metadata={
-                            "name": "Offset",
-                            "type": "Attribute",
-                        },
-                    )
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTChannelInstances:
+    class Meta:
+        global_type = False
 
-                @dataclass(slots=True, kw_only=True)
-                class Enumeration:
-                    enum_value: list[DatapointTypeT.DatapointSubtypes.DatapointSubtype.Format.Enumeration.EnumValue] = (
-                        field(
-                            default_factory=list,
-                            metadata={
-                                "name": "EnumValue",
-                                "type": "Element",
-                                "namespace": "http://knx.org/xml/project/23",
-                                "min_occurs": 1,
-                            },
-                        )
-                    )
-                    id: str = field(
-                        metadata={
-                            "name": "Id",
-                            "type": "Attribute",
-                        }
-                    )
-                    width: int = field(
-                        metadata={
-                            "name": "Width",
-                            "type": "Attribute",
-                        }
-                    )
-                    name: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Name",
-                            "type": "Attribute",
-                        },
-                    )
+    channel_instance: list[ChannelInstanceT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ChannelInstance",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
 
-                    @dataclass(slots=True, kw_only=True)
-                    class EnumValue:
-                        id: str = field(
-                            metadata={
-                                "name": "Id",
-                                "type": "Attribute",
-                            }
-                        )
-                        value: int = field(
-                            metadata={
-                                "name": "Value",
-                                "type": "Attribute",
-                            }
-                        )
-                        text: str = field(
-                            metadata={
-                                "name": "Text",
-                                "type": "Attribute",
-                            }
-                        )
 
-                @dataclass(slots=True, kw_only=True)
-                class Reserved:
-                    width: int = field(
-                        metadata={
-                            "name": "Width",
-                            "type": "Attribute",
-                        }
-                    )
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTParameterInstanceRefs:
+    class Meta:
+        global_type = False
 
-                @dataclass(slots=True, kw_only=True)
-                class RefType:
-                    ref_id: str = field(
-                        metadata={
-                            "name": "RefId",
-                            "type": "Attribute",
-                        }
-                    )
+    parameter_instance_ref: list[ParameterInstanceRefT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ParameterInstanceRef",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTRfFastAckSlots:
+    class Meta:
+        global_type = False
+
+    slot: list[DeviceInstanceTRfFastAckSlotsSlot] = field(
+        default_factory=list,
+        metadata={
+            "name": "Slot",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -3318,7 +4834,7 @@ class FunctionTypeT:
     class Meta:
         name = "FunctionType_t"
 
-    function_point: list[FunctionTypeT.FunctionPoint] = field(
+    function_point: list[FunctionTypeTFunctionPoint] = field(
         default_factory=list,
         metadata={
             "name": "FunctionPoint",
@@ -3367,49 +4883,6 @@ class FunctionTypeT:
             "type": "Attribute",
         },
     )
-
-    @dataclass(slots=True, kw_only=True)
-    class FunctionPoint:
-        id: str = field(
-            metadata={
-                "name": "Id",
-                "type": "Attribute",
-            }
-        )
-        text: str = field(
-            metadata={
-                "name": "Text",
-                "type": "Attribute",
-                "max_length": 255,
-            }
-        )
-        role: str = field(
-            metadata={
-                "name": "Role",
-                "type": "Attribute",
-            }
-        )
-        datapoint_type: str = field(
-            metadata={
-                "name": "DatapointType",
-                "type": "Attribute",
-            }
-        )
-        characteristics: list[str] = field(
-            default_factory=list,
-            metadata={
-                "name": "Characteristics",
-                "type": "Attribute",
-                "tokens": True,
-            },
-        )
-        semantics: None | str = field(
-            default=None,
-            metadata={
-                "name": "Semantics",
-                "type": "Attribute",
-            },
-        )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -3604,6 +5077,146 @@ class GroupAddressT:
 
 
 @dataclass(slots=True, kw_only=True)
+class HardwareTProductsProductAttributesAttribute:
+    class Meta:
+        global_type = False
+
+    id: None | str = field(
+        default=None,
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        },
+    )
+    name: HardwareTProductsProductAttributesAttributeName = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+        }
+    )
+    value: str = field(
+        metadata={
+            "name": "Value",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HardwareTProductsProductBaggages:
+    class Meta:
+        global_type = False
+
+    baggage: list[HardwareTProductsProductBaggagesBaggage] = field(
+        default_factory=list,
+        metadata={
+            "name": "Baggage",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTFeaturesFeature:
+    class Meta:
+        global_type = False
+
+    name: HawkConfigurationDataTFeaturesFeatureName = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+        }
+    )
+    value: int = field(
+        metadata={
+            "name": "Value",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTInterfaceObjectsInterfaceObjectProperty:
+    class Meta:
+        global_type = False
+
+    property_id: int = field(
+        metadata={
+            "name": "PropertyID",
+            "type": "Attribute",
+        }
+    )
+    property_data_type: None | PropTypeT = field(
+        default=None,
+        metadata={
+            "name": "PropertyDataType",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTMemorySegmentsMemorySegmentAccessRights:
+    class Meta:
+        global_type = False
+
+    read: ResourceAccessRightsT = field(
+        metadata={
+            "name": "Read",
+            "type": "Attribute",
+        }
+    )
+    write: ResourceAccessRightsT = field(
+        metadata={
+            "name": "Write",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTResourcesResourceAccessRights:
+    class Meta:
+        global_type = False
+
+    read: ResourceAccessRightsT = field(
+        metadata={
+            "name": "Read",
+            "type": "Attribute",
+        }
+    )
+    write: ResourceAccessRightsT = field(
+        metadata={
+            "name": "Write",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTResourcesResourceResourceType:
+    class Meta:
+        global_type = False
+
+    length: int = field(
+        metadata={
+            "name": "Length",
+            "type": "Attribute",
+        }
+    )
+    flavour: None | HawkConfigurationDataTResourcesResourceResourceTypeFlavour = field(
+        default=None,
+        metadata={
+            "name": "Flavour",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
 class IpconfigT:
     class Meta:
         name = "IPConfig_t"
@@ -3650,97 +5263,93 @@ class IpconfigT:
 
 
 @dataclass(slots=True, kw_only=True)
-class LdCtrlBaseT:
-    """
-    :ivar on_error: registration-relevant set
-    :ivar applies_to: registration-relevant
-    :ivar internal_description:
-    """
-
+class LanguageDataTTranslationUnitTranslationElement:
     class Meta:
-        name = "LdCtrlBase_t"
+        global_type = False
 
-    on_error: list[LdCtrlBaseT.OnError] = field(
+    translation: list[LanguageDataTTranslationUnitTranslationElementTranslation] = field(
         default_factory=list,
         metadata={
-            "name": "OnError",
+            "name": "Translation",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
         },
     )
-    applies_to: LdCtrlProcTypeT = field(
-        default=LdCtrlProcTypeT.AUTO,
+    ref_id: str = field(
         metadata={
-            "name": "AppliesTo",
+            "name": "RefId",
             "type": "Attribute",
-        },
+        }
     )
-    internal_description: None | str = field(
-        default=None,
-        metadata={
-            "name": "InternalDescription",
-            "type": "Attribute",
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class OnError:
-        """
-        :ivar cause: registration-relevant
-        :ivar ignore: registration-relevant
-        :ivar message_ref:
-        """
-
-        cause: LdCtrlErrorCauseT = field(
-            metadata={
-                "name": "Cause",
-                "type": "Attribute",
-            }
-        )
-        ignore: bool = field(
-            default=False,
-            metadata={
-                "name": "Ignore",
-                "type": "Attribute",
-            },
-        )
-        message_ref: None | str = field(
-            default=None,
-            metadata={
-                "name": "MessageRef",
-                "type": "Attribute",
-            },
-        )
 
 
 @dataclass(slots=True, kw_only=True)
-class ModuleT:
+class LdCtrlBaseTOnError:
     """
-    :ivar numeric_arg:
-    :ivar text_arg:
-    :ivar id:
-    :ivar ref_id: registration-relevant
-    :ivar name:
-    :ivar internal_description:
+    :ivar cause: registration-relevant
+    :ivar ignore: registration-relevant
+    :ivar message_ref:
     """
 
     class Meta:
-        name = "Module_t"
+        global_type = False
 
-    numeric_arg: list[ModuleT.NumericArg] = field(
-        default_factory=list,
+    cause: LdCtrlErrorCauseT = field(
         metadata={
-            "name": "NumericArg",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
+            "name": "Cause",
+            "type": "Attribute",
+        }
+    )
+    ignore: bool = field(
+        default=False,
+        metadata={
+            "name": "Ignore",
+            "type": "Attribute",
         },
     )
-    text_arg: list[ModuleT.TextArg] = field(
-        default_factory=list,
+    message_ref: None | str = field(
+        default=None,
         metadata={
-            "name": "TextArg",
+            "name": "MessageRef",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ManufacturerDataTManufacturerBaggagesBaggage:
+    class Meta:
+        global_type = False
+
+    file_info: ManufacturerDataTManufacturerBaggagesBaggageFileInfo = field(
+        metadata={
+            "name": "FileInfo",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    target_path: str = field(
+        metadata={
+            "name": "TargetPath",
+            "type": "Attribute",
+            "max_length": 255,
+            "pattern": r'(([^"<>\|:\*\?/\\\t\n\r]+\\)*[^"<>\|:\*\?/\\\t\n\r]+)?',
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+            "pattern": r'[^"<>\|:\*\?/\\\t\n\r]+',
+        }
+    )
+    file_integrity: str = field(
+        default="00000000",
+        metadata={
+            "name": "FileIntegrity",
+            "type": "Attribute",
         },
     )
     id: str = field(
@@ -3749,18 +5358,347 @@ class ModuleT:
             "type": "Attribute",
         }
     )
-    ref_id: str = field(
+    guid: None | str = field(
+        default=None,
         metadata={
-            "name": "RefId",
+            "name": "Guid",
+            "type": "Attribute",
+            "pattern": r"\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MaskVersionTDownwardCompatibleMasks:
+    class Meta:
+        global_type = False
+
+    downward_compatible_mask: list[MaskVersionTDownwardCompatibleMasksDownwardCompatibleMask] = (
+        field(
+            default_factory=list,
+            metadata={
+                "name": "DownwardCompatibleMask",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/23",
+                "min_occurs": 1,
+            },
+        )
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MaskVersionTMaskEntries:
+    class Meta:
+        global_type = False
+
+    mask_entry: list[MaskVersionTMaskEntriesMaskEntry] = field(
+        default_factory=list,
+        metadata={
+            "name": "MaskEntry",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTFunctionalBlocksFunctionalBlockParameters:
+    class Meta:
+        global_type = False
+
+    parameter: list[MasterDataTFunctionalBlocksFunctionalBlockParametersParameter] = field(
+        default_factory=list,
+        metadata={
+            "name": "Parameter",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+    object_type: str = field(
+        metadata={
+            "name": "ObjectType",
             "type": "Attribute",
         }
     )
-    name: None | str = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTInterfaceObjectProperties:
+    class Meta:
+        global_type = False
+
+    interface_object_property: list[
+        MasterDataTInterfaceObjectPropertiesInterfaceObjectProperty
+    ] = field(
+        default_factory=list,
+        metadata={
+            "name": "InterfaceObjectProperty",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTInterfaceObjectTypes:
+    class Meta:
+        global_type = False
+
+    interface_object_type: list[MasterDataTInterfaceObjectTypesInterfaceObjectType] = field(
+        default_factory=list,
+        metadata={
+            "name": "InterfaceObjectType",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTManufacturersManufacturerPublicKeysPublicKey:
+    class Meta:
+        global_type = False
+
+    rsakey_value: MasterDataTManufacturersManufacturerPublicKeysPublicKeyRsakeyValue = field(
+        metadata={
+            "name": "RSAKeyValue",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    number: int = field(
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+        }
+    )
+    revoked: bool = field(
+        default=False,
+        metadata={
+            "name": "Revoked",
+            "type": "Attribute",
+        },
+    )
+    purpose: list[str] = field(
+        default_factory=list,
+        metadata={
+            "name": "Purpose",
+            "type": "Attribute",
+            "tokens": True,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTMediumTypes:
+    class Meta:
+        global_type = False
+
+    medium_type: list[MasterDataTMediumTypesMediumType] = field(
+        default_factory=list,
+        metadata={
+            "name": "MediumType",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTProductLanguages:
+    class Meta:
+        global_type = False
+
+    language: list[MasterDataTProductLanguagesLanguage] = field(
+        default_factory=list,
+        metadata={
+            "name": "Language",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTPropertyDataTypes:
+    class Meta:
+        global_type = False
+
+    property_data_type: list[MasterDataTPropertyDataTypesPropertyDataType] = field(
+        default_factory=list,
+        metadata={
+            "name": "PropertyDataType",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTAllocators:
+    class Meta:
+        global_type = False
+
+    allocator: list[AllocatorT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Allocator",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTParametersParameterMemory(MemoryParameterT):
+    """
+    :ivar base_offset: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    base_offset: None | str = field(
         default=None,
+        metadata={
+            "name": "BaseOffset",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTParametersParameterProperty(PropertyParameterT):
+    """
+    :ivar base_offset: registration-relevant
+    :ivar base_index: registration-relevant
+    :ivar base_occurrence: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    base_offset: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseOffset",
+            "type": "Attribute",
+        },
+    )
+    base_index: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseIndex",
+            "type": "Attribute",
+        },
+    )
+    base_occurrence: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseOccurrence",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTParametersUnionMemory(MemoryUnionT):
+    """
+    :ivar base_offset: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    base_offset: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseOffset",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTParametersUnionProperty(PropertyUnionT):
+    """
+    :ivar base_offset: registration-relevant
+    :ivar base_index: registration-relevant
+    :ivar base_occurrence: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    base_offset: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseOffset",
+            "type": "Attribute",
+        },
+    )
+    base_index: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseIndex",
+            "type": "Attribute",
+        },
+    )
+    base_occurrence: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseOccurrence",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefTArgumentsArgument:
+    """
+    :ivar id:
+    :ivar name: registration-relevant
+    :ivar type_value: registration-relevant
+    :ivar internal_description:
+    :ivar allocates: registration-relevant
+    :ivar alignment: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
         metadata={
             "name": "Name",
             "type": "Attribute",
-            "max_length": 255,
+            "max_length": 50,
+            "pattern": r"[A-Za-z_][A-Za-z0-9_]*",
+        }
+    )
+    type_value: ModuleDefArgTypeT = field(
+        default=ModuleDefArgTypeT.NUMERIC,
+        metadata={
+            "name": "Type",
+            "type": "Attribute",
         },
     )
     internal_description: None | str = field(
@@ -3770,52 +5708,90 @@ class ModuleT:
             "type": "Attribute",
         },
     )
+    allocates: None | int = field(
+        default=None,
+        metadata={
+            "name": "Allocates",
+            "type": "Attribute",
+        },
+    )
+    alignment: ModuleDefTArgumentsArgumentAlignment = field(
+        default=ModuleDefTArgumentsArgumentAlignment.VALUE_1,
+        metadata={
+            "name": "Alignment",
+            "type": "Attribute",
+        },
+    )
 
-    @dataclass(slots=True, kw_only=True)
-    class NumericArg(ModuleArgT):
-        """
-        :ivar value: registration-relevant
-        :ivar allocator_ref_id: registration-relevant
-        :ivar base_value: registration-relevant
-        """
 
-        value: None | int = field(
-            default=None,
-            metadata={
-                "name": "Value",
-                "type": "Attribute",
-            },
-        )
-        allocator_ref_id: None | str = field(
-            default=None,
-            metadata={
-                "name": "AllocatorRefId",
-                "type": "Attribute",
-            },
-        )
-        base_value: None | str = field(
-            default=None,
-            metadata={
-                "name": "BaseValue",
-                "type": "Attribute",
-            },
-        )
+@dataclass(slots=True, kw_only=True)
+class ModuleInstanceTArguments:
+    class Meta:
+        global_type = False
 
-    @dataclass(slots=True, kw_only=True)
-    class TextArg(ModuleArgT):
-        id: str = field(
-            metadata={
-                "name": "Id",
-                "type": "Attribute",
-            }
-        )
-        value: str = field(
-            metadata={
-                "name": "Value",
-                "type": "Attribute",
-                "max_length": 255,
-            }
-        )
+    argument: list[ModuleInstanceTArgumentsArgument] = field(
+        default_factory=list,
+        metadata={
+            "name": "Argument",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleTNumericArg(ModuleArgT):
+    """
+    :ivar value: registration-relevant
+    :ivar allocator_ref_id: registration-relevant
+    :ivar base_value: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    value: None | int = field(
+        default=None,
+        metadata={
+            "name": "Value",
+            "type": "Attribute",
+        },
+    )
+    allocator_ref_id: None | str = field(
+        default=None,
+        metadata={
+            "name": "AllocatorRefId",
+            "type": "Attribute",
+        },
+    )
+    base_value: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseValue",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleTTextArg(ModuleArgT):
+    class Meta:
+        global_type = False
+
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    value: str = field(
+        metadata={
+            "name": "Value",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -3823,7 +5799,7 @@ class NodeT:
     class Meta:
         name = "Node_t"
 
-    nodes: None | NodeT.Nodes = field(
+    nodes: None | NodeTNodes = field(
         default=None,
         metadata={
             "name": "Nodes",
@@ -3858,18 +5834,6 @@ class NodeT:
             "tokens": True,
         },
     )
-
-    @dataclass(slots=True, kw_only=True)
-    class Nodes:
-        node: list[NodeT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Node",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -3999,141 +5963,43 @@ class ParameterBaseT:
 
 
 @dataclass(slots=True, kw_only=True)
-class ParameterCalculationT:
+class ParameterCalculationTLparameters:
     """
-    :ivar rltransformation: registration-relevant
-    :ivar lrtransformation: registration-relevant
-    :ivar lparameters:
-    :ivar rparameters:
-    :ivar id: registration-relevant
-    :ivar language: registration-relevant
-    :ivar name:
-    :ivar internal_description:
-    :ivar rltransformation_func: registration-relevant
-    :ivar rltransformation_parameters: registration-relevant
-    :ivar lrtransformation_func: registration-relevant
-    :ivar lrtransformation_parameters: registration-relevant
+    :ivar parameter_ref_ref: registration-relevant set
     """
 
     class Meta:
-        name = "ParameterCalculation_t"
+        global_type = False
 
-    rltransformation: None | str = field(
-        default=None,
+    parameter_ref_ref: list[CalculationParameterRefT] = field(
+        default_factory=list,
         metadata={
-            "name": "RLTransformation",
+            "name": "ParameterRefRef",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
         },
     )
-    lrtransformation: None | str = field(
-        default=None,
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterCalculationTRparameters:
+    """
+    :ivar parameter_ref_ref: registration-relevant set
+    """
+
+    class Meta:
+        global_type = False
+
+    parameter_ref_ref: list[CalculationParameterRefT] = field(
+        default_factory=list,
         metadata={
-            "name": "LRTransformation",
+            "name": "ParameterRefRef",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
         },
     )
-    lparameters: ParameterCalculationT.Lparameters = field(
-        metadata={
-            "name": "LParameters",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        }
-    )
-    rparameters: ParameterCalculationT.Rparameters = field(
-        metadata={
-            "name": "RParameters",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        }
-    )
-    id: str = field(
-        metadata={
-            "name": "Id",
-            "type": "Attribute",
-        }
-    )
-    language: ParameterCalculationTLanguage = field(
-        metadata={
-            "name": "Language",
-            "type": "Attribute",
-        }
-    )
-    name: str = field(
-        metadata={
-            "name": "Name",
-            "type": "Attribute",
-            "max_length": 255,
-        }
-    )
-    internal_description: None | str = field(
-        default=None,
-        metadata={
-            "name": "InternalDescription",
-            "type": "Attribute",
-        },
-    )
-    rltransformation_func: None | str = field(
-        default=None,
-        metadata={
-            "name": "RLTransformationFunc",
-            "type": "Attribute",
-        },
-    )
-    rltransformation_parameters: None | str = field(
-        default=None,
-        metadata={
-            "name": "RLTransformationParameters",
-            "type": "Attribute",
-        },
-    )
-    lrtransformation_func: None | str = field(
-        default=None,
-        metadata={
-            "name": "LRTransformationFunc",
-            "type": "Attribute",
-        },
-    )
-    lrtransformation_parameters: None | str = field(
-        default=None,
-        metadata={
-            "name": "LRTransformationParameters",
-            "type": "Attribute",
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class Lparameters:
-        """
-        :ivar parameter_ref_ref: registration-relevant set
-        """
-
-        parameter_ref_ref: list[CalculationParameterRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterRefRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class Rparameters:
-        """
-        :ivar parameter_ref_ref: registration-relevant set
-        """
-
-        parameter_ref_ref: list[CalculationParameterRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterRefRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -4360,578 +6226,277 @@ class ParameterSeparatorT:
 
 
 @dataclass(slots=True, kw_only=True)
-class ParameterTypeT:
+class ParameterTypeTTypeColor:
     """
-    :ivar type_number:
-    :ivar type_float:
-    :ivar type_restriction:
-    :ivar type_text:
-    :ivar type_time:
-    :ivar type_date:
-    :ivar type_ipaddress:
-    :ivar type_picture:
-    :ivar type_color:
-    :ivar type_raw_data:
-    :ivar type_none:
-    :ivar id: registration-relevant
-    :ivar name: registration-relevant
-    :ivar internal_description:
-    :ivar plugin:
-    :ivar validation_error_ref:
-    :ivar text_alignment:
-    :ivar io_tencoding: registration-relevant
+    :ivar space: registration-relevant
     """
 
     class Meta:
-        name = "ParameterType_t"
+        global_type = False
 
-    type_number: None | ParameterTypeT.TypeNumber = field(
-        default=None,
+    space: ParameterTypeTTypeColorSpace = field(
         metadata={
-            "name": "TypeNumber",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    type_float: None | ParameterTypeT.TypeFloat = field(
-        default=None,
-        metadata={
-            "name": "TypeFloat",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    type_restriction: None | ParameterTypeT.TypeRestriction = field(
-        default=None,
-        metadata={
-            "name": "TypeRestriction",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    type_text: None | ParameterTypeT.TypeText = field(
-        default=None,
-        metadata={
-            "name": "TypeText",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    type_time: None | ParameterTypeT.TypeTime = field(
-        default=None,
-        metadata={
-            "name": "TypeTime",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    type_date: None | ParameterTypeT.TypeDate = field(
-        default=None,
-        metadata={
-            "name": "TypeDate",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    type_ipaddress: None | ParameterTypeT.TypeIpaddress = field(
-        default=None,
-        metadata={
-            "name": "TypeIPAddress",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    type_picture: None | ParameterTypeT.TypePicture = field(
-        default=None,
-        metadata={
-            "name": "TypePicture",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    type_color: None | ParameterTypeT.TypeColor = field(
-        default=None,
-        metadata={
-            "name": "TypeColor",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    type_raw_data: None | ParameterTypeT.TypeRawData = field(
-        default=None,
-        metadata={
-            "name": "TypeRawData",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    type_none: None | object = field(
-        default=None,
-        metadata={
-            "name": "TypeNone",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    id: str = field(
-        metadata={
-            "name": "Id",
+            "name": "Space",
             "type": "Attribute",
         }
     )
-    name: str = field(
-        metadata={
-            "name": "Name",
-            "type": "Attribute",
-            "max_length": 255,
-        }
-    )
-    internal_description: None | str = field(
-        default=None,
-        metadata={
-            "name": "InternalDescription",
-            "type": "Attribute",
-        },
-    )
-    plugin: None | str = field(
-        default=None,
-        metadata={
-            "name": "Plugin",
-            "type": "Attribute",
-        },
-    )
-    validation_error_ref: None | str = field(
-        default=None,
-        metadata={
-            "name": "ValidationErrorRef",
-            "type": "Attribute",
-        },
-    )
-    text_alignment: None | TextAlignmentT = field(
-        default=None,
-        metadata={
-            "name": "TextAlignment",
-            "type": "Attribute",
-        },
-    )
-    io_tencoding: None | str = field(
-        default=None,
-        metadata={
-            "name": "IoTEncoding",
-            "type": "Attribute",
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class TypeNumber:
-        """
-        :ivar size_in_bit: registration-relevant
-        :ivar type_value: registration-relevant
-        :ivar min_inclusive: registration-relevant
-        :ivar max_inclusive: registration-relevant
-        :ivar increment: registration-relevant
-        :ivar uihint:
-        :ivar display_offset:
-        :ivar display_factor:
-        """
-
-        size_in_bit: int = field(
-            metadata={
-                "name": "SizeInBit",
-                "type": "Attribute",
-                "min_inclusive": 1,
-                "max_inclusive": 32,
-            }
-        )
-        type_value: TypeNumberType = field(
-            metadata={
-                "name": "Type",
-                "type": "Attribute",
-            }
-        )
-        min_inclusive: int = field(
-            metadata={
-                "name": "minInclusive",
-                "type": "Attribute",
-            }
-        )
-        max_inclusive: int = field(
-            metadata={
-                "name": "maxInclusive",
-                "type": "Attribute",
-            }
-        )
-        increment: int = field(
-            default=1,
-            metadata={
-                "name": "Increment",
-                "type": "Attribute",
-            },
-        )
-        uihint: None | TypeNumberUihint = field(
-            default=None,
-            metadata={
-                "name": "UIHint",
-                "type": "Attribute",
-            },
-        )
-        display_offset: None | float = field(
-            default=None,
-            metadata={
-                "name": "DisplayOffset",
-                "type": "Attribute",
-            },
-        )
-        display_factor: None | float = field(
-            default=None,
-            metadata={
-                "name": "DisplayFactor",
-                "type": "Attribute",
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class TypeFloat:
-        """
-        :ivar encoding: registration-relevant
-        :ivar min_inclusive: registration-relevant
-        :ivar max_inclusive: registration-relevant
-        :ivar increment: registration-relevant
-        :ivar uihint:
-        :ivar display_format:
-        :ivar display_offset:
-        :ivar display_factor:
-        """
-
-        encoding: TypeFloatEncoding = field(
-            metadata={
-                "name": "Encoding",
-                "type": "Attribute",
-            }
-        )
-        min_inclusive: float = field(
-            metadata={
-                "name": "minInclusive",
-                "type": "Attribute",
-            }
-        )
-        max_inclusive: float = field(
-            metadata={
-                "name": "maxInclusive",
-                "type": "Attribute",
-            }
-        )
-        increment: None | float = field(
-            default=None,
-            metadata={
-                "name": "Increment",
-                "type": "Attribute",
-            },
-        )
-        uihint: None | TypeFloatUihint = field(
-            default=None,
-            metadata={
-                "name": "UIHint",
-                "type": "Attribute",
-            },
-        )
-        display_format: None | str = field(
-            default=None,
-            metadata={
-                "name": "DisplayFormat",
-                "type": "Attribute",
-                "pattern": r"[#,]*[0,]+(\.0*)?([eE][+-]?0+)?",
-            },
-        )
-        display_offset: None | float = field(
-            default=None,
-            metadata={
-                "name": "DisplayOffset",
-                "type": "Attribute",
-            },
-        )
-        display_factor: None | float = field(
-            default=None,
-            metadata={
-                "name": "DisplayFactor",
-                "type": "Attribute",
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class TypeRestriction:
-        """
-        :ivar enumeration: registration-relevant set
-        :ivar base: registration-relevant
-        :ivar size_in_bit: registration-relevant
-        :ivar uihint:
-        """
-
-        enumeration: list[ParameterTypeT.TypeRestriction.Enumeration] = field(
-            default_factory=list,
-            metadata={
-                "name": "Enumeration",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        base: TypeRestrictionBase = field(
-            metadata={
-                "name": "Base",
-                "type": "Attribute",
-            }
-        )
-        size_in_bit: int = field(
-            metadata={
-                "name": "SizeInBit",
-                "type": "Attribute",
-                "min_inclusive": 1,
-                "max_inclusive": 1048575,
-            }
-        )
-        uihint: None | TypeRestrictionUihint = field(
-            default=None,
-            metadata={
-                "name": "UIHint",
-                "type": "Attribute",
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Enumeration:
-            """
-            :ivar text:
-            :ivar icon:
-            :ivar picture_alignment:
-            :ivar value: registration-relevant
-            :ivar id: registration-relevant
-            :ivar display_order:
-            :ivar binary_value: registration-relevant
-            """
-
-            text: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Text",
-                    "type": "Attribute",
-                    "max_length": 255,
-                },
-            )
-            icon: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Icon",
-                    "type": "Attribute",
-                },
-            )
-            picture_alignment: HorizontalAlignmentT = field(
-                default=HorizontalAlignmentT.LEFT,
-                metadata={
-                    "name": "PictureAlignment",
-                    "type": "Attribute",
-                },
-            )
-            value: int = field(
-                metadata={
-                    "name": "Value",
-                    "type": "Attribute",
-                }
-            )
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            display_order: None | int = field(
-                default=None,
-                metadata={
-                    "name": "DisplayOrder",
-                    "type": "Attribute",
-                },
-            )
-            binary_value: None | bytes = field(
-                default=None,
-                metadata={
-                    "name": "BinaryValue",
-                    "type": "Attribute",
-                    "format": "base64",
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class TypeText:
-        """
-        :ivar size_in_bit: registration-relevant
-        :ivar pattern:
-        """
-
-        size_in_bit: int = field(
-            metadata={
-                "name": "SizeInBit",
-                "type": "Attribute",
-                "min_inclusive": 8,
-                "max_inclusive": 1048575,
-            }
-        )
-        pattern: None | str = field(
-            default=None,
-            metadata={
-                "name": "Pattern",
-                "type": "Attribute",
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class TypeTime:
-        """
-        :ivar size_in_bit: registration-relevant
-        :ivar unit: registration-relevant
-        :ivar min_inclusive: registration-relevant
-        :ivar max_inclusive: registration-relevant
-        :ivar uihint:
-        """
-
-        size_in_bit: int = field(
-            metadata={
-                "name": "SizeInBit",
-                "type": "Attribute",
-                "min_inclusive": 8,
-                "max_inclusive": 64,
-            }
-        )
-        unit: TypeTimeUnit = field(
-            metadata={
-                "name": "Unit",
-                "type": "Attribute",
-            }
-        )
-        min_inclusive: int = field(
-            metadata={
-                "name": "minInclusive",
-                "type": "Attribute",
-            }
-        )
-        max_inclusive: int = field(
-            metadata={
-                "name": "maxInclusive",
-                "type": "Attribute",
-            }
-        )
-        uihint: None | TypeTimeUihint = field(
-            default=None,
-            metadata={
-                "name": "UIHint",
-                "type": "Attribute",
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class TypeDate:
-        """
-        :ivar encoding: registration-relevant
-        :ivar display_the_year: registration-relevant
-        """
-
-        encoding: TypeDateEncoding = field(
-            metadata={
-                "name": "Encoding",
-                "type": "Attribute",
-            }
-        )
-        display_the_year: bool = field(
-            default=True,
-            metadata={
-                "name": "DisplayTheYear",
-                "type": "Attribute",
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class TypeIpaddress:
-        """
-        :ivar address_type: registration-relevant
-        :ivar version: registration-relevant
-        """
-
-        address_type: TypeIpaddressAddressType = field(
-            metadata={
-                "name": "AddressType",
-                "type": "Attribute",
-            }
-        )
-        version: TypeIpaddressVersion = field(
-            default=TypeIpaddressVersion.IPV4,
-            metadata={
-                "name": "Version",
-                "type": "Attribute",
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class TypePicture:
-        ref_id: str = field(
-            metadata={
-                "name": "RefId",
-                "type": "Attribute",
-            }
-        )
-        horizontal_alignment: HorizontalAlignmentT = field(
-            default=HorizontalAlignmentT.LEFT,
-            metadata={
-                "name": "HorizontalAlignment",
-                "type": "Attribute",
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class TypeColor:
-        """
-        :ivar space: registration-relevant
-        """
-
-        space: TypeColorSpace = field(
-            metadata={
-                "name": "Space",
-                "type": "Attribute",
-            }
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class TypeRawData:
-        """
-        :ivar max_size: registration-relevant
-        """
-
-        max_size: int = field(
-            metadata={
-                "name": "MaxSize",
-                "type": "Attribute",
-                "min_inclusive": 1,
-                "max_inclusive": 1048572,
-            }
-        )
 
 
 @dataclass(slots=True, kw_only=True)
-class ParameterValidationT:
+class ParameterTypeTTypeDate:
     """
-    :ivar parameters:
-    :ivar id: registration-relevant
-    :ivar name:
-    :ivar internal_description:
-    :ivar validation_func: registration-relevant
-    :ivar validation_parameters: registration-relevant
+    :ivar encoding: registration-relevant
+    :ivar display_the_year: registration-relevant
     """
 
     class Meta:
-        name = "ParameterValidation_t"
+        global_type = False
 
-    parameters: ParameterValidationT.Parameters = field(
+    encoding: ParameterTypeTTypeDateEncoding = field(
         metadata={
-            "name": "Parameters",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
+            "name": "Encoding",
+            "type": "Attribute",
+        }
+    )
+    display_the_year: bool = field(
+        default=True,
+        metadata={
+            "name": "DisplayTheYear",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterTypeTTypeFloat:
+    """
+    :ivar encoding: registration-relevant
+    :ivar min_inclusive: registration-relevant
+    :ivar max_inclusive: registration-relevant
+    :ivar increment: registration-relevant
+    :ivar uihint:
+    :ivar display_format:
+    :ivar display_offset:
+    :ivar display_factor:
+    """
+
+    class Meta:
+        global_type = False
+
+    encoding: ParameterTypeTTypeFloatEncoding = field(
+        metadata={
+            "name": "Encoding",
+            "type": "Attribute",
+        }
+    )
+    min_inclusive: float = field(
+        metadata={
+            "name": "minInclusive",
+            "type": "Attribute",
+        }
+    )
+    max_inclusive: float = field(
+        metadata={
+            "name": "maxInclusive",
+            "type": "Attribute",
+        }
+    )
+    increment: None | float = field(
+        default=None,
+        metadata={
+            "name": "Increment",
+            "type": "Attribute",
+        },
+    )
+    uihint: None | ParameterTypeTTypeFloatUihint = field(
+        default=None,
+        metadata={
+            "name": "UIHint",
+            "type": "Attribute",
+        },
+    )
+    display_format: None | str = field(
+        default=None,
+        metadata={
+            "name": "DisplayFormat",
+            "type": "Attribute",
+            "pattern": r"[#,]*[0,]+(\.0*)?([eE][+-]?0+)?",
+        },
+    )
+    display_offset: None | float = field(
+        default=None,
+        metadata={
+            "name": "DisplayOffset",
+            "type": "Attribute",
+        },
+    )
+    display_factor: None | float = field(
+        default=None,
+        metadata={
+            "name": "DisplayFactor",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterTypeTTypeIpaddress:
+    """
+    :ivar address_type: registration-relevant
+    :ivar version: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    address_type: ParameterTypeTTypeIpaddressAddressType = field(
+        metadata={
+            "name": "AddressType",
+            "type": "Attribute",
+        }
+    )
+    version: ParameterTypeTTypeIpaddressVersion = field(
+        default=ParameterTypeTTypeIpaddressVersion.IPV4,
+        metadata={
+            "name": "Version",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterTypeTTypeNumber:
+    """
+    :ivar size_in_bit: registration-relevant
+    :ivar type_value: registration-relevant
+    :ivar min_inclusive: registration-relevant
+    :ivar max_inclusive: registration-relevant
+    :ivar increment: registration-relevant
+    :ivar uihint:
+    :ivar display_offset:
+    :ivar display_factor:
+    """
+
+    class Meta:
+        global_type = False
+
+    size_in_bit: int = field(
+        metadata={
+            "name": "SizeInBit",
+            "type": "Attribute",
+            "min_inclusive": 1,
+            "max_inclusive": 32,
+        }
+    )
+    type_value: ParameterTypeTTypeNumberType = field(
+        metadata={
+            "name": "Type",
+            "type": "Attribute",
+        }
+    )
+    min_inclusive: int = field(
+        metadata={
+            "name": "minInclusive",
+            "type": "Attribute",
+        }
+    )
+    max_inclusive: int = field(
+        metadata={
+            "name": "maxInclusive",
+            "type": "Attribute",
+        }
+    )
+    increment: int = field(
+        default=1,
+        metadata={
+            "name": "Increment",
+            "type": "Attribute",
+        },
+    )
+    uihint: None | ParameterTypeTTypeNumberUihint = field(
+        default=None,
+        metadata={
+            "name": "UIHint",
+            "type": "Attribute",
+        },
+    )
+    display_offset: None | float = field(
+        default=None,
+        metadata={
+            "name": "DisplayOffset",
+            "type": "Attribute",
+        },
+    )
+    display_factor: None | float = field(
+        default=None,
+        metadata={
+            "name": "DisplayFactor",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterTypeTTypePicture:
+    class Meta:
+        global_type = False
+
+    ref_id: str = field(
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        }
+    )
+    horizontal_alignment: HorizontalAlignmentT = field(
+        default=HorizontalAlignmentT.LEFT,
+        metadata={
+            "name": "HorizontalAlignment",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterTypeTTypeRestrictionEnumeration:
+    """
+    :ivar text:
+    :ivar icon:
+    :ivar picture_alignment:
+    :ivar value: registration-relevant
+    :ivar id: registration-relevant
+    :ivar display_order:
+    :ivar binary_value: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    text: None | str = field(
+        default=None,
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    icon: None | str = field(
+        default=None,
+        metadata={
+            "name": "Icon",
+            "type": "Attribute",
+        },
+    )
+    picture_alignment: HorizontalAlignmentT = field(
+        default=HorizontalAlignmentT.LEFT,
+        metadata={
+            "name": "PictureAlignment",
+            "type": "Attribute",
+        },
+    )
+    value: int = field(
+        metadata={
+            "name": "Value",
+            "type": "Attribute",
         }
     )
     id: str = field(
@@ -4940,49 +6505,183 @@ class ParameterValidationT:
             "type": "Attribute",
         }
     )
-    name: str = field(
-        metadata={
-            "name": "Name",
-            "type": "Attribute",
-            "max_length": 255,
-        }
-    )
-    internal_description: None | str = field(
+    display_order: None | int = field(
         default=None,
         metadata={
-            "name": "InternalDescription",
+            "name": "DisplayOrder",
             "type": "Attribute",
         },
     )
-    validation_func: str = field(
+    binary_value: None | bytes = field(
+        default=None,
         metadata={
-            "name": "ValidationFunc",
+            "name": "BinaryValue",
+            "type": "Attribute",
+            "format": "base64",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterTypeTTypeTime:
+    """
+    :ivar size_in_bit: registration-relevant
+    :ivar unit: registration-relevant
+    :ivar min_inclusive: registration-relevant
+    :ivar max_inclusive: registration-relevant
+    :ivar uihint:
+    """
+
+    class Meta:
+        global_type = False
+
+    size_in_bit: int = field(
+        metadata={
+            "name": "SizeInBit",
+            "type": "Attribute",
+            "min_inclusive": 8,
+            "max_inclusive": 64,
+        }
+    )
+    unit: ParameterTypeTTypeTimeUnit = field(
+        metadata={
+            "name": "Unit",
             "type": "Attribute",
         }
     )
-    validation_parameters: None | str = field(
+    min_inclusive: int = field(
+        metadata={
+            "name": "minInclusive",
+            "type": "Attribute",
+        }
+    )
+    max_inclusive: int = field(
+        metadata={
+            "name": "maxInclusive",
+            "type": "Attribute",
+        }
+    )
+    uihint: None | ParameterTypeTTypeTimeUihint = field(
         default=None,
         metadata={
-            "name": "ValidationParameters",
+            "name": "UIHint",
             "type": "Attribute",
         },
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class Parameters:
-        """
-        :ivar parameter_ref_ref: registration-relevant set
-        """
 
-        parameter_ref_ref: list[CalculationParameterRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterRefRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
+@dataclass(slots=True, kw_only=True)
+class ParameterValidationTParameters:
+    """
+    :ivar parameter_ref_ref: registration-relevant set
+    """
+
+    class Meta:
+        global_type = False
+
+    parameter_ref_ref: list[CalculationParameterRefT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ParameterRefRef",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ProjectTAddinData:
+    class Meta:
+        global_type = False
+
+    addin_data: list[AddinDataT] = field(
+        default_factory=list,
+        metadata={
+            "name": "AddinData",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ProjectTProjectInformationDeviceCertificates:
+    class Meta:
+        global_type = False
+
+    device_certificate: list[DeviceCertificateT] = field(
+        default_factory=list,
+        metadata={
+            "name": "DeviceCertificate",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ProjectTProjectInformationHistoryEntries:
+    class Meta:
+        global_type = False
+
+    history_entry: list[ProjectTProjectInformationHistoryEntriesHistoryEntry] = field(
+        default_factory=list,
+        metadata={
+            "name": "HistoryEntry",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ProjectTProjectInformationProjectTraces:
+    class Meta:
+        global_type = False
+
+    project_trace: list[ProjectTraceT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ProjectTrace",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ProjectTProjectInformationTags:
+    class Meta:
+        global_type = False
+
+    tag: list[ProjectTProjectInformationTagsTag] = field(
+        default_factory=list,
+        metadata={
+            "name": "Tag",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ProjectTUserFiles:
+    class Meta:
+        global_type = False
+
+    user_file: list[UserFileT] = field(
+        default_factory=list,
+        metadata={
+            "name": "UserFile",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -5306,6 +7005,22 @@ class ToDoItemT:
 
 
 @dataclass(slots=True, kw_only=True)
+class TopologyTAreaLineSegmentAdditionalGroupAddresses:
+    class Meta:
+        global_type = False
+
+    group_address: list[TopologyTAreaLineSegmentAdditionalGroupAddressesGroupAddress] = field(
+        default_factory=list,
+        metadata={
+            "name": "GroupAddress",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
 class TradeT:
     class Meta:
         name = "Trade_t"
@@ -5385,97 +7100,189 @@ class TradeT:
 
 
 @dataclass(slots=True, kw_only=True)
-class DeviceInstanceT:
+class ApplicationProgramStaticTBusInterfaces:
     class Meta:
-        name = "DeviceInstance_t"
+        global_type = False
 
-    parameter_instance_refs: None | DeviceInstanceT.ParameterInstanceRefs = field(
-        default=None,
+    bus_interface: list[ApplicationProgramStaticTBusInterfacesBusInterface] = field(
+        default_factory=list,
         metadata={
-            "name": "ParameterInstanceRefs",
+            "name": "BusInterface",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTCode:
+    """
+    :ivar absolute_segment: registration-relevant set
+    :ivar relative_segment: registration-relevant set
+    """
+
+    class Meta:
+        global_type = False
+
+    absolute_segment: list[ApplicationProgramStaticTCodeAbsoluteSegment] = field(
+        default_factory=list,
+        metadata={
+            "name": "AbsoluteSegment",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    com_object_instance_refs: None | DeviceInstanceT.ComObjectInstanceRefs = field(
-        default=None,
+    relative_segment: list[ApplicationProgramStaticTCodeRelativeSegment] = field(
+        default_factory=list,
         metadata={
-            "name": "ComObjectInstanceRefs",
+            "name": "RelativeSegment",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    channel_instances: None | DeviceInstanceT.ChannelInstances = field(
-        default=None,
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTComObjectRefs:
+    """
+    :ivar com_object_ref: registration-relevant set This is a list to ensure deterministic
+        behaviour in case of multiple active communication object refs
+    """
+
+    class Meta:
+        global_type = False
+
+    com_object_ref: list[ComObjectRefT] = field(
+        default_factory=list,
         metadata={
-            "name": "ChannelInstances",
+            "name": "ComObjectRef",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTComObjectTable:
+    """
+    :ivar com_object: registration-relevant set
+    :ivar code_segment: registration-relevant
+    :ivar offset: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    com_object: list[ComObjectT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ComObject",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    module_instances: None | DeviceInstanceT.ModuleInstances = field(
+    code_segment: None | str = field(
         default=None,
         metadata={
-            "name": "ModuleInstances",
+            "name": "CodeSegment",
+            "type": "Attribute",
+        },
+    )
+    offset: None | int = field(
+        default=None,
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+            "max_inclusive": 1048575,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTParameterRefs:
+    """
+    :ivar parameter_ref: registration-relevant list This is a list to ensure deterministic
+        behaviour in case of multiple active parameter refs
+    """
+
+    class Meta:
+        global_type = False
+
+    parameter_ref: list[ParameterRefT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ParameterRef",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTParametersParameter(ParameterBaseT):
+    """
+    :ivar memory_or_property_or_io_tpoint:
+    :ivar legacy_patch_always: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    memory_or_property_or_io_tpoint: (
+        None | MemoryParameterT | PropertyParameterT | IoTpointParameterT
+    ) = field(
+        default=None,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "Memory",
+                    "type": MemoryParameterT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Property",
+                    "type": PropertyParameterT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "IoTPoint",
+                    "type": IoTpointParameterT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
+    legacy_patch_always: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyPatchAlways",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class BusInterfaceT:
+    class Meta:
+        name = "BusInterface_t"
+
+    connectors: None | BusInterfaceTConnectors = field(
+        default=None,
+        metadata={
+            "name": "Connectors",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    group_object_tree: None | DeviceInstanceT.GroupObjectTree = field(
-        default=None,
+    ref_id: str = field(
         metadata={
-            "name": "GroupObjectTree",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    additional_addresses: None | DeviceInstanceT.AdditionalAddresses = field(
-        default=None,
-        metadata={
-            "name": "AdditionalAddresses",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    binary_data: None | DeviceInstanceT.BinaryData = field(
-        default=None,
-        metadata={
-            "name": "BinaryData",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    ipconfig: None | IpconfigT = field(
-        default=None,
-        metadata={
-            "name": "IPConfig",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    security: None | SecurityT = field(
-        default=None,
-        metadata={
-            "name": "Security",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    bus_interfaces: None | DeviceInstanceT.BusInterfaces = field(
-        default=None,
-        metadata={
-            "name": "BusInterfaces",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    rf_fast_ack_slots: None | DeviceInstanceT.RfFastAckSlots = field(
-        default=None,
-        metadata={
-            "name": "RfFastAckSlots",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
+            "name": "RefId",
+            "type": "Attribute",
+        }
     )
     name: None | str = field(
         default=None,
@@ -5485,32 +7292,11 @@ class DeviceInstanceT:
             "max_length": 255,
         },
     )
-    id: str = field(
-        metadata={
-            "name": "Id",
-            "type": "Attribute",
-        }
-    )
-    product_ref_id: str = field(
-        metadata={
-            "name": "ProductRefId",
-            "type": "Attribute",
-        }
-    )
-    hardware2_program_ref_id: None | str = field(
+    description: None | str = field(
         default=None,
         metadata={
-            "name": "Hardware2ProgramRefId",
+            "name": "Description",
             "type": "Attribute",
-        },
-    )
-    address: None | int = field(
-        default=None,
-        metadata={
-            "name": "Address",
-            "type": "Attribute",
-            "min_inclusive": 0,
-            "max_inclusive": 255,
         },
     )
     comment: None | str = field(
@@ -5520,403 +7306,141 @@ class DeviceInstanceT:
             "type": "Attribute",
         },
     )
-    last_modified: None | XmlDateTime = field(
+    password: None | str = field(
         default=None,
         metadata={
-            "name": "LastModified",
+            "name": "Password",
             "type": "Attribute",
+            "max_length": 20,
         },
     )
-    last_download: None | XmlDateTime = field(
+    password_hash: None | bytes = field(
         default=None,
         metadata={
-            "name": "LastDownload",
-            "type": "Attribute",
-        },
-    )
-    last_used_apdulength: None | int = field(
-        default=None,
-        metadata={
-            "name": "LastUsedAPDULength",
-            "type": "Attribute",
-        },
-    )
-    read_max_apdulength: None | int = field(
-        default=None,
-        metadata={
-            "name": "ReadMaxAPDULength",
-            "type": "Attribute",
-        },
-    )
-    read_max_routing_apdulength: None | int = field(
-        default=None,
-        metadata={
-            "name": "ReadMaxRoutingAPDULength",
-            "type": "Attribute",
-        },
-    )
-    installation_hints: None | str = field(
-        default=None,
-        metadata={
-            "name": "InstallationHints",
-            "type": "Attribute",
-        },
-    )
-    completion_status: CompletionStatusT = field(
-        default=CompletionStatusT.UNDEFINED,
-        metadata={
-            "name": "CompletionStatus",
-            "type": "Attribute",
-        },
-    )
-    individual_address_loaded: bool = field(
-        default=False,
-        metadata={
-            "name": "IndividualAddressLoaded",
-            "type": "Attribute",
-        },
-    )
-    application_program_loaded: bool = field(
-        default=False,
-        metadata={
-            "name": "ApplicationProgramLoaded",
-            "type": "Attribute",
-        },
-    )
-    parameters_loaded: bool = field(
-        default=False,
-        metadata={
-            "name": "ParametersLoaded",
-            "type": "Attribute",
-        },
-    )
-    communication_part_loaded: bool = field(
-        default=False,
-        metadata={
-            "name": "CommunicationPartLoaded",
-            "type": "Attribute",
-        },
-    )
-    medium_config_loaded: bool = field(
-        default=False,
-        metadata={
-            "name": "MediumConfigLoaded",
-            "type": "Attribute",
-        },
-    )
-    loaded_image: None | bytes = field(
-        default=None,
-        metadata={
-            "name": "LoadedImage",
+            "name": "PasswordHash",
             "type": "Attribute",
             "format": "base64",
         },
     )
-    description: None | str = field(
-        default=None,
+    is_secure_enabled: bool = field(
+        default=True,
         metadata={
-            "name": "Description",
-            "type": "Attribute",
-        },
-    )
-    check_sums: None | bytes = field(
-        default=None,
-        metadata={
-            "name": "CheckSums",
-            "type": "Attribute",
-            "format": "base64",
-        },
-    )
-    download_counter: None | int = field(
-        default=None,
-        metadata={
-            "name": "DownloadCounter",
-            "type": "Attribute",
-        },
-    )
-    is_activity_calculated: None | bool = field(
-        default=None,
-        metadata={
-            "name": "IsActivityCalculated",
-            "type": "Attribute",
-        },
-    )
-    broken: bool = field(
-        default=False,
-        metadata={
-            "name": "Broken",
-            "type": "Attribute",
-        },
-    )
-    serial_number: None | bytes = field(
-        default=None,
-        metadata={
-            "name": "SerialNumber",
-            "type": "Attribute",
-            "format": "base64",
-        },
-    )
-    unique_id: None | str = field(
-        default=None,
-        metadata={
-            "name": "UniqueId",
-            "type": "Attribute",
-            "pattern": r"\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}",
-        },
-    )
-    is_rfretransmitter: bool = field(
-        default=False,
-        metadata={
-            "name": "IsRFRetransmitter",
-            "type": "Attribute",
-        },
-    )
-    is_slow_resender: bool = field(
-        default=False,
-        metadata={
-            "name": "IsSlowResender",
-            "type": "Attribute",
-        },
-    )
-    initial_value_language: None | str = field(
-        default=None,
-        metadata={
-            "name": "InitialValueLanguage",
-            "type": "Attribute",
-        },
-    )
-    puid: int = field(
-        metadata={
-            "name": "Puid",
-            "type": "Attribute",
-        }
-    )
-    context: None | str = field(
-        default=None,
-        metadata={
-            "name": "Context",
+            "name": "IsSecureEnabled",
             "type": "Attribute",
         },
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class ParameterInstanceRefs:
-        parameter_instance_ref: list[ParameterInstanceRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterInstanceRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
 
-    @dataclass(slots=True, kw_only=True)
-    class ComObjectInstanceRefs:
-        com_object_instance_ref: list[ComObjectInstanceRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ComObjectInstanceRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
+@dataclass(slots=True, kw_only=True)
+class ComObjectParameterBlockTColumns:
+    class Meta:
+        global_type = False
 
-    @dataclass(slots=True, kw_only=True)
-    class ChannelInstances:
-        channel_instance: list[ChannelInstanceT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ChannelInstance",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
+    column: list[ComObjectParameterBlockTColumnsColumn] = field(
+        default_factory=list,
+        metadata={
+            "name": "Column",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
 
-    @dataclass(slots=True, kw_only=True)
-    class ModuleInstances:
-        module_instance: list[ModuleInstanceT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ModuleInstance",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
 
-    @dataclass(slots=True, kw_only=True)
-    class GroupObjectTree:
-        nodes: None | DeviceInstanceT.GroupObjectTree.Nodes = field(
-            default=None,
-            metadata={
-                "name": "Nodes",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        group_object_instances: list[str] = field(
-            default_factory=list,
-            metadata={
-                "name": "GroupObjectInstances",
-                "type": "Attribute",
-                "tokens": True,
-            },
-        )
+@dataclass(slots=True, kw_only=True)
+class DatapointTypeTDatapointSubtypesDatapointSubtypeFormat:
+    class Meta:
+        global_type = False
 
-        @dataclass(slots=True, kw_only=True)
-        class Nodes:
-            node: list[NodeT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Node",
-                    "type": "Element",
+    choice: list[
+        DatapointTypeTDatapointSubtypesDatapointSubtypeFormatBit
+        | DatapointTypeTDatapointSubtypesDatapointSubtypeFormatUnsignedInteger
+        | DatapointTypeTDatapointSubtypesDatapointSubtypeFormatSignedInteger
+        | DatapointTypeTDatapointSubtypesDatapointSubtypeFormatString
+        | DatapointTypeTDatapointSubtypesDatapointSubtypeFormatFloat
+        | DatapointTypeTDatapointSubtypesDatapointSubtypeFormatEnumeration
+        | DatapointTypeTDatapointSubtypesDatapointSubtypeFormatReserved
+        | DatapointTypeTDatapointSubtypesDatapointSubtypeFormatRefType
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "Bit",
+                    "type": DatapointTypeTDatapointSubtypesDatapointSubtypeFormatBit,
                     "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
                 },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class AdditionalAddresses:
-        address: list[DeviceInstanceT.AdditionalAddresses.Address] = field(
-            default_factory=list,
-            metadata={
-                "name": "Address",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-                "max_occurs": 254,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Address:
-            address: None | int = field(
-                default=None,
-                metadata={
-                    "name": "Address",
-                    "type": "Attribute",
-                    "min_inclusive": 1,
-                    "max_inclusive": 255,
-                },
-            )
-            name: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 255,
-                },
-            )
-            description: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Description",
-                    "type": "Attribute",
-                },
-            )
-            comment: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Comment",
-                    "type": "Attribute",
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class BinaryData:
-        binary_data: list[DeviceInstanceT.BinaryData.BinaryDataInner] = field(
-            default_factory=list,
-            metadata={
-                "name": "BinaryData",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class BinaryDataInner:
-            data: None | bytes = field(
-                default=None,
-                metadata={
-                    "name": "Data",
-                    "type": "Element",
+                {
+                    "name": "UnsignedInteger",
+                    "type": DatapointTypeTDatapointSubtypesDatapointSubtypeFormatUnsignedInteger,
                     "namespace": "http://knx.org/xml/project/23",
-                    "format": "base64",
                 },
-            )
-            id: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
+                {
+                    "name": "SignedInteger",
+                    "type": DatapointTypeTDatapointSubtypesDatapointSubtypeFormatSignedInteger,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            ref_id: None | str = field(
-                default=None,
-                metadata={
-                    "name": "RefId",
-                    "type": "Attribute",
+                {
+                    "name": "String",
+                    "type": DatapointTypeTDatapointSubtypesDatapointSubtypeFormatString,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            name: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 255,
+                {
+                    "name": "Float",
+                    "type": DatapointTypeTDatapointSubtypesDatapointSubtypeFormatFloat,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            do_not_copy: bool = field(
-                default=False,
-                metadata={
-                    "name": "DoNotCopy",
-                    "type": "Attribute",
+                {
+                    "name": "Enumeration",
+                    "type": DatapointTypeTDatapointSubtypesDatapointSubtypeFormatEnumeration,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
+                {
+                    "name": "Reserved",
+                    "type": DatapointTypeTDatapointSubtypesDatapointSubtypeFormatReserved,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "RefType",
+                    "type": DatapointTypeTDatapointSubtypesDatapointSubtypeFormatRefType,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
 
-    @dataclass(slots=True, kw_only=True)
-    class BusInterfaces:
-        bus_interface: list[BusInterfaceT] = field(
-            default_factory=list,
-            metadata={
-                "name": "BusInterface",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
 
-    @dataclass(slots=True, kw_only=True)
-    class RfFastAckSlots:
-        slot: list[DeviceInstanceT.RfFastAckSlots.Slot] = field(
-            default_factory=list,
-            metadata={
-                "name": "Slot",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTComObjectInstanceRefs:
+    class Meta:
+        global_type = False
 
-        @dataclass(slots=True, kw_only=True)
-        class Slot:
-            group_address_ref_id: str = field(
-                metadata={
-                    "name": "GroupAddressRefId",
-                    "type": "Attribute",
-                }
-            )
-            number: int = field(
-                metadata={
-                    "name": "Number",
-                    "type": "Attribute",
-                    "max_inclusive": 63,
-                }
-            )
+    com_object_instance_ref: list[ComObjectInstanceRefT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ComObjectInstanceRef",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTGroupObjectTreeNodes:
+    class Meta:
+        global_type = False
+
+    node: list[NodeT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Node",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -6177,6 +7701,1494 @@ class Hardware2ProgramT:
             "name": "SleepCycleTimeSeconds",
             "type": "Attribute",
         },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HardwareTProductsProductAttributes:
+    class Meta:
+        global_type = False
+
+    attribute: list[HardwareTProductsProductAttributesAttribute] = field(
+        default_factory=list,
+        metadata={
+            "name": "Attribute",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTFeatures:
+    class Meta:
+        global_type = False
+
+    feature: list[HawkConfigurationDataTFeaturesFeature] = field(
+        default_factory=list,
+        metadata={
+            "name": "Feature",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTInterfaceObjectsInterfaceObject:
+    class Meta:
+        global_type = False
+
+    property: list[HawkConfigurationDataTInterfaceObjectsInterfaceObjectProperty] = field(
+        default_factory=list,
+        metadata={
+            "name": "Property",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    index: None | int = field(
+        default=None,
+        metadata={
+            "name": "Index",
+            "type": "Attribute",
+        },
+    )
+    object_type: int = field(
+        metadata={
+            "name": "ObjectType",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTMemorySegmentsMemorySegment:
+    class Meta:
+        global_type = False
+
+    location: ResourceLocationT = field(
+        metadata={
+            "name": "Location",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    access_rights: HawkConfigurationDataTMemorySegmentsMemorySegmentAccessRights = field(
+        metadata={
+            "name": "AccessRights",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    length: int = field(
+        metadata={
+            "name": "Length",
+            "type": "Attribute",
+        }
+    )
+    optional: bool = field(
+        default=False,
+        metadata={
+            "name": "Optional",
+            "type": "Attribute",
+        },
+    )
+    memory_type: None | MemoryTypeT = field(
+        default=None,
+        metadata={
+            "name": "MemoryType",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTResourcesResource:
+    class Meta:
+        global_type = False
+
+    location: None | ResourceLocationT = field(
+        default=None,
+        metadata={
+            "name": "Location",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    img_location: None | ResourceLocationT = field(
+        default=None,
+        metadata={
+            "name": "ImgLocation",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    resource_type: HawkConfigurationDataTResourcesResourceResourceType = field(
+        metadata={
+            "name": "ResourceType",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    access_rights: HawkConfigurationDataTResourcesResourceAccessRights = field(
+        metadata={
+            "name": "AccessRights",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    name: ResourceNameT = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+        }
+    )
+    access: list[ResourceAccessT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Access",
+            "type": "Attribute",
+            "tokens": True,
+        },
+    )
+    mgmt_style: list[ResourceMgmtStyleT] = field(
+        default_factory=list,
+        metadata={
+            "name": "MgmtStyle",
+            "type": "Attribute",
+            "tokens": True,
+        },
+    )
+    optional: bool = field(
+        default=False,
+        metadata={
+            "name": "Optional",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class LanguageDataTTranslationUnit:
+    class Meta:
+        global_type = False
+
+    translation_element: list[LanguageDataTTranslationUnitTranslationElement] = field(
+        default_factory=list,
+        metadata={
+            "name": "TranslationElement",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+    ref_id: str = field(
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        }
+    )
+    version: int = field(
+        default=0,
+        metadata={
+            "name": "Version",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class LdCtrlBaseT:
+    """
+    :ivar on_error: registration-relevant set
+    :ivar applies_to: registration-relevant
+    :ivar internal_description:
+    """
+
+    class Meta:
+        name = "LdCtrlBase_t"
+
+    on_error: list[LdCtrlBaseTOnError] = field(
+        default_factory=list,
+        metadata={
+            "name": "OnError",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    applies_to: LdCtrlProcTypeT = field(
+        default=LdCtrlProcTypeT.AUTO,
+        metadata={
+            "name": "AppliesTo",
+            "type": "Attribute",
+        },
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ManufacturerDataTManufacturerBaggages:
+    class Meta:
+        global_type = False
+
+    baggage: list[ManufacturerDataTManufacturerBaggagesBaggage] = field(
+        default_factory=list,
+        metadata={
+            "name": "Baggage",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ManufacturerDataTManufacturerCatalog:
+    class Meta:
+        global_type = False
+
+    catalog_section: list[CatalogSectionT] = field(
+        default_factory=list,
+        metadata={
+            "name": "CatalogSection",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTDatapointRoles:
+    class Meta:
+        global_type = False
+
+    datapoint_role: list[DatapointRoleT] = field(
+        default_factory=list,
+        metadata={
+            "name": "DatapointRole",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTFunctionalBlocksFunctionalBlock:
+    class Meta:
+        global_type = False
+
+    parameters: list[MasterDataTFunctionalBlocksFunctionalBlockParameters] = field(
+        default_factory=list,
+        metadata={
+            "name": "Parameters",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+        }
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTManufacturersManufacturerDatapointRoles:
+    class Meta:
+        global_type = False
+
+    datapoint_role: list[DatapointRoleT] = field(
+        default_factory=list,
+        metadata={
+            "name": "DatapointRole",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTManufacturersManufacturerPublicKeys:
+    class Meta:
+        global_type = False
+
+    public_key: list[MasterDataTManufacturersManufacturerPublicKeysPublicKey] = field(
+        default_factory=list,
+        metadata={
+            "name": "PublicKey",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTManufacturersManufacturerSpaceUsages:
+    class Meta:
+        global_type = False
+
+    space_usage: list[SpaceUsageT] = field(
+        default_factory=list,
+        metadata={
+            "name": "SpaceUsage",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTSpaceUsages:
+    class Meta:
+        global_type = False
+
+    space_usage: list[SpaceUsageT] = field(
+        default_factory=list,
+        metadata={
+            "name": "SpaceUsage",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTComObjectRefs:
+    """
+    :ivar com_object_ref: registration-relevant set This is a list to ensure deterministic
+        behaviour in case of multiple active communication object refs
+    """
+
+    class Meta:
+        global_type = False
+
+    com_object_ref: list[ComObjectRefT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ComObjectRef",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTComObjectsComObject(ComObjectT):
+    """
+    :ivar base_number: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    base_number: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseNumber",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTParameterRefs:
+    """
+    :ivar parameter_ref: registration-relevant list This is a list to ensure deterministic
+        behaviour in case of multiple active parameter refs
+    """
+
+    class Meta:
+        global_type = False
+
+    parameter_ref: list[ParameterRefT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ParameterRef",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTParametersParameter(ParameterBaseT):
+    """
+    :ivar memory_or_property_or_io_tpoint:
+    :ivar base_value: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    memory_or_property_or_io_tpoint: (
+        None
+        | ModuleDefStaticTParametersParameterMemory
+        | ModuleDefStaticTParametersParameterProperty
+        | IoTpointParameterT
+    ) = field(
+        default=None,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "Memory",
+                    "type": ModuleDefStaticTParametersParameterMemory,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Property",
+                    "type": ModuleDefStaticTParametersParameterProperty,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "IoTPoint",
+                    "type": IoTpointParameterT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
+    base_value: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseValue",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefTArguments:
+    class Meta:
+        global_type = False
+
+    argument: list[ModuleDefTArgumentsArgument] = field(
+        default_factory=list,
+        metadata={
+            "name": "Argument",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleInstanceT:
+    class Meta:
+        name = "ModuleInstance_t"
+
+    arguments: None | ModuleInstanceTArguments = field(
+        default=None,
+        metadata={
+            "name": "Arguments",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    id: None | str = field(
+        default=None,
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        },
+    )
+    ref_id: None | str = field(
+        default=None,
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        },
+    )
+    repeat_index: list[str] = field(
+        default_factory=list,
+        metadata={
+            "name": "RepeatIndex",
+            "type": "Attribute",
+            "pattern": r"\d+x\d+",
+            "tokens": True,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleT:
+    """
+    :ivar numeric_arg_or_text_arg:
+    :ivar id:
+    :ivar ref_id: registration-relevant
+    :ivar name:
+    :ivar internal_description:
+    """
+
+    class Meta:
+        name = "Module_t"
+
+    numeric_arg_or_text_arg: list[ModuleTNumericArg | ModuleTTextArg] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "NumericArg",
+                    "type": ModuleTNumericArg,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "TextArg",
+                    "type": ModuleTTextArg,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    ref_id: str = field(
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class NodeTNodes:
+    class Meta:
+        global_type = False
+
+    node: list[NodeT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Node",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class P2PlinksTP2Plink:
+    class Meta:
+        global_type = False
+
+    device_endpoint_or_bus_interface_endpoint: list[
+        P2PlinkDeviceEndpointT | P2PlinkBusInterfaceEndpointT
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "DeviceEndpoint",
+                    "type": P2PlinkDeviceEndpointT,
+                    "namespace": "http://knx.org/xml/project/23",
+                    "max_occurs": 2,
+                },
+                {
+                    "name": "BusInterfaceEndpoint",
+                    "type": P2PlinkBusInterfaceEndpointT,
+                    "namespace": "http://knx.org/xml/project/23",
+                    "max_occurs": 2,
+                },
+            ),
+            "max_occurs": 2,
+        },
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    description: None | str = field(
+        default=None,
+        metadata={
+            "name": "Description",
+            "type": "Attribute",
+        },
+    )
+    comment: None | str = field(
+        default=None,
+        metadata={
+            "name": "Comment",
+            "type": "Attribute",
+        },
+    )
+    puid: int = field(
+        metadata={
+            "name": "Puid",
+            "type": "Attribute",
+        }
+    )
+    key: None | str = field(
+        default=None,
+        metadata={
+            "name": "Key",
+            "type": "Attribute",
+            "max_length": 100,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterCalculationT:
+    """
+    :ivar rltransformation: registration-relevant
+    :ivar lrtransformation: registration-relevant
+    :ivar lparameters:
+    :ivar rparameters:
+    :ivar id: registration-relevant
+    :ivar language: registration-relevant
+    :ivar name:
+    :ivar internal_description:
+    :ivar rltransformation_func: registration-relevant
+    :ivar rltransformation_parameters: registration-relevant
+    :ivar lrtransformation_func: registration-relevant
+    :ivar lrtransformation_parameters: registration-relevant
+    """
+
+    class Meta:
+        name = "ParameterCalculation_t"
+
+    rltransformation: None | str = field(
+        default=None,
+        metadata={
+            "name": "RLTransformation",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    lrtransformation: None | str = field(
+        default=None,
+        metadata={
+            "name": "LRTransformation",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    lparameters: ParameterCalculationTLparameters = field(
+        metadata={
+            "name": "LParameters",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    rparameters: ParameterCalculationTRparameters = field(
+        metadata={
+            "name": "RParameters",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    language: ParameterCalculationTLanguage = field(
+        metadata={
+            "name": "Language",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+    rltransformation_func: None | str = field(
+        default=None,
+        metadata={
+            "name": "RLTransformationFunc",
+            "type": "Attribute",
+        },
+    )
+    rltransformation_parameters: None | str = field(
+        default=None,
+        metadata={
+            "name": "RLTransformationParameters",
+            "type": "Attribute",
+        },
+    )
+    lrtransformation_func: None | str = field(
+        default=None,
+        metadata={
+            "name": "LRTransformationFunc",
+            "type": "Attribute",
+        },
+    )
+    lrtransformation_parameters: None | str = field(
+        default=None,
+        metadata={
+            "name": "LRTransformationParameters",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterTypeTTypeRestriction:
+    """
+    :ivar enumeration: registration-relevant set
+    :ivar base: registration-relevant
+    :ivar size_in_bit: registration-relevant
+    :ivar uihint:
+    """
+
+    class Meta:
+        global_type = False
+
+    enumeration: list[ParameterTypeTTypeRestrictionEnumeration] = field(
+        default_factory=list,
+        metadata={
+            "name": "Enumeration",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    base: ParameterTypeTTypeRestrictionBase = field(
+        metadata={
+            "name": "Base",
+            "type": "Attribute",
+        }
+    )
+    size_in_bit: int = field(
+        metadata={
+            "name": "SizeInBit",
+            "type": "Attribute",
+            "min_inclusive": 1,
+            "max_inclusive": 1048575,
+        }
+    )
+    uihint: None | ParameterTypeTTypeRestrictionUihint = field(
+        default=None,
+        metadata={
+            "name": "UIHint",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ParameterValidationT:
+    """
+    :ivar parameters:
+    :ivar id: registration-relevant
+    :ivar name:
+    :ivar internal_description:
+    :ivar validation_func: registration-relevant
+    :ivar validation_parameters: registration-relevant
+    """
+
+    class Meta:
+        name = "ParameterValidation_t"
+
+    parameters: ParameterValidationTParameters = field(
+        metadata={
+            "name": "Parameters",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+    validation_func: str = field(
+        metadata={
+            "name": "ValidationFunc",
+            "type": "Attribute",
+        }
+    )
+    validation_parameters: None | str = field(
+        default=None,
+        metadata={
+            "name": "ValidationParameters",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ProjectTProjectInformationToDoItems:
+    class Meta:
+        global_type = False
+
+    to_do_item: list[ToDoItemT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ToDoItem",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class SpaceT:
+    class Meta:
+        name = "Space_t"
+
+    space: list[SpaceT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Space",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    device_instance_ref: list[DeviceInstanceRefT] = field(
+        default_factory=list,
+        metadata={
+            "name": "DeviceInstanceRef",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    function: list[FunctionT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Function",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    type_value: SpaceTypeT = field(
+        metadata={
+            "name": "Type",
+            "type": "Attribute",
+        }
+    )
+    usage: None | str = field(
+        default=None,
+        metadata={
+            "name": "Usage",
+            "type": "Attribute",
+        },
+    )
+    number: None | str = field(
+        default=None,
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    comment: None | str = field(
+        default=None,
+        metadata={
+            "name": "Comment",
+            "type": "Attribute",
+        },
+    )
+    description: None | str = field(
+        default=None,
+        metadata={
+            "name": "Description",
+            "type": "Attribute",
+        },
+    )
+    completion_status: CompletionStatusT = field(
+        default=CompletionStatusT.UNDEFINED,
+        metadata={
+            "name": "CompletionStatus",
+            "type": "Attribute",
+        },
+    )
+    default_line: None | str = field(
+        default=None,
+        metadata={
+            "name": "DefaultLine",
+            "type": "Attribute",
+        },
+    )
+    puid: int = field(
+        metadata={
+            "name": "Puid",
+            "type": "Attribute",
+        }
+    )
+    context: None | str = field(
+        default=None,
+        metadata={
+            "name": "Context",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class TradesT:
+    class Meta:
+        name = "Trades_t"
+
+    trade: list[TradeT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Trade",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class UnionParameterT(ParameterBaseT):
+    """
+    :ivar offset: registration-relevant
+    :ivar bit_offset: registration-relevant
+    :ivar default_union_parameter: registration-relevant
+    """
+
+    class Meta:
+        name = "UnionParameter_t"
+
+    offset: int = field(
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+            "max_inclusive": 1048575,
+        }
+    )
+    bit_offset: int = field(
+        metadata={
+            "name": "BitOffset",
+            "type": "Attribute",
+            "min_inclusive": 0,
+            "max_inclusive": 7,
+        }
+    )
+    default_union_parameter: bool = field(
+        default=False,
+        metadata={
+            "name": "DefaultUnionParameter",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTParameterCalculations:
+    """
+    :ivar parameter_calculation: registration-relevant set
+    """
+
+    class Meta:
+        global_type = False
+
+    parameter_calculation: list[ParameterCalculationT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ParameterCalculation",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTParameterValidations:
+    """
+    :ivar parameter_validation: registration-relevant set
+    """
+
+    class Meta:
+        global_type = False
+
+    parameter_validation: list[ParameterValidationT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ParameterValidation",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTParametersUnion:
+    """
+    :ivar memory_or_property:
+    :ivar parameter: registration-relevant set
+    :ivar size_in_bit:
+    :ivar internal_description:
+    """
+
+    class Meta:
+        global_type = False
+
+    memory_or_property: None | MemoryUnionT | PropertyUnionT = field(
+        default=None,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "Memory",
+                    "type": MemoryUnionT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Property",
+                    "type": PropertyUnionT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
+    parameter: list[UnionParameterT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Parameter",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+    size_in_bit: int = field(
+        metadata={
+            "name": "SizeInBit",
+            "type": "Attribute",
+            "max_inclusive": 8388600,
+        }
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DatapointTypeTDatapointSubtypesDatapointSubtype:
+    class Meta:
+        global_type = False
+
+    format: None | DatapointTypeTDatapointSubtypesDatapointSubtypeFormat = field(
+        default=None,
+        metadata={
+            "name": "Format",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    number: int = field(
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    text: None | str = field(
+        default=None,
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    default: bool = field(
+        default=False,
+        metadata={
+            "name": "Default",
+            "type": "Attribute",
+        },
+    )
+    pdt: None | str = field(
+        default=None,
+        metadata={
+            "name": "PDT",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTBusInterfaces:
+    class Meta:
+        global_type = False
+
+    bus_interface: list[BusInterfaceT] = field(
+        default_factory=list,
+        metadata={
+            "name": "BusInterface",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTGroupObjectTree:
+    class Meta:
+        global_type = False
+
+    nodes: None | DeviceInstanceTGroupObjectTreeNodes = field(
+        default=None,
+        metadata={
+            "name": "Nodes",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    group_object_instances: list[str] = field(
+        default_factory=list,
+        metadata={
+            "name": "GroupObjectInstances",
+            "type": "Attribute",
+            "tokens": True,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceTModuleInstances:
+    class Meta:
+        global_type = False
+
+    module_instance: list[ModuleInstanceT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ModuleInstance",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class GroupAddressesTGroupRanges:
+    class Meta:
+        global_type = False
+
+    group_range: list[GroupRangeT] = field(
+        default_factory=list,
+        metadata={
+            "name": "GroupRange",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "max_occurs": 65535,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HardwareTHardware2Programs:
+    class Meta:
+        global_type = False
+
+    hardware2_program: list[Hardware2ProgramT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Hardware2Program",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HardwareTProductsProduct:
+    """
+    :ivar baggages:
+    :ivar attributes:
+    :ivar registration_info:
+    :ivar id: registration-relevant
+    :ivar text:
+    :ivar order_number: registration-relevant
+    :ivar is_rail_mounted:
+    :ivar width_in_millimeter:
+    :ivar visible_description:
+    :ivar default_language:
+    :ivar non_reg_relevant_data_version:
+    :ivar hash:
+    :ivar internal_description:
+    :ivar semantics:
+    """
+
+    class Meta:
+        global_type = False
+
+    baggages: None | HardwareTProductsProductBaggages = field(
+        default=None,
+        metadata={
+            "name": "Baggages",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    attributes: None | HardwareTProductsProductAttributes = field(
+        default=None,
+        metadata={
+            "name": "Attributes",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    registration_info: None | RegistrationInfoT = field(
+        default=None,
+        metadata={
+            "name": "RegistrationInfo",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    text: str = field(
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    order_number: str = field(
+        metadata={
+            "name": "OrderNumber",
+            "type": "Attribute",
+            "max_length": 50,
+        }
+    )
+    is_rail_mounted: bool = field(
+        metadata={
+            "name": "IsRailMounted",
+            "type": "Attribute",
+        }
+    )
+    width_in_millimeter: None | float = field(
+        default=None,
+        metadata={
+            "name": "WidthInMillimeter",
+            "type": "Attribute",
+        },
+    )
+    visible_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "VisibleDescription",
+            "type": "Attribute",
+        },
+    )
+    default_language: None | str = field(
+        default=None,
+        metadata={
+            "name": "DefaultLanguage",
+            "type": "Attribute",
+        },
+    )
+    non_reg_relevant_data_version: int = field(
+        default=0,
+        metadata={
+            "name": "NonRegRelevantDataVersion",
+            "type": "Attribute",
+        },
+    )
+    hash: None | bytes = field(
+        default=None,
+        metadata={
+            "name": "Hash",
+            "type": "Attribute",
+            "format": "base64",
+        },
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+    semantics: None | str = field(
+        default=None,
+        metadata={
+            "name": "Semantics",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTInterfaceObjects:
+    class Meta:
+        global_type = False
+
+    interface_object: list[HawkConfigurationDataTInterfaceObjectsInterfaceObject] = field(
+        default_factory=list,
+        metadata={
+            "name": "InterfaceObject",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTMemorySegments:
+    class Meta:
+        global_type = False
+
+    memory_segment: list[HawkConfigurationDataTMemorySegmentsMemorySegment] = field(
+        default_factory=list,
+        metadata={
+            "name": "MemorySegment",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTResources:
+    class Meta:
+        global_type = False
+
+    resource: list[HawkConfigurationDataTResourcesResource] = field(
+        default_factory=list,
+        metadata={
+            "name": "Resource",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class LanguageDataT:
+    class Meta:
+        name = "LanguageData_t"
+
+    translation_unit: list[LanguageDataTTranslationUnit] = field(
+        default_factory=list,
+        metadata={
+            "name": "TranslationUnit",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+    identifier: str = field(
+        metadata={
+            "name": "Identifier",
+            "type": "Attribute",
+        }
     )
 
 
@@ -7409,11 +10421,196 @@ class LdCtrlWriteRelMemT(LdCtrlBaseT):
 
 
 @dataclass(slots=True, kw_only=True)
+class LocationsT:
+    class Meta:
+        name = "Locations_t"
+
+    space: list[SpaceT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Space",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTFunctionTypes:
+    class Meta:
+        global_type = False
+
+    functions_group: list[FunctionsGroupT] = field(
+        default_factory=list,
+        metadata={
+            "name": "FunctionsGroup",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    function_type: list[FunctionTypeT] = field(
+        default_factory=list,
+        metadata={
+            "name": "FunctionType",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTFunctionalBlocks:
+    class Meta:
+        global_type = False
+
+    functional_block: list[MasterDataTFunctionalBlocksFunctionalBlock] = field(
+        default_factory=list,
+        metadata={
+            "name": "FunctionalBlock",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTManufacturersManufacturerFunctionTypes:
+    class Meta:
+        global_type = False
+
+    functions_group: list[FunctionsGroupT] = field(
+        default_factory=list,
+        metadata={
+            "name": "FunctionsGroup",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    function_type: list[FunctionTypeT] = field(
+        default_factory=list,
+        metadata={
+            "name": "FunctionType",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTComObjects:
+    """
+    :ivar com_object: registration-relevant set
+    """
+
+    class Meta:
+        global_type = False
+
+    com_object: list[ModuleDefStaticTComObjectsComObject] = field(
+        default_factory=list,
+        metadata={
+            "name": "ComObject",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTParameterCalculations:
+    """
+    :ivar parameter_calculation: registration-relevant set
+    """
+
+    class Meta:
+        global_type = False
+
+    parameter_calculation: list[ParameterCalculationT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ParameterCalculation",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTParameterValidations:
+    """
+    :ivar parameter_validation: registration-relevant set
+    """
+
+    class Meta:
+        global_type = False
+
+    parameter_validation: list[ParameterValidationT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ParameterValidation",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTParametersUnion:
+    """
+    :ivar memory_or_property:
+    :ivar parameter: registration-relevant set
+    :ivar size_in_bit:
+    """
+
+    class Meta:
+        global_type = False
+
+    memory_or_property: (
+        None | ModuleDefStaticTParametersUnionMemory | ModuleDefStaticTParametersUnionProperty
+    ) = field(
+        default=None,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "Memory",
+                    "type": ModuleDefStaticTParametersUnionMemory,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Property",
+                    "type": ModuleDefStaticTParametersUnionProperty,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
+    parameter: list[UnionParameterT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Parameter",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+    size_in_bit: int = field(
+        metadata={
+            "name": "SizeInBit",
+            "type": "Attribute",
+            "max_inclusive": 8388600,
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
 class P2PlinksT:
     class Meta:
         name = "P2PLinks_t"
 
-    p2_plink: list[P2PlinksT.P2Plink] = field(
+    p2_plink: list[P2PlinksTP2Plink] = field(
         default_factory=list,
         metadata={
             "name": "P2PLink",
@@ -7423,78 +10620,341 @@ class P2PlinksT:
         },
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class P2Plink:
-        device_endpoint: list[P2PlinkDeviceEndpointT] = field(
-            default_factory=list,
-            metadata={
-                "name": "DeviceEndpoint",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "max_occurs": 2,
-                "sequence": 1,
-            },
-        )
-        bus_interface_endpoint: list[P2PlinkBusInterfaceEndpointT] = field(
-            default_factory=list,
-            metadata={
-                "name": "BusInterfaceEndpoint",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "max_occurs": 2,
-                "sequence": 1,
-            },
-        )
-        id: str = field(
-            metadata={
-                "name": "Id",
-                "type": "Attribute",
-            }
-        )
-        name: None | str = field(
-            default=None,
-            metadata={
-                "name": "Name",
-                "type": "Attribute",
-                "max_length": 255,
-            },
-        )
-        description: None | str = field(
-            default=None,
-            metadata={
-                "name": "Description",
-                "type": "Attribute",
-            },
-        )
-        comment: None | str = field(
-            default=None,
-            metadata={
-                "name": "Comment",
-                "type": "Attribute",
-            },
-        )
-        puid: int = field(
-            metadata={
-                "name": "Puid",
-                "type": "Attribute",
-            }
-        )
-        key: None | str = field(
-            default=None,
-            metadata={
-                "name": "Key",
-                "type": "Attribute",
-                "max_length": 100,
-            },
-        )
+
+@dataclass(slots=True, kw_only=True)
+class ParameterTypeT:
+    """
+    :ivar choice:
+    :ivar id: registration-relevant
+    :ivar name: registration-relevant
+    :ivar internal_description:
+    :ivar plugin:
+    :ivar validation_error_ref:
+    :ivar text_alignment:
+    :ivar io_tencoding: registration-relevant
+    """
+
+    class Meta:
+        name = "ParameterType_t"
+
+    choice: (
+        None
+        | ParameterTypeTTypeNumber
+        | ParameterTypeTTypeFloat
+        | ParameterTypeTTypeRestriction
+        | ParameterTypeTTypeText
+        | ParameterTypeTTypeTime
+        | ParameterTypeTTypeDate
+        | ParameterTypeTTypeIpaddress
+        | ParameterTypeTTypePicture
+        | ParameterTypeTTypeColor
+        | ParameterTypeTTypeRawData
+        | object
+    ) = field(
+        default=None,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "TypeNumber",
+                    "type": ParameterTypeTTypeNumber,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "TypeFloat",
+                    "type": ParameterTypeTTypeFloat,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "TypeRestriction",
+                    "type": ParameterTypeTTypeRestriction,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "TypeText",
+                    "type": ParameterTypeTTypeText,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "TypeTime",
+                    "type": ParameterTypeTTypeTime,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "TypeDate",
+                    "type": ParameterTypeTTypeDate,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "TypeIPAddress",
+                    "type": ParameterTypeTTypeIpaddress,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "TypePicture",
+                    "type": ParameterTypeTTypePicture,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "TypeColor",
+                    "type": ParameterTypeTTypeColor,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "TypeRawData",
+                    "type": ParameterTypeTTypeRawData,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "TypeNone",
+                    "type": object,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
+        },
+    )
+    plugin: None | str = field(
+        default=None,
+        metadata={
+            "name": "Plugin",
+            "type": "Attribute",
+        },
+    )
+    validation_error_ref: None | str = field(
+        default=None,
+        metadata={
+            "name": "ValidationErrorRef",
+            "type": "Attribute",
+        },
+    )
+    text_alignment: None | TextAlignmentT = field(
+        default=None,
+        metadata={
+            "name": "TextAlignment",
+            "type": "Attribute",
+        },
+    )
+    io_tencoding: None | str = field(
+        default=None,
+        metadata={
+            "name": "IoTEncoding",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ProjectTProjectInformation:
+    class Meta:
+        global_type = False
+
+    tags: None | ProjectTProjectInformationTags = field(
+        default=None,
+        metadata={
+            "name": "Tags",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    history_entries: None | ProjectTProjectInformationHistoryEntries = field(
+        default=None,
+        metadata={
+            "name": "HistoryEntries",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    to_do_items: None | ProjectTProjectInformationToDoItems = field(
+        default=None,
+        metadata={
+            "name": "ToDoItems",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    project_traces: None | ProjectTProjectInformationProjectTraces = field(
+        default=None,
+        metadata={
+            "name": "ProjectTraces",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    device_certificates: None | ProjectTProjectInformationDeviceCertificates = field(
+        default=None,
+        metadata={
+            "name": "DeviceCertificates",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 50,
+        }
+    )
+    group_address_style: GroupAddressStyleT = field(
+        metadata={
+            "name": "GroupAddressStyle",
+            "type": "Attribute",
+        }
+    )
+    project_number: None | str = field(
+        default=None,
+        metadata={
+            "name": "ProjectNumber",
+            "type": "Attribute",
+            "max_length": 50,
+        },
+    )
+    contract_number: None | str = field(
+        default=None,
+        metadata={
+            "name": "ContractNumber",
+            "type": "Attribute",
+            "max_length": 50,
+        },
+    )
+    last_modified: None | XmlDateTime = field(
+        default=None,
+        metadata={
+            "name": "LastModified",
+            "type": "Attribute",
+        },
+    )
+    archived_version: None | XmlDateTime = field(
+        default=None,
+        metadata={
+            "name": "ArchivedVersion",
+            "type": "Attribute",
+        },
+    )
+    project_start: None | XmlDateTime = field(
+        default=None,
+        metadata={
+            "name": "ProjectStart",
+            "type": "Attribute",
+        },
+    )
+    project_end: None | XmlDateTime = field(
+        default=None,
+        metadata={
+            "name": "ProjectEnd",
+            "type": "Attribute",
+        },
+    )
+    project_type: ProjectTypeT = field(
+        default=ProjectTypeT.OTHER_COMMERCIAL,
+        metadata={
+            "name": "ProjectType",
+            "type": "Attribute",
+        },
+    )
+    project_id: None | int = field(
+        default=None,
+        metadata={
+            "name": "ProjectId",
+            "type": "Attribute",
+            "max_inclusive": 4095,
+        },
+    )
+    comment: None | str = field(
+        default=None,
+        metadata={
+            "name": "Comment",
+            "type": "Attribute",
+        },
+    )
+    completion_status: CompletionStatusT = field(
+        default=CompletionStatusT.UNDEFINED,
+        metadata={
+            "name": "CompletionStatus",
+            "type": "Attribute",
+        },
+    )
+    project_tracing_level: ProjectTracingLevelT = field(
+        default=ProjectTracingLevelT.NONE,
+        metadata={
+            "name": "ProjectTracingLevel",
+            "type": "Attribute",
+        },
+    )
+    project_tracing_password: None | str = field(
+        default=None,
+        metadata={
+            "name": "ProjectTracingPassword",
+            "type": "Attribute",
+            "max_length": 20,
+        },
+    )
+    hide16_bit_groups_from_legacy_plugins: bool = field(
+        default=False,
+        metadata={
+            "name": "Hide16BitGroupsFromLegacyPlugins",
+            "type": "Attribute",
+        },
+    )
+    code_page: None | TextEncodingT = field(
+        default=None,
+        metadata={
+            "name": "CodePage",
+            "type": "Attribute",
+        },
+    )
+    bus_access_legacy_mode: bool = field(
+        default=False,
+        metadata={
+            "name": "BusAccessLegacyMode",
+            "type": "Attribute",
+        },
+    )
+    guid: str = field(
+        metadata={
+            "name": "Guid",
+            "type": "Attribute",
+        }
+    )
+    last_used_puid: int = field(
+        metadata={
+            "name": "LastUsedPuid",
+            "type": "Attribute",
+        }
+    )
+    security: SecurityModeT = field(
+        default=SecurityModeT.AUTO,
+        metadata={
+            "name": "Security",
+            "type": "Attribute",
+        },
+    )
 
 
 @dataclass(slots=True, kw_only=True)
 class RepeatT:
     """
-    :ivar choose:
-    :ivar module:
-    :ivar repeat:
+    :ivar choose_or_module_or_repeat:
     :ivar id:
     :ivar name:
     :ivar internal_description:
@@ -7505,27 +10965,27 @@ class RepeatT:
     class Meta:
         name = "Repeat_t"
 
-    choose: list[ComObjectParameterChooseT] = field(
+    choose_or_module_or_repeat: list[ComObjectParameterChooseT | ModuleT | RepeatT] = field(
         default_factory=list,
         metadata={
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    module: list[ModuleT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Module",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    repeat: list[RepeatT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Repeat",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "choose",
+                    "type": ForwardRef("ComObjectParameterChooseT"),
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Module",
+                    "type": ModuleT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Repeat",
+                    "type": ForwardRef("RepeatT"),
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
         },
     )
     id: str = field(
@@ -7565,170 +11025,9 @@ class RepeatT:
 
 
 @dataclass(slots=True, kw_only=True)
-class SpaceT:
-    class Meta:
-        name = "Space_t"
-
-    space: list[SpaceT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Space",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    device_instance_ref: list[DeviceInstanceRefT] = field(
-        default_factory=list,
-        metadata={
-            "name": "DeviceInstanceRef",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    function: list[FunctionT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Function",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    id: str = field(
-        metadata={
-            "name": "Id",
-            "type": "Attribute",
-        }
-    )
-    name: str = field(
-        metadata={
-            "name": "Name",
-            "type": "Attribute",
-            "max_length": 255,
-        }
-    )
-    type_value: SpaceTypeT = field(
-        metadata={
-            "name": "Type",
-            "type": "Attribute",
-        }
-    )
-    usage: None | str = field(
-        default=None,
-        metadata={
-            "name": "Usage",
-            "type": "Attribute",
-        },
-    )
-    number: None | str = field(
-        default=None,
-        metadata={
-            "name": "Number",
-            "type": "Attribute",
-            "max_length": 255,
-        },
-    )
-    comment: None | str = field(
-        default=None,
-        metadata={
-            "name": "Comment",
-            "type": "Attribute",
-        },
-    )
-    description: None | str = field(
-        default=None,
-        metadata={
-            "name": "Description",
-            "type": "Attribute",
-        },
-    )
-    completion_status: CompletionStatusT = field(
-        default=CompletionStatusT.UNDEFINED,
-        metadata={
-            "name": "CompletionStatus",
-            "type": "Attribute",
-        },
-    )
-    default_line: None | str = field(
-        default=None,
-        metadata={
-            "name": "DefaultLine",
-            "type": "Attribute",
-        },
-    )
-    puid: int = field(
-        metadata={
-            "name": "Puid",
-            "type": "Attribute",
-        }
-    )
-    context: None | str = field(
-        default=None,
-        metadata={
-            "name": "Context",
-            "type": "Attribute",
-        },
-    )
-
-
-@dataclass(slots=True, kw_only=True)
-class TradesT:
-    class Meta:
-        name = "Trades_t"
-
-    trade: list[TradeT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Trade",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-
-
-@dataclass(slots=True, kw_only=True)
-class UnionParameterT(ParameterBaseT):
-    """
-    :ivar offset: registration-relevant
-    :ivar bit_offset: registration-relevant
-    :ivar default_union_parameter: registration-relevant
-    """
-
-    class Meta:
-        name = "UnionParameter_t"
-
-    offset: int = field(
-        metadata={
-            "name": "Offset",
-            "type": "Attribute",
-            "max_inclusive": 1048575,
-        }
-    )
-    bit_offset: int = field(
-        metadata={
-            "name": "BitOffset",
-            "type": "Attribute",
-            "min_inclusive": 0,
-            "max_inclusive": 7,
-        }
-    )
-    default_union_parameter: bool = field(
-        default=False,
-        metadata={
-            "name": "DefaultUnionParameter",
-            "type": "Attribute",
-        },
-    )
-
-
-@dataclass(slots=True, kw_only=True)
 class ApplicationProgramChannelT:
     """
-    :ivar parameter_block:
-    :ivar com_object_ref_ref:
-    :ivar binary_data_ref:
-    :ivar module:
-    :ivar repeat:
-    :ivar choose:
+    :ivar choice:
     :ivar id: registration-relevant
     :ivar name:
     :ivar text:
@@ -7744,51 +11043,49 @@ class ApplicationProgramChannelT:
     class Meta:
         name = "ApplicationProgramChannel_t"
 
-    parameter_block: list[ComObjectParameterBlockT] = field(
+    choice: list[
+        ComObjectParameterBlockT
+        | ComObjectRefRefT
+        | BinaryDataRefT
+        | ModuleT
+        | RepeatT
+        | ChannelChooseT
+    ] = field(
         default_factory=list,
         metadata={
-            "name": "ParameterBlock",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    com_object_ref_ref: list[ComObjectRefRefT] = field(
-        default_factory=list,
-        metadata={
-            "name": "ComObjectRefRef",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    binary_data_ref: list[BinaryDataRefT] = field(
-        default_factory=list,
-        metadata={
-            "name": "BinaryDataRef",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    module: list[ModuleT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Module",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    repeat: list[RepeatT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Repeat",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    choose: list[ChannelChooseT] = field(
-        default_factory=list,
-        metadata={
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "ParameterBlock",
+                    "type": ForwardRef("ComObjectParameterBlockT"),
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "ComObjectRefRef",
+                    "type": ComObjectRefRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "BinaryDataRef",
+                    "type": BinaryDataRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Module",
+                    "type": ModuleT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Repeat",
+                    "type": RepeatT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "choose",
+                    "type": ForwardRef("ChannelChooseT"),
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
         },
     )
     id: str = field(
@@ -7864,29 +11161,848 @@ class ApplicationProgramChannelT:
 
 
 @dataclass(slots=True, kw_only=True)
-class ComObjectParameterChooseT:
+class ApplicationProgramStaticTParameterTypes:
     """
-    :ivar when: registration-relevant list
-    :ivar param_ref_id: registration-relevant
-    :ivar internal_description:
+    :ivar parameter_type: registration-relevant set
     """
 
     class Meta:
-        name = "ComObjectParameterChoose_t"
+        global_type = False
 
-    when: list[ComObjectParameterChooseT.When] = field(
+    parameter_type: list[ParameterTypeT] = field(
         default_factory=list,
         metadata={
+            "name": "ParameterType",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
             "min_occurs": 1,
         },
     )
-    param_ref_id: str = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramStaticTParameters:
+    class Meta:
+        global_type = False
+
+    parameter_or_union: list[
+        ApplicationProgramStaticTParametersParameter | ApplicationProgramStaticTParametersUnion
+    ] = field(
+        default_factory=list,
         metadata={
-            "name": "ParamRefId",
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "Parameter",
+                    "type": ApplicationProgramStaticTParametersParameter,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Union",
+                    "type": ApplicationProgramStaticTParametersUnion,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DatapointTypeTDatapointSubtypes:
+    class Meta:
+        global_type = False
+
+    datapoint_subtype: list[DatapointTypeTDatapointSubtypesDatapointSubtype] = field(
+        default_factory=list,
+        metadata={
+            "name": "DatapointSubtype",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class DeviceInstanceT:
+    class Meta:
+        name = "DeviceInstance_t"
+
+    parameter_instance_refs: None | DeviceInstanceTParameterInstanceRefs = field(
+        default=None,
+        metadata={
+            "name": "ParameterInstanceRefs",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    com_object_instance_refs: None | DeviceInstanceTComObjectInstanceRefs = field(
+        default=None,
+        metadata={
+            "name": "ComObjectInstanceRefs",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    channel_instances: None | DeviceInstanceTChannelInstances = field(
+        default=None,
+        metadata={
+            "name": "ChannelInstances",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    module_instances: None | DeviceInstanceTModuleInstances = field(
+        default=None,
+        metadata={
+            "name": "ModuleInstances",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    group_object_tree: None | DeviceInstanceTGroupObjectTree = field(
+        default=None,
+        metadata={
+            "name": "GroupObjectTree",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    additional_addresses: None | DeviceInstanceTAdditionalAddresses = field(
+        default=None,
+        metadata={
+            "name": "AdditionalAddresses",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    binary_data: None | DeviceInstanceTBinaryData = field(
+        default=None,
+        metadata={
+            "name": "BinaryData",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    ipconfig: None | IpconfigT = field(
+        default=None,
+        metadata={
+            "name": "IPConfig",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    security: None | SecurityT = field(
+        default=None,
+        metadata={
+            "name": "Security",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    bus_interfaces: None | DeviceInstanceTBusInterfaces = field(
+        default=None,
+        metadata={
+            "name": "BusInterfaces",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    rf_fast_ack_slots: None | DeviceInstanceTRfFastAckSlots = field(
+        default=None,
+        metadata={
+            "name": "RfFastAckSlots",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
             "type": "Attribute",
         }
+    )
+    product_ref_id: str = field(
+        metadata={
+            "name": "ProductRefId",
+            "type": "Attribute",
+        }
+    )
+    hardware2_program_ref_id: None | str = field(
+        default=None,
+        metadata={
+            "name": "Hardware2ProgramRefId",
+            "type": "Attribute",
+        },
+    )
+    address: None | int = field(
+        default=None,
+        metadata={
+            "name": "Address",
+            "type": "Attribute",
+            "min_inclusive": 0,
+            "max_inclusive": 255,
+        },
+    )
+    comment: None | str = field(
+        default=None,
+        metadata={
+            "name": "Comment",
+            "type": "Attribute",
+        },
+    )
+    last_modified: None | XmlDateTime = field(
+        default=None,
+        metadata={
+            "name": "LastModified",
+            "type": "Attribute",
+        },
+    )
+    last_download: None | XmlDateTime = field(
+        default=None,
+        metadata={
+            "name": "LastDownload",
+            "type": "Attribute",
+        },
+    )
+    last_used_apdulength: None | int = field(
+        default=None,
+        metadata={
+            "name": "LastUsedAPDULength",
+            "type": "Attribute",
+        },
+    )
+    read_max_apdulength: None | int = field(
+        default=None,
+        metadata={
+            "name": "ReadMaxAPDULength",
+            "type": "Attribute",
+        },
+    )
+    read_max_routing_apdulength: None | int = field(
+        default=None,
+        metadata={
+            "name": "ReadMaxRoutingAPDULength",
+            "type": "Attribute",
+        },
+    )
+    installation_hints: None | str = field(
+        default=None,
+        metadata={
+            "name": "InstallationHints",
+            "type": "Attribute",
+        },
+    )
+    completion_status: CompletionStatusT = field(
+        default=CompletionStatusT.UNDEFINED,
+        metadata={
+            "name": "CompletionStatus",
+            "type": "Attribute",
+        },
+    )
+    individual_address_loaded: bool = field(
+        default=False,
+        metadata={
+            "name": "IndividualAddressLoaded",
+            "type": "Attribute",
+        },
+    )
+    application_program_loaded: bool = field(
+        default=False,
+        metadata={
+            "name": "ApplicationProgramLoaded",
+            "type": "Attribute",
+        },
+    )
+    parameters_loaded: bool = field(
+        default=False,
+        metadata={
+            "name": "ParametersLoaded",
+            "type": "Attribute",
+        },
+    )
+    communication_part_loaded: bool = field(
+        default=False,
+        metadata={
+            "name": "CommunicationPartLoaded",
+            "type": "Attribute",
+        },
+    )
+    medium_config_loaded: bool = field(
+        default=False,
+        metadata={
+            "name": "MediumConfigLoaded",
+            "type": "Attribute",
+        },
+    )
+    loaded_image: None | bytes = field(
+        default=None,
+        metadata={
+            "name": "LoadedImage",
+            "type": "Attribute",
+            "format": "base64",
+        },
+    )
+    description: None | str = field(
+        default=None,
+        metadata={
+            "name": "Description",
+            "type": "Attribute",
+        },
+    )
+    check_sums: None | bytes = field(
+        default=None,
+        metadata={
+            "name": "CheckSums",
+            "type": "Attribute",
+            "format": "base64",
+        },
+    )
+    download_counter: None | int = field(
+        default=None,
+        metadata={
+            "name": "DownloadCounter",
+            "type": "Attribute",
+        },
+    )
+    is_activity_calculated: None | bool = field(
+        default=None,
+        metadata={
+            "name": "IsActivityCalculated",
+            "type": "Attribute",
+        },
+    )
+    broken: bool = field(
+        default=False,
+        metadata={
+            "name": "Broken",
+            "type": "Attribute",
+        },
+    )
+    serial_number: None | bytes = field(
+        default=None,
+        metadata={
+            "name": "SerialNumber",
+            "type": "Attribute",
+            "format": "base64",
+        },
+    )
+    unique_id: None | str = field(
+        default=None,
+        metadata={
+            "name": "UniqueId",
+            "type": "Attribute",
+            "pattern": r"\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}",
+        },
+    )
+    is_rfretransmitter: bool = field(
+        default=False,
+        metadata={
+            "name": "IsRFRetransmitter",
+            "type": "Attribute",
+        },
+    )
+    is_slow_resender: bool = field(
+        default=False,
+        metadata={
+            "name": "IsSlowResender",
+            "type": "Attribute",
+        },
+    )
+    initial_value_language: None | str = field(
+        default=None,
+        metadata={
+            "name": "InitialValueLanguage",
+            "type": "Attribute",
+        },
+    )
+    puid: int = field(
+        metadata={
+            "name": "Puid",
+            "type": "Attribute",
+        }
+    )
+    context: None | str = field(
+        default=None,
+        metadata={
+            "name": "Context",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class GroupAddressesT:
+    class Meta:
+        name = "GroupAddresses_t"
+
+    group_ranges: GroupAddressesTGroupRanges = field(
+        metadata={
+            "name": "GroupRanges",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class HardwareTProducts:
+    class Meta:
+        global_type = False
+
+    product: list[HardwareTProductsProduct] = field(
+        default_factory=list,
+        metadata={
+            "name": "Product",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class LdCtrlCompareMemT(LdCtrlCompareBaseT):
+    """
+    :ivar address_space: registration-relevant
+    :ivar address: registration-relevant
+    :ivar size: registration-relevant
+    """
+
+    class Meta:
+        name = "LdCtrlCompareMem_t"
+
+    address_space: LdCtrlMemAddrSpaceT = field(
+        default=LdCtrlMemAddrSpaceT.STANDARD,
+        metadata={
+            "name": "AddressSpace",
+            "type": "Attribute",
+        },
+    )
+    address: int = field(
+        metadata={
+            "name": "Address",
+            "type": "Attribute",
+        }
+    )
+    size: int = field(
+        metadata={
+            "name": "Size",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class LdCtrlComparePropT(LdCtrlCompareBaseT):
+    """
+    :ivar obj_idx: registration-relevant
+    :ivar obj_type: registration-relevant
+    :ivar occurrence: registration-relevant
+    :ivar prop_id: registration-relevant
+    :ivar start_element: registration-relevant
+    :ivar count: registration-relevant
+    """
+
+    class Meta:
+        name = "LdCtrlCompareProp_t"
+
+    obj_idx: None | int = field(
+        default=None,
+        metadata={
+            "name": "ObjIdx",
+            "type": "Attribute",
+        },
+    )
+    obj_type: None | int = field(
+        default=None,
+        metadata={
+            "name": "ObjType",
+            "type": "Attribute",
+        },
+    )
+    occurrence: int = field(
+        default=0,
+        metadata={
+            "name": "Occurrence",
+            "type": "Attribute",
+        },
+    )
+    prop_id: int = field(
+        metadata={
+            "name": "PropId",
+            "type": "Attribute",
+        }
+    )
+    start_element: int = field(
+        default=1,
+        metadata={
+            "name": "StartElement",
+            "type": "Attribute",
+        },
+    )
+    count: int = field(
+        default=1,
+        metadata={
+            "name": "Count",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class LdCtrlCompareRelMemT(LdCtrlCompareBaseT):
+    """
+    :ivar obj_idx: registration-relevant
+    :ivar obj_type: registration-relevant
+    :ivar occurrence: registration-relevant
+    :ivar offset: registration-relevant
+    :ivar size: registration-relevant
+    """
+
+    class Meta:
+        name = "LdCtrlCompareRelMem_t"
+
+    obj_idx: None | int = field(
+        default=None,
+        metadata={
+            "name": "ObjIdx",
+            "type": "Attribute",
+        },
+    )
+    obj_type: None | int = field(
+        default=None,
+        metadata={
+            "name": "ObjType",
+            "type": "Attribute",
+        },
+    )
+    occurrence: int = field(
+        default=0,
+        metadata={
+            "name": "Occurrence",
+            "type": "Attribute",
+        },
+    )
+    offset: int = field(
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+        }
+    )
+    size: int = field(
+        metadata={
+            "name": "Size",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ManufacturerDataTManufacturerLanguages:
+    class Meta:
+        global_type = False
+
+    language: list[LanguageDataT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Language",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTLanguages:
+    class Meta:
+        global_type = False
+
+    language: list[LanguageDataT] = field(
+        default_factory=list,
+        metadata={
+            "name": "Language",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefLdCtrlInvokeFunctionPropT(LdCtrlInvokeFunctionPropT):
+    """
+    :ivar base_obj_idx: registration-relevant
+    :ivar base_occurrence: registration-relevant
+    """
+
+    class Meta:
+        name = "ModuleDefLdCtrlInvokeFunctionProp_t"
+
+    base_obj_idx: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseObjIdx",
+            "type": "Attribute",
+        },
+    )
+    base_occurrence: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseOccurrence",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefLdCtrlReadFunctionPropT(LdCtrlReadFunctionPropT):
+    """
+    :ivar base_obj_idx: registration-relevant
+    :ivar base_occurrence: registration-relevant
+    """
+
+    class Meta:
+        name = "ModuleDefLdCtrlReadFunctionProp_t"
+
+    base_obj_idx: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseObjIdx",
+            "type": "Attribute",
+        },
+    )
+    base_occurrence: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseOccurrence",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefLdCtrlWritePropT(LdCtrlWritePropT):
+    """
+    :ivar base_obj_idx: registration-relevant
+    :ivar base_occurrence: registration-relevant
+    :ivar base_start_element: registration-relevant
+    """
+
+    class Meta:
+        name = "ModuleDefLdCtrlWriteProp_t"
+
+    base_obj_idx: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseObjIdx",
+            "type": "Attribute",
+        },
+    )
+    base_occurrence: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseOccurrence",
+            "type": "Attribute",
+        },
+    )
+    base_start_element: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseStartElement",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticTParameters:
+    class Meta:
+        global_type = False
+
+    parameter_or_union: list[
+        ModuleDefStaticTParametersParameter | ModuleDefStaticTParametersUnion
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "Parameter",
+                    "type": ModuleDefStaticTParametersParameter,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Union",
+                    "type": ModuleDefStaticTParametersUnion,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ComObjectParameterBlockT:
+    """
+    :ivar rows:
+    :ivar columns:
+    :ivar choice:
+    :ivar id: registration-relevant
+    :ivar name:
+    :ivar text:
+    :ivar access:
+    :ivar help_topic:
+    :ivar internal_description:
+    :ivar param_ref_id: registration-relevant
+    :ivar text_parameter_ref_id:
+    :ivar inline:
+    :ivar layout:
+    :ivar cell:
+    :ivar icon:
+    :ivar help_context:
+    :ivar show_in_com_object_tree:
+    :ivar semantics:
+    """
+
+    class Meta:
+        name = "ComObjectParameterBlock_t"
+
+    rows: None | ComObjectParameterBlockTRows = field(
+        default=None,
+        metadata={
+            "name": "Rows",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    columns: None | ComObjectParameterBlockTColumns = field(
+        default=None,
+        metadata={
+            "name": "Columns",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    choice: list[
+        ComObjectParameterBlockT
+        | ParameterSeparatorT
+        | ParameterRefRefT
+        | ButtonT
+        | ComObjectParameterChooseT
+        | BinaryDataRefT
+        | ComObjectRefRefT
+        | ModuleT
+        | RepeatT
+        | AssignT
+        | ApplicationProgramChannelT
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "ParameterBlock",
+                    "type": ForwardRef("ComObjectParameterBlockT"),
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "ParameterSeparator",
+                    "type": ParameterSeparatorT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "ParameterRefRef",
+                    "type": ParameterRefRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Button",
+                    "type": ButtonT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "choose",
+                    "type": ComObjectParameterChooseT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "BinaryDataRef",
+                    "type": BinaryDataRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "ComObjectRefRef",
+                    "type": ComObjectRefRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Module",
+                    "type": ModuleT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Repeat",
+                    "type": RepeatT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Assign",
+                    "type": AssignT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Channel",
+                    "type": ApplicationProgramChannelT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    text: None | str = field(
+        default=None,
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    access: AccessT = field(
+        default=AccessT.READ_WRITE,
+        metadata={
+            "name": "Access",
+            "type": "Attribute",
+        },
+    )
+    help_topic: None | int = field(
+        default=None,
+        metadata={
+            "name": "HelpTopic",
+            "type": "Attribute",
+        },
     )
     internal_description: None | str = field(
         default=None,
@@ -7895,122 +12011,181 @@ class ComObjectParameterChooseT:
             "type": "Attribute",
         },
     )
-
-    @dataclass(slots=True, kw_only=True)
-    class When(WhenT):
-        parameter_block: list[ComObjectParameterBlockT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterBlock",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        parameter_separator: list[ParameterSeparatorT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterSeparator",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        parameter_ref_ref: list[ParameterRefRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterRefRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        button: list[ButtonT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Button",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        choose: list[ComObjectParameterChooseT] = field(
-            default_factory=list,
-            metadata={
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        binary_data_ref: list[BinaryDataRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "BinaryDataRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        com_object_ref_ref: list[ComObjectRefRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ComObjectRefRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        module: list[ModuleT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Module",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        repeat: list[RepeatT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Repeat",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        assign: list[AssignT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Assign",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        rename: list[RenameT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Rename",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
+    param_ref_id: None | str = field(
+        default=None,
+        metadata={
+            "name": "ParamRefId",
+            "type": "Attribute",
+        },
+    )
+    text_parameter_ref_id: None | str = field(
+        default=None,
+        metadata={
+            "name": "TextParameterRefId",
+            "type": "Attribute",
+        },
+    )
+    inline: bool = field(
+        default=False,
+        metadata={
+            "name": "Inline",
+            "type": "Attribute",
+        },
+    )
+    layout: ParameterBlockLayoutT = field(
+        default=ParameterBlockLayoutT.LIST,
+        metadata={
+            "name": "Layout",
+            "type": "Attribute",
+        },
+    )
+    cell: None | str = field(
+        default=None,
+        metadata={
+            "name": "Cell",
+            "type": "Attribute",
+            "pattern": r"\d+,\d+",
+        },
+    )
+    icon: None | str = field(
+        default=None,
+        metadata={
+            "name": "Icon",
+            "type": "Attribute",
+        },
+    )
+    help_context: None | str = field(
+        default=None,
+        metadata={
+            "name": "HelpContext",
+            "type": "Attribute",
+        },
+    )
+    show_in_com_object_tree: bool = field(
+        default=False,
+        metadata={
+            "name": "ShowInComObjectTree",
+            "type": "Attribute",
+        },
+    )
+    semantics: None | str = field(
+        default=None,
+        metadata={
+            "name": "Semantics",
+            "type": "Attribute",
+        },
+    )
 
 
 @dataclass(slots=True, kw_only=True)
-class GroupAddressesT:
+class DatapointTypeT:
     class Meta:
-        name = "GroupAddresses_t"
+        name = "DatapointType_t"
 
-    group_ranges: GroupAddressesT.GroupRanges = field(
+    datapoint_subtypes: None | DatapointTypeTDatapointSubtypes = field(
+        default=None,
         metadata={
-            "name": "GroupRanges",
+            "name": "DatapointSubtypes",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
         }
     )
+    number: int = field(
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    text: None | str = field(
+        default=None,
+        metadata={
+            "name": "Text",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    size_in_bit: int = field(
+        metadata={
+            "name": "SizeInBit",
+            "type": "Attribute",
+        }
+    )
+    variable_length: bool = field(
+        default=False,
+        metadata={
+            "name": "VariableLength",
+            "type": "Attribute",
+        },
+    )
+    default: None | bool = field(
+        default=None,
+        metadata={
+            "name": "Default",
+            "type": "Attribute",
+        },
+    )
+    pdt: None | str = field(
+        default=None,
+        metadata={
+            "name": "PDT",
+            "type": "Attribute",
+        },
+    )
 
-    @dataclass(slots=True, kw_only=True)
-    class GroupRanges:
-        group_range: list[GroupRangeT] = field(
-            default_factory=list,
-            metadata={
-                "name": "GroupRange",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "max_occurs": 65535,
-            },
-        )
+
+@dataclass(slots=True, kw_only=True)
+class DependentChannelChooseTWhen(WhenT):
+    class Meta:
+        global_type = False
+
+    choice: list[
+        ApplicationProgramChannelT | DependentChannelChooseT | RenameT | ModuleT | RepeatT
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "Channel",
+                    "type": ApplicationProgramChannelT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "choose",
+                    "type": DependentChannelChooseT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Rename",
+                    "type": RenameT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Module",
+                    "type": ModuleT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Repeat",
+                    "type": RepeatT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -8046,7 +12221,7 @@ class HardwareT:
     class Meta:
         name = "Hardware_t"
 
-    products: None | HardwareT.Products = field(
+    products: None | HardwareTProducts = field(
         default=None,
         metadata={
             "name": "Products",
@@ -8054,7 +12229,7 @@ class HardwareT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    hardware2_programs: None | HardwareT.Hardware2Programs = field(
+    hardware2_programs: None | HardwareTHardware2Programs = field(
         default=None,
         metadata={
             "name": "Hardware2Programs",
@@ -8222,1508 +12397,445 @@ class HardwareT:
         },
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class Products:
-        product: list[HardwareT.Products.Product] = field(
-            default_factory=list,
-            metadata={
-                "name": "Product",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
 
-        @dataclass(slots=True, kw_only=True)
-        class Product:
-            """
-            :ivar baggages:
-            :ivar attributes:
-            :ivar registration_info:
-            :ivar id: registration-relevant
-            :ivar text:
-            :ivar order_number: registration-relevant
-            :ivar is_rail_mounted:
-            :ivar width_in_millimeter:
-            :ivar visible_description:
-            :ivar default_language:
-            :ivar non_reg_relevant_data_version:
-            :ivar hash:
-            :ivar internal_description:
-            :ivar semantics:
-            """
+@dataclass(slots=True, kw_only=True)
+class LdCtrlBaseChooseTWhen(WhenT):
+    class Meta:
+        global_type = False
 
-            baggages: None | HardwareT.Products.Product.Baggages = field(
-                default=None,
-                metadata={
-                    "name": "Baggages",
-                    "type": "Element",
+    choice: list[
+        LdCtrlUnloadT
+        | LdCtrlLoadT
+        | LdCtrlMaxLengthT
+        | LdCtrlClearCachedObjectTypesT
+        | LdCtrlLoadCompletedT
+        | LdCtrlAbsSegmentT
+        | LdCtrlRelSegmentT
+        | LdCtrlTaskSegmentT
+        | LdCtrlTaskPtrT
+        | LdCtrlTaskCtrl1T
+        | LdCtrlTaskCtrl2T
+        | LdCtrlWritePropT
+        | LdCtrlComparePropT
+        | LdCtrlLoadImagePropT
+        | LdCtrlInvokeFunctionPropT
+        | LdCtrlReadFunctionPropT
+        | LdCtrlWriteMemT
+        | LdCtrlCompareMemT
+        | LdCtrlLoadImageMemT
+        | LdCtrlWriteRelMemT
+        | LdCtrlCompareRelMemT
+        | LdCtrlLoadImageRelMemT
+        | LdCtrlConnectT
+        | LdCtrlDisconnectT
+        | LdCtrlRestartT
+        | LdCtrlMasterResetT
+        | LdCtrlDelayT
+        | LdCtrlSetControlVariableT
+        | LdCtrlMapErrorT
+        | LdCtrlProgressTextT
+        | LdCtrlDeclarePropDescT
+        | LdCtrlClearLcfilterTableT
+        | LdCtrlMergeT
+        | LdCtrlBaseChooseT
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "LdCtrlUnload",
+                    "type": LdCtrlUnloadT,
                     "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            attributes: None | HardwareT.Products.Product.Attributes = field(
-                default=None,
-                metadata={
-                    "name": "Attributes",
-                    "type": "Element",
+                {
+                    "name": "LdCtrlLoad",
+                    "type": LdCtrlLoadT,
                     "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            registration_info: None | RegistrationInfoT = field(
-                default=None,
-                metadata={
-                    "name": "RegistrationInfo",
-                    "type": "Element",
+                {
+                    "name": "LdCtrlMaxLength",
+                    "type": LdCtrlMaxLengthT,
                     "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            text: str = field(
-                metadata={
-                    "name": "Text",
-                    "type": "Attribute",
-                    "max_length": 255,
-                }
-            )
-            order_number: str = field(
-                metadata={
-                    "name": "OrderNumber",
-                    "type": "Attribute",
-                    "max_length": 50,
-                }
-            )
-            is_rail_mounted: bool = field(
-                metadata={
-                    "name": "IsRailMounted",
-                    "type": "Attribute",
-                }
-            )
-            width_in_millimeter: None | float = field(
-                default=None,
-                metadata={
-                    "name": "WidthInMillimeter",
-                    "type": "Attribute",
-                },
-            )
-            visible_description: None | str = field(
-                default=None,
-                metadata={
-                    "name": "VisibleDescription",
-                    "type": "Attribute",
-                },
-            )
-            default_language: None | str = field(
-                default=None,
-                metadata={
-                    "name": "DefaultLanguage",
-                    "type": "Attribute",
-                },
-            )
-            non_reg_relevant_data_version: int = field(
-                default=0,
-                metadata={
-                    "name": "NonRegRelevantDataVersion",
-                    "type": "Attribute",
-                },
-            )
-            hash: None | bytes = field(
-                default=None,
-                metadata={
-                    "name": "Hash",
-                    "type": "Attribute",
-                    "format": "base64",
-                },
-            )
-            internal_description: None | str = field(
-                default=None,
-                metadata={
-                    "name": "InternalDescription",
-                    "type": "Attribute",
-                },
-            )
-            semantics: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Semantics",
-                    "type": "Attribute",
-                },
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class Baggages:
-                baggage: list[HardwareT.Products.Product.Baggages.Baggage] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "Baggage",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                        "min_occurs": 1,
-                    },
-                )
-
-                @dataclass(slots=True, kw_only=True)
-                class Baggage:
-                    ref_id: str = field(
-                        metadata={
-                            "name": "RefId",
-                            "type": "Attribute",
-                        }
-                    )
-
-            @dataclass(slots=True, kw_only=True)
-            class Attributes:
-                attribute: list[HardwareT.Products.Product.Attributes.Attribute] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "Attribute",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                        "min_occurs": 1,
-                    },
-                )
-
-                @dataclass(slots=True, kw_only=True)
-                class Attribute:
-                    id: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Id",
-                            "type": "Attribute",
-                        },
-                    )
-                    name: AttributeName = field(
-                        metadata={
-                            "name": "Name",
-                            "type": "Attribute",
-                        }
-                    )
-                    value: str = field(
-                        metadata={
-                            "name": "Value",
-                            "type": "Attribute",
-                            "max_length": 255,
-                        }
-                    )
-
-    @dataclass(slots=True, kw_only=True)
-    class Hardware2Programs:
-        hardware2_program: list[Hardware2ProgramT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Hardware2Program",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-
-@dataclass(slots=True, kw_only=True)
-class LdCtrlCompareMemT(LdCtrlCompareBaseT):
-    """
-    :ivar address_space: registration-relevant
-    :ivar address: registration-relevant
-    :ivar size: registration-relevant
-    """
-
-    class Meta:
-        name = "LdCtrlCompareMem_t"
-
-    address_space: LdCtrlMemAddrSpaceT = field(
-        default=LdCtrlMemAddrSpaceT.STANDARD,
-        metadata={
-            "name": "AddressSpace",
-            "type": "Attribute",
-        },
-    )
-    address: int = field(
-        metadata={
-            "name": "Address",
-            "type": "Attribute",
-        }
-    )
-    size: int = field(
-        metadata={
-            "name": "Size",
-            "type": "Attribute",
-        }
-    )
-
-
-@dataclass(slots=True, kw_only=True)
-class LdCtrlComparePropT(LdCtrlCompareBaseT):
-    """
-    :ivar obj_idx: registration-relevant
-    :ivar obj_type: registration-relevant
-    :ivar occurrence: registration-relevant
-    :ivar prop_id: registration-relevant
-    :ivar start_element: registration-relevant
-    :ivar count: registration-relevant
-    """
-
-    class Meta:
-        name = "LdCtrlCompareProp_t"
-
-    obj_idx: None | int = field(
-        default=None,
-        metadata={
-            "name": "ObjIdx",
-            "type": "Attribute",
-        },
-    )
-    obj_type: None | int = field(
-        default=None,
-        metadata={
-            "name": "ObjType",
-            "type": "Attribute",
-        },
-    )
-    occurrence: int = field(
-        default=0,
-        metadata={
-            "name": "Occurrence",
-            "type": "Attribute",
-        },
-    )
-    prop_id: int = field(
-        metadata={
-            "name": "PropId",
-            "type": "Attribute",
-        }
-    )
-    start_element: int = field(
-        default=1,
-        metadata={
-            "name": "StartElement",
-            "type": "Attribute",
-        },
-    )
-    count: int = field(
-        default=1,
-        metadata={
-            "name": "Count",
-            "type": "Attribute",
-        },
-    )
-
-
-@dataclass(slots=True, kw_only=True)
-class LdCtrlCompareRelMemT(LdCtrlCompareBaseT):
-    """
-    :ivar obj_idx: registration-relevant
-    :ivar obj_type: registration-relevant
-    :ivar occurrence: registration-relevant
-    :ivar offset: registration-relevant
-    :ivar size: registration-relevant
-    """
-
-    class Meta:
-        name = "LdCtrlCompareRelMem_t"
-
-    obj_idx: None | int = field(
-        default=None,
-        metadata={
-            "name": "ObjIdx",
-            "type": "Attribute",
-        },
-    )
-    obj_type: None | int = field(
-        default=None,
-        metadata={
-            "name": "ObjType",
-            "type": "Attribute",
-        },
-    )
-    occurrence: int = field(
-        default=0,
-        metadata={
-            "name": "Occurrence",
-            "type": "Attribute",
-        },
-    )
-    offset: int = field(
-        metadata={
-            "name": "Offset",
-            "type": "Attribute",
-        }
-    )
-    size: int = field(
-        metadata={
-            "name": "Size",
-            "type": "Attribute",
-        }
-    )
-
-
-@dataclass(slots=True, kw_only=True)
-class LocationsT:
-    class Meta:
-        name = "Locations_t"
-
-    space: list[SpaceT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Space",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-
-
-@dataclass(slots=True, kw_only=True)
-class ModuleDefLdCtrlInvokeFunctionPropT(LdCtrlInvokeFunctionPropT):
-    """
-    :ivar base_obj_idx: registration-relevant
-    :ivar base_occurrence: registration-relevant
-    """
-
-    class Meta:
-        name = "ModuleDefLdCtrlInvokeFunctionProp_t"
-
-    base_obj_idx: None | str = field(
-        default=None,
-        metadata={
-            "name": "BaseObjIdx",
-            "type": "Attribute",
-        },
-    )
-    base_occurrence: None | str = field(
-        default=None,
-        metadata={
-            "name": "BaseOccurrence",
-            "type": "Attribute",
-        },
-    )
-
-
-@dataclass(slots=True, kw_only=True)
-class ModuleDefLdCtrlReadFunctionPropT(LdCtrlReadFunctionPropT):
-    """
-    :ivar base_obj_idx: registration-relevant
-    :ivar base_occurrence: registration-relevant
-    """
-
-    class Meta:
-        name = "ModuleDefLdCtrlReadFunctionProp_t"
-
-    base_obj_idx: None | str = field(
-        default=None,
-        metadata={
-            "name": "BaseObjIdx",
-            "type": "Attribute",
-        },
-    )
-    base_occurrence: None | str = field(
-        default=None,
-        metadata={
-            "name": "BaseOccurrence",
-            "type": "Attribute",
-        },
-    )
-
-
-@dataclass(slots=True, kw_only=True)
-class ModuleDefLdCtrlWritePropT(LdCtrlWritePropT):
-    """
-    :ivar base_obj_idx: registration-relevant
-    :ivar base_occurrence: registration-relevant
-    :ivar base_start_element: registration-relevant
-    """
-
-    class Meta:
-        name = "ModuleDefLdCtrlWriteProp_t"
-
-    base_obj_idx: None | str = field(
-        default=None,
-        metadata={
-            "name": "BaseObjIdx",
-            "type": "Attribute",
-        },
-    )
-    base_occurrence: None | str = field(
-        default=None,
-        metadata={
-            "name": "BaseOccurrence",
-            "type": "Attribute",
-        },
-    )
-    base_start_element: None | str = field(
-        default=None,
-        metadata={
-            "name": "BaseStartElement",
-            "type": "Attribute",
-        },
-    )
-
-
-@dataclass(slots=True, kw_only=True)
-class TopologyT:
-    class Meta:
-        name = "Topology_t"
-
-    area: list[TopologyT.Area] = field(
-        default_factory=list,
-        metadata={
-            "name": "Area",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "max_occurs": 16,
-        },
-    )
-    unassigned_devices: None | TopologyT.UnassignedDevices = field(
-        default=None,
-        metadata={
-            "name": "UnassignedDevices",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class Area:
-        line: list[TopologyT.Area.Line] = field(
-            default_factory=list,
-            metadata={
-                "name": "Line",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "max_occurs": 16,
-            },
-        )
-        id: str = field(
-            metadata={
-                "name": "Id",
-                "type": "Attribute",
-            }
-        )
-        name: None | str = field(
-            default=None,
-            metadata={
-                "name": "Name",
-                "type": "Attribute",
-                "max_length": 255,
-            },
-        )
-        address: int = field(
-            metadata={
-                "name": "Address",
-                "type": "Attribute",
-                "min_inclusive": 0,
-                "max_inclusive": 15,
-            }
-        )
-        comment: None | str = field(
-            default=None,
-            metadata={
-                "name": "Comment",
-                "type": "Attribute",
-            },
-        )
-        completion_status: None | CompletionStatusT = field(
-            default=None,
-            metadata={
-                "name": "CompletionStatus",
-                "type": "Attribute",
-            },
-        )
-        description: None | str = field(
-            default=None,
-            metadata={
-                "name": "Description",
-                "type": "Attribute",
-            },
-        )
-        puid: int = field(
-            metadata={
-                "name": "Puid",
-                "type": "Attribute",
-            }
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Line:
-            segment: list[TopologyT.Area.Line.Segment] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Segment",
-                    "type": "Element",
+                {
+                    "name": "LdCtrlClearCachedObjectTypes",
+                    "type": LdCtrlClearCachedObjectTypesT,
                     "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                    "max_occurs": 128,
                 },
-            )
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            name: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 255,
+                {
+                    "name": "LdCtrlLoadCompleted",
+                    "type": LdCtrlLoadCompletedT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            address: int = field(
-                metadata={
-                    "name": "Address",
-                    "type": "Attribute",
-                    "min_inclusive": 0,
-                    "max_inclusive": 15,
-                }
-            )
-            comment: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Comment",
-                    "type": "Attribute",
+                {
+                    "name": "LdCtrlAbsSegment",
+                    "type": LdCtrlAbsSegmentT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            completion_status: None | CompletionStatusT = field(
-                default=None,
-                metadata={
-                    "name": "CompletionStatus",
-                    "type": "Attribute",
+                {
+                    "name": "LdCtrlRelSegment",
+                    "type": LdCtrlRelSegmentT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            description: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Description",
-                    "type": "Attribute",
+                {
+                    "name": "LdCtrlTaskSegment",
+                    "type": LdCtrlTaskSegmentT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            puid: int = field(
-                metadata={
-                    "name": "Puid",
-                    "type": "Attribute",
-                }
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class Segment:
-                device_instance: list[DeviceInstanceT] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "DeviceInstance",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
-                bus_access: None | BusAccessT = field(
-                    default=None,
-                    metadata={
-                        "name": "BusAccess",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
-                additional_group_addresses: None | TopologyT.Area.Line.Segment.AdditionalGroupAddresses = field(
-                    default=None,
-                    metadata={
-                        "name": "AdditionalGroupAddresses",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
-                id: str = field(
-                    metadata={
-                        "name": "Id",
-                        "type": "Attribute",
-                    }
-                )
-                name: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "Name",
-                        "type": "Attribute",
-                        "max_length": 255,
-                    },
-                )
-                number: int = field(
-                    metadata={
-                        "name": "Number",
-                        "type": "Attribute",
-                        "min_inclusive": 0,
-                        "max_inclusive": 127,
-                    }
-                )
-                medium_type_ref_id: str = field(
-                    metadata={
-                        "name": "MediumTypeRefId",
-                        "type": "Attribute",
-                    }
-                )
-                domain_address: None | int = field(
-                    default=None,
-                    metadata={
-                        "name": "DomainAddress",
-                        "type": "Attribute",
-                    },
-                )
-                master_salt: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "MasterSalt",
-                        "type": "Attribute",
-                    },
-                )
-                comment: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "Comment",
-                        "type": "Attribute",
-                    },
-                )
-                completion_status: None | CompletionStatusT = field(
-                    default=None,
-                    metadata={
-                        "name": "CompletionStatus",
-                        "type": "Attribute",
-                    },
-                )
-                description: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "Description",
-                        "type": "Attribute",
-                    },
-                )
-                puid: int = field(
-                    metadata={
-                        "name": "Puid",
-                        "type": "Attribute",
-                    }
-                )
-
-                @dataclass(slots=True, kw_only=True)
-                class AdditionalGroupAddresses:
-                    group_address: list[TopologyT.Area.Line.Segment.AdditionalGroupAddresses.GroupAddress] = field(
-                        default_factory=list,
-                        metadata={
-                            "name": "GroupAddress",
-                            "type": "Element",
-                            "namespace": "http://knx.org/xml/project/23",
-                            "min_occurs": 1,
-                        },
-                    )
-
-                    @dataclass(slots=True, kw_only=True)
-                    class GroupAddress:
-                        address: int = field(
-                            metadata={
-                                "name": "Address",
-                                "type": "Attribute",
-                            }
-                        )
-
-    @dataclass(slots=True, kw_only=True)
-    class UnassignedDevices:
-        device_instance: list[DeviceInstanceT] = field(
-            default_factory=list,
-            metadata={
-                "name": "DeviceInstance",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
+                {
+                    "name": "LdCtrlTaskPtr",
+                    "type": LdCtrlTaskPtrT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlTaskCtrl1",
+                    "type": LdCtrlTaskCtrl1T,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlTaskCtrl2",
+                    "type": LdCtrlTaskCtrl2T,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlWriteProp",
+                    "type": LdCtrlWritePropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlCompareProp",
+                    "type": LdCtrlComparePropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlLoadImageProp",
+                    "type": LdCtrlLoadImagePropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlInvokeFunctionProp",
+                    "type": LdCtrlInvokeFunctionPropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlReadFunctionProp",
+                    "type": LdCtrlReadFunctionPropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlWriteMem",
+                    "type": LdCtrlWriteMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlCompareMem",
+                    "type": LdCtrlCompareMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlLoadImageMem",
+                    "type": LdCtrlLoadImageMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlWriteRelMem",
+                    "type": LdCtrlWriteRelMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlCompareRelMem",
+                    "type": LdCtrlCompareRelMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlLoadImageRelMem",
+                    "type": LdCtrlLoadImageRelMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlConnect",
+                    "type": LdCtrlConnectT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlDisconnect",
+                    "type": LdCtrlDisconnectT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlRestart",
+                    "type": LdCtrlRestartT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlMasterReset",
+                    "type": LdCtrlMasterResetT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlDelay",
+                    "type": LdCtrlDelayT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlSetControlVariable",
+                    "type": LdCtrlSetControlVariableT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlMapError",
+                    "type": LdCtrlMapErrorT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlProgressText",
+                    "type": LdCtrlProgressTextT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlDeclarePropDesc",
+                    "type": LdCtrlDeclarePropDescT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlClearLCFilterTable",
+                    "type": LdCtrlClearLcfilterTableT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlMerge",
+                    "type": LdCtrlMergeT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "choose",
+                    "type": LdCtrlBaseChooseT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
+        },
+    )
 
 
 @dataclass(slots=True, kw_only=True)
-class ComObjectParameterBlockT:
-    """
-    :ivar rows:
-    :ivar columns:
-    :ivar parameter_block:
-    :ivar parameter_separator:
-    :ivar parameter_ref_ref:
-    :ivar button:
-    :ivar choose:
-    :ivar binary_data_ref:
-    :ivar com_object_ref_ref:
-    :ivar module:
-    :ivar repeat:
-    :ivar assign:
-    :ivar channel:
-    :ivar id: registration-relevant
-    :ivar name:
-    :ivar text:
-    :ivar access:
-    :ivar help_topic:
-    :ivar internal_description:
-    :ivar param_ref_id: registration-relevant
-    :ivar text_parameter_ref_id:
-    :ivar inline:
-    :ivar layout:
-    :ivar cell:
-    :ivar icon:
-    :ivar help_context:
-    :ivar show_in_com_object_tree:
-    :ivar semantics:
-    """
-
+class LoadProcedureT:
     class Meta:
-        name = "ComObjectParameterBlock_t"
+        name = "LoadProcedure_t"
 
-    rows: None | ComObjectParameterBlockT.Rows = field(
-        default=None,
-        metadata={
-            "name": "Rows",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    columns: None | ComObjectParameterBlockT.Columns = field(
-        default=None,
-        metadata={
-            "name": "Columns",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    parameter_block: list[ComObjectParameterBlockT] = field(
+    choice: list[
+        LdCtrlUnloadT
+        | LdCtrlLoadT
+        | LdCtrlMaxLengthT
+        | LdCtrlClearCachedObjectTypesT
+        | LdCtrlLoadCompletedT
+        | LdCtrlAbsSegmentT
+        | LdCtrlRelSegmentT
+        | LdCtrlTaskSegmentT
+        | LdCtrlTaskPtrT
+        | LdCtrlTaskCtrl1T
+        | LdCtrlTaskCtrl2T
+        | LdCtrlWritePropT
+        | LdCtrlComparePropT
+        | LdCtrlLoadImagePropT
+        | LdCtrlInvokeFunctionPropT
+        | LdCtrlReadFunctionPropT
+        | LdCtrlWriteMemT
+        | LdCtrlCompareMemT
+        | LdCtrlLoadImageMemT
+        | LdCtrlWriteRelMemT
+        | LdCtrlCompareRelMemT
+        | LdCtrlLoadImageRelMemT
+        | LdCtrlConnectT
+        | LdCtrlDisconnectT
+        | LdCtrlRestartT
+        | LdCtrlMasterResetT
+        | LdCtrlDelayT
+        | LdCtrlSetControlVariableT
+        | LdCtrlMapErrorT
+        | LdCtrlProgressTextT
+        | LdCtrlDeclarePropDescT
+        | LdCtrlClearLcfilterTableT
+        | LdCtrlMergeT
+        | LdCtrlBaseChooseT
+    ] = field(
         default_factory=list,
         metadata={
-            "name": "ParameterBlock",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    parameter_separator: list[ParameterSeparatorT] = field(
-        default_factory=list,
-        metadata={
-            "name": "ParameterSeparator",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    parameter_ref_ref: list[ParameterRefRefT] = field(
-        default_factory=list,
-        metadata={
-            "name": "ParameterRefRef",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    button: list[ButtonT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Button",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    choose: list[ComObjectParameterChooseT] = field(
-        default_factory=list,
-        metadata={
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    binary_data_ref: list[BinaryDataRefT] = field(
-        default_factory=list,
-        metadata={
-            "name": "BinaryDataRef",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    com_object_ref_ref: list[ComObjectRefRefT] = field(
-        default_factory=list,
-        metadata={
-            "name": "ComObjectRefRef",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    module: list[ModuleT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Module",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    repeat: list[RepeatT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Repeat",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    assign: list[AssignT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Assign",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    channel: list[ApplicationProgramChannelT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Channel",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    id: str = field(
-        metadata={
-            "name": "Id",
-            "type": "Attribute",
-        }
-    )
-    name: None | str = field(
-        default=None,
-        metadata={
-            "name": "Name",
-            "type": "Attribute",
-            "max_length": 255,
-        },
-    )
-    text: None | str = field(
-        default=None,
-        metadata={
-            "name": "Text",
-            "type": "Attribute",
-            "max_length": 255,
-        },
-    )
-    access: AccessT = field(
-        default=AccessT.READ_WRITE,
-        metadata={
-            "name": "Access",
-            "type": "Attribute",
-        },
-    )
-    help_topic: None | int = field(
-        default=None,
-        metadata={
-            "name": "HelpTopic",
-            "type": "Attribute",
-        },
-    )
-    internal_description: None | str = field(
-        default=None,
-        metadata={
-            "name": "InternalDescription",
-            "type": "Attribute",
-        },
-    )
-    param_ref_id: None | str = field(
-        default=None,
-        metadata={
-            "name": "ParamRefId",
-            "type": "Attribute",
-        },
-    )
-    text_parameter_ref_id: None | str = field(
-        default=None,
-        metadata={
-            "name": "TextParameterRefId",
-            "type": "Attribute",
-        },
-    )
-    inline: bool = field(
-        default=False,
-        metadata={
-            "name": "Inline",
-            "type": "Attribute",
-        },
-    )
-    layout: ParameterBlockLayoutT = field(
-        default=ParameterBlockLayoutT.LIST,
-        metadata={
-            "name": "Layout",
-            "type": "Attribute",
-        },
-    )
-    cell: None | str = field(
-        default=None,
-        metadata={
-            "name": "Cell",
-            "type": "Attribute",
-            "pattern": r"\d+,\d+",
-        },
-    )
-    icon: None | str = field(
-        default=None,
-        metadata={
-            "name": "Icon",
-            "type": "Attribute",
-        },
-    )
-    help_context: None | str = field(
-        default=None,
-        metadata={
-            "name": "HelpContext",
-            "type": "Attribute",
-        },
-    )
-    show_in_com_object_tree: bool = field(
-        default=False,
-        metadata={
-            "name": "ShowInComObjectTree",
-            "type": "Attribute",
-        },
-    )
-    semantics: None | str = field(
-        default=None,
-        metadata={
-            "name": "Semantics",
-            "type": "Attribute",
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class Rows:
-        row: list[ComObjectParameterBlockT.Rows.Row] = field(
-            default_factory=list,
-            metadata={
-                "name": "Row",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Row:
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            name: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 255,
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "LdCtrlUnload",
+                    "type": LdCtrlUnloadT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            text: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Text",
-                    "type": "Attribute",
-                    "max_length": 255,
+                {
+                    "name": "LdCtrlLoad",
+                    "type": LdCtrlLoadT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            text_parameter_ref_id: None | str = field(
-                default=None,
-                metadata={
-                    "name": "TextParameterRefId",
-                    "type": "Attribute",
+                {
+                    "name": "LdCtrlMaxLength",
+                    "type": LdCtrlMaxLengthT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            collapse_if_empty: bool = field(
-                default=False,
-                metadata={
-                    "name": "CollapseIfEmpty",
-                    "type": "Attribute",
+                {
+                    "name": "LdCtrlClearCachedObjectTypes",
+                    "type": LdCtrlClearCachedObjectTypesT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            internal_description: None | str = field(
-                default=None,
-                metadata={
-                    "name": "InternalDescription",
-                    "type": "Attribute",
+                {
+                    "name": "LdCtrlLoadCompleted",
+                    "type": LdCtrlLoadCompletedT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class Columns:
-        column: list[ComObjectParameterBlockT.Columns.Column] = field(
-            default_factory=list,
-            metadata={
-                "name": "Column",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Column:
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            name: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 255,
+                {
+                    "name": "LdCtrlAbsSegment",
+                    "type": LdCtrlAbsSegmentT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            text: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Text",
-                    "type": "Attribute",
-                    "max_length": 255,
+                {
+                    "name": "LdCtrlRelSegment",
+                    "type": LdCtrlRelSegmentT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            text_parameter_ref_id: None | str = field(
-                default=None,
-                metadata={
-                    "name": "TextParameterRefId",
-                    "type": "Attribute",
+                {
+                    "name": "LdCtrlTaskSegment",
+                    "type": LdCtrlTaskSegmentT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            width: str = field(
-                metadata={
-                    "name": "Width",
-                    "type": "Attribute",
-                    "pattern": r"(100|\d\d|\d)%",
-                }
-            )
-            text_alignment: None | TextAlignmentT = field(
-                default=None,
-                metadata={
-                    "name": "TextAlignment",
-                    "type": "Attribute",
+                {
+                    "name": "LdCtrlTaskPtr",
+                    "type": LdCtrlTaskPtrT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            internal_description: None | str = field(
-                default=None,
-                metadata={
-                    "name": "InternalDescription",
-                    "type": "Attribute",
+                {
+                    "name": "LdCtrlTaskCtrl1",
+                    "type": LdCtrlTaskCtrl1T,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-
-
-@dataclass(slots=True, kw_only=True)
-class DependentChannelChooseT:
-    """
-    :ivar when: registration-relevant list
-    :ivar param_ref_id: registration-relevant
-    :ivar internal_description:
-    """
-
-    class Meta:
-        name = "DependentChannelChoose_t"
-
-    when: list[DependentChannelChooseT.When] = field(
-        default_factory=list,
-        metadata={
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "min_occurs": 1,
+                {
+                    "name": "LdCtrlTaskCtrl2",
+                    "type": LdCtrlTaskCtrl2T,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlWriteProp",
+                    "type": LdCtrlWritePropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlCompareProp",
+                    "type": LdCtrlComparePropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlLoadImageProp",
+                    "type": LdCtrlLoadImagePropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlInvokeFunctionProp",
+                    "type": LdCtrlInvokeFunctionPropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlReadFunctionProp",
+                    "type": LdCtrlReadFunctionPropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlWriteMem",
+                    "type": LdCtrlWriteMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlCompareMem",
+                    "type": LdCtrlCompareMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlLoadImageMem",
+                    "type": LdCtrlLoadImageMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlWriteRelMem",
+                    "type": LdCtrlWriteRelMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlCompareRelMem",
+                    "type": LdCtrlCompareRelMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlLoadImageRelMem",
+                    "type": LdCtrlLoadImageRelMemT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlConnect",
+                    "type": LdCtrlConnectT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlDisconnect",
+                    "type": LdCtrlDisconnectT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlRestart",
+                    "type": LdCtrlRestartT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlMasterReset",
+                    "type": LdCtrlMasterResetT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlDelay",
+                    "type": LdCtrlDelayT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlSetControlVariable",
+                    "type": LdCtrlSetControlVariableT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlMapError",
+                    "type": LdCtrlMapErrorT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlProgressText",
+                    "type": LdCtrlProgressTextT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlDeclarePropDesc",
+                    "type": LdCtrlDeclarePropDescT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlClearLCFilterTable",
+                    "type": LdCtrlClearLcfilterTableT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlMerge",
+                    "type": LdCtrlMergeT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "choose",
+                    "type": LdCtrlBaseChooseT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
         },
     )
-    param_ref_id: str = field(
-        metadata={
-            "name": "ParamRefId",
-            "type": "Attribute",
-        }
-    )
-    internal_description: None | str = field(
-        default=None,
-        metadata={
-            "name": "InternalDescription",
-            "type": "Attribute",
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class When(WhenT):
-        channel: list[ApplicationProgramChannelT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Channel",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        choose: list[DependentChannelChooseT] = field(
-            default_factory=list,
-            metadata={
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        rename: list[RenameT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Rename",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        module: list[ModuleT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Module",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        repeat: list[RepeatT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Repeat",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-
-
-@dataclass(slots=True, kw_only=True)
-class LdCtrlBaseChooseT:
-    """
-    :ivar when: registration-relevant list
-    :ivar param_ref_id: registration-relevant
-    :ivar internal_description:
-    """
-
-    class Meta:
-        name = "LdCtrlBaseChoose_t"
-
-    when: list[LdCtrlBaseChooseT.When] = field(
-        default_factory=list,
-        metadata={
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "min_occurs": 1,
-        },
-    )
-    param_ref_id: str = field(
-        metadata={
-            "name": "ParamRefId",
-            "type": "Attribute",
-        }
-    )
-    internal_description: None | str = field(
-        default=None,
-        metadata={
-            "name": "InternalDescription",
-            "type": "Attribute",
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class When(WhenT):
-        ld_ctrl_unload: list[LdCtrlUnloadT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlUnload",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_load: list[LdCtrlLoadT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlLoad",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_max_length: list[LdCtrlMaxLengthT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlMaxLength",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_clear_cached_object_types: list[LdCtrlClearCachedObjectTypesT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlClearCachedObjectTypes",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_load_completed: list[LdCtrlLoadCompletedT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlLoadCompleted",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_abs_segment: list[LdCtrlAbsSegmentT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlAbsSegment",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_rel_segment: list[LdCtrlRelSegmentT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlRelSegment",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_task_segment: list[LdCtrlTaskSegmentT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlTaskSegment",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_task_ptr: list[LdCtrlTaskPtrT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlTaskPtr",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_task_ctrl1: list[LdCtrlTaskCtrl1T] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlTaskCtrl1",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_task_ctrl2: list[LdCtrlTaskCtrl2T] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlTaskCtrl2",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_write_prop: list[LdCtrlWritePropT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlWriteProp",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_compare_prop: list[LdCtrlComparePropT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlCompareProp",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_load_image_prop: list[LdCtrlLoadImagePropT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlLoadImageProp",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_invoke_function_prop: list[LdCtrlInvokeFunctionPropT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlInvokeFunctionProp",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_read_function_prop: list[LdCtrlReadFunctionPropT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlReadFunctionProp",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_write_mem: list[LdCtrlWriteMemT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlWriteMem",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_compare_mem: list[LdCtrlCompareMemT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlCompareMem",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_load_image_mem: list[LdCtrlLoadImageMemT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlLoadImageMem",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_write_rel_mem: list[LdCtrlWriteRelMemT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlWriteRelMem",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_compare_rel_mem: list[LdCtrlCompareRelMemT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlCompareRelMem",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_load_image_rel_mem: list[LdCtrlLoadImageRelMemT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlLoadImageRelMem",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_connect: list[LdCtrlConnectT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlConnect",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_disconnect: list[LdCtrlDisconnectT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlDisconnect",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_restart: list[LdCtrlRestartT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlRestart",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_master_reset: list[LdCtrlMasterResetT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlMasterReset",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_delay: list[LdCtrlDelayT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlDelay",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_set_control_variable: list[LdCtrlSetControlVariableT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlSetControlVariable",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_map_error: list[LdCtrlMapErrorT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlMapError",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_progress_text: list[LdCtrlProgressTextT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlProgressText",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_declare_prop_desc: list[LdCtrlDeclarePropDescT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlDeclarePropDesc",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_clear_lcfilter_table: list[LdCtrlClearLcfilterTableT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlClearLCFilterTable",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_merge: list[LdCtrlMergeT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlMerge",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        choose: list[LdCtrlBaseChooseT] = field(
-            default_factory=list,
-            metadata={
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -9761,38 +12873,30 @@ class ModuleDefLdCtrlComparePropT(LdCtrlComparePropT):
 
 
 @dataclass(slots=True, kw_only=True)
-class ProjectT:
+class TopologyTAreaLineSegment:
     class Meta:
-        name = "Project_t"
+        global_type = False
 
-    project_information: None | ProjectT.ProjectInformation = field(
-        default=None,
+    device_instance: list[DeviceInstanceT] = field(
+        default_factory=list,
         metadata={
-            "name": "ProjectInformation",
+            "name": "DeviceInstance",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    installations: None | ProjectT.Installations = field(
+    bus_access: None | BusAccessT = field(
         default=None,
         metadata={
-            "name": "Installations",
+            "name": "BusAccess",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    user_files: None | ProjectT.UserFiles = field(
+    additional_group_addresses: None | TopologyTAreaLineSegmentAdditionalGroupAddresses = field(
         default=None,
         metadata={
-            "name": "UserFiles",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    addin_data: None | ProjectT.AddinData = field(
-        default=None,
-        metadata={
-            "name": "AddinData",
+            "name": "AdditionalGroupAddresses",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
         },
@@ -9803,884 +12907,756 @@ class ProjectT:
             "type": "Attribute",
         }
     )
-
-    @dataclass(slots=True, kw_only=True)
-    class ProjectInformation:
-        tags: None | ProjectT.ProjectInformation.Tags = field(
-            default=None,
-            metadata={
-                "name": "Tags",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        history_entries: None | ProjectT.ProjectInformation.HistoryEntries = field(
-            default=None,
-            metadata={
-                "name": "HistoryEntries",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        to_do_items: None | ProjectT.ProjectInformation.ToDoItems = field(
-            default=None,
-            metadata={
-                "name": "ToDoItems",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        project_traces: None | ProjectT.ProjectInformation.ProjectTraces = field(
-            default=None,
-            metadata={
-                "name": "ProjectTraces",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        device_certificates: None | ProjectT.ProjectInformation.DeviceCertificates = field(
-            default=None,
-            metadata={
-                "name": "DeviceCertificates",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        name: str = field(
-            metadata={
-                "name": "Name",
-                "type": "Attribute",
-                "max_length": 50,
-            }
-        )
-        group_address_style: GroupAddressStyleT = field(
-            metadata={
-                "name": "GroupAddressStyle",
-                "type": "Attribute",
-            }
-        )
-        project_number: None | str = field(
-            default=None,
-            metadata={
-                "name": "ProjectNumber",
-                "type": "Attribute",
-                "max_length": 50,
-            },
-        )
-        contract_number: None | str = field(
-            default=None,
-            metadata={
-                "name": "ContractNumber",
-                "type": "Attribute",
-                "max_length": 50,
-            },
-        )
-        last_modified: None | XmlDateTime = field(
-            default=None,
-            metadata={
-                "name": "LastModified",
-                "type": "Attribute",
-            },
-        )
-        archived_version: None | XmlDateTime = field(
-            default=None,
-            metadata={
-                "name": "ArchivedVersion",
-                "type": "Attribute",
-            },
-        )
-        project_start: None | XmlDateTime = field(
-            default=None,
-            metadata={
-                "name": "ProjectStart",
-                "type": "Attribute",
-            },
-        )
-        project_end: None | XmlDateTime = field(
-            default=None,
-            metadata={
-                "name": "ProjectEnd",
-                "type": "Attribute",
-            },
-        )
-        project_type: ProjectTypeT = field(
-            default=ProjectTypeT.OTHER_COMMERCIAL,
-            metadata={
-                "name": "ProjectType",
-                "type": "Attribute",
-            },
-        )
-        project_id: None | int = field(
-            default=None,
-            metadata={
-                "name": "ProjectId",
-                "type": "Attribute",
-                "max_inclusive": 4095,
-            },
-        )
-        comment: None | str = field(
-            default=None,
-            metadata={
-                "name": "Comment",
-                "type": "Attribute",
-            },
-        )
-        completion_status: CompletionStatusT = field(
-            default=CompletionStatusT.UNDEFINED,
-            metadata={
-                "name": "CompletionStatus",
-                "type": "Attribute",
-            },
-        )
-        project_tracing_level: ProjectTracingLevelT = field(
-            default=ProjectTracingLevelT.NONE,
-            metadata={
-                "name": "ProjectTracingLevel",
-                "type": "Attribute",
-            },
-        )
-        project_tracing_password: None | str = field(
-            default=None,
-            metadata={
-                "name": "ProjectTracingPassword",
-                "type": "Attribute",
-                "max_length": 20,
-            },
-        )
-        hide16_bit_groups_from_legacy_plugins: bool = field(
-            default=False,
-            metadata={
-                "name": "Hide16BitGroupsFromLegacyPlugins",
-                "type": "Attribute",
-            },
-        )
-        code_page: None | TextEncodingT = field(
-            default=None,
-            metadata={
-                "name": "CodePage",
-                "type": "Attribute",
-            },
-        )
-        bus_access_legacy_mode: bool = field(
-            default=False,
-            metadata={
-                "name": "BusAccessLegacyMode",
-                "type": "Attribute",
-            },
-        )
-        guid: str = field(
-            metadata={
-                "name": "Guid",
-                "type": "Attribute",
-            }
-        )
-        last_used_puid: int = field(
-            metadata={
-                "name": "LastUsedPuid",
-                "type": "Attribute",
-            }
-        )
-        security: SecurityModeT = field(
-            default=SecurityModeT.AUTO,
-            metadata={
-                "name": "Security",
-                "type": "Attribute",
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Tags:
-            tag: list[ProjectT.ProjectInformation.Tags.Tag] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Tag",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class Tag:
-                text: str = field(
-                    metadata={
-                        "name": "Text",
-                        "type": "Attribute",
-                        "max_length": 20,
-                    }
-                )
-                color: str = field(
-                    metadata={
-                        "name": "Color",
-                        "type": "Attribute",
-                        "length": 7,
-                        "pattern": r"#[0-9A-F]{6}",
-                    }
-                )
-
-        @dataclass(slots=True, kw_only=True)
-        class HistoryEntries:
-            history_entry: list[ProjectT.ProjectInformation.HistoryEntries.HistoryEntry] = field(
-                default_factory=list,
-                metadata={
-                    "name": "HistoryEntry",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class HistoryEntry:
-                date: XmlDateTime = field(
-                    metadata={
-                        "name": "Date",
-                        "type": "Attribute",
-                    }
-                )
-                user: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "User",
-                        "type": "Attribute",
-                        "max_length": 255,
-                    },
-                )
-                text: str = field(
-                    metadata={
-                        "name": "Text",
-                        "type": "Attribute",
-                    }
-                )
-                detail: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "Detail",
-                        "type": "Attribute",
-                    },
-                )
-
-        @dataclass(slots=True, kw_only=True)
-        class ToDoItems:
-            to_do_item: list[ToDoItemT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "ToDoItem",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
-
-        @dataclass(slots=True, kw_only=True)
-        class ProjectTraces:
-            project_trace: list[ProjectTraceT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "ProjectTrace",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
-
-        @dataclass(slots=True, kw_only=True)
-        class DeviceCertificates:
-            device_certificate: list[DeviceCertificateT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "DeviceCertificate",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class Installations:
-        installation: list[ProjectT.Installations.Installation] = field(
-            default_factory=list,
-            metadata={
-                "name": "Installation",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-                "max_occurs": 16,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Installation:
-            topology: TopologyT = field(
-                metadata={
-                    "name": "Topology",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                }
-            )
-            locations: LocationsT = field(
-                metadata={
-                    "name": "Locations",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                }
-            )
-            group_addresses: GroupAddressesT = field(
-                metadata={
-                    "name": "GroupAddresses",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                }
-            )
-            p2_plinks: None | P2PlinksT = field(
-                default=None,
-                metadata={
-                    "name": "P2PLinks",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            trades: None | TradesT = field(
-                default=None,
-                metadata={
-                    "name": "Trades",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            split_infos: None | SplitInfosT = field(
-                default=None,
-                metadata={
-                    "name": "SplitInfos",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            name: str = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 50,
-                }
-            )
-            installation_id: None | int = field(
-                default=None,
-                metadata={
-                    "name": "InstallationId",
-                    "type": "Attribute",
-                    "max_inclusive": 15,
-                },
-            )
-            bcukey: int = field(
-                default=4294967295,
-                metadata={
-                    "name": "BCUKey",
-                    "type": "Attribute",
-                },
-            )
-            iprouting_multicast_address: str = field(
-                default="224.0.23.12",
-                metadata={
-                    "name": "IPRoutingMulticastAddress",
-                    "type": "Attribute",
-                    "pattern": r"((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])",
-                },
-            )
-            multicast_ttl: int = field(
-                default=16,
-                metadata={
-                    "name": "MulticastTTL",
-                    "type": "Attribute",
-                },
-            )
-            iprouting_backbone_key: None | str = field(
-                default=None,
-                metadata={
-                    "name": "IPRoutingBackboneKey",
-                    "type": "Attribute",
-                    "max_length": 100,
-                },
-            )
-            iprouting_latency_tolerance: None | int = field(
-                default=None,
-                metadata={
-                    "name": "IPRoutingLatencyTolerance",
-                    "type": "Attribute",
-                },
-            )
-            ipsync_latency_fraction: float = field(
-                default=0.1,
-                metadata={
-                    "name": "IPSyncLatencyFraction",
-                    "type": "Attribute",
-                },
-            )
-            default_line: None | str = field(
-                default=None,
-                metadata={
-                    "name": "DefaultLine",
-                    "type": "Attribute",
-                },
-            )
-            completion_status: CompletionStatusT = field(
-                default=CompletionStatusT.UNDEFINED,
-                metadata={
-                    "name": "CompletionStatus",
-                    "type": "Attribute",
-                },
-            )
-            iprouting_backbone_security: SecurityModeT = field(
-                default=SecurityModeT.AUTO,
-                metadata={
-                    "name": "IPRoutingBackboneSecurity",
-                    "type": "Attribute",
-                },
-            )
-            split_type: None | InstallationSplitType = field(
-                default=None,
-                metadata={
-                    "name": "SplitType",
-                    "type": "Attribute",
-                },
-            )
-            context: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Context",
-                    "type": "Attribute",
-                },
-            )
-            ipv6_installation_id: None | int = field(
-                default=None,
-                metadata={
-                    "name": "Ipv6InstallationId",
-                    "type": "Attribute",
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class UserFiles:
-        user_file: list[UserFileT] = field(
-            default_factory=list,
-            metadata={
-                "name": "UserFile",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class AddinData:
-        addin_data: list[AddinDataT] = field(
-            default_factory=list,
-            metadata={
-                "name": "AddinData",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    number: int = field(
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+            "min_inclusive": 0,
+            "max_inclusive": 127,
+        }
+    )
+    medium_type_ref_id: str = field(
+        metadata={
+            "name": "MediumTypeRefId",
+            "type": "Attribute",
+        }
+    )
+    domain_address: None | int = field(
+        default=None,
+        metadata={
+            "name": "DomainAddress",
+            "type": "Attribute",
+        },
+    )
+    master_salt: None | str = field(
+        default=None,
+        metadata={
+            "name": "MasterSalt",
+            "type": "Attribute",
+        },
+    )
+    comment: None | str = field(
+        default=None,
+        metadata={
+            "name": "Comment",
+            "type": "Attribute",
+        },
+    )
+    completion_status: None | CompletionStatusT = field(
+        default=None,
+        metadata={
+            "name": "CompletionStatus",
+            "type": "Attribute",
+        },
+    )
+    description: None | str = field(
+        default=None,
+        metadata={
+            "name": "Description",
+            "type": "Attribute",
+        },
+    )
+    puid: int = field(
+        metadata={
+            "name": "Puid",
+            "type": "Attribute",
+        }
+    )
 
 
 @dataclass(slots=True, kw_only=True)
-class ChannelChooseT:
-    """
-    :ivar when: registration-relevant list
-    :ivar param_ref_id: registration-relevant
-    :ivar internal_description:
-    """
-
+class TopologyTUnassignedDevices:
     class Meta:
-        name = "ChannelChoose_t"
+        global_type = False
 
-    when: list[ChannelChooseT.When] = field(
+    device_instance: list[DeviceInstanceT] = field(
         default_factory=list,
         metadata={
+            "name": "DeviceInstance",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
             "min_occurs": 1,
         },
     )
-    param_ref_id: str = field(
-        metadata={
-            "name": "ParamRefId",
-            "type": "Attribute",
-        }
-    )
-    internal_description: None | str = field(
-        default=None,
-        metadata={
-            "name": "InternalDescription",
-            "type": "Attribute",
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class When(WhenT):
-        parameter_block: list[ComObjectParameterBlockT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterBlock",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        com_object_ref_ref: list[ComObjectRefRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ComObjectRefRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        binary_data_ref: list[BinaryDataRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "BinaryDataRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        module: list[ModuleT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Module",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        repeat: list[RepeatT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Repeat",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        choose: list[ChannelChooseT] = field(
-            default_factory=list,
-            metadata={
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        rename: list[RenameT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Rename",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
 
 
 @dataclass(slots=True, kw_only=True)
-class LoadProcedureT:
+class ChannelChooseTWhen(WhenT):
     class Meta:
-        name = "LoadProcedure_t"
+        global_type = False
 
-    ld_ctrl_unload: list[LdCtrlUnloadT] = field(
+    choice: list[
+        ComObjectParameterBlockT
+        | ComObjectRefRefT
+        | BinaryDataRefT
+        | ModuleT
+        | RepeatT
+        | ChannelChooseT
+        | RenameT
+    ] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlUnload",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "ParameterBlock",
+                    "type": ComObjectParameterBlockT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "ComObjectRefRef",
+                    "type": ComObjectRefRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "BinaryDataRef",
+                    "type": BinaryDataRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Module",
+                    "type": ModuleT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Repeat",
+                    "type": RepeatT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "choose",
+                    "type": ChannelChooseT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Rename",
+                    "type": RenameT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
         },
     )
-    ld_ctrl_load: list[LdCtrlLoadT] = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class ChannelIndependentBlockT:
+    class Meta:
+        name = "ChannelIndependentBlock_t"
+
+    choice: list[
+        ComObjectParameterBlockT
+        | ChannelChooseT
+        | BinaryDataRefT
+        | ComObjectRefRefT
+        | ModuleT
+        | RepeatT
+    ] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlLoad",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "ParameterBlock",
+                    "type": ComObjectParameterBlockT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "choose",
+                    "type": ChannelChooseT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "BinaryDataRef",
+                    "type": BinaryDataRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "ComObjectRefRef",
+                    "type": ComObjectRefRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Module",
+                    "type": ModuleT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Repeat",
+                    "type": RepeatT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
         },
     )
-    ld_ctrl_max_length: list[LdCtrlMaxLengthT] = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class ComObjectParameterChooseTWhen(WhenT):
+    class Meta:
+        global_type = False
+
+    choice: list[
+        ComObjectParameterBlockT
+        | ParameterSeparatorT
+        | ParameterRefRefT
+        | ButtonT
+        | ComObjectParameterChooseT
+        | BinaryDataRefT
+        | ComObjectRefRefT
+        | ModuleT
+        | RepeatT
+        | AssignT
+        | RenameT
+    ] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlMaxLength",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "ParameterBlock",
+                    "type": ComObjectParameterBlockT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "ParameterSeparator",
+                    "type": ParameterSeparatorT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "ParameterRefRef",
+                    "type": ParameterRefRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Button",
+                    "type": ButtonT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "choose",
+                    "type": ComObjectParameterChooseT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "BinaryDataRef",
+                    "type": BinaryDataRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "ComObjectRefRef",
+                    "type": ComObjectRefRefT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Module",
+                    "type": ModuleT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Repeat",
+                    "type": RepeatT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Assign",
+                    "type": AssignT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Rename",
+                    "type": RenameT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
         },
     )
-    ld_ctrl_clear_cached_object_types: list[LdCtrlClearCachedObjectTypesT] = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTProceduresProcedure(LoadProcedureT):
+    class Meta:
+        global_type = False
+
+    procedure_type: ProcedureTypeT = field(
+        metadata={
+            "name": "ProcedureType",
+            "type": "Attribute",
+        }
+    )
+    procedure_sub_type: LdCtrlProcTypeT | HawkConfigurationDataTProceduresProcedureValue = field(
+        metadata={
+            "name": "ProcedureSubType",
+            "type": "Attribute",
+        }
+    )
+    access: list[ResourceAccessT] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlClearCachedObjectTypes",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "Access",
+            "type": "Attribute",
+            "tokens": True,
         },
     )
-    ld_ctrl_load_completed: list[LdCtrlLoadCompletedT] = field(
-        default_factory=list,
+
+
+@dataclass(slots=True, kw_only=True)
+class LoadProceduresTLoadProcedure(LoadProcedureT):
+    """
+    :ivar merge_id: registration-relevant
+    """
+
+    class Meta:
+        global_type = False
+
+    merge_id: None | int = field(
+        default=None,
         metadata={
-            "name": "LdCtrlLoadCompleted",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "MergeId",
+            "type": "Attribute",
         },
     )
-    ld_ctrl_abs_segment: list[LdCtrlAbsSegmentT] = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class ManufacturerDataTManufacturerHardware:
+    class Meta:
+        global_type = False
+
+    hardware: list[HardwareT] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlAbsSegment",
+            "name": "Hardware",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "min_occurs": 1,
         },
     )
-    ld_ctrl_rel_segment: list[LdCtrlRelSegmentT] = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTDatapointTypes:
+    class Meta:
+        global_type = False
+
+    datapoint_type: list[DatapointTypeT] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlRelSegment",
+            "name": "DatapointType",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "min_occurs": 1,
         },
     )
-    ld_ctrl_task_segment: list[LdCtrlTaskSegmentT] = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTManufacturersManufacturerDatapointTypes:
+    class Meta:
+        global_type = False
+
+    datapoint_type: list[DatapointTypeT] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlTaskSegment",
+            "name": "DatapointType",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "min_occurs": 1,
         },
     )
-    ld_ctrl_task_ptr: list[LdCtrlTaskPtrT] = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefLdCtrlBaseChooseTWhen(WhenT):
+    class Meta:
+        global_type = False
+
+    choice: list[
+        ModuleDefLdCtrlWritePropT
+        | ModuleDefLdCtrlComparePropT
+        | ModuleDefLdCtrlInvokeFunctionPropT
+        | ModuleDefLdCtrlReadFunctionPropT
+        | LdCtrlDelayT
+        | LdCtrlProgressTextT
+        | LdCtrlDeclarePropDescT
+        | LdCtrlMergeT
+        | LdCtrlBaseChooseT
+    ] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlTaskPtr",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "LdCtrlWriteProp",
+                    "type": ModuleDefLdCtrlWritePropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlCompareProp",
+                    "type": ModuleDefLdCtrlComparePropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlInvokeFunctionProp",
+                    "type": ModuleDefLdCtrlInvokeFunctionPropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlReadFunctionProp",
+                    "type": ModuleDefLdCtrlReadFunctionPropT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlDelay",
+                    "type": LdCtrlDelayT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlProgressText",
+                    "type": LdCtrlProgressTextT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlDeclarePropDesc",
+                    "type": LdCtrlDeclarePropDescT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "LdCtrlMerge",
+                    "type": LdCtrlMergeT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "choose",
+                    "type": LdCtrlBaseChooseT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
         },
     )
-    ld_ctrl_task_ctrl1: list[LdCtrlTaskCtrl1T] = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class TopologyTAreaLine:
+    class Meta:
+        global_type = False
+
+    segment: list[TopologyTAreaLineSegment] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlTaskCtrl1",
+            "name": "Segment",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "min_occurs": 1,
+            "max_occurs": 128,
         },
     )
-    ld_ctrl_task_ctrl2: list[LdCtrlTaskCtrl2T] = field(
-        default_factory=list,
+    id: str = field(
         metadata={
-            "name": "LdCtrlTaskCtrl2",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
         },
     )
-    ld_ctrl_write_prop: list[LdCtrlWritePropT] = field(
-        default_factory=list,
+    address: int = field(
         metadata={
-            "name": "LdCtrlWriteProp",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "Address",
+            "type": "Attribute",
+            "min_inclusive": 0,
+            "max_inclusive": 15,
+        }
+    )
+    comment: None | str = field(
+        default=None,
+        metadata={
+            "name": "Comment",
+            "type": "Attribute",
         },
     )
-    ld_ctrl_compare_prop: list[LdCtrlComparePropT] = field(
-        default_factory=list,
+    completion_status: None | CompletionStatusT = field(
+        default=None,
         metadata={
-            "name": "LdCtrlCompareProp",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "CompletionStatus",
+            "type": "Attribute",
         },
     )
-    ld_ctrl_load_image_prop: list[LdCtrlLoadImagePropT] = field(
-        default_factory=list,
+    description: None | str = field(
+        default=None,
         metadata={
-            "name": "LdCtrlLoadImageProp",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "Description",
+            "type": "Attribute",
         },
     )
-    ld_ctrl_invoke_function_prop: list[LdCtrlInvokeFunctionPropT] = field(
+    puid: int = field(
+        metadata={
+            "name": "Puid",
+            "type": "Attribute",
+        }
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramDynamicT:
+    class Meta:
+        name = "ApplicationProgramDynamic_t"
+
+    choice: list[
+        ChannelIndependentBlockT
+        | ApplicationProgramChannelT
+        | DependentChannelChooseT
+        | ModuleT
+        | RepeatT
+    ] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlInvokeFunctionProp",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "ChannelIndependentBlock",
+                    "type": ChannelIndependentBlockT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Channel",
+                    "type": ApplicationProgramChannelT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "choose",
+                    "type": DependentChannelChooseT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Module",
+                    "type": ModuleT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Repeat",
+                    "type": RepeatT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
         },
     )
-    ld_ctrl_read_function_prop: list[LdCtrlReadFunctionPropT] = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataTProcedures:
+    class Meta:
+        global_type = False
+
+    procedure: list[HawkConfigurationDataTProceduresProcedure] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlReadFunctionProp",
+            "name": "Procedure",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "min_occurs": 1,
         },
     )
-    ld_ctrl_write_mem: list[LdCtrlWriteMemT] = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class LoadProceduresT:
+    """
+    :ivar load_procedure: registration-relevant set
+    """
+
+    class Meta:
+        name = "LoadProcedures_t"
+
+    load_procedure: list[LoadProceduresTLoadProcedure] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlWriteMem",
+            "name": "LoadProcedure",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "min_occurs": 1,
         },
     )
-    ld_ctrl_compare_mem: list[LdCtrlCompareMemT] = field(
-        default_factory=list,
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTManufacturersManufacturer:
+    class Meta:
+        global_type = False
+
+    order_number_formatting_script: None | str = field(
+        default=None,
         metadata={
-            "name": "LdCtrlCompareMem",
+            "name": "OrderNumberFormattingScript",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
         },
     )
-    ld_ctrl_load_image_mem: list[LdCtrlLoadImageMemT] = field(
-        default_factory=list,
+    public_keys: None | MasterDataTManufacturersManufacturerPublicKeys = field(
+        default=None,
         metadata={
-            "name": "LdCtrlLoadImageMem",
+            "name": "PublicKeys",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
         },
     )
-    ld_ctrl_write_rel_mem: list[LdCtrlWriteRelMemT] = field(
-        default_factory=list,
+    datapoint_types: None | MasterDataTManufacturersManufacturerDatapointTypes = field(
+        default=None,
         metadata={
-            "name": "LdCtrlWriteRelMem",
+            "name": "DatapointTypes",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
         },
     )
-    ld_ctrl_compare_rel_mem: list[LdCtrlCompareRelMemT] = field(
-        default_factory=list,
+    datapoint_roles: None | MasterDataTManufacturersManufacturerDatapointRoles = field(
+        default=None,
         metadata={
-            "name": "LdCtrlCompareRelMem",
+            "name": "DatapointRoles",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
         },
     )
-    ld_ctrl_load_image_rel_mem: list[LdCtrlLoadImageRelMemT] = field(
-        default_factory=list,
+    function_types: None | MasterDataTManufacturersManufacturerFunctionTypes = field(
+        default=None,
         metadata={
-            "name": "LdCtrlLoadImageRelMem",
+            "name": "FunctionTypes",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
         },
     )
-    ld_ctrl_connect: list[LdCtrlConnectT] = field(
-        default_factory=list,
+    space_usages: None | MasterDataTManufacturersManufacturerSpaceUsages = field(
+        default=None,
         metadata={
-            "name": "LdCtrlConnect",
+            "name": "SpaceUsages",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
         },
     )
-    ld_ctrl_disconnect: list[LdCtrlDisconnectT] = field(
-        default_factory=list,
+    id: str = field(
         metadata={
-            "name": "LdCtrlDisconnect",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        }
+    )
+    knx_manufacturer_id: int = field(
+        metadata={
+            "name": "KnxManufacturerId",
+            "type": "Attribute",
+        }
+    )
+    default_language: None | str = field(
+        default=None,
+        metadata={
+            "name": "DefaultLanguage",
+            "type": "Attribute",
         },
     )
-    ld_ctrl_restart: list[LdCtrlRestartT] = field(
-        default_factory=list,
+    compatibility_group: None | int = field(
+        default=None,
         metadata={
-            "name": "LdCtrlRestart",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "CompatibilityGroup",
+            "type": "Attribute",
         },
     )
-    ld_ctrl_master_reset: list[LdCtrlMasterResetT] = field(
-        default_factory=list,
+    import_restriction: MasterDataTManufacturersManufacturerImportRestriction = field(
+        default=MasterDataTManufacturersManufacturerImportRestriction.OWN,
         metadata={
-            "name": "LdCtrlMasterReset",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "ImportRestriction",
+            "type": "Attribute",
         },
     )
-    ld_ctrl_delay: list[LdCtrlDelayT] = field(
+    import_group: list[str] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlDelay",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "ImportGroup",
+            "type": "Attribute",
+            "tokens": True,
         },
     )
-    ld_ctrl_set_control_variable: list[LdCtrlSetControlVariableT] = field(
-        default_factory=list,
+    order_number_wildcard_character: None | str = field(
+        default=None,
         metadata={
-            "name": "LdCtrlSetControlVariable",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "OrderNumberWildcardCharacter",
+            "type": "Attribute",
+            "length": 1,
         },
     )
-    ld_ctrl_map_error: list[LdCtrlMapErrorT] = field(
-        default_factory=list,
+    member_status: MemberStatusT = field(
+        default=MemberStatusT.ACTIVE,
         metadata={
-            "name": "LdCtrlMapError",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "name": "MemberStatus",
+            "type": "Attribute",
         },
     )
-    ld_ctrl_progress_text: list[LdCtrlProgressTextT] = field(
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefDynamicT:
+    class Meta:
+        name = "ModuleDefDynamic_t"
+
+    choice: list[
+        ChannelIndependentBlockT
+        | ApplicationProgramChannelT
+        | DependentChannelChooseT
+        | ModuleT
+        | RepeatT
+        | ComObjectParameterBlockT
+    ] = field(
         default_factory=list,
         metadata={
-            "name": "LdCtrlProgressText",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    ld_ctrl_declare_prop_desc: list[LdCtrlDeclarePropDescT] = field(
-        default_factory=list,
-        metadata={
-            "name": "LdCtrlDeclarePropDesc",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    ld_ctrl_clear_lcfilter_table: list[LdCtrlClearLcfilterTableT] = field(
-        default_factory=list,
-        metadata={
-            "name": "LdCtrlClearLCFilterTable",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    ld_ctrl_merge: list[LdCtrlMergeT] = field(
-        default_factory=list,
-        metadata={
-            "name": "LdCtrlMerge",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    choose: list[LdCtrlBaseChooseT] = field(
-        default_factory=list,
-        metadata={
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "ChannelIndependentBlock",
+                    "type": ChannelIndependentBlockT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Channel",
+                    "type": ApplicationProgramChannelT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "choose",
+                    "type": DependentChannelChooseT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Module",
+                    "type": ModuleT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "Repeat",
+                    "type": RepeatT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+                {
+                    "name": "ParameterBlock",
+                    "type": ComObjectParameterBlockT,
+                    "namespace": "http://knx.org/xml/project/23",
+                },
+            ),
         },
     )
 
@@ -10696,7 +13672,7 @@ class ModuleDefLdCtrlBaseChooseT:
     class Meta:
         name = "ModuleDefLdCtrlBaseChoose_t"
 
-    when: list[ModuleDefLdCtrlBaseChooseT.When] = field(
+    when: list[ModuleDefLdCtrlBaseChooseTWhen] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -10718,672 +13694,69 @@ class ModuleDefLdCtrlBaseChooseT:
         },
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class When(WhenT):
-        ld_ctrl_write_prop: list[ModuleDefLdCtrlWritePropT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlWriteProp",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_compare_prop: list[ModuleDefLdCtrlComparePropT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlCompareProp",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_invoke_function_prop: list[ModuleDefLdCtrlInvokeFunctionPropT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlInvokeFunctionProp",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_read_function_prop: list[ModuleDefLdCtrlReadFunctionPropT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlReadFunctionProp",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_delay: list[LdCtrlDelayT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlDelay",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_progress_text: list[LdCtrlProgressTextT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlProgressText",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_declare_prop_desc: list[LdCtrlDeclarePropDescT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlDeclarePropDesc",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        ld_ctrl_merge: list[LdCtrlMergeT] = field(
-            default_factory=list,
-            metadata={
-                "name": "LdCtrlMerge",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-        choose: list[LdCtrlBaseChooseT] = field(
-            default_factory=list,
-            metadata={
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "sequence": 1,
-            },
-        )
-
 
 @dataclass(slots=True, kw_only=True)
-class ChannelIndependentBlockT:
+class TopologyTArea:
     class Meta:
-        name = "ChannelIndependentBlock_t"
+        global_type = False
 
-    parameter_block: list[ComObjectParameterBlockT] = field(
+    line: list[TopologyTAreaLine] = field(
         default_factory=list,
         metadata={
-            "name": "ParameterBlock",
+            "name": "Line",
             "type": "Element",
             "namespace": "http://knx.org/xml/project/23",
+            "max_occurs": 16,
         },
     )
-    choose: list[ChannelChooseT] = field(
-        default_factory=list,
+    id: str = field(
         metadata={
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    binary_data_ref: list[BinaryDataRefT] = field(
-        default_factory=list,
-        metadata={
-            "name": "BinaryDataRef",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    com_object_ref_ref: list[ComObjectRefRefT] = field(
-        default_factory=list,
-        metadata={
-            "name": "ComObjectRefRef",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    module: list[ModuleT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Module",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    repeat: list[RepeatT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Repeat",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-
-
-@dataclass(slots=True, kw_only=True)
-class HawkConfigurationDataT:
-    class Meta:
-        name = "HawkConfigurationData_t"
-
-    features: None | HawkConfigurationDataT.Features = field(
-        default=None,
-        metadata={
-            "name": "Features",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    resources: None | HawkConfigurationDataT.Resources = field(
-        default=None,
-        metadata={
-            "name": "Resources",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    procedures: None | HawkConfigurationDataT.Procedures = field(
-        default=None,
-        metadata={
-            "name": "Procedures",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    memory_segments: None | HawkConfigurationDataT.MemorySegments = field(
-        default=None,
-        metadata={
-            "name": "MemorySegments",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    interface_objects: None | HawkConfigurationDataT.InterfaceObjects = field(
-        default=None,
-        metadata={
-            "name": "InterfaceObjects",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    ets3_system_plugin: None | str = field(
-        default=None,
-        metadata={
-            "name": "Ets3SystemPlugin",
-            "type": "Attribute",
-            "pattern": r"\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}",
-        },
-    )
-    legacy_version: None | int = field(
-        default=None,
-        metadata={
-            "name": "LegacyVersion",
-            "type": "Attribute",
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class Features:
-        feature: list[HawkConfigurationDataT.Features.Feature] = field(
-            default_factory=list,
-            metadata={
-                "name": "Feature",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Feature:
-            name: FeatureName = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                }
-            )
-            value: int = field(
-                metadata={
-                    "name": "Value",
-                    "type": "Attribute",
-                }
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class Resources:
-        resource: list[HawkConfigurationDataT.Resources.Resource] = field(
-            default_factory=list,
-            metadata={
-                "name": "Resource",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Resource:
-            location: None | ResourceLocationT = field(
-                default=None,
-                metadata={
-                    "name": "Location",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            img_location: None | ResourceLocationT = field(
-                default=None,
-                metadata={
-                    "name": "ImgLocation",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            resource_type: HawkConfigurationDataT.Resources.Resource.ResourceType = field(
-                metadata={
-                    "name": "ResourceType",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                }
-            )
-            access_rights: HawkConfigurationDataT.Resources.Resource.AccessRights = field(
-                metadata={
-                    "name": "AccessRights",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                }
-            )
-            name: ResourceNameT = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                }
-            )
-            access: list[ResourceAccessT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Access",
-                    "type": "Attribute",
-                    "tokens": True,
-                },
-            )
-            mgmt_style: list[ResourceMgmtStyleT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "MgmtStyle",
-                    "type": "Attribute",
-                    "tokens": True,
-                },
-            )
-            optional: bool = field(
-                default=False,
-                metadata={
-                    "name": "Optional",
-                    "type": "Attribute",
-                },
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class ResourceType:
-                length: int = field(
-                    metadata={
-                        "name": "Length",
-                        "type": "Attribute",
-                    }
-                )
-                flavour: None | ResourceTypeFlavour = field(
-                    default=None,
-                    metadata={
-                        "name": "Flavour",
-                        "type": "Attribute",
-                    },
-                )
-
-            @dataclass(slots=True, kw_only=True)
-            class AccessRights:
-                read: ResourceAccessRightsT = field(
-                    metadata={
-                        "name": "Read",
-                        "type": "Attribute",
-                    }
-                )
-                write: ResourceAccessRightsT = field(
-                    metadata={
-                        "name": "Write",
-                        "type": "Attribute",
-                    }
-                )
-
-    @dataclass(slots=True, kw_only=True)
-    class Procedures:
-        procedure: list[HawkConfigurationDataT.Procedures.Procedure] = field(
-            default_factory=list,
-            metadata={
-                "name": "Procedure",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Procedure(LoadProcedureT):
-            procedure_type: ProcedureTypeT = field(
-                metadata={
-                    "name": "ProcedureType",
-                    "type": "Attribute",
-                }
-            )
-            procedure_sub_type: LdCtrlProcTypeT | ProcedureValue = field(
-                metadata={
-                    "name": "ProcedureSubType",
-                    "type": "Attribute",
-                }
-            )
-            access: list[ResourceAccessT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Access",
-                    "type": "Attribute",
-                    "tokens": True,
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class MemorySegments:
-        memory_segment: list[HawkConfigurationDataT.MemorySegments.MemorySegment] = field(
-            default_factory=list,
-            metadata={
-                "name": "MemorySegment",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class MemorySegment:
-            location: ResourceLocationT = field(
-                metadata={
-                    "name": "Location",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                }
-            )
-            access_rights: HawkConfigurationDataT.MemorySegments.MemorySegment.AccessRights = field(
-                metadata={
-                    "name": "AccessRights",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                }
-            )
-            length: int = field(
-                metadata={
-                    "name": "Length",
-                    "type": "Attribute",
-                }
-            )
-            optional: bool = field(
-                default=False,
-                metadata={
-                    "name": "Optional",
-                    "type": "Attribute",
-                },
-            )
-            memory_type: None | MemoryTypeT = field(
-                default=None,
-                metadata={
-                    "name": "MemoryType",
-                    "type": "Attribute",
-                },
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class AccessRights:
-                read: ResourceAccessRightsT = field(
-                    metadata={
-                        "name": "Read",
-                        "type": "Attribute",
-                    }
-                )
-                write: ResourceAccessRightsT = field(
-                    metadata={
-                        "name": "Write",
-                        "type": "Attribute",
-                    }
-                )
-
-    @dataclass(slots=True, kw_only=True)
-    class InterfaceObjects:
-        interface_object: list[HawkConfigurationDataT.InterfaceObjects.InterfaceObject] = field(
-            default_factory=list,
-            metadata={
-                "name": "InterfaceObject",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class InterfaceObject:
-            property: list[HawkConfigurationDataT.InterfaceObjects.InterfaceObject.Property] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Property",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            index: None | int = field(
-                default=None,
-                metadata={
-                    "name": "Index",
-                    "type": "Attribute",
-                },
-            )
-            object_type: int = field(
-                metadata={
-                    "name": "ObjectType",
-                    "type": "Attribute",
-                }
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class Property:
-                property_id: int = field(
-                    metadata={
-                        "name": "PropertyID",
-                        "type": "Attribute",
-                    }
-                )
-                property_data_type: None | PropTypeT = field(
-                    default=None,
-                    metadata={
-                        "name": "PropertyDataType",
-                        "type": "Attribute",
-                    },
-                )
-
-
-@dataclass(slots=True, kw_only=True)
-class LoadProceduresT:
-    """
-    :ivar load_procedure: registration-relevant set
-    """
-
-    class Meta:
-        name = "LoadProcedures_t"
-
-    load_procedure: list[LoadProceduresT.LoadProcedure] = field(
-        default_factory=list,
-        metadata={
-            "name": "LoadProcedure",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "min_occurs": 1,
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class LoadProcedure(LoadProcedureT):
-        """
-        :ivar merge_id: registration-relevant
-        """
-
-        merge_id: None | int = field(
-            default=None,
-            metadata={
-                "name": "MergeId",
-                "type": "Attribute",
-            },
-        )
-
-
-@dataclass(slots=True, kw_only=True)
-class ModuleDefLoadProcedureT:
-    """
-    :ivar ld_ctrl_write_prop:
-    :ivar ld_ctrl_compare_prop:
-    :ivar ld_ctrl_invoke_function_prop:
-    :ivar ld_ctrl_read_function_prop:
-    :ivar ld_ctrl_delay:
-    :ivar ld_ctrl_progress_text:
-    :ivar ld_ctrl_declare_prop_desc:
-    :ivar ld_ctrl_merge:
-    :ivar choose:
-    :ivar merge_id: registration-relevant
-    """
-
-    class Meta:
-        name = "ModuleDefLoadProcedure_t"
-
-    ld_ctrl_write_prop: list[ModuleDefLdCtrlWritePropT] = field(
-        default_factory=list,
-        metadata={
-            "name": "LdCtrlWriteProp",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    ld_ctrl_compare_prop: list[ModuleDefLdCtrlComparePropT] = field(
-        default_factory=list,
-        metadata={
-            "name": "LdCtrlCompareProp",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    ld_ctrl_invoke_function_prop: list[ModuleDefLdCtrlInvokeFunctionPropT] = field(
-        default_factory=list,
-        metadata={
-            "name": "LdCtrlInvokeFunctionProp",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    ld_ctrl_read_function_prop: list[ModuleDefLdCtrlReadFunctionPropT] = field(
-        default_factory=list,
-        metadata={
-            "name": "LdCtrlReadFunctionProp",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    ld_ctrl_delay: list[LdCtrlDelayT] = field(
-        default_factory=list,
-        metadata={
-            "name": "LdCtrlDelay",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    ld_ctrl_progress_text: list[LdCtrlProgressTextT] = field(
-        default_factory=list,
-        metadata={
-            "name": "LdCtrlProgressText",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    ld_ctrl_declare_prop_desc: list[LdCtrlDeclarePropDescT] = field(
-        default_factory=list,
-        metadata={
-            "name": "LdCtrlDeclarePropDesc",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    ld_ctrl_merge: list[LdCtrlMergeT] = field(
-        default_factory=list,
-        metadata={
-            "name": "LdCtrlMerge",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    choose: list[ModuleDefLdCtrlBaseChooseT] = field(
-        default_factory=list,
-        metadata={
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "sequence": 1,
-        },
-    )
-    merge_id: int = field(
-        metadata={
-            "name": "MergeId",
+            "name": "Id",
             "type": "Attribute",
         }
     )
-
-
-@dataclass(slots=True, kw_only=True)
-class ApplicationProgramDynamicT:
-    class Meta:
-        name = "ApplicationProgramDynamic_t"
-
-    channel_independent_block: list[ChannelIndependentBlockT] = field(
-        default_factory=list,
+    name: None | str = field(
+        default=None,
         metadata={
-            "name": "ChannelIndependentBlock",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
         },
     )
-    channel: list[ApplicationProgramChannelT] = field(
-        default_factory=list,
+    address: int = field(
         metadata={
-            "name": "Channel",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
+            "name": "Address",
+            "type": "Attribute",
+            "min_inclusive": 0,
+            "max_inclusive": 15,
+        }
+    )
+    comment: None | str = field(
+        default=None,
+        metadata={
+            "name": "Comment",
+            "type": "Attribute",
         },
     )
-    choose: list[DependentChannelChooseT] = field(
-        default_factory=list,
+    completion_status: None | CompletionStatusT = field(
+        default=None,
         metadata={
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
+            "name": "CompletionStatus",
+            "type": "Attribute",
         },
     )
-    module: list[ModuleT] = field(
-        default_factory=list,
+    description: None | str = field(
+        default=None,
         metadata={
-            "name": "Module",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
+            "name": "Description",
+            "type": "Attribute",
         },
     )
-    repeat: list[RepeatT] = field(
-        default_factory=list,
+    puid: int = field(
         metadata={
-            "name": "Repeat",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
+            "name": "Puid",
+            "type": "Attribute",
+        }
     )
 
 
@@ -11416,7 +13789,7 @@ class ApplicationProgramStaticT:
     class Meta:
         name = "ApplicationProgramStatic_t"
 
-    code: None | ApplicationProgramStaticT.Code = field(
+    code: None | ApplicationProgramStaticTCode = field(
         default=None,
         metadata={
             "name": "Code",
@@ -11424,7 +13797,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    parameter_types: None | ApplicationProgramStaticT.ParameterTypes = field(
+    parameter_types: None | ApplicationProgramStaticTParameterTypes = field(
         default=None,
         metadata={
             "name": "ParameterTypes",
@@ -11432,7 +13805,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    parameters: None | ApplicationProgramStaticT.Parameters = field(
+    parameters: None | ApplicationProgramStaticTParameters = field(
         default=None,
         metadata={
             "name": "Parameters",
@@ -11440,7 +13813,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    parameter_refs: None | ApplicationProgramStaticT.ParameterRefs = field(
+    parameter_refs: None | ApplicationProgramStaticTParameterRefs = field(
         default=None,
         metadata={
             "name": "ParameterRefs",
@@ -11448,7 +13821,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    parameter_calculations: None | ApplicationProgramStaticT.ParameterCalculations = field(
+    parameter_calculations: None | ApplicationProgramStaticTParameterCalculations = field(
         default=None,
         metadata={
             "name": "ParameterCalculations",
@@ -11456,7 +13829,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    parameter_validations: None | ApplicationProgramStaticT.ParameterValidations = field(
+    parameter_validations: None | ApplicationProgramStaticTParameterValidations = field(
         default=None,
         metadata={
             "name": "ParameterValidations",
@@ -11464,7 +13837,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    com_object_table: None | ApplicationProgramStaticT.ComObjectTable = field(
+    com_object_table: None | ApplicationProgramStaticTComObjectTable = field(
         default=None,
         metadata={
             "name": "ComObjectTable",
@@ -11472,7 +13845,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    com_object_refs: None | ApplicationProgramStaticT.ComObjectRefs = field(
+    com_object_refs: None | ApplicationProgramStaticTComObjectRefs = field(
         default=None,
         metadata={
             "name": "ComObjectRefs",
@@ -11480,7 +13853,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    address_table: None | ApplicationProgramStaticT.AddressTable = field(
+    address_table: None | ApplicationProgramStaticTAddressTable = field(
         default=None,
         metadata={
             "name": "AddressTable",
@@ -11488,7 +13861,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    association_table: None | ApplicationProgramStaticT.AssociationTable = field(
+    association_table: None | ApplicationProgramStaticTAssociationTable = field(
         default=None,
         metadata={
             "name": "AssociationTable",
@@ -11496,7 +13869,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    fixup_list: None | ApplicationProgramStaticT.FixupList = field(
+    fixup_list: None | ApplicationProgramStaticTFixupList = field(
         default=None,
         metadata={
             "name": "FixupList",
@@ -11512,7 +13885,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    extension: None | ApplicationProgramStaticT.Extension = field(
+    extension: None | ApplicationProgramStaticTExtension = field(
         default=None,
         metadata={
             "name": "Extension",
@@ -11520,7 +13893,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    binary_data: None | ApplicationProgramStaticT.BinaryData = field(
+    binary_data: None | ApplicationProgramStaticTBinaryData = field(
         default=None,
         metadata={
             "name": "BinaryData",
@@ -11528,7 +13901,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    device_compare: None | ApplicationProgramStaticT.DeviceCompare = field(
+    device_compare: None | ApplicationProgramStaticTDeviceCompare = field(
         default=None,
         metadata={
             "name": "DeviceCompare",
@@ -11536,7 +13909,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    messages: None | ApplicationProgramStaticT.Messages = field(
+    messages: None | ApplicationProgramStaticTMessages = field(
         default=None,
         metadata={
             "name": "Messages",
@@ -11544,7 +13917,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    script: None | str = field(
+    script: None | ApplicationProgramStaticTScript = field(
         default=None,
         metadata={
             "name": "Script",
@@ -11552,7 +13925,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    security_roles: None | ApplicationProgramStaticT.SecurityRoles = field(
+    security_roles: None | ApplicationProgramStaticTSecurityRoles = field(
         default=None,
         metadata={
             "name": "SecurityRoles",
@@ -11560,7 +13933,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    bus_interfaces: None | ApplicationProgramStaticT.BusInterfaces = field(
+    bus_interfaces: None | ApplicationProgramStaticTBusInterfaces = field(
         default=None,
         metadata={
             "name": "BusInterfaces",
@@ -11568,7 +13941,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    allocators: None | ApplicationProgramStaticT.Allocators = field(
+    allocators: None | ApplicationProgramStaticTAllocators = field(
         default=None,
         metadata={
             "name": "Allocators",
@@ -11576,7 +13949,7 @@ class ApplicationProgramStaticT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    options: None | ApplicationProgramStaticT.Options = field(
+    options: None | ApplicationProgramStaticTOptions = field(
         default=None,
         metadata={
             "name": "Options",
@@ -11585,1010 +13958,188 @@ class ApplicationProgramStaticT:
         },
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class Code:
-        """
-        :ivar absolute_segment: registration-relevant set
-        :ivar relative_segment: registration-relevant set
-        """
 
-        absolute_segment: list[ApplicationProgramStaticT.Code.AbsoluteSegment] = field(
-            default_factory=list,
-            metadata={
-                "name": "AbsoluteSegment",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        relative_segment: list[ApplicationProgramStaticT.Code.RelativeSegment] = field(
-            default_factory=list,
-            metadata={
-                "name": "RelativeSegment",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
+@dataclass(slots=True, kw_only=True)
+class HawkConfigurationDataT:
+    class Meta:
+        name = "HawkConfigurationData_t"
 
-        @dataclass(slots=True, kw_only=True)
-        class AbsoluteSegment(SegmentBaseT):
-            """
-            :ivar memory_type:
-            :ivar address: registration-relevant
-            :ivar user_memory: registration-relevant
-            """
+    features: None | HawkConfigurationDataTFeatures = field(
+        default=None,
+        metadata={
+            "name": "Features",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    resources: None | HawkConfigurationDataTResources = field(
+        default=None,
+        metadata={
+            "name": "Resources",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    procedures: None | HawkConfigurationDataTProcedures = field(
+        default=None,
+        metadata={
+            "name": "Procedures",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    memory_segments: None | HawkConfigurationDataTMemorySegments = field(
+        default=None,
+        metadata={
+            "name": "MemorySegments",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    interface_objects: None | HawkConfigurationDataTInterfaceObjects = field(
+        default=None,
+        metadata={
+            "name": "InterfaceObjects",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    ets3_system_plugin: None | str = field(
+        default=None,
+        metadata={
+            "name": "Ets3SystemPlugin",
+            "type": "Attribute",
+            "pattern": r"\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}",
+        },
+    )
+    legacy_version: None | int = field(
+        default=None,
+        metadata={
+            "name": "LegacyVersion",
+            "type": "Attribute",
+        },
+    )
 
-            memory_type: None | MemoryTypeT = field(
-                default=None,
-                metadata={
-                    "name": "MemoryType",
-                    "type": "Attribute",
-                },
-            )
-            address: int = field(
-                metadata={
-                    "name": "Address",
-                    "type": "Attribute",
-                    "max_inclusive": 1048575,
-                }
-            )
-            user_memory: bool = field(
-                default=False,
-                metadata={
-                    "name": "UserMemory",
-                    "type": "Attribute",
-                },
-            )
 
-        @dataclass(slots=True, kw_only=True)
-        class RelativeSegment(SegmentBaseT):
-            """
-            :ivar load_state_machine: registration-relevant
-            :ivar offset: registration-relevant
-            """
+@dataclass(slots=True, kw_only=True)
+class MasterDataTManufacturers:
+    class Meta:
+        global_type = False
 
-            load_state_machine: int = field(
-                metadata={
-                    "name": "LoadStateMachine",
-                    "type": "Attribute",
-                }
-            )
-            offset: int = field(
-                metadata={
-                    "name": "Offset",
-                    "type": "Attribute",
-                    "max_inclusive": 1048575,
-                }
-            )
+    manufacturer: list[MasterDataTManufacturersManufacturer] = field(
+        default_factory=list,
+        metadata={
+            "name": "Manufacturer",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
 
-    @dataclass(slots=True, kw_only=True)
-    class ParameterTypes:
-        """
-        :ivar parameter_type: registration-relevant set
-        """
 
-        parameter_type: list[ParameterTypeT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterType",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
+@dataclass(slots=True, kw_only=True)
+class ModuleDefLoadProcedureT:
+    """
+    :ivar choice:
+    :ivar merge_id: registration-relevant
+    """
 
-    @dataclass(slots=True, kw_only=True)
-    class Parameters:
-        parameter: list[ApplicationProgramStaticT.Parameters.Parameter] = field(
-            default_factory=list,
-            metadata={
-                "name": "Parameter",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        union: list[ApplicationProgramStaticT.Parameters.UnionType] = field(
-            default_factory=list,
-            metadata={
-                "name": "Union",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
+    class Meta:
+        name = "ModuleDefLoadProcedure_t"
 
-        @dataclass(slots=True, kw_only=True)
-        class Parameter(ParameterBaseT):
-            """
-            :ivar memory:
-            :ivar property:
-            :ivar io_tpoint:
-            :ivar legacy_patch_always: registration-relevant
-            """
-
-            memory: None | MemoryParameterT = field(
-                default=None,
-                metadata={
-                    "name": "Memory",
-                    "type": "Element",
+    choice: list[
+        ModuleDefLdCtrlWritePropT
+        | ModuleDefLdCtrlComparePropT
+        | ModuleDefLdCtrlInvokeFunctionPropT
+        | ModuleDefLdCtrlReadFunctionPropT
+        | LdCtrlDelayT
+        | LdCtrlProgressTextT
+        | LdCtrlDeclarePropDescT
+        | LdCtrlMergeT
+        | ModuleDefLdCtrlBaseChooseT
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "LdCtrlWriteProp",
+                    "type": ModuleDefLdCtrlWritePropT,
                     "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            property: None | PropertyParameterT = field(
-                default=None,
-                metadata={
-                    "name": "Property",
-                    "type": "Element",
+                {
+                    "name": "LdCtrlCompareProp",
+                    "type": ModuleDefLdCtrlComparePropT,
                     "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            io_tpoint: None | IoTpointParameterT = field(
-                default=None,
-                metadata={
-                    "name": "IoTPoint",
-                    "type": "Element",
+                {
+                    "name": "LdCtrlInvokeFunctionProp",
+                    "type": ModuleDefLdCtrlInvokeFunctionPropT,
                     "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            legacy_patch_always: bool = field(
-                default=False,
-                metadata={
-                    "name": "LegacyPatchAlways",
-                    "type": "Attribute",
-                },
-            )
-
-        @dataclass(slots=True, kw_only=True)
-        class UnionType:
-            """
-            :ivar memory:
-            :ivar property:
-            :ivar parameter: registration-relevant set
-            :ivar size_in_bit:
-            :ivar internal_description:
-            """
-
-            memory: None | MemoryUnionT = field(
-                default=None,
-                metadata={
-                    "name": "Memory",
-                    "type": "Element",
+                {
+                    "name": "LdCtrlReadFunctionProp",
+                    "type": ModuleDefLdCtrlReadFunctionPropT,
                     "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            property: None | PropertyUnionT = field(
-                default=None,
-                metadata={
-                    "name": "Property",
-                    "type": "Element",
+                {
+                    "name": "LdCtrlDelay",
+                    "type": LdCtrlDelayT,
                     "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            parameter: list[UnionParameterT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Parameter",
-                    "type": "Element",
+                {
+                    "name": "LdCtrlProgressText",
+                    "type": LdCtrlProgressTextT,
                     "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
                 },
-            )
-            size_in_bit: int = field(
-                metadata={
-                    "name": "SizeInBit",
-                    "type": "Attribute",
-                    "max_inclusive": 8388600,
-                }
-            )
-            internal_description: None | str = field(
-                default=None,
-                metadata={
-                    "name": "InternalDescription",
-                    "type": "Attribute",
+                {
+                    "name": "LdCtrlDeclarePropDesc",
+                    "type": LdCtrlDeclarePropDescT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class ParameterRefs:
-        """
-        :ivar parameter_ref: registration-relevant list This is a list
-            to ensure deterministic behaviour in case of multiple active
-            parameter refs
-        """
-
-        parameter_ref: list[ParameterRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class ParameterCalculations:
-        """
-        :ivar parameter_calculation: registration-relevant set
-        """
-
-        parameter_calculation: list[ParameterCalculationT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterCalculation",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class ParameterValidations:
-        """
-        :ivar parameter_validation: registration-relevant set
-        """
-
-        parameter_validation: list[ParameterValidationT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterValidation",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class ComObjectTable:
-        """
-        :ivar com_object: registration-relevant set
-        :ivar code_segment: registration-relevant
-        :ivar offset: registration-relevant
-        """
-
-        com_object: list[ComObjectT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ComObject",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        code_segment: None | str = field(
-            default=None,
-            metadata={
-                "name": "CodeSegment",
-                "type": "Attribute",
-            },
-        )
-        offset: None | int = field(
-            default=None,
-            metadata={
-                "name": "Offset",
-                "type": "Attribute",
-                "max_inclusive": 1048575,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class ComObjectRefs:
-        """
-        :ivar com_object_ref: registration-relevant set This is a list
-            to ensure deterministic behaviour in case of multiple active
-            communication object refs
-        """
-
-        com_object_ref: list[ComObjectRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ComObjectRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class AddressTable:
-        """
-        :ivar code_segment: registration-relevant
-        :ivar offset: registration-relevant
-        :ivar max_entries: registration-relevant
-        """
-
-        code_segment: None | str = field(
-            default=None,
-            metadata={
-                "name": "CodeSegment",
-                "type": "Attribute",
-            },
-        )
-        offset: None | int = field(
-            default=None,
-            metadata={
-                "name": "Offset",
-                "type": "Attribute",
-                "max_inclusive": 1048575,
-            },
-        )
-        max_entries: int = field(
-            metadata={
-                "name": "MaxEntries",
-                "type": "Attribute",
-            }
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class AssociationTable:
-        """
-        :ivar code_segment: registration-relevant
-        :ivar offset: registration-relevant
-        :ivar max_entries: registration-relevant
-        """
-
-        code_segment: None | str = field(
-            default=None,
-            metadata={
-                "name": "CodeSegment",
-                "type": "Attribute",
-            },
-        )
-        offset: None | int = field(
-            default=None,
-            metadata={
-                "name": "Offset",
-                "type": "Attribute",
-                "max_inclusive": 1048575,
-            },
-        )
-        max_entries: int = field(
-            metadata={
-                "name": "MaxEntries",
-                "type": "Attribute",
-            }
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class FixupList:
-        """
-        :ivar fixup: registration-relevant set
-        """
-
-        fixup: list[FixupT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Fixup",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class Extension:
-        baggage: list[ApplicationProgramStaticT.Extension.Baggage] = field(
-            default_factory=list,
-            metadata={
-                "name": "Baggage",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        ets_download_plugin: None | str = field(
-            default=None,
-            metadata={
-                "name": "EtsDownloadPlugin",
-                "type": "Attribute",
-            },
-        )
-        ets_ui_plugin: None | str = field(
-            default=None,
-            metadata={
-                "name": "EtsUiPlugin",
-                "type": "Attribute",
-            },
-        )
-        ets_data_handler: None | str = field(
-            default=None,
-            metadata={
-                "name": "EtsDataHandler",
-                "type": "Attribute",
-            },
-        )
-        ets_data_handler_capabilities: list[CapabilityT] = field(
-            default_factory=list,
-            metadata={
-                "name": "EtsDataHandlerCapabilities",
-                "type": "Attribute",
-                "tokens": True,
-            },
-        )
-        requires_external_software: bool = field(
-            default=False,
-            metadata={
-                "name": "RequiresExternalSoftware",
-                "type": "Attribute",
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Baggage:
-            ref_id: str = field(
-                metadata={
-                    "name": "RefId",
-                    "type": "Attribute",
-                }
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class BinaryData:
-        binary_data: list[BinaryDataT] = field(
-            default_factory=list,
-            metadata={
-                "name": "BinaryData",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class DeviceCompare:
-        exclude_memory: list[ApplicationProgramStaticT.DeviceCompare.ExcludeMemory] = field(
-            default_factory=list,
-            metadata={
-                "name": "ExcludeMemory",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        exclude_property: list[ApplicationProgramStaticT.DeviceCompare.ExcludeProperty] = field(
-            default_factory=list,
-            metadata={
-                "name": "ExcludeProperty",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        standard_com_tables_expectable: ComTableExpectationT = field(
-            default=ComTableExpectationT.TRY,
-            metadata={
-                "name": "StandardComTablesExpectable",
-                "type": "Attribute",
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class ExcludeMemory:
-            code_segment: str = field(
-                metadata={
-                    "name": "CodeSegment",
-                    "type": "Attribute",
-                }
-            )
-            offset: int = field(
-                metadata={
-                    "name": "Offset",
-                    "type": "Attribute",
-                    "max_inclusive": 1048575,
-                }
-            )
-            size: int = field(
-                metadata={
-                    "name": "Size",
-                    "type": "Attribute",
-                    "max_inclusive": 1048575,
-                }
-            )
-            internal_description: None | str = field(
-                default=None,
-                metadata={
-                    "name": "InternalDescription",
-                    "type": "Attribute",
+                {
+                    "name": "LdCtrlMerge",
+                    "type": LdCtrlMergeT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-
-        @dataclass(slots=True, kw_only=True)
-        class ExcludeProperty:
-            object_index: None | int = field(
-                default=None,
-                metadata={
-                    "name": "ObjectIndex",
-                    "type": "Attribute",
+                {
+                    "name": "choose",
+                    "type": ModuleDefLdCtrlBaseChooseT,
+                    "namespace": "http://knx.org/xml/project/23",
                 },
-            )
-            object_type: None | int = field(
-                default=None,
-                metadata={
-                    "name": "ObjectType",
-                    "type": "Attribute",
-                },
-            )
-            occurrence: int = field(
-                default=0,
-                metadata={
-                    "name": "Occurrence",
-                    "type": "Attribute",
-                },
-            )
-            property_id: int = field(
-                metadata={
-                    "name": "PropertyId",
-                    "type": "Attribute",
-                }
-            )
-            offset: int = field(
-                metadata={
-                    "name": "Offset",
-                    "type": "Attribute",
-                }
-            )
-            size: int = field(
-                metadata={
-                    "name": "Size",
-                    "type": "Attribute",
-                    "max_inclusive": 1048575,
-                }
-            )
-            internal_description: None | str = field(
-                default=None,
-                metadata={
-                    "name": "InternalDescription",
-                    "type": "Attribute",
-                },
-            )
+            ),
+        },
+    )
+    merge_id: int = field(
+        metadata={
+            "name": "MergeId",
+            "type": "Attribute",
+        }
+    )
 
-    @dataclass(slots=True, kw_only=True)
-    class Messages:
-        message: list[ApplicationProgramStaticT.Messages.Message] = field(
-            default_factory=list,
-            metadata={
-                "name": "Message",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
 
-        @dataclass(slots=True, kw_only=True)
-        class Message:
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            name: str = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 255,
-                }
-            )
-            internal_description: None | str = field(
-                default=None,
-                metadata={
-                    "name": "InternalDescription",
-                    "type": "Attribute",
-                },
-            )
-            text: str = field(
-                metadata={
-                    "name": "Text",
-                    "type": "Attribute",
-                    "max_length": 255,
-                }
-            )
+@dataclass(slots=True, kw_only=True)
+class TopologyT:
+    class Meta:
+        name = "Topology_t"
 
-    @dataclass(slots=True, kw_only=True)
-    class SecurityRoles:
-        security_role: list[ApplicationProgramStaticT.SecurityRoles.SecurityRole] = field(
-            default_factory=list,
-            metadata={
-                "name": "SecurityRole",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class SecurityRole:
-            """
-            :ivar id: registration-relevant
-            :ivar text:
-            :ivar mask: registration-relevant
-            :ivar role_id:
-            """
-
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            text: str = field(
-                metadata={
-                    "name": "Text",
-                    "type": "Attribute",
-                    "max_length": 255,
-                }
-            )
-            mask: int = field(
-                metadata={
-                    "name": "Mask",
-                    "type": "Attribute",
-                }
-            )
-            role_id: None | int = field(
-                default=None,
-                metadata={
-                    "name": "RoleID",
-                    "type": "Attribute",
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class BusInterfaces:
-        bus_interface: list[ApplicationProgramStaticT.BusInterfaces.BusInterface] = field(
-            default_factory=list,
-            metadata={
-                "name": "BusInterface",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class BusInterface:
-            """
-            :ivar id: registration-relevant
-            :ivar address_index: registration-relevant
-            :ivar access_type: registration-relevant
-            :ivar text:
-            """
-
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            address_index: int = field(
-                metadata={
-                    "name": "AddressIndex",
-                    "type": "Attribute",
-                }
-            )
-            access_type: BusInterfaceAccessType = field(
-                metadata={
-                    "name": "AccessType",
-                    "type": "Attribute",
-                }
-            )
-            text: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Text",
-                    "type": "Attribute",
-                    "max_length": 255,
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class Allocators:
-        allocator: list[AllocatorT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Allocator",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class Options:
-        """
-        :ivar prefer_partial_download_if_application_loaded:
-        :ivar easy_ctrl_mode_mode_style_empty_group_com_tables:
-        :ivar set_object_table_length_always_to_one:
-        :ivar text_parameter_encoding:
-        :ivar text_parameter_encoding_selector:
-        :ivar text_parameter_zero_terminate:
-        :ivar parameter_byte_order:
-        :ivar partial_download_only_visible_parameters:
-        :ivar legacy_no_partial_download:
-        :ivar legacy_no_memory_verify_mode:
-        :ivar legacy_no_optimistic_write:
-        :ivar legacy_do_not_report_property_write_errors:
-        :ivar legacy_no_background_download:
-        :ivar legacy_do_not_check_manufacturer_id:
-        :ivar legacy_always_reload_app_if_co_visibility_changed:
-        :ivar legacy_never_reload_app_if_co_visibility_changed:
-        :ivar legacy_do_not_support_undo_delete:
-        :ivar legacy_allow_partial_download_if_ap2_mismatch:
-        :ivar legacy_keep_object_table_gaps:
-        :ivar legacy_proxy_communication_objects:
-        :ivar device_info_ignore_run_state:
-        :ivar device_info_ignore_loaded_state:
-        :ivar device_compare_allow_compatible_manufacturer_id:
-        :ivar line_coupler0912_new_programming_style: registration-
-            relevant
-        :ivar max_routing_apdu_length: registration-relevant
-        :ivar comparable:
-        :ivar reconstructable:
-        :ivar download_invisible_parameters:
-        :ivar supports_extended_memory_services: registration-relevant
-        :ivar supports_extended_property_services: registration-relevant
-        :ivar supports_ip_system_broadcast: registration-relevant
-        :ivar not_loadable: registration-relevant
-        :ivar not_loadable_message_ref:
-        :ivar customer_adjustable_parameters: registration-relevant
-        :ivar master_reset_on_crcmismatch: registration-relevant
-        :ivar prompt_before_full_download:
-        :ivar legacy_patch_manufacturer_id_in_task_segment:
-            registration-relevant
-        """
-
-        prefer_partial_download_if_application_loaded: bool = field(
-            default=False,
-            metadata={
-                "name": "PreferPartialDownloadIfApplicationLoaded",
-                "type": "Attribute",
-            },
-        )
-        easy_ctrl_mode_mode_style_empty_group_com_tables: bool = field(
-            default=False,
-            metadata={
-                "name": "EasyCtrlModeModeStyleEmptyGroupComTables",
-                "type": "Attribute",
-            },
-        )
-        set_object_table_length_always_to_one: bool = field(
-            default=False,
-            metadata={
-                "name": "SetObjectTableLengthAlwaysToOne",
-                "type": "Attribute",
-            },
-        )
-        text_parameter_encoding: None | TextEncodingT = field(
-            default=None,
-            metadata={
-                "name": "TextParameterEncoding",
-                "type": "Attribute",
-            },
-        )
-        text_parameter_encoding_selector: OptionsTextParameterEncodingSelector = field(
-            default=OptionsTextParameterEncodingSelector.USE_TEXT_PARAMETER_ENCODING_CODE_PAGE,
-            metadata={
-                "name": "TextParameterEncodingSelector",
-                "type": "Attribute",
-            },
-        )
-        text_parameter_zero_terminate: bool = field(
-            default=False,
-            metadata={
-                "name": "TextParameterZeroTerminate",
-                "type": "Attribute",
-            },
-        )
-        parameter_byte_order: OptionsParameterByteOrder = field(
-            default=OptionsParameterByteOrder.BIG_ENDIAN,
-            metadata={
-                "name": "ParameterByteOrder",
-                "type": "Attribute",
-            },
-        )
-        partial_download_only_visible_parameters: bool = field(
-            default=False,
-            metadata={
-                "name": "PartialDownloadOnlyVisibleParameters",
-                "type": "Attribute",
-            },
-        )
-        legacy_no_partial_download: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyNoPartialDownload",
-                "type": "Attribute",
-            },
-        )
-        legacy_no_memory_verify_mode: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyNoMemoryVerifyMode",
-                "type": "Attribute",
-            },
-        )
-        legacy_no_optimistic_write: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyNoOptimisticWrite",
-                "type": "Attribute",
-            },
-        )
-        legacy_do_not_report_property_write_errors: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyDoNotReportPropertyWriteErrors",
-                "type": "Attribute",
-            },
-        )
-        legacy_no_background_download: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyNoBackgroundDownload",
-                "type": "Attribute",
-            },
-        )
-        legacy_do_not_check_manufacturer_id: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyDoNotCheckManufacturerId",
-                "type": "Attribute",
-            },
-        )
-        legacy_always_reload_app_if_co_visibility_changed: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyAlwaysReloadAppIfCoVisibilityChanged",
-                "type": "Attribute",
-            },
-        )
-        legacy_never_reload_app_if_co_visibility_changed: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyNeverReloadAppIfCoVisibilityChanged",
-                "type": "Attribute",
-            },
-        )
-        legacy_do_not_support_undo_delete: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyDoNotSupportUndoDelete",
-                "type": "Attribute",
-            },
-        )
-        legacy_allow_partial_download_if_ap2_mismatch: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyAllowPartialDownloadIfAp2Mismatch",
-                "type": "Attribute",
-            },
-        )
-        legacy_keep_object_table_gaps: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyKeepObjectTableGaps",
-                "type": "Attribute",
-            },
-        )
-        legacy_proxy_communication_objects: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyProxyCommunicationObjects",
-                "type": "Attribute",
-            },
-        )
-        device_info_ignore_run_state: bool = field(
-            default=False,
-            metadata={
-                "name": "DeviceInfoIgnoreRunState",
-                "type": "Attribute",
-            },
-        )
-        device_info_ignore_loaded_state: bool = field(
-            default=False,
-            metadata={
-                "name": "DeviceInfoIgnoreLoadedState",
-                "type": "Attribute",
-            },
-        )
-        device_compare_allow_compatible_manufacturer_id: bool = field(
-            default=False,
-            metadata={
-                "name": "DeviceCompareAllowCompatibleManufacturerId",
-                "type": "Attribute",
-            },
-        )
-        line_coupler0912_new_programming_style: bool = field(
-            default=False,
-            metadata={
-                "name": "LineCoupler0912NewProgrammingStyle",
-                "type": "Attribute",
-            },
-        )
-        max_routing_apdu_length: None | int = field(
-            default=None,
-            metadata={
-                "name": "MaxRoutingApduLength",
-                "type": "Attribute",
-            },
-        )
-        comparable: None | bool = field(
-            default=None,
-            metadata={
-                "name": "Comparable",
-                "type": "Attribute",
-            },
-        )
-        reconstructable: None | bool = field(
-            default=None,
-            metadata={
-                "name": "Reconstructable",
-                "type": "Attribute",
-            },
-        )
-        download_invisible_parameters: DownloadBehaviorT = field(
-            default=DownloadBehaviorT.DEFAULT_VALUE,
-            metadata={
-                "name": "DownloadInvisibleParameters",
-                "type": "Attribute",
-            },
-        )
-        supports_extended_memory_services: bool = field(
-            default=False,
-            metadata={
-                "name": "SupportsExtendedMemoryServices",
-                "type": "Attribute",
-            },
-        )
-        supports_extended_property_services: bool = field(
-            default=False,
-            metadata={
-                "name": "SupportsExtendedPropertyServices",
-                "type": "Attribute",
-            },
-        )
-        supports_ip_system_broadcast: bool = field(
-            default=False,
-            metadata={
-                "name": "SupportsIpSystemBroadcast",
-                "type": "Attribute",
-            },
-        )
-        not_loadable: None | OptionsNotLoadable = field(
-            default=None,
-            metadata={
-                "name": "NotLoadable",
-                "type": "Attribute",
-            },
-        )
-        not_loadable_message_ref: None | str = field(
-            default=None,
-            metadata={
-                "name": "NotLoadableMessageRef",
-                "type": "Attribute",
-            },
-        )
-        customer_adjustable_parameters: None | OptionsCustomerAdjustableParameters = field(
-            default=None,
-            metadata={
-                "name": "CustomerAdjustableParameters",
-                "type": "Attribute",
-            },
-        )
-        master_reset_on_crcmismatch: bool = field(
-            default=False,
-            metadata={
-                "name": "MasterResetOnCRCMismatch",
-                "type": "Attribute",
-            },
-        )
-        prompt_before_full_download: bool = field(
-            default=False,
-            metadata={
-                "name": "PromptBeforeFullDownload",
-                "type": "Attribute",
-            },
-        )
-        legacy_patch_manufacturer_id_in_task_segment: bool = field(
-            default=False,
-            metadata={
-                "name": "LegacyPatchManufacturerIdInTaskSegment",
-                "type": "Attribute",
-            },
-        )
+    area: list[TopologyTArea] = field(
+        default_factory=list,
+        metadata={
+            "name": "Area",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "max_occurs": 16,
+        },
+    )
+    unassigned_devices: None | TopologyTUnassignedDevices = field(
+        default=None,
+        metadata={
+            "name": "UnassignedDevices",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -12596,7 +14147,7 @@ class MaskVersionT:
     class Meta:
         name = "MaskVersion_t"
 
-    downward_compatible_masks: None | MaskVersionT.DownwardCompatibleMasks = field(
+    downward_compatible_masks: None | MaskVersionTDownwardCompatibleMasks = field(
         default=None,
         metadata={
             "name": "DownwardCompatibleMasks",
@@ -12604,7 +14155,7 @@ class MaskVersionT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    mask_entries: None | MaskVersionT.MaskEntries = field(
+    mask_entries: None | MaskVersionTMaskEntries = field(
         default=None,
         metadata={
             "name": "MaskEntries",
@@ -12667,115 +14218,6 @@ class MaskVersionT:
         },
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class DownwardCompatibleMasks:
-        downward_compatible_mask: list[MaskVersionT.DownwardCompatibleMasks.DownwardCompatibleMask] = field(
-            default_factory=list,
-            metadata={
-                "name": "DownwardCompatibleMask",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class DownwardCompatibleMask:
-            ref_id: str = field(
-                metadata={
-                    "name": "RefId",
-                    "type": "Attribute",
-                }
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class MaskEntries:
-        mask_entry: list[MaskVersionT.MaskEntries.MaskEntry] = field(
-            default_factory=list,
-            metadata={
-                "name": "MaskEntry",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class MaskEntry:
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            address: int = field(
-                metadata={
-                    "name": "Address",
-                    "type": "Attribute",
-                }
-            )
-            name: str = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 50,
-                }
-            )
-
-
-@dataclass(slots=True, kw_only=True)
-class ModuleDefDynamicT:
-    class Meta:
-        name = "ModuleDefDynamic_t"
-
-    channel_independent_block: list[ChannelIndependentBlockT] = field(
-        default_factory=list,
-        metadata={
-            "name": "ChannelIndependentBlock",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    channel: list[ApplicationProgramChannelT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Channel",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    choose: list[DependentChannelChooseT] = field(
-        default_factory=list,
-        metadata={
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    module: list[ModuleT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Module",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    repeat: list[RepeatT] = field(
-        default_factory=list,
-        metadata={
-            "name": "Repeat",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    parameter_block: list[ComObjectParameterBlockT] = field(
-        default_factory=list,
-        metadata={
-            "name": "ParameterBlock",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-
 
 @dataclass(slots=True, kw_only=True)
 class ModuleDefLoadProceduresT:
@@ -12798,11 +14240,279 @@ class ModuleDefLoadProceduresT:
 
 
 @dataclass(slots=True, kw_only=True)
+class ProjectTInstallationsInstallation:
+    class Meta:
+        global_type = False
+
+    topology: TopologyT = field(
+        metadata={
+            "name": "Topology",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    locations: LocationsT = field(
+        metadata={
+            "name": "Locations",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    group_addresses: GroupAddressesT = field(
+        metadata={
+            "name": "GroupAddresses",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        }
+    )
+    p2_plinks: None | P2PlinksT = field(
+        default=None,
+        metadata={
+            "name": "P2PLinks",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    trades: None | TradesT = field(
+        default=None,
+        metadata={
+            "name": "Trades",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    split_infos: None | SplitInfosT = field(
+        default=None,
+        metadata={
+            "name": "SplitInfos",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 50,
+        }
+    )
+    installation_id: None | int = field(
+        default=None,
+        metadata={
+            "name": "InstallationId",
+            "type": "Attribute",
+            "max_inclusive": 15,
+        },
+    )
+    bcukey: int = field(
+        default=4294967295,
+        metadata={
+            "name": "BCUKey",
+            "type": "Attribute",
+        },
+    )
+    iprouting_multicast_address: str = field(
+        default="224.0.23.12",
+        metadata={
+            "name": "IPRoutingMulticastAddress",
+            "type": "Attribute",
+            "pattern": r"((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])",
+        },
+    )
+    multicast_ttl: int = field(
+        default=16,
+        metadata={
+            "name": "MulticastTTL",
+            "type": "Attribute",
+        },
+    )
+    iprouting_backbone_key: None | str = field(
+        default=None,
+        metadata={
+            "name": "IPRoutingBackboneKey",
+            "type": "Attribute",
+            "max_length": 100,
+        },
+    )
+    iprouting_latency_tolerance: None | int = field(
+        default=None,
+        metadata={
+            "name": "IPRoutingLatencyTolerance",
+            "type": "Attribute",
+        },
+    )
+    ipsync_latency_fraction: float = field(
+        default=0.1,
+        metadata={
+            "name": "IPSyncLatencyFraction",
+            "type": "Attribute",
+        },
+    )
+    default_line: None | str = field(
+        default=None,
+        metadata={
+            "name": "DefaultLine",
+            "type": "Attribute",
+        },
+    )
+    completion_status: CompletionStatusT = field(
+        default=CompletionStatusT.UNDEFINED,
+        metadata={
+            "name": "CompletionStatus",
+            "type": "Attribute",
+        },
+    )
+    iprouting_backbone_security: SecurityModeT = field(
+        default=SecurityModeT.AUTO,
+        metadata={
+            "name": "IPRoutingBackboneSecurity",
+            "type": "Attribute",
+        },
+    )
+    split_type: None | ProjectTInstallationsInstallationSplitType = field(
+        default=None,
+        metadata={
+            "name": "SplitType",
+            "type": "Attribute",
+        },
+    )
+    context: None | str = field(
+        default=None,
+        metadata={
+            "name": "Context",
+            "type": "Attribute",
+        },
+    )
+    ipv6_installation_id: None | int = field(
+        default=None,
+        metadata={
+            "name": "Ipv6InstallationId",
+            "type": "Attribute",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class MasterDataTMaskVersions:
+    class Meta:
+        global_type = False
+
+    mask_version: list[MaskVersionT] = field(
+        default_factory=list,
+        metadata={
+            "name": "MaskVersion",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefStaticT:
+    """
+    :ivar parameters:
+    :ivar parameter_refs:
+    :ivar parameter_calculations:
+    :ivar parameter_validations:
+    :ivar com_objects:
+    :ivar com_object_refs:
+    :ivar load_procedures:
+    :ivar allocators: registration-relevant set
+    """
+
+    class Meta:
+        name = "ModuleDefStatic_t"
+
+    parameters: None | ModuleDefStaticTParameters = field(
+        default=None,
+        metadata={
+            "name": "Parameters",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    parameter_refs: None | ModuleDefStaticTParameterRefs = field(
+        default=None,
+        metadata={
+            "name": "ParameterRefs",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    parameter_calculations: None | ModuleDefStaticTParameterCalculations = field(
+        default=None,
+        metadata={
+            "name": "ParameterCalculations",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    parameter_validations: None | ModuleDefStaticTParameterValidations = field(
+        default=None,
+        metadata={
+            "name": "ParameterValidations",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    com_objects: None | ModuleDefStaticTComObjects = field(
+        default=None,
+        metadata={
+            "name": "ComObjects",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    com_object_refs: None | ModuleDefStaticTComObjectRefs = field(
+        default=None,
+        metadata={
+            "name": "ComObjectRefs",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    load_procedures: None | ModuleDefLoadProceduresT = field(
+        default=None,
+        metadata={
+            "name": "LoadProcedures",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    allocators: None | ModuleDefStaticTAllocators = field(
+        default=None,
+        metadata={
+            "name": "Allocators",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ProjectTInstallations:
+    class Meta:
+        global_type = False
+
+    installation: list[ProjectTInstallationsInstallation] = field(
+        default_factory=list,
+        metadata={
+            "name": "Installation",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+            "max_occurs": 16,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
 class MasterDataT:
     class Meta:
         name = "MasterData_t"
 
-    datapoint_types: None | MasterDataT.DatapointTypes = field(
+    datapoint_types: None | MasterDataTDatapointTypes = field(
         default=None,
         metadata={
             "name": "DatapointTypes",
@@ -12810,7 +14520,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    datapoint_roles: None | MasterDataT.DatapointRoles = field(
+    datapoint_roles: None | MasterDataTDatapointRoles = field(
         default=None,
         metadata={
             "name": "DatapointRoles",
@@ -12818,7 +14528,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    interface_object_types: None | MasterDataT.InterfaceObjectTypes = field(
+    interface_object_types: None | MasterDataTInterfaceObjectTypes = field(
         default=None,
         metadata={
             "name": "InterfaceObjectTypes",
@@ -12826,7 +14536,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    interface_object_properties: None | MasterDataT.InterfaceObjectProperties = field(
+    interface_object_properties: None | MasterDataTInterfaceObjectProperties = field(
         default=None,
         metadata={
             "name": "InterfaceObjectProperties",
@@ -12834,7 +14544,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    property_data_types: None | MasterDataT.PropertyDataTypes = field(
+    property_data_types: None | MasterDataTPropertyDataTypes = field(
         default=None,
         metadata={
             "name": "PropertyDataTypes",
@@ -12842,7 +14552,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    medium_types: None | MasterDataT.MediumTypes = field(
+    medium_types: None | MasterDataTMediumTypes = field(
         default=None,
         metadata={
             "name": "MediumTypes",
@@ -12850,7 +14560,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    mask_versions: None | MasterDataT.MaskVersions = field(
+    mask_versions: None | MasterDataTMaskVersions = field(
         default=None,
         metadata={
             "name": "MaskVersions",
@@ -12858,7 +14568,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    functional_blocks: None | MasterDataT.FunctionalBlocks = field(
+    functional_blocks: None | MasterDataTFunctionalBlocks = field(
         default=None,
         metadata={
             "name": "FunctionalBlocks",
@@ -12866,7 +14576,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    product_languages: None | MasterDataT.ProductLanguages = field(
+    product_languages: None | MasterDataTProductLanguages = field(
         default=None,
         metadata={
             "name": "ProductLanguages",
@@ -12874,7 +14584,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    function_types: None | MasterDataT.FunctionTypes = field(
+    function_types: None | MasterDataTFunctionTypes = field(
         default=None,
         metadata={
             "name": "FunctionTypes",
@@ -12882,7 +14592,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    space_usages: None | MasterDataT.SpaceUsages = field(
+    space_usages: None | MasterDataTSpaceUsages = field(
         default=None,
         metadata={
             "name": "SpaceUsages",
@@ -12890,7 +14600,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    manufacturers: None | MasterDataT.Manufacturers = field(
+    manufacturers: None | MasterDataTManufacturers = field(
         default=None,
         metadata={
             "name": "Manufacturers",
@@ -12898,7 +14608,7 @@ class MasterDataT:
             "namespace": "http://knx.org/xml/project/23",
         },
     )
-    languages: None | MasterDataT.Languages = field(
+    languages: None | MasterDataTLanguages = field(
         default=None,
         metadata={
             "name": "Languages",
@@ -12926,1029 +14636,13 @@ class MasterDataT:
         }
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class DatapointTypes:
-        datapoint_type: list[DatapointTypeT] = field(
-            default_factory=list,
-            metadata={
-                "name": "DatapointType",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class DatapointRoles:
-        datapoint_role: list[DatapointRoleT] = field(
-            default_factory=list,
-            metadata={
-                "name": "DatapointRole",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class InterfaceObjectTypes:
-        interface_object_type: list[MasterDataT.InterfaceObjectTypes.InterfaceObjectType] = field(
-            default_factory=list,
-            metadata={
-                "name": "InterfaceObjectType",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class InterfaceObjectType:
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            number: int = field(
-                metadata={
-                    "name": "Number",
-                    "type": "Attribute",
-                }
-            )
-            name: str = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 255,
-                }
-            )
-            text: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Text",
-                    "type": "Attribute",
-                    "max_length": 255,
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class InterfaceObjectProperties:
-        interface_object_property: list[MasterDataT.InterfaceObjectProperties.InterfaceObjectProperty] = field(
-            default_factory=list,
-            metadata={
-                "name": "InterfaceObjectProperty",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class InterfaceObjectProperty:
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            number: int = field(
-                metadata={
-                    "name": "Number",
-                    "type": "Attribute",
-                }
-            )
-            object_type: None | str = field(
-                default=None,
-                metadata={
-                    "name": "ObjectType",
-                    "type": "Attribute",
-                },
-            )
-            name: str = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 255,
-                }
-            )
-            text: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Text",
-                    "type": "Attribute",
-                    "max_length": 255,
-                },
-            )
-            pdt: list[str] = field(
-                default_factory=list,
-                metadata={
-                    "name": "PDT",
-                    "type": "Attribute",
-                    "tokens": True,
-                },
-            )
-            dpt: None | str = field(
-                default=None,
-                metadata={
-                    "name": "DPT",
-                    "type": "Attribute",
-                },
-            )
-            array: bool = field(
-                default=False,
-                metadata={
-                    "name": "Array",
-                    "type": "Attribute",
-                },
-            )
-            access_policy: None | str = field(
-                default=None,
-                metadata={
-                    "name": "AccessPolicy",
-                    "type": "Attribute",
-                    "pattern": r"[0-3][0-9A-F]{2}/[0-3][0-9A-F]{2}",
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class PropertyDataTypes:
-        property_data_type: list[MasterDataT.PropertyDataTypes.PropertyDataType] = field(
-            default_factory=list,
-            metadata={
-                "name": "PropertyDataType",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class PropertyDataType:
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            number: int = field(
-                metadata={
-                    "name": "Number",
-                    "type": "Attribute",
-                }
-            )
-            name: str = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 255,
-                }
-            )
-            size: None | int = field(
-                default=None,
-                metadata={
-                    "name": "Size",
-                    "type": "Attribute",
-                },
-            )
-            read_size: None | int = field(
-                default=None,
-                metadata={
-                    "name": "ReadSize",
-                    "type": "Attribute",
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class MediumTypes:
-        medium_type: list[MasterDataT.MediumTypes.MediumType] = field(
-            default_factory=list,
-            metadata={
-                "name": "MediumType",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class MediumType:
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            number: int = field(
-                metadata={
-                    "name": "Number",
-                    "type": "Attribute",
-                }
-            )
-            name: str = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 20,
-                }
-            )
-            text: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Text",
-                    "type": "Attribute",
-                    "max_length": 50,
-                },
-            )
-            domain_address_length: int = field(
-                metadata={
-                    "name": "DomainAddressLength",
-                    "type": "Attribute",
-                }
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class MaskVersions:
-        mask_version: list[MaskVersionT] = field(
-            default_factory=list,
-            metadata={
-                "name": "MaskVersion",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class FunctionalBlocks:
-        functional_block: list[MasterDataT.FunctionalBlocks.FunctionalBlock] = field(
-            default_factory=list,
-            metadata={
-                "name": "FunctionalBlock",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class FunctionalBlock:
-            parameters: list[MasterDataT.FunctionalBlocks.FunctionalBlock.Parameters] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Parameters",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            name: str = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                }
-            )
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class Parameters:
-                parameter: list[MasterDataT.FunctionalBlocks.FunctionalBlock.Parameters.Parameter] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "Parameter",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                        "min_occurs": 1,
-                    },
-                )
-                object_type: str = field(
-                    metadata={
-                        "name": "ObjectType",
-                        "type": "Attribute",
-                    }
-                )
-
-                @dataclass(slots=True, kw_only=True)
-                class Parameter:
-                    property: str = field(
-                        metadata={
-                            "name": "Property",
-                            "type": "Attribute",
-                        }
-                    )
-                    description: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Description",
-                            "type": "Attribute",
-                        },
-                    )
-
-    @dataclass(slots=True, kw_only=True)
-    class ProductLanguages:
-        language: list[MasterDataT.ProductLanguages.Language] = field(
-            default_factory=list,
-            metadata={
-                "name": "Language",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Language:
-            identifier: None | str = field(
-                default=None,
-                metadata={
-                    "name": "Identifier",
-                    "type": "Attribute",
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class FunctionTypes:
-        functions_group: list[FunctionsGroupT] = field(
-            default_factory=list,
-            metadata={
-                "name": "FunctionsGroup",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        function_type: list[FunctionTypeT] = field(
-            default_factory=list,
-            metadata={
-                "name": "FunctionType",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class SpaceUsages:
-        space_usage: list[SpaceUsageT] = field(
-            default_factory=list,
-            metadata={
-                "name": "SpaceUsage",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class Manufacturers:
-        manufacturer: list[MasterDataT.Manufacturers.Manufacturer] = field(
-            default_factory=list,
-            metadata={
-                "name": "Manufacturer",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Manufacturer:
-            order_number_formatting_script: None | str = field(
-                default=None,
-                metadata={
-                    "name": "OrderNumberFormattingScript",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            public_keys: None | MasterDataT.Manufacturers.Manufacturer.PublicKeys = field(
-                default=None,
-                metadata={
-                    "name": "PublicKeys",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            datapoint_types: None | MasterDataT.Manufacturers.Manufacturer.DatapointTypes = field(
-                default=None,
-                metadata={
-                    "name": "DatapointTypes",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            datapoint_roles: None | MasterDataT.Manufacturers.Manufacturer.DatapointRoles = field(
-                default=None,
-                metadata={
-                    "name": "DatapointRoles",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            function_types: None | MasterDataT.Manufacturers.Manufacturer.FunctionTypes = field(
-                default=None,
-                metadata={
-                    "name": "FunctionTypes",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            space_usages: None | MasterDataT.Manufacturers.Manufacturer.SpaceUsages = field(
-                default=None,
-                metadata={
-                    "name": "SpaceUsages",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            name: str = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 255,
-                }
-            )
-            knx_manufacturer_id: int = field(
-                metadata={
-                    "name": "KnxManufacturerId",
-                    "type": "Attribute",
-                }
-            )
-            default_language: None | str = field(
-                default=None,
-                metadata={
-                    "name": "DefaultLanguage",
-                    "type": "Attribute",
-                },
-            )
-            compatibility_group: None | int = field(
-                default=None,
-                metadata={
-                    "name": "CompatibilityGroup",
-                    "type": "Attribute",
-                },
-            )
-            import_restriction: ManufacturerImportRestriction = field(
-                default=ManufacturerImportRestriction.OWN,
-                metadata={
-                    "name": "ImportRestriction",
-                    "type": "Attribute",
-                },
-            )
-            import_group: list[str] = field(
-                default_factory=list,
-                metadata={
-                    "name": "ImportGroup",
-                    "type": "Attribute",
-                    "tokens": True,
-                },
-            )
-            order_number_wildcard_character: None | str = field(
-                default=None,
-                metadata={
-                    "name": "OrderNumberWildcardCharacter",
-                    "type": "Attribute",
-                    "length": 1,
-                },
-            )
-            member_status: MemberStatusT = field(
-                default=MemberStatusT.ACTIVE,
-                metadata={
-                    "name": "MemberStatus",
-                    "type": "Attribute",
-                },
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class PublicKeys:
-                public_key: list[MasterDataT.Manufacturers.Manufacturer.PublicKeys.PublicKey] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "PublicKey",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                        "min_occurs": 1,
-                    },
-                )
-
-                @dataclass(slots=True, kw_only=True)
-                class PublicKey:
-                    rsakey_value: MasterDataT.Manufacturers.Manufacturer.PublicKeys.PublicKey.RsakeyValue = field(
-                        metadata={
-                            "name": "RSAKeyValue",
-                            "type": "Element",
-                            "namespace": "http://knx.org/xml/project/23",
-                        }
-                    )
-                    id: str = field(
-                        metadata={
-                            "name": "Id",
-                            "type": "Attribute",
-                        }
-                    )
-                    number: int = field(
-                        metadata={
-                            "name": "Number",
-                            "type": "Attribute",
-                        }
-                    )
-                    revoked: bool = field(
-                        default=False,
-                        metadata={
-                            "name": "Revoked",
-                            "type": "Attribute",
-                        },
-                    )
-                    purpose: list[str] = field(
-                        default_factory=list,
-                        metadata={
-                            "name": "Purpose",
-                            "type": "Attribute",
-                            "tokens": True,
-                        },
-                    )
-
-                    @dataclass(slots=True, kw_only=True)
-                    class RsakeyValue:
-                        modulus: bytes = field(
-                            metadata={
-                                "name": "Modulus",
-                                "type": "Element",
-                                "namespace": "http://knx.org/xml/project/23",
-                                "format": "base64",
-                            }
-                        )
-                        exponent: bytes = field(
-                            metadata={
-                                "name": "Exponent",
-                                "type": "Element",
-                                "namespace": "http://knx.org/xml/project/23",
-                                "format": "base64",
-                            }
-                        )
-
-            @dataclass(slots=True, kw_only=True)
-            class DatapointTypes:
-                datapoint_type: list[DatapointTypeT] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "DatapointType",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                        "min_occurs": 1,
-                    },
-                )
-
-            @dataclass(slots=True, kw_only=True)
-            class DatapointRoles:
-                datapoint_role: list[DatapointRoleT] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "DatapointRole",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                        "min_occurs": 1,
-                    },
-                )
-
-            @dataclass(slots=True, kw_only=True)
-            class FunctionTypes:
-                functions_group: list[FunctionsGroupT] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "FunctionsGroup",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
-                function_type: list[FunctionTypeT] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "FunctionType",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    },
-                )
-
-            @dataclass(slots=True, kw_only=True)
-            class SpaceUsages:
-                space_usage: list[SpaceUsageT] = field(
-                    default_factory=list,
-                    metadata={
-                        "name": "SpaceUsage",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                        "min_occurs": 1,
-                    },
-                )
-
-    @dataclass(slots=True, kw_only=True)
-    class Languages:
-        language: list[LanguageDataT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Language",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-
-@dataclass(slots=True, kw_only=True)
-class ModuleDefStaticT:
-    """
-    :ivar parameters:
-    :ivar parameter_refs:
-    :ivar parameter_calculations:
-    :ivar parameter_validations:
-    :ivar com_objects:
-    :ivar com_object_refs:
-    :ivar load_procedures:
-    :ivar allocators: registration-relevant set
-    """
-
-    class Meta:
-        name = "ModuleDefStatic_t"
-
-    parameters: None | ModuleDefStaticT.Parameters = field(
-        default=None,
-        metadata={
-            "name": "Parameters",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    parameter_refs: None | ModuleDefStaticT.ParameterRefs = field(
-        default=None,
-        metadata={
-            "name": "ParameterRefs",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    parameter_calculations: None | ModuleDefStaticT.ParameterCalculations = field(
-        default=None,
-        metadata={
-            "name": "ParameterCalculations",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    parameter_validations: None | ModuleDefStaticT.ParameterValidations = field(
-        default=None,
-        metadata={
-            "name": "ParameterValidations",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    com_objects: None | ModuleDefStaticT.ComObjects = field(
-        default=None,
-        metadata={
-            "name": "ComObjects",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    com_object_refs: None | ModuleDefStaticT.ComObjectRefs = field(
-        default=None,
-        metadata={
-            "name": "ComObjectRefs",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    load_procedures: None | ModuleDefLoadProceduresT = field(
-        default=None,
-        metadata={
-            "name": "LoadProcedures",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-    allocators: None | ModuleDefStaticT.Allocators = field(
-        default=None,
-        metadata={
-            "name": "Allocators",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-        },
-    )
-
-    @dataclass(slots=True, kw_only=True)
-    class Parameters:
-        parameter: list[ModuleDefStaticT.Parameters.Parameter] = field(
-            default_factory=list,
-            metadata={
-                "name": "Parameter",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        union: list[ModuleDefStaticT.Parameters.UnionType] = field(
-            default_factory=list,
-            metadata={
-                "name": "Union",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Parameter(ParameterBaseT):
-            """
-            :ivar memory:
-            :ivar property:
-            :ivar io_tpoint:
-            :ivar base_value: registration-relevant
-            """
-
-            memory: None | ModuleDefStaticT.Parameters.Parameter.Memory = field(
-                default=None,
-                metadata={
-                    "name": "Memory",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            property: None | ModuleDefStaticT.Parameters.Parameter.Property = field(
-                default=None,
-                metadata={
-                    "name": "Property",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            io_tpoint: None | IoTpointParameterT = field(
-                default=None,
-                metadata={
-                    "name": "IoTPoint",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            base_value: None | str = field(
-                default=None,
-                metadata={
-                    "name": "BaseValue",
-                    "type": "Attribute",
-                },
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class Memory(MemoryParameterT):
-                """
-                :ivar base_offset: registration-relevant
-                """
-
-                base_offset: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "BaseOffset",
-                        "type": "Attribute",
-                    },
-                )
-
-            @dataclass(slots=True, kw_only=True)
-            class Property(PropertyParameterT):
-                """
-                :ivar base_offset: registration-relevant
-                :ivar base_index: registration-relevant
-                :ivar base_occurrence: registration-relevant
-                """
-
-                base_offset: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "BaseOffset",
-                        "type": "Attribute",
-                    },
-                )
-                base_index: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "BaseIndex",
-                        "type": "Attribute",
-                    },
-                )
-                base_occurrence: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "BaseOccurrence",
-                        "type": "Attribute",
-                    },
-                )
-
-        @dataclass(slots=True, kw_only=True)
-        class UnionType:
-            """
-            :ivar memory:
-            :ivar property:
-            :ivar parameter: registration-relevant set
-            :ivar size_in_bit:
-            """
-
-            memory: None | ModuleDefStaticT.Parameters.UnionType.Memory = field(
-                default=None,
-                metadata={
-                    "name": "Memory",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            property: None | ModuleDefStaticT.Parameters.UnionType.Property = field(
-                default=None,
-                metadata={
-                    "name": "Property",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                },
-            )
-            parameter: list[UnionParameterT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Parameter",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
-            size_in_bit: int = field(
-                metadata={
-                    "name": "SizeInBit",
-                    "type": "Attribute",
-                    "max_inclusive": 8388600,
-                }
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class Memory(MemoryUnionT):
-                """
-                :ivar base_offset: registration-relevant
-                """
-
-                base_offset: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "BaseOffset",
-                        "type": "Attribute",
-                    },
-                )
-
-            @dataclass(slots=True, kw_only=True)
-            class Property(PropertyUnionT):
-                """
-                :ivar base_offset: registration-relevant
-                :ivar base_index: registration-relevant
-                :ivar base_occurrence: registration-relevant
-                """
-
-                base_offset: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "BaseOffset",
-                        "type": "Attribute",
-                    },
-                )
-                base_index: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "BaseIndex",
-                        "type": "Attribute",
-                    },
-                )
-                base_occurrence: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "BaseOccurrence",
-                        "type": "Attribute",
-                    },
-                )
-
-    @dataclass(slots=True, kw_only=True)
-    class ParameterRefs:
-        """
-        :ivar parameter_ref: registration-relevant list This is a list
-            to ensure deterministic behaviour in case of multiple active
-            parameter refs
-        """
-
-        parameter_ref: list[ParameterRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class ParameterCalculations:
-        """
-        :ivar parameter_calculation: registration-relevant set
-        """
-
-        parameter_calculation: list[ParameterCalculationT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterCalculation",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class ParameterValidations:
-        """
-        :ivar parameter_validation: registration-relevant set
-        """
-
-        parameter_validation: list[ParameterValidationT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ParameterValidation",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class ComObjects:
-        """
-        :ivar com_object: registration-relevant set
-        """
-
-        com_object: list[ModuleDefStaticT.ComObjects.ComObject] = field(
-            default_factory=list,
-            metadata={
-                "name": "ComObject",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class ComObject(ComObjectT):
-            """
-            :ivar base_number: registration-relevant
-            """
-
-            base_number: None | str = field(
-                default=None,
-                metadata={
-                    "name": "BaseNumber",
-                    "type": "Attribute",
-                },
-            )
-
-    @dataclass(slots=True, kw_only=True)
-    class ComObjectRefs:
-        """
-        :ivar com_object_ref: registration-relevant set This is a list
-            to ensure deterministic behaviour in case of multiple active
-            communication object refs
-        """
-
-        com_object_ref: list[ComObjectRefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ComObjectRef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
-    @dataclass(slots=True, kw_only=True)
-    class Allocators:
-        allocator: list[AllocatorT] = field(
-            default_factory=list,
-            metadata={
-                "name": "Allocator",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
-
 
 @dataclass(slots=True, kw_only=True)
 class ModuleDefT:
     class Meta:
         name = "ModuleDef_t"
 
-    arguments: None | ModuleDefT.Arguments = field(
+    arguments: None | ModuleDefTArguments = field(
         default=None,
         metadata={
             "name": "Arguments",
@@ -13963,7 +14657,7 @@ class ModuleDefT:
             "namespace": "http://knx.org/xml/project/23",
         }
     )
-    sub_module_defs: None | ModuleDefT.SubModuleDefs = field(
+    sub_module_defs: None | ModuleDefTSubModuleDefs = field(
         default=None,
         metadata={
             "name": "SubModuleDefs",
@@ -14000,87 +14694,90 @@ class ModuleDefT:
         },
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class Arguments:
-        argument: list[ModuleDefT.Arguments.Argument] = field(
-            default_factory=list,
-            metadata={
-                "name": "Argument",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
 
-        @dataclass(slots=True, kw_only=True)
-        class Argument:
-            """
-            :ivar id:
-            :ivar name: registration-relevant
-            :ivar type_value: registration-relevant
-            :ivar internal_description:
-            :ivar allocates: registration-relevant
-            :ivar alignment: registration-relevant
-            """
+@dataclass(slots=True, kw_only=True)
+class ProjectT:
+    class Meta:
+        name = "Project_t"
 
-            id: str = field(
-                metadata={
-                    "name": "Id",
-                    "type": "Attribute",
-                }
-            )
-            name: str = field(
-                metadata={
-                    "name": "Name",
-                    "type": "Attribute",
-                    "max_length": 50,
-                    "pattern": r"[A-Za-z_][A-Za-z0-9_]*",
-                }
-            )
-            type_value: ModuleDefArgTypeT = field(
-                default=ModuleDefArgTypeT.NUMERIC,
-                metadata={
-                    "name": "Type",
-                    "type": "Attribute",
-                },
-            )
-            internal_description: None | str = field(
-                default=None,
-                metadata={
-                    "name": "InternalDescription",
-                    "type": "Attribute",
-                },
-            )
-            allocates: None | int = field(
-                default=None,
-                metadata={
-                    "name": "Allocates",
-                    "type": "Attribute",
-                },
-            )
-            alignment: ArgumentAlignment = field(
-                default=ArgumentAlignment.VALUE_1,
-                metadata={
-                    "name": "Alignment",
-                    "type": "Attribute",
-                },
-            )
+    project_information: None | ProjectTProjectInformation = field(
+        default=None,
+        metadata={
+            "name": "ProjectInformation",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    installations: None | ProjectTInstallations = field(
+        default=None,
+        metadata={
+            "name": "Installations",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    user_files: None | ProjectTUserFiles = field(
+        default=None,
+        metadata={
+            "name": "UserFiles",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    addin_data: None | ProjectTAddinData = field(
+        default=None,
+        metadata={
+            "name": "AddinData",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
 
-    @dataclass(slots=True, kw_only=True)
-    class SubModuleDefs:
-        """
-        :ivar module_def: registration-relevant set
-        """
 
-        module_def: list[ModuleDefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ModuleDef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
+@dataclass(slots=True, kw_only=True)
+class ApplicationProgramTModuleDefs:
+    """
+    :ivar module_def: registration-relevant set
+    """
+
+    class Meta:
+        global_type = False
+
+    module_def: list[ModuleDefT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ModuleDef",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
+
+
+@dataclass(slots=True, kw_only=True)
+class ModuleDefTSubModuleDefs:
+    """
+    :ivar module_def: registration-relevant set
+    """
+
+    class Meta:
+        global_type = False
+
+    module_def: list[ModuleDefT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ModuleDef",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -14120,8 +14817,7 @@ class ApplicationProgramT:
     :ivar max_security_individual_address_entries: registration-relevant
     :ivar max_security_group_key_table_entries: registration-relevant
     :ivar max_security_p2_pkey_table_entries: registration-relevant
-    :ivar max_security_proxy_group_key_table_entries: registration-
-        relevant
+    :ivar max_security_proxy_group_key_table_entries: registration-relevant
     :ivar non_reg_relevant_data_version:
     :ivar broken:
     :ivar download_info_incomplete:
@@ -14135,7 +14831,7 @@ class ApplicationProgramT:
     class Meta:
         name = "ApplicationProgram_t"
 
-    profile: None | ApplicationProgramT.Profile = field(
+    profile: None | ApplicationProgramTProfile = field(
         default=None,
         metadata={
             "name": "Profile",
@@ -14150,7 +14846,7 @@ class ApplicationProgramT:
             "namespace": "http://knx.org/xml/project/23",
         }
     )
-    module_defs: None | ApplicationProgramT.ModuleDefs = field(
+    module_defs: None | ApplicationProgramTModuleDefs = field(
         default=None,
         metadata={
             "name": "ModuleDefs",
@@ -14433,98 +15129,74 @@ class ApplicationProgramT:
         },
     )
 
-    @dataclass(slots=True, kw_only=True)
-    class Profile:
-        io_t: None | ApplicationProgramT.Profile.IoT = field(
-            default=None,
-            metadata={
-                "name": "IoT",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
 
-        @dataclass(slots=True, kw_only=True)
-        class IoT:
-            """
-            :ivar supports_co_apblock_wise_transfer: registration-
-                relevant
-            :ivar max_associations_per_group_object: registration-
-                relevant
-            :ivar max_recipient_table_entries: registration-relevant
-            :ivar max_publisher_table_entries: registration-relevant
-            :ivar max_access_token_list_entries: registration-relevant
-            :ivar max_group_address_routing_table_entries: registration-
-                relevant
-            :ivar routable_datapoint_main_types: registration-relevant
-            """
+@dataclass(slots=True, kw_only=True)
+class ManufacturerDataTManufacturerApplicationPrograms:
+    class Meta:
+        global_type = False
 
-            supports_co_apblock_wise_transfer: bool = field(
-                default=True,
-                metadata={
-                    "name": "SupportsCoAPBlockWiseTransfer",
-                    "type": "Attribute",
-                },
-            )
-            max_associations_per_group_object: int = field(
-                default=20,
-                metadata={
-                    "name": "MaxAssociationsPerGroupObject",
-                    "type": "Attribute",
-                },
-            )
-            max_recipient_table_entries: int = field(
-                default=0,
-                metadata={
-                    "name": "MaxRecipientTableEntries",
-                    "type": "Attribute",
-                },
-            )
-            max_publisher_table_entries: int = field(
-                default=0,
-                metadata={
-                    "name": "MaxPublisherTableEntries",
-                    "type": "Attribute",
-                },
-            )
-            max_access_token_list_entries: int = field(
-                default=0,
-                metadata={
-                    "name": "MaxAccessTokenListEntries",
-                    "type": "Attribute",
-                },
-            )
-            max_group_address_routing_table_entries: None | int = field(
-                default=None,
-                metadata={
-                    "name": "MaxGroupAddressRoutingTableEntries",
-                    "type": "Attribute",
-                },
-            )
-            routable_datapoint_main_types: list[str] = field(
-                default_factory=list,
-                metadata={
-                    "name": "RoutableDatapointMainTypes",
-                    "type": "Attribute",
-                    "tokens": True,
-                },
-            )
+    application_program: list[ApplicationProgramT] = field(
+        default_factory=list,
+        metadata={
+            "name": "ApplicationProgram",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+            "min_occurs": 1,
+        },
+    )
 
-    @dataclass(slots=True, kw_only=True)
-    class ModuleDefs:
-        """
-        :ivar module_def: registration-relevant set
-        """
 
-        module_def: list[ModuleDefT] = field(
-            default_factory=list,
-            metadata={
-                "name": "ModuleDef",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-                "min_occurs": 1,
-            },
-        )
+@dataclass(slots=True, kw_only=True)
+class ManufacturerDataTManufacturer:
+    class Meta:
+        global_type = False
+
+    catalog: None | ManufacturerDataTManufacturerCatalog = field(
+        default=None,
+        metadata={
+            "name": "Catalog",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    application_programs: None | ManufacturerDataTManufacturerApplicationPrograms = field(
+        default=None,
+        metadata={
+            "name": "ApplicationPrograms",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    baggages: None | ManufacturerDataTManufacturerBaggages = field(
+        default=None,
+        metadata={
+            "name": "Baggages",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    hardware: None | ManufacturerDataTManufacturerHardware = field(
+        default=None,
+        metadata={
+            "name": "Hardware",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    languages: None | ManufacturerDataTManufacturerLanguages = field(
+        default=None,
+        metadata={
+            "name": "Languages",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/23",
+        },
+    )
+    ref_id: str = field(
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        }
+    )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -14532,7 +15204,7 @@ class ManufacturerDataT:
     class Meta:
         name = "ManufacturerData_t"
 
-    manufacturer: list[ManufacturerDataT.Manufacturer] = field(
+    manufacturer: list[ManufacturerDataTManufacturer] = field(
         default_factory=list,
         metadata={
             "name": "Manufacturer",
@@ -14541,194 +15213,6 @@ class ManufacturerDataT:
             "min_occurs": 1,
         },
     )
-
-    @dataclass(slots=True, kw_only=True)
-    class Manufacturer:
-        catalog: None | ManufacturerDataT.Manufacturer.Catalog = field(
-            default=None,
-            metadata={
-                "name": "Catalog",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        application_programs: None | ManufacturerDataT.Manufacturer.ApplicationPrograms = field(
-            default=None,
-            metadata={
-                "name": "ApplicationPrograms",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        baggages: None | ManufacturerDataT.Manufacturer.Baggages = field(
-            default=None,
-            metadata={
-                "name": "Baggages",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        hardware: None | ManufacturerDataT.Manufacturer.Hardware = field(
-            default=None,
-            metadata={
-                "name": "Hardware",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        languages: None | ManufacturerDataT.Manufacturer.Languages = field(
-            default=None,
-            metadata={
-                "name": "Languages",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/23",
-            },
-        )
-        ref_id: str = field(
-            metadata={
-                "name": "RefId",
-                "type": "Attribute",
-            }
-        )
-
-        @dataclass(slots=True, kw_only=True)
-        class Catalog:
-            catalog_section: list[CatalogSectionT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "CatalogSection",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
-
-        @dataclass(slots=True, kw_only=True)
-        class ApplicationPrograms:
-            application_program: list[ApplicationProgramT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "ApplicationProgram",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
-
-        @dataclass(slots=True, kw_only=True)
-        class Baggages:
-            baggage: list[ManufacturerDataT.Manufacturer.Baggages.Baggage] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Baggage",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
-
-            @dataclass(slots=True, kw_only=True)
-            class Baggage:
-                file_info: ManufacturerDataT.Manufacturer.Baggages.Baggage.FileInfo = field(
-                    metadata={
-                        "name": "FileInfo",
-                        "type": "Element",
-                        "namespace": "http://knx.org/xml/project/23",
-                    }
-                )
-                target_path: str = field(
-                    metadata={
-                        "name": "TargetPath",
-                        "type": "Attribute",
-                        "max_length": 255,
-                        "pattern": r'(([^"<>\|:\*\?/\\\t\n\r]+\\)*[^"<>\|:\*\?/\\\t\n\r]+)?',
-                    }
-                )
-                name: str = field(
-                    metadata={
-                        "name": "Name",
-                        "type": "Attribute",
-                        "max_length": 255,
-                        "pattern": r'[^"<>\|:\*\?/\\\t\n\r]+',
-                    }
-                )
-                file_integrity: str = field(
-                    default="00000000",
-                    metadata={
-                        "name": "FileIntegrity",
-                        "type": "Attribute",
-                    },
-                )
-                id: str = field(
-                    metadata={
-                        "name": "Id",
-                        "type": "Attribute",
-                    }
-                )
-                guid: None | str = field(
-                    default=None,
-                    metadata={
-                        "name": "Guid",
-                        "type": "Attribute",
-                        "pattern": r"\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}",
-                    },
-                )
-
-                @dataclass(slots=True, kw_only=True)
-                class FileInfo:
-                    version: None | str = field(
-                        default=None,
-                        metadata={
-                            "name": "Version",
-                            "type": "Attribute",
-                            "pattern": r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+",
-                        },
-                    )
-                    time_info: None | XmlDateTime = field(
-                        default=None,
-                        metadata={
-                            "name": "TimeInfo",
-                            "type": "Attribute",
-                        },
-                    )
-                    hidden: bool = field(
-                        default=False,
-                        metadata={
-                            "name": "Hidden",
-                            "type": "Attribute",
-                        },
-                    )
-                    read_only: bool = field(
-                        default=False,
-                        metadata={
-                            "name": "ReadOnly",
-                            "type": "Attribute",
-                        },
-                    )
-
-        @dataclass(slots=True, kw_only=True)
-        class Hardware:
-            hardware: list[HardwareT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Hardware",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
-
-        @dataclass(slots=True, kw_only=True)
-        class Languages:
-            language: list[LanguageDataT] = field(
-                default_factory=list,
-                metadata={
-                    "name": "Language",
-                    "type": "Element",
-                    "namespace": "http://knx.org/xml/project/23",
-                    "min_occurs": 1,
-                },
-            )
 
 
 @dataclass(slots=True, kw_only=True)

@@ -11,6 +11,9 @@ uv run pytest packages/models       # Run tests for a single package
 uv run ruff check                   # Lint
 uv run ruff format                  # Format
 uv run pyright                      # Type check (strict mode)
+
+# Regenerate KNX XML schema bindings (requires XSD files in packages/models/src/xknxmono/models/schemas/)
+cd packages/models/src && uvx --from "xsdata[cli]" xsdata generate --config ../.xsdata.xml xknxmono/models/schemas/
 ```
 
 All Python commands must use `uv run` — do not activate the venv manually.
