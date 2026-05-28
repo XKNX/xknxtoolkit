@@ -9,10 +9,10 @@
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx && uv tool install ./node_modules/fumadocs-python --reinstall && uv pip install --python ../.venv ./node_modules/fumadocs-python",
     "lint": "oxlint",
-    "format:src": "prettier --write \"src/**/*.{ts,tsx}\" \"*.ts\" \"scripts/**/*.{js,mjs}\"",
+    "format:src": "prettier --write \"src/**/*.{ts,tsx}\" \"*.ts\" \"scripts/**/*.{js,mjs,ts}\"",
     "format:docs": "prettier --write \"content/**/*.mdx\" \"../packages/*/docs/**/*.mdx\"",
     "format": "npm run format:src && npm run format:docs",
-    "generate:docs": "node scripts/generate-docs.mjs",
+    "generate:docs": "node --experimental-strip-types scripts/generate-docs.ts",
     "generate:openapi": "cd ../packages/catalog && uv run export-openapi openapi.json"
   },
   "dependencies": {

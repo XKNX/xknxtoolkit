@@ -27,6 +27,4 @@ export const docs = defineDocs({
   },
 });
 
-export default defineConfig({
-  mdxOptions: {},
-});
+export default defineConfig({});

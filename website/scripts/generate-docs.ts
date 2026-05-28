@@ -12,7 +12,8 @@ import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { glob } from "glob";
 import { rimraf } from "rimraf";
-import { convert, frontmatter } from "fumadocs-python";
+import { frontmatter } from "fumadocs-python";
+import { convert } from "./generate-docs-from-python-api.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "../..");
