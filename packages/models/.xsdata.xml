@@ -33,9 +33,7 @@
     <Substitution type="package" search="http://knx.org/xml/project/22" replace="v22"/>
     <Substitution type="package" search="http://knx.org/xml/project/23" replace="v23"/>
     <Substitution type="class" search="(.*)Class$" replace="\1Type"/>
-    <Substitution type="class" search="^LoadProcedureT(LdCtrl.+?)(?:T)?$" replace="\1"/>
     <Substitution type="class" search="T(?=[A-Z])|T$" replace=""/>
-    <Substitution type="class" search="ApplicationProgramStaticOptionsTextParameterEncoding" replace="TextEncoding"/>
   </Substitutions>
   <Extensions/>
 </Config>

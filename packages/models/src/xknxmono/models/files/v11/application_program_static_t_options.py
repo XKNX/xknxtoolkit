@@ -6,7 +6,7 @@ from xknxmono.models.files.v11.application_program_static_t_options_parameter_by
     ApplicationProgramStaticOptionsParameterByteOrder,
 )
 from xknxmono.models.files.v11.application_program_static_t_options_text_parameter_encoding_selector import (
-    TextEncodingSelector,
+    ApplicationProgramStaticOptionsTextParameterEncodingSelector,
 )
 from xknxmono.models.files.v11.text_encoding_t import TextEncoding
 
@@ -75,8 +75,8 @@ class ApplicationProgramStaticOptions:
             "type": "Attribute",
         },
     )
-    text_parameter_encoding_selector: TextEncodingSelector = field(
-        default=TextEncodingSelector.USE_TEXT_PARAMETER_ENCODING_CODE_PAGE,
+    text_parameter_encoding_selector: ApplicationProgramStaticOptionsTextParameterEncodingSelector = field(
+        default=ApplicationProgramStaticOptionsTextParameterEncodingSelector.USE_TEXT_PARAMETER_ENCODING_CODE_PAGE,
         metadata={
             "name": "TextParameterEncodingSelector",
             "type": "Attribute",

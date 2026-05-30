@@ -85,7 +85,7 @@ from xknxmono.models.files.v14.application_program_static_t_options_parameter_by
     ApplicationProgramStaticOptionsParameterByteOrder,
 )
 from xknxmono.models.files.v14.application_program_static_t_options_text_parameter_encoding_selector import (
-    TextEncodingSelector,
+    ApplicationProgramStaticOptionsTextParameterEncodingSelector,
 )
 from xknxmono.models.files.v14.application_program_static_t_parameter_calculations import (
     ApplicationProgramStaticParameterCalculations,
@@ -664,7 +664,7 @@ __all__ = [
     "ApplicationProgramStaticOptionsCustomerAdjustableParameters",
     "ApplicationProgramStaticOptionsNotLoadable",
     "ApplicationProgramStaticOptionsParameterByteOrder",
-    "TextEncodingSelector",
+    "ApplicationProgramStaticOptionsTextParameterEncodingSelector",
     "ApplicationProgramStaticParameterCalculations",
     "ApplicationProgramStaticParameterRefs",
     "ApplicationProgramStaticParameterTypes",
