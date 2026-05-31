@@ -10,6 +10,11 @@ from xknxmono.models.intermediate.property_parameter_t import PropertyParameter
 
 @dataclass(slots=True, kw_only=True)
 class ApplicationProgramStaticParametersParameter(ParameterBase):
+    """
+    :ivar choice:
+    :ivar legacy_patch_always: registration-relevant
+    """
+
     class Meta:
         global_type = False
 
@@ -31,5 +36,12 @@ class ApplicationProgramStaticParametersParameter(ParameterBase):
                     "type": IoPointParameter,
                 },
             ),
+        },
+    )
+    legacy_patch_always: bool = field(
+        default=False,
+        metadata={
+            "name": "LegacyPatchAlways",
+            "type": "Attribute",
         },
     )

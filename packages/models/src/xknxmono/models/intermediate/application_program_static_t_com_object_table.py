@@ -9,6 +9,8 @@ from xknxmono.models.intermediate.com_object_t import ComObject
 class ApplicationProgramStaticComObjectTable:
     """
     :ivar com_object: registration-relevant set
+    :ivar code_segment: registration-relevant
+    :ivar offset: registration-relevant
     """
 
     class Meta:
@@ -19,5 +21,20 @@ class ApplicationProgramStaticComObjectTable:
         metadata={
             "name": "ComObject",
             "type": "Element",
+        },
+    )
+    code_segment: None | str = field(
+        default=None,
+        metadata={
+            "name": "CodeSegment",
+            "type": "Attribute",
+        },
+    )
+    offset: None | int = field(
+        default=None,
+        metadata={
+            "name": "Offset",
+            "type": "Attribute",
+            "max_inclusive": 1048575,
         },
     )

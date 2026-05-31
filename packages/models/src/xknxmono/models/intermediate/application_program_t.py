@@ -54,7 +54,6 @@ class ApplicationProgram:
     :ivar created_from_legacy_schema_version:
     :ivar internal_description:
     :ivar is_secure_enabled: registration-relevant
-    :ivar tunneling_address_indices: registration-relevant
     :ivar max_user_entries: registration-relevant
     :ivar max_tunneling_user_entries: registration-relevant
     :ivar max_security_individual_address_entries: registration-relevant
@@ -286,14 +285,6 @@ class ApplicationProgram:
         metadata={
             "name": "IsSecureEnabled",
             "type": "Attribute",
-        },
-    )
-    tunneling_address_indices: list[int] = field(
-        default_factory=list,
-        metadata={
-            "name": "TunnelingAddressIndices",
-            "type": "Attribute",
-            "tokens": True,
         },
     )
     max_user_entries: int = field(

@@ -19,3 +19,16 @@ class HawkConfigurationDataInterfaceObjectsInterfaceObject:
             "type": "Element",
         },
     )
+    index: None | int = field(
+        default=None,
+        metadata={
+            "name": "Index",
+            "type": "Attribute",
+        },
+    )
+    object_type: int = field(
+        metadata={
+            "name": "ObjectType",
+            "type": "Attribute",
+        }
+    )

@@ -18,7 +18,6 @@ class ComObject:
     :ivar text:
     :ivar number: registration-relevant
     :ivar function_text:
-    :ivar visible_description:
     :ivar priority:
     :ivar object_size: registration-relevant
     :ivar read_flag:
@@ -74,13 +73,6 @@ class ComObject:
             "type": "Attribute",
             "max_length": 255,
         }
-    )
-    visible_description: None | str = field(
-        default=None,
-        metadata={
-            "name": "VisibleDescription",
-            "type": "Attribute",
-        },
     )
     priority: ComObjectPriority = field(
         default=ComObjectPriority.LOW,

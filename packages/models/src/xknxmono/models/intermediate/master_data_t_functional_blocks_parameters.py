@@ -19,3 +19,9 @@ class MasterDataFunctionalBlocksParameters:
             "type": "Element",
         },
     )
+    object_type: str = field(
+        metadata={
+            "name": "ObjectType",
+            "type": "Attribute",
+        }
+    )

@@ -38,6 +38,9 @@ from xknxmono.models.intermediate.application_program_static_t_bus_interfaces im
 from xknxmono.models.intermediate.application_program_static_t_bus_interfaces_bus_interface import (
     ApplicationProgramStaticBusInterfacesBusInterface,
 )
+from xknxmono.models.intermediate.application_program_static_t_bus_interfaces_bus_interface_access_type import (
+    ApplicationProgramStaticBusInterfacesBusInterfaceAccessType,
+)
 from xknxmono.models.intermediate.application_program_static_t_code import (
     ApplicationProgramStaticCode,
 )
@@ -82,6 +85,18 @@ from xknxmono.models.intermediate.application_program_static_t_messages_message 
 )
 from xknxmono.models.intermediate.application_program_static_t_options import (
     ApplicationProgramStaticOptions,
+)
+from xknxmono.models.intermediate.application_program_static_t_options_customer_adjustable_parameters import (
+    ApplicationProgramStaticOptionsCustomerAdjustableParameters,
+)
+from xknxmono.models.intermediate.application_program_static_t_options_not_loadable import (
+    ApplicationProgramStaticOptionsNotLoadable,
+)
+from xknxmono.models.intermediate.application_program_static_t_options_parameter_byte_order import (
+    ApplicationProgramStaticOptionsParameterByteOrder,
+)
+from xknxmono.models.intermediate.application_program_static_t_options_text_parameter_encoding_selector import (
+    TextEncodingSelector,
 )
 from xknxmono.models.intermediate.application_program_static_t_parameter_calculations import (
     ApplicationProgramStaticParameterCalculations,
@@ -131,8 +146,6 @@ from xknxmono.models.intermediate.application_program_type_t import ApplicationP
 from xknxmono.models.intermediate.assign_t import Assign
 from xknxmono.models.intermediate.binary_data_ref_t import BinaryDataRef
 from xknxmono.models.intermediate.binary_data_t import BinaryData
-from xknxmono.models.intermediate.building_part_t import BuildingPart
-from xknxmono.models.intermediate.buildings import Buildings
 from xknxmono.models.intermediate.bus_access_t import BusAccess
 from xknxmono.models.intermediate.bus_interface_t import BusInterface
 from xknxmono.models.intermediate.bus_interface_t_connectors import BusInterfaceConnectors
@@ -142,6 +155,7 @@ from xknxmono.models.intermediate.bus_interface_t_connectors_connector import (
 from xknxmono.models.intermediate.button_t import Button
 from xknxmono.models.intermediate.button_t_event_handler_online import ButtonEventHandlerOnline
 from xknxmono.models.intermediate.calculation_parameter_ref_t import CalculationParameterRef
+from xknxmono.models.intermediate.capability_t import Capability
 from xknxmono.models.intermediate.catalog_section_t import CatalogSection
 from xknxmono.models.intermediate.catalog_section_t_catalog_item import CatalogSectionCatalogItem
 from xknxmono.models.intermediate.channel_independent_block_t import ChannelIndependentBlock
@@ -176,6 +190,7 @@ from xknxmono.models.intermediate.com_object_security_requirements_t import (
 )
 from xknxmono.models.intermediate.com_object_size_t import ComObjectSize
 from xknxmono.models.intermediate.com_object_t import ComObject
+from xknxmono.models.intermediate.com_table_expectation_t import ComTableExpectation
 from xknxmono.models.intermediate.completion_status_t import CompletionStatus
 from xknxmono.models.intermediate.coupler_capability_t import CouplerCapability
 from xknxmono.models.intermediate.datapoint_role_t import DatapointRole
@@ -261,6 +276,7 @@ from xknxmono.models.intermediate.device_instance_t_rf_fast_ack_slots import (
 from xknxmono.models.intermediate.device_instance_t_rf_fast_ack_slots_slot import (
     DeviceInstanceRfFastAckSlotsSlot,
 )
+from xknxmono.models.intermediate.download_behavior_t import DownloadBehavior
 from xknxmono.models.intermediate.enable_t import Enable
 from xknxmono.models.intermediate.fixup_t import Fixup
 from xknxmono.models.intermediate.function_t import Function
@@ -268,6 +284,7 @@ from xknxmono.models.intermediate.function_type_t import FunctionType
 from xknxmono.models.intermediate.function_type_t_function_point import FunctionTypeFunctionPoint
 from xknxmono.models.intermediate.functions_group_t import FunctionsGroup
 from xknxmono.models.intermediate.group_address_ref_t import GroupAddressRef
+from xknxmono.models.intermediate.group_address_style_t import GroupAddressStyle
 from xknxmono.models.intermediate.group_address_t import GroupAddress
 from xknxmono.models.intermediate.group_addresses_t import GroupAddresses
 from xknxmono.models.intermediate.group_addresses_t_group_ranges import GroupAddressesGroupRanges
@@ -283,6 +300,9 @@ from xknxmono.models.intermediate.hardware_t_products_product_attributes import 
 from xknxmono.models.intermediate.hardware_t_products_product_attributes_attribute import (
     HardwareProductsProductAttributesAttribute,
 )
+from xknxmono.models.intermediate.hardware_t_products_product_attributes_attribute_name import (
+    HardwareProductsProductAttributesAttributeName,
+)
 from xknxmono.models.intermediate.hardware_t_products_product_baggages import (
     HardwareProductsProductBaggages,
 )
@@ -295,6 +315,9 @@ from xknxmono.models.intermediate.hawk_configuration_data_t_features import (
 )
 from xknxmono.models.intermediate.hawk_configuration_data_t_features_feature import (
     HawkConfigurationDataFeaturesFeature,
+)
+from xknxmono.models.intermediate.hawk_configuration_data_t_features_feature_name import (
+    HawkConfigurationDataFeaturesFeatureName,
 )
 from xknxmono.models.intermediate.hawk_configuration_data_t_interface_objects import (
     HawkConfigurationDataInterfaceObjects,
@@ -320,6 +343,9 @@ from xknxmono.models.intermediate.hawk_configuration_data_t_procedures import (
 from xknxmono.models.intermediate.hawk_configuration_data_t_procedures_procedure import (
     HawkConfigurationDataProceduresProcedure,
 )
+from xknxmono.models.intermediate.hawk_configuration_data_t_procedures_procedure_value import (
+    HawkConfigurationDataProceduresProcedureValue,
+)
 from xknxmono.models.intermediate.hawk_configuration_data_t_resources import (
     HawkConfigurationDataResources,
 )
@@ -332,6 +358,10 @@ from xknxmono.models.intermediate.hawk_configuration_data_t_resources_resource_a
 from xknxmono.models.intermediate.hawk_configuration_data_t_resources_resource_resource_type import (
     HawkConfigurationDataResourcesResourceResourceType,
 )
+from xknxmono.models.intermediate.hawk_configuration_data_t_resources_resource_resource_type_flavour import (
+    HawkConfigurationDataResourcesResourceResourceTypeFlavour,
+)
+from xknxmono.models.intermediate.horizontal_alignment_t import HorizontalAlignment
 from xknxmono.models.intermediate.io_tpoint_parameter_t import IoPointParameter
 from xknxmono.models.intermediate.ipconfig_assign_t import IpconfigAssign
 from xknxmono.models.intermediate.ipconfig_t import Ipconfig
@@ -366,6 +396,7 @@ from xknxmono.models.intermediate.ld_ctrl_control_variable_t import LdCtrlContro
 from xknxmono.models.intermediate.ld_ctrl_declare_prop_desc_t import LdCtrlDeclarePropDesc
 from xknxmono.models.intermediate.ld_ctrl_delay_t import LdCtrlDelay
 from xknxmono.models.intermediate.ld_ctrl_disconnect_t import LdCtrlDisconnect
+from xknxmono.models.intermediate.ld_ctrl_error_cause_t import LdCtrlErrorCause
 from xknxmono.models.intermediate.ld_ctrl_invoke_function_prop_t import LdCtrlInvokeFunctionProp
 from xknxmono.models.intermediate.ld_ctrl_load_completed_t import LdCtrlLoadCompleted
 from xknxmono.models.intermediate.ld_ctrl_load_image_mem_t import LdCtrlLoadImageMem
@@ -397,7 +428,6 @@ from xknxmono.models.intermediate.load_procedures_t import LoadProcedures
 from xknxmono.models.intermediate.load_procedures_t_load_procedure import (
     LoadProceduresLoadProcedure,
 )
-from xknxmono.models.intermediate.locations import Locations
 from xknxmono.models.intermediate.locations_t import Locations
 from xknxmono.models.intermediate.manufacturer_data_t import ManufacturerData
 from xknxmono.models.intermediate.manufacturer_data_t_manufacturer import (
@@ -509,6 +539,9 @@ from xknxmono.models.intermediate.master_data_t_manufacturers_manufacturer_datap
 from xknxmono.models.intermediate.master_data_t_manufacturers_manufacturer_function_types import (
     MasterDataManufacturersManufacturerFunctionTypes,
 )
+from xknxmono.models.intermediate.master_data_t_manufacturers_manufacturer_import_restriction import (
+    MasterDataManufacturersManufacturerImportRestriction,
+)
 from xknxmono.models.intermediate.master_data_t_manufacturers_manufacturer_public_keys import (
     MasterDataManufacturersManufacturerPublicKeys,
 )
@@ -543,7 +576,9 @@ from xknxmono.models.intermediate.master_data_t_space_usages_public_key import (
 from xknxmono.models.intermediate.master_data_t_space_usages_public_key_rsakey_value import (
     MasterDataSpaceUsagesPublicKeyRsakeyValue,
 )
+from xknxmono.models.intermediate.member_status_t import MemberStatus
 from xknxmono.models.intermediate.memory_parameter_t import MemoryParameter
+from xknxmono.models.intermediate.memory_type_t import MemoryType
 from xknxmono.models.intermediate.memory_union_t import MemoryUnion
 from xknxmono.models.intermediate.module_arg_t import ModuleArg
 from xknxmono.models.intermediate.module_def_arg_type_t import ModuleDefArgType
@@ -632,7 +667,6 @@ from xknxmono.models.intermediate.p2_plinks_t import P2Plinks
 from xknxmono.models.intermediate.p2_plinks_t_p2_plink import P2PlinksP2Plink
 from xknxmono.models.intermediate.parameter_base_t import ParameterBase
 from xknxmono.models.intermediate.parameter_block_layout_t import ParameterBlockLayout
-from xknxmono.models.intermediate.parameter_block_rename import ParameterBlockRename
 from xknxmono.models.intermediate.parameter_calculation_t import ParameterCalculation
 from xknxmono.models.intermediate.parameter_calculation_t_language import (
     ParameterCalculationLanguage,
@@ -650,30 +684,67 @@ from xknxmono.models.intermediate.parameter_separator_t import ParameterSeparato
 from xknxmono.models.intermediate.parameter_separator_t_uihint import ParameterSeparatorUihint
 from xknxmono.models.intermediate.parameter_type_t import ParameterType
 from xknxmono.models.intermediate.parameter_type_t_type_color import ParameterTypeTypeColor
+from xknxmono.models.intermediate.parameter_type_t_type_color_space import (
+    ParameterTypeTypeColorSpace,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_date import ParameterTypeTypeDate
+from xknxmono.models.intermediate.parameter_type_t_type_date_encoding import (
+    ParameterTypeTypeDateEncoding,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_float import ParameterTypeTypeFloat
+from xknxmono.models.intermediate.parameter_type_t_type_float_encoding import (
+    ParameterTypeTypeFloatEncoding,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_float_uihint import (
+    ParameterTypeTypeFloatUihint,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_ipaddress import ParameterTypeTypeIpaddress
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress_address_type import (
+    ParameterTypeTypeIpaddressAddressType,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress_version import (
+    ParameterTypeTypeIpaddressVersion,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_number import ParameterTypeTypeNumber
+from xknxmono.models.intermediate.parameter_type_t_type_number_type import (
+    ParameterTypeTypeNumberType,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_number_uihint import (
+    ParameterTypeTypeNumberUihint,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_picture import ParameterTypeTypePicture
 from xknxmono.models.intermediate.parameter_type_t_type_raw_data import ParameterTypeTypeRawData
 from xknxmono.models.intermediate.parameter_type_t_type_restriction import (
     ParameterTypeTypeRestriction,
 )
+from xknxmono.models.intermediate.parameter_type_t_type_restriction_base import (
+    ParameterTypeTypeRestrictionBase,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_restriction_enumeration import (
     ParameterTypeTypeRestrictionEnumeration,
 )
+from xknxmono.models.intermediate.parameter_type_t_type_restriction_uihint import (
+    ParameterTypeTypeRestrictionUihint,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_text import ParameterTypeTypeText
 from xknxmono.models.intermediate.parameter_type_t_type_time import ParameterTypeTypeTime
+from xknxmono.models.intermediate.parameter_type_t_type_time_uihint import (
+    ParameterTypeTypeTimeUihint,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_time_unit import ParameterTypeTypeTimeUnit
 from xknxmono.models.intermediate.parameter_validation_t import ParameterValidation
 from xknxmono.models.intermediate.parameter_validation_t_parameters import (
     ParameterValidationParameters,
 )
+from xknxmono.models.intermediate.procedure_type_t import ProcedureType
 from xknxmono.models.intermediate.project_t import Project
-from xknxmono.models.intermediate.project_t_add_in_data_1 import ProjectAddInData1
-from xknxmono.models.intermediate.project_t_addin_data_2 import ProjectAddinData2
+from xknxmono.models.intermediate.project_t_addin_data import ProjectAddinData
 from xknxmono.models.intermediate.project_t_installations import ProjectInstallations
 from xknxmono.models.intermediate.project_t_installations_installation import (
     ProjectInstallationsInstallation,
+)
+from xknxmono.models.intermediate.project_t_installations_installation_split_type import (
+    ProjectInstallationsInstallationSplitType,
 )
 from xknxmono.models.intermediate.project_t_project_information import ProjectProjectInformation
 from xknxmono.models.intermediate.project_t_project_information_device_certificates import (
@@ -699,6 +770,8 @@ from xknxmono.models.intermediate.project_t_project_information_to_do_items impo
 )
 from xknxmono.models.intermediate.project_t_user_files import ProjectUserFiles
 from xknxmono.models.intermediate.project_trace_t import ProjectTrace
+from xknxmono.models.intermediate.project_tracing_level_t import ProjectTracingLevel
+from xknxmono.models.intermediate.project_type_t import ProjectType
 from xknxmono.models.intermediate.prop_type_t import PropType
 from xknxmono.models.intermediate.property_parameter_t import PropertyParameter
 from xknxmono.models.intermediate.property_union_t import PropertyUnion
@@ -707,10 +780,12 @@ from xknxmono.models.intermediate.registration_info_t_registration_key import (
     RegistrationInfoRegistrationKey,
 )
 from xknxmono.models.intermediate.registration_status_t import RegistrationStatus
-from xknxmono.models.intermediate.rename import Rename
 from xknxmono.models.intermediate.rename_t import Rename
+from xknxmono.models.intermediate.resource_access_rights_t import ResourceAccessRights
+from xknxmono.models.intermediate.resource_access_t import ResourceAccess
 from xknxmono.models.intermediate.resource_addr_space_t import ResourceAddrSpace
 from xknxmono.models.intermediate.resource_location_t import ResourceLocation
+from xknxmono.models.intermediate.resource_mgmt_style_t import ResourceMgmtStyle
 from xknxmono.models.intermediate.resource_name_t import ResourceName
 from xknxmono.models.intermediate.rfdevice_mode_t import RfdeviceMode
 from xknxmono.models.intermediate.rfrx_capabilities_t import RfrxCapabilities
@@ -725,17 +800,12 @@ from xknxmono.models.intermediate.space_usage_t import SpaceUsage
 from xknxmono.models.intermediate.split_info_t import SplitInfo
 from xknxmono.models.intermediate.split_infos_t import SplitInfos
 from xknxmono.models.intermediate.text_alignment_t import TextAlignment
+from xknxmono.models.intermediate.text_encoding_t import TextEncoding
 from xknxmono.models.intermediate.to_do_item_t import ToDoItem
 from xknxmono.models.intermediate.to_do_status_t import ToDoStatus
 from xknxmono.models.intermediate.topology_t import Topology
 from xknxmono.models.intermediate.topology_t_area import TopologyArea
 from xknxmono.models.intermediate.topology_t_area_line import TopologyAreaLine
-from xknxmono.models.intermediate.topology_t_area_line_additional_group_addresses import (
-    TopologyAreaLineAdditionalGroupAddresses,
-)
-from xknxmono.models.intermediate.topology_t_area_line_additional_group_addresses_group_address import (
-    TopologyAreaLineAdditionalGroupAddressesGroupAddress,
-)
 from xknxmono.models.intermediate.topology_t_area_line_segment import TopologyAreaLineSegment
 from xknxmono.models.intermediate.topology_t_area_line_segment_additional_group_addresses import (
     TopologyAreaLineSegmentAdditionalGroupAddresses,
@@ -773,6 +843,7 @@ __all__ = [
     "ApplicationProgramStaticBinaryDataExcludeProperty",
     "ApplicationProgramStaticBusInterfaces",
     "ApplicationProgramStaticBusInterfacesBusInterface",
+    "ApplicationProgramStaticBusInterfacesBusInterfaceAccessType",
     "ApplicationProgramStaticCode",
     "ApplicationProgramStaticCodeAbsoluteSegment",
     "ApplicationProgramStaticCodeRelativeSegment",
@@ -788,6 +859,10 @@ __all__ = [
     "ApplicationProgramStaticMessages",
     "ApplicationProgramStaticMessagesMessage",
     "ApplicationProgramStaticOptions",
+    "ApplicationProgramStaticOptionsCustomerAdjustableParameters",
+    "ApplicationProgramStaticOptionsNotLoadable",
+    "ApplicationProgramStaticOptionsParameterByteOrder",
+    "TextEncodingSelector",
     "ApplicationProgramStaticParameterCalculations",
     "ApplicationProgramStaticParameterRefs",
     "ApplicationProgramStaticParameterTypes",
@@ -808,8 +883,6 @@ __all__ = [
     "Assign",
     "BinaryDataRef",
     "BinaryData",
-    "BuildingPart",
-    "Buildings",
     "BusAccess",
     "BusInterface",
     "BusInterfaceConnectors",
@@ -817,6 +890,7 @@ __all__ = [
     "Button",
     "ButtonEventHandlerOnline",
     "CalculationParameterRef",
+    "Capability",
     "CatalogSection",
     "CatalogSectionCatalogItem",
     "ChannelIndependentBlock",
@@ -835,6 +909,7 @@ __all__ = [
     "ComObjectSecurityRequirements",
     "ComObjectSize",
     "ComObject",
+    "ComTableExpectation",
     "CompletionStatus",
     "CouplerCapability",
     "DatapointRole",
@@ -870,6 +945,7 @@ __all__ = [
     "DeviceInstanceParameterInstanceRefs",
     "DeviceInstanceRfFastAckSlots",
     "DeviceInstanceRfFastAckSlotsSlot",
+    "DownloadBehavior",
     "Enable",
     "Fixup",
     "Function",
@@ -877,6 +953,7 @@ __all__ = [
     "FunctionTypeFunctionPoint",
     "FunctionsGroup",
     "GroupAddressRef",
+    "GroupAddressStyle",
     "GroupAddress",
     "GroupAddresses",
     "GroupAddressesGroupRanges",
@@ -888,11 +965,13 @@ __all__ = [
     "HardwareProductsProduct",
     "HardwareProductsProductAttributes",
     "HardwareProductsProductAttributesAttribute",
+    "HardwareProductsProductAttributesAttributeName",
     "HardwareProductsProductBaggages",
     "HardwareProductsProductBaggagesBaggage",
     "HawkConfigurationData",
     "HawkConfigurationDataFeatures",
     "HawkConfigurationDataFeaturesFeature",
+    "HawkConfigurationDataFeaturesFeatureName",
     "HawkConfigurationDataInterfaceObjects",
     "HawkConfigurationDataInterfaceObjectsInterfaceObject",
     "HawkConfigurationDataInterfaceObjectsInterfaceObjectProperty",
@@ -901,10 +980,13 @@ __all__ = [
     "HawkConfigurationDataMemorySegmentsMemorySegmentAccessRights",
     "HawkConfigurationDataProcedures",
     "HawkConfigurationDataProceduresProcedure",
+    "HawkConfigurationDataProceduresProcedureValue",
     "HawkConfigurationDataResources",
     "HawkConfigurationDataResourcesResource",
     "HawkConfigurationDataResourcesResourceAccessRights",
     "HawkConfigurationDataResourcesResourceResourceType",
+    "HawkConfigurationDataResourcesResourceResourceTypeFlavour",
+    "HorizontalAlignment",
     "IoPointParameter",
     "IpconfigAssign",
     "Ipconfig",
@@ -929,6 +1011,7 @@ __all__ = [
     "LdCtrlDeclarePropDesc",
     "LdCtrlDelay",
     "LdCtrlDisconnect",
+    "LdCtrlErrorCause",
     "LdCtrlInvokeFunctionProp",
     "LdCtrlLoadCompleted",
     "LdCtrlLoadImageMem",
@@ -958,7 +1041,6 @@ __all__ = [
     "LoadProcedure",
     "LoadProcedures",
     "LoadProceduresLoadProcedure",
-    "Locations",
     "Locations",
     "ManufacturerData",
     "ManufacturerDataManufacturer",
@@ -1004,6 +1086,7 @@ __all__ = [
     "MasterDataManufacturersManufacturerDatapointRoles",
     "MasterDataManufacturersManufacturerDatapointTypes",
     "MasterDataManufacturersManufacturerFunctionTypes",
+    "MasterDataManufacturersManufacturerImportRestriction",
     "MasterDataManufacturersManufacturerPublicKeys",
     "MasterDataManufacturersManufacturerPublicKeysPublicKey",
     "MasterDataManufacturersManufacturerPublicKeysPublicKeyRsakeyValue",
@@ -1018,7 +1101,9 @@ __all__ = [
     "MasterDataSpaceUsages",
     "MasterDataSpaceUsagesPublicKey",
     "MasterDataSpaceUsagesPublicKeyRsakeyValue",
+    "MemberStatus",
     "MemoryParameter",
+    "MemoryType",
     "MemoryUnion",
     "ModuleArg",
     "ModuleDefArgType",
@@ -1067,7 +1152,6 @@ __all__ = [
     "P2PlinksP2Plink",
     "ParameterBase",
     "ParameterBlockLayout",
-    "ParameterBlockRename",
     "ParameterCalculation",
     "ParameterCalculationLanguage",
     "ParameterCalculationLparameters",
@@ -1079,23 +1163,36 @@ __all__ = [
     "ParameterSeparatorUihint",
     "ParameterType",
     "ParameterTypeTypeColor",
+    "ParameterTypeTypeColorSpace",
     "ParameterTypeTypeDate",
+    "ParameterTypeTypeDateEncoding",
     "ParameterTypeTypeFloat",
+    "ParameterTypeTypeFloatEncoding",
+    "ParameterTypeTypeFloatUihint",
     "ParameterTypeTypeIpaddress",
+    "ParameterTypeTypeIpaddressAddressType",
+    "ParameterTypeTypeIpaddressVersion",
     "ParameterTypeTypeNumber",
+    "ParameterTypeTypeNumberType",
+    "ParameterTypeTypeNumberUihint",
     "ParameterTypeTypePicture",
     "ParameterTypeTypeRawData",
     "ParameterTypeTypeRestriction",
+    "ParameterTypeTypeRestrictionBase",
     "ParameterTypeTypeRestrictionEnumeration",
+    "ParameterTypeTypeRestrictionUihint",
     "ParameterTypeTypeText",
     "ParameterTypeTypeTime",
+    "ParameterTypeTypeTimeUihint",
+    "ParameterTypeTypeTimeUnit",
     "ParameterValidation",
     "ParameterValidationParameters",
+    "ProcedureType",
     "Project",
-    "ProjectAddInData1",
-    "ProjectAddinData2",
+    "ProjectAddinData",
     "ProjectInstallations",
     "ProjectInstallationsInstallation",
+    "ProjectInstallationsInstallationSplitType",
     "ProjectProjectInformation",
     "ProjectProjectInformationDeviceCertificates",
     "ProjectProjectInformationHistoryEntries",
@@ -1106,6 +1203,8 @@ __all__ = [
     "ProjectProjectInformationToDoItems",
     "ProjectUserFiles",
     "ProjectTrace",
+    "ProjectTracingLevel",
+    "ProjectType",
     "PropType",
     "PropertyParameter",
     "PropertyUnion",
@@ -1113,9 +1212,11 @@ __all__ = [
     "RegistrationInfoRegistrationKey",
     "RegistrationStatus",
     "Rename",
-    "Rename",
+    "ResourceAccessRights",
+    "ResourceAccess",
     "ResourceAddrSpace",
     "ResourceLocation",
+    "ResourceMgmtStyle",
     "ResourceName",
     "RfdeviceMode",
     "RfrxCapabilities",
@@ -1130,13 +1231,12 @@ __all__ = [
     "SplitInfo",
     "SplitInfos",
     "TextAlignment",
+    "TextEncoding",
     "ToDoItem",
     "ToDoStatus",
     "Topology",
     "TopologyArea",
     "TopologyAreaLine",
-    "TopologyAreaLineAdditionalGroupAddresses",
-    "TopologyAreaLineAdditionalGroupAddressesGroupAddress",
     "TopologyAreaLineSegment",
     "TopologyAreaLineSegmentAdditionalGroupAddresses",
     "TopologyAreaLineSegmentAdditionalGroupAddressesGroupAddress",

@@ -21,3 +21,22 @@ class DatapointTypeDatapointSubtypesDatapointSubtypeFormatEnumeration:
             },
         )
     )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    width: int = field(
+        metadata={
+            "name": "Width",
+            "type": "Attribute",
+        }
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+        },
+    )

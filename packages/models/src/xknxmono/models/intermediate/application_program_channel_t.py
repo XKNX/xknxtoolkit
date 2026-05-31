@@ -16,10 +16,9 @@ from xknxmono.models.intermediate.com_object_parameter_block_t_rows import (
 from xknxmono.models.intermediate.com_object_ref_ref_t import ComObjectRefRef
 from xknxmono.models.intermediate.module_t import Module
 from xknxmono.models.intermediate.parameter_block_layout_t import ParameterBlockLayout
-from xknxmono.models.intermediate.parameter_block_rename import ParameterBlockRename
 from xknxmono.models.intermediate.parameter_ref_ref_t import ParameterRefRef
 from xknxmono.models.intermediate.parameter_separator_t import ParameterSeparator
-from xknxmono.models.intermediate.rename import Rename
+from xknxmono.models.intermediate.rename_t import Rename
 from xknxmono.models.intermediate.when_t import When
 
 
@@ -510,7 +509,6 @@ class ChannelChooseWhen(When):
         | Repeat
         | ChannelChoose
         | Rename
-        | ParameterBlockRename
     ] = field(
         default_factory=list,
         metadata={
@@ -544,10 +542,6 @@ class ChannelChooseWhen(When):
                     "name": "Rename",
                     "type": Rename,
                 },
-                {
-                    "name": "ParameterBlockRename",
-                    "type": ParameterBlockRename,
-                },
             ),
         },
     )
@@ -570,7 +564,6 @@ class ComObjectParameterChooseWhen(When):
         | Repeat
         | Assign
         | Rename
-        | ParameterBlockRename
     ] = field(
         default_factory=list,
         metadata={
@@ -619,10 +612,6 @@ class ComObjectParameterChooseWhen(When):
                 {
                     "name": "Rename",
                     "type": Rename,
-                },
-                {
-                    "name": "ParameterBlockRename",
-                    "type": ParameterBlockRename,
                 },
             ),
         },

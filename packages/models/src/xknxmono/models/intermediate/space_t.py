@@ -53,13 +53,6 @@ class Space:
             "type": "Attribute",
         }
     )
-    usage: None | str = field(
-        default=None,
-        metadata={
-            "name": "Usage",
-            "type": "Attribute",
-        },
-    )
     number: None | str = field(
         default=None,
         metadata={
@@ -72,13 +65,6 @@ class Space:
         default=None,
         metadata={
             "name": "Comment",
-            "type": "Attribute",
-        },
-    )
-    description: None | str = field(
-        default=None,
-        metadata={
-            "name": "Description",
             "type": "Attribute",
         },
     )
@@ -96,11 +82,25 @@ class Space:
             "type": "Attribute",
         },
     )
+    description: None | str = field(
+        default=None,
+        metadata={
+            "name": "Description",
+            "type": "Attribute",
+        },
+    )
     puid: int = field(
         metadata={
             "name": "Puid",
             "type": "Attribute",
         }
+    )
+    usage: None | str = field(
+        default=None,
+        metadata={
+            "name": "Usage",
+            "type": "Attribute",
+        },
     )
     context: None | str = field(
         default=None,

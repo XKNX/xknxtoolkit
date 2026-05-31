@@ -19,3 +19,22 @@ class MasterDataSpaceUsagesPublicKey:
             "type": "Element",
         },
     )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )
+    number: int = field(
+        metadata={
+            "name": "Number",
+            "type": "Attribute",
+        }
+    )
+    revoked: bool = field(
+        default=False,
+        metadata={
+            "name": "Revoked",
+            "type": "Attribute",
+        },
+    )

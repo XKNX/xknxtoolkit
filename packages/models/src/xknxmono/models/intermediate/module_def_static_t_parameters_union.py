@@ -16,6 +16,7 @@ class ModuleDefStaticParametersUnion:
     """
     :ivar choice:
     :ivar parameter: registration-relevant set
+    :ivar size_in_bit:
     """
 
     class Meta:
@@ -46,4 +47,11 @@ class ModuleDefStaticParametersUnion:
             "type": "Element",
             "min_occurs": 1,
         },
+    )
+    size_in_bit: int = field(
+        metadata={
+            "name": "SizeInBit",
+            "type": "Attribute",
+            "max_inclusive": 8388600,
+        }
     )

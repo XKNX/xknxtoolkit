@@ -7,8 +7,8 @@ from dataclasses import dataclass, field
 class CalculationParameterRef:
     """
     :ivar ref_id: registration-relevant
-    :ivar internal_description:
     :ivar alias_name: registration-relevant
+    :ivar internal_description:
     """
 
     class Meta:
@@ -20,18 +20,18 @@ class CalculationParameterRef:
             "type": "Attribute",
         }
     )
-    internal_description: None | str = field(
-        default=None,
-        metadata={
-            "name": "InternalDescription",
-            "type": "Attribute",
-        },
-    )
     alias_name: None | str = field(
         default=None,
         metadata={
             "name": "AliasName",
             "type": "Attribute",
             "max_length": 50,
+        },
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
         },
     )

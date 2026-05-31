@@ -2,11 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.intermediate.bus_access_t import BusAccess
-from xknxmono.models.intermediate.device_instance_t import DeviceInstance
-from xknxmono.models.intermediate.topology_t_area_line_additional_group_addresses import (
-    TopologyAreaLineAdditionalGroupAddresses,
-)
+from xknxmono.models.intermediate.completion_status_t import CompletionStatus
 from xknxmono.models.intermediate.topology_t_area_line_segment import TopologyAreaLineSegment
 
 
@@ -20,27 +16,56 @@ class TopologyAreaLine:
         metadata={
             "name": "Segment",
             "type": "Element",
+            "min_occurs": 1,
             "max_occurs": 128,
         },
     )
-    device_instance: list[DeviceInstance] = field(
-        default_factory=list,
+    id: str = field(
         metadata={
-            "name": "DeviceInstance",
-            "type": "Element",
-        },
+            "name": "Id",
+            "type": "Attribute",
+        }
     )
-    bus_access: None | BusAccess = field(
+    name: None | str = field(
         default=None,
         metadata={
-            "name": "BusAccess",
-            "type": "Element",
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
         },
     )
-    additional_group_addresses: None | TopologyAreaLineAdditionalGroupAddresses = field(
+    address: int = field(
+        metadata={
+            "name": "Address",
+            "type": "Attribute",
+            "min_inclusive": 0,
+            "max_inclusive": 15,
+        }
+    )
+    comment: None | str = field(
         default=None,
         metadata={
-            "name": "AdditionalGroupAddresses",
-            "type": "Element",
+            "name": "Comment",
+            "type": "Attribute",
         },
+    )
+    completion_status: None | CompletionStatus = field(
+        default=None,
+        metadata={
+            "name": "CompletionStatus",
+            "type": "Attribute",
+        },
+    )
+    description: None | str = field(
+        default=None,
+        metadata={
+            "name": "Description",
+            "type": "Attribute",
+        },
+    )
+    puid: int = field(
+        metadata={
+            "name": "Puid",
+            "type": "Attribute",
+        }
     )

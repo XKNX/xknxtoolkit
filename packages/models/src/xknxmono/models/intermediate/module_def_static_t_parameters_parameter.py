@@ -14,6 +14,11 @@ from xknxmono.models.intermediate.parameter_base_t import ParameterBase
 
 @dataclass(slots=True, kw_only=True)
 class ModuleDefStaticParametersParameter(ParameterBase):
+    """
+    :ivar choice:
+    :ivar base_value: registration-relevant
+    """
+
     class Meta:
         global_type = False
 
@@ -40,5 +45,12 @@ class ModuleDefStaticParametersParameter(ParameterBase):
                     "type": IoPointParameter,
                 },
             ),
+        },
+    )
+    base_value: None | str = field(
+        default=None,
+        metadata={
+            "name": "BaseValue",
+            "type": "Attribute",
         },
     )

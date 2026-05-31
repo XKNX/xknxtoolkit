@@ -3,10 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from xknxmono.models.intermediate.addin_data_t import AddinData
-from xknxmono.models.intermediate.buildings import Buildings
+from xknxmono.models.intermediate.completion_status_t import CompletionStatus
 from xknxmono.models.intermediate.group_addresses_t import GroupAddresses
-from xknxmono.models.intermediate.locations import Locations
+from xknxmono.models.intermediate.locations_t import Locations
 from xknxmono.models.intermediate.p2_plinks_t import P2Plinks
+from xknxmono.models.intermediate.project_t_installations_installation_split_type import (
+    ProjectInstallationsInstallationSplitType,
+)
+from xknxmono.models.intermediate.security_mode_t import SecurityMode
 from xknxmono.models.intermediate.split_infos_t import SplitInfos
 from xknxmono.models.intermediate.topology_t import Topology
 from xknxmono.models.intermediate.trades_t import Trades
@@ -24,21 +28,11 @@ class ProjectInstallationsInstallation:
             "type": "Element",
         }
     )
-    choice: None | Locations | Buildings = field(
-        default=None,
+    locations: Locations = field(
         metadata={
-            "type": "Elements",
-            "choices": (
-                {
-                    "name": "Locations",
-                    "type": Locations,
-                },
-                {
-                    "name": "Buildings",
-                    "type": Buildings,
-                },
-            ),
-        },
+            "name": "Locations",
+            "type": "Element",
+        }
     )
     group_addresses: GroupAddresses = field(
         metadata={
@@ -67,13 +61,6 @@ class ProjectInstallationsInstallation:
             "type": "Element",
         },
     )
-    add_in_data_element: list[AddinData] = field(
-        default_factory=list,
-        metadata={
-            "name": "AddInData",
-            "type": "Element",
-        },
-    )
     addin_data: list[AddinData] = field(
         default_factory=list,
         metadata={
@@ -86,5 +73,106 @@ class ProjectInstallationsInstallation:
         metadata={
             "name": "UserFile",
             "type": "Element",
+        },
+    )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 50,
+        }
+    )
+    installation_id: None | int = field(
+        default=None,
+        metadata={
+            "name": "InstallationId",
+            "type": "Attribute",
+            "max_inclusive": 15,
+        },
+    )
+    bcukey: int = field(
+        default=4294967295,
+        metadata={
+            "name": "BCUKey",
+            "type": "Attribute",
+        },
+    )
+    iprouting_multicast_address: str = field(
+        default="224.0.23.12",
+        metadata={
+            "name": "IPRoutingMulticastAddress",
+            "type": "Attribute",
+            "pattern": r"((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])",
+        },
+    )
+    multicast_ttl: int = field(
+        default=16,
+        metadata={
+            "name": "MulticastTTL",
+            "type": "Attribute",
+        },
+    )
+    iprouting_backbone_key: None | str = field(
+        default=None,
+        metadata={
+            "name": "IPRoutingBackboneKey",
+            "type": "Attribute",
+            "max_length": 100,
+        },
+    )
+    iprouting_latency_tolerance: None | int = field(
+        default=None,
+        metadata={
+            "name": "IPRoutingLatencyTolerance",
+            "type": "Attribute",
+        },
+    )
+    ipsync_latency_fraction: float = field(
+        default=0.1,
+        metadata={
+            "name": "IPSyncLatencyFraction",
+            "type": "Attribute",
+        },
+    )
+    default_line: None | str = field(
+        default=None,
+        metadata={
+            "name": "DefaultLine",
+            "type": "Attribute",
+        },
+    )
+    completion_status: CompletionStatus = field(
+        default=CompletionStatus.UNDEFINED,
+        metadata={
+            "name": "CompletionStatus",
+            "type": "Attribute",
+        },
+    )
+    iprouting_backbone_security: SecurityMode = field(
+        default=SecurityMode.AUTO,
+        metadata={
+            "name": "IPRoutingBackboneSecurity",
+            "type": "Attribute",
+        },
+    )
+    split_type: None | ProjectInstallationsInstallationSplitType = field(
+        default=None,
+        metadata={
+            "name": "SplitType",
+            "type": "Attribute",
+        },
+    )
+    context: None | str = field(
+        default=None,
+        metadata={
+            "name": "Context",
+            "type": "Attribute",
+        },
+    )
+    ipv6_installation_id: None | int = field(
+        default=None,
+        metadata={
+            "name": "Ipv6InstallationId",
+            "type": "Attribute",
         },
     )

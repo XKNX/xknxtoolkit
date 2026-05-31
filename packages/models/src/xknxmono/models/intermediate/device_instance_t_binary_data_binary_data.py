@@ -16,3 +16,32 @@ class DeviceInstanceBinaryDataBinaryData:
             "format": "base64",
         },
     )
+    id: None | str = field(
+        default=None,
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        },
+    )
+    ref_id: None | str = field(
+        default=None,
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        },
+    )
+    name: None | str = field(
+        default=None,
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+            "max_length": 255,
+        },
+    )
+    do_not_copy: bool = field(
+        default=False,
+        metadata={
+            "name": "DoNotCopy",
+            "type": "Attribute",
+        },
+    )

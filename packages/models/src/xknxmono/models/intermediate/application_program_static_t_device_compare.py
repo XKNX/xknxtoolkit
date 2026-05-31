@@ -8,6 +8,7 @@ from xknxmono.models.intermediate.application_program_static_t_device_compare_ex
 from xknxmono.models.intermediate.application_program_static_t_device_compare_exclude_property import (
     ApplicationProgramStaticDeviceCompareExcludeProperty,
 )
+from xknxmono.models.intermediate.com_table_expectation_t import ComTableExpectation
 
 
 @dataclass(slots=True, kw_only=True)
@@ -27,5 +28,12 @@ class ApplicationProgramStaticDeviceCompare:
         metadata={
             "name": "ExcludeProperty",
             "type": "Element",
+        },
+    )
+    standard_com_tables_expectable: ComTableExpectation = field(
+        default=ComTableExpectation.TRY,
+        metadata={
+            "name": "StandardComTablesExpectable",
+            "type": "Attribute",
         },
     )

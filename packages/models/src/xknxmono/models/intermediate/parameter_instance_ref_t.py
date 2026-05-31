@@ -28,12 +28,6 @@ class ParameterInstanceRef:
             "type": "Attribute",
         },
     )
-    puid: int = field(
-        metadata={
-            "name": "Puid",
-            "type": "Attribute",
-        }
-    )
     grant_use_by_customer: bool = field(
         default=False,
         metadata={

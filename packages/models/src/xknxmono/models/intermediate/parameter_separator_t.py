@@ -13,7 +13,6 @@ class ParameterSeparator:
     :ivar id: registration-relevant
     :ivar text:
     :ivar access:
-    :ivar horizontal_ruler:
     :ivar text_parameter_ref_id:
     :ivar internal_description:
     :ivar uihint:
@@ -43,13 +42,6 @@ class ParameterSeparator:
         default=Access.READ_WRITE,
         metadata={
             "name": "Access",
-            "type": "Attribute",
-        },
-    )
-    horizontal_ruler: bool = field(
-        default=False,
-        metadata={
-            "name": "HorizontalRuler",
             "type": "Attribute",
         },
     )

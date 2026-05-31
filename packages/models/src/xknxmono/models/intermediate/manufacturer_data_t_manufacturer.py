@@ -59,3 +59,9 @@ class ManufacturerDataManufacturer:
             "type": "Element",
         },
     )
+    ref_id: str = field(
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        }
+    )

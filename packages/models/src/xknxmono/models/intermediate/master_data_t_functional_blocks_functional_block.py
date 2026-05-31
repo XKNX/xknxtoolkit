@@ -29,3 +29,15 @@ class MasterDataFunctionalBlocksFunctionalBlock:
             "type": "Element",
         },
     )
+    name: str = field(
+        metadata={
+            "name": "Name",
+            "type": "Attribute",
+        }
+    )
+    id: str = field(
+        metadata={
+            "name": "Id",
+            "type": "Attribute",
+        }
+    )

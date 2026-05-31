@@ -121,12 +121,6 @@ class ComObjectInstanceRef:
             "type": "Attribute",
         },
     )
-    puid: int = field(
-        metadata={
-            "name": "Puid",
-            "type": "Attribute",
-        }
-    )
     channel_id: None | str = field(
         default=None,
         metadata={

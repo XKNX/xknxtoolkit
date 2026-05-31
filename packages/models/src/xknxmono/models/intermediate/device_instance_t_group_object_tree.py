@@ -27,3 +27,11 @@ class DeviceInstanceGroupObjectTree:
             "format": "base64",
         },
     )
+    group_object_instances: list[str] = field(
+        default_factory=list,
+        metadata={
+            "name": "GroupObjectInstances",
+            "type": "Attribute",
+            "tokens": True,
+        },
+    )

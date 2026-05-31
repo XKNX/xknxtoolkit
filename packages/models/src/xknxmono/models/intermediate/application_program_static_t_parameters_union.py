@@ -12,6 +12,8 @@ class ApplicationProgramStaticParametersUnion:
     """
     :ivar choice:
     :ivar parameter: registration-relevant set
+    :ivar size_in_bit:
+    :ivar internal_description:
     """
 
     class Meta:
@@ -39,5 +41,19 @@ class ApplicationProgramStaticParametersUnion:
             "name": "Parameter",
             "type": "Element",
             "min_occurs": 1,
+        },
+    )
+    size_in_bit: int = field(
+        metadata={
+            "name": "SizeInBit",
+            "type": "Attribute",
+            "max_inclusive": 8388600,
+        }
+    )
+    internal_description: None | str = field(
+        default=None,
+        metadata={
+            "name": "InternalDescription",
+            "type": "Attribute",
         },
     )

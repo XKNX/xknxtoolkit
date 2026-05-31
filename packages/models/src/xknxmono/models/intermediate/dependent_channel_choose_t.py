@@ -7,8 +7,7 @@ from xknxmono.models.intermediate.application_program_channel_t import (
     Repeat,
 )
 from xknxmono.models.intermediate.module_t import Module
-from xknxmono.models.intermediate.parameter_block_rename import ParameterBlockRename
-from xknxmono.models.intermediate.rename import Rename
+from xknxmono.models.intermediate.rename_t import Rename
 from xknxmono.models.intermediate.when_t import When
 
 
@@ -50,42 +49,33 @@ class DependentChannelChooseWhen(When):
     class Meta:
         global_type = False
 
-    choice: list[
-        ApplicationProgramChannel
-        | DependentChannelChoose
-        | Rename
-        | Module
-        | Repeat
-        | ParameterBlockRename
-    ] = field(
-        default_factory=list,
-        metadata={
-            "type": "Elements",
-            "choices": (
-                {
-                    "name": "Channel",
-                    "type": ApplicationProgramChannel,
-                },
-                {
-                    "name": "choose",
-                    "type": DependentChannelChoose,
-                },
-                {
-                    "name": "Rename",
-                    "type": Rename,
-                },
-                {
-                    "name": "Module",
-                    "type": Module,
-                },
-                {
-                    "name": "Repeat",
-                    "type": Repeat,
-                },
-                {
-                    "name": "ParameterBlockRename",
-                    "type": ParameterBlockRename,
-                },
-            ),
-        },
+    choice: list[ApplicationProgramChannel | DependentChannelChoose | Rename | Module | Repeat] = (
+        field(
+            default_factory=list,
+            metadata={
+                "type": "Elements",
+                "choices": (
+                    {
+                        "name": "Channel",
+                        "type": ApplicationProgramChannel,
+                    },
+                    {
+                        "name": "choose",
+                        "type": DependentChannelChoose,
+                    },
+                    {
+                        "name": "Rename",
+                        "type": Rename,
+                    },
+                    {
+                        "name": "Module",
+                        "type": Module,
+                    },
+                    {
+                        "name": "Repeat",
+                        "type": Repeat,
+                    },
+                ),
+            },
+        )
     )
