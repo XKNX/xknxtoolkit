@@ -1,4 +1,5 @@
 """Export the OpenAPI spec to a JSON file without starting the server."""
+
 import json
 import sys
 from pathlib import Path

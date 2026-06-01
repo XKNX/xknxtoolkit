@@ -1,4 +1,5 @@
 """Bulk-ingest .knxprod files from a directory into the catalog database."""
+
 from __future__ import annotations
 
 import sys

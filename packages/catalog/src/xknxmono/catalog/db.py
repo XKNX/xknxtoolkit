@@ -1,4 +1,5 @@
 """Database engine and session management for the catalog SQLite store."""
+
 import os
 from collections.abc import Generator
 from pathlib import Path

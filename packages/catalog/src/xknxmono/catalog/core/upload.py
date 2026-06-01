@@ -1,4 +1,5 @@
 """Core ingestion logic for .knxprod files."""
+
 from __future__ import annotations
 
 import hashlib
@@ -32,14 +33,16 @@ def _ingest_applications(session: Session, data_applications: list[Any]) -> None
         for mfr in _walk_manufacturer_data(app_knx):
             app_programs = getattr(mfr, "application_programs", None)
             for ap in getattr(app_programs, "application_program", []) or []:
-                session.merge(Application(
-                    id=ap.id,
-                    name=getattr(ap, "name", None) or ap.id,
-                    application_number=getattr(ap, "application_number", None),
-                    application_version=getattr(ap, "application_version", None),
-                    mask_version=getattr(ap, "mask_version", None),
-                    is_secure_enabled=getattr(ap, "is_secure_enabled", False),
-                ))
+                session.merge(
+                    Application(
+                        id=ap.id,
+                        name=getattr(ap, "name", None) or ap.id,
+                        application_number=getattr(ap, "application_number", None),
+                        application_version=getattr(ap, "application_version", None),
+                        mask_version=getattr(ap, "mask_version", None),
+                        is_secure_enabled=getattr(ap, "is_secure_enabled", False),
+                    )
+                )
 
 
 def _ingest_hardware(
@@ -56,24 +59,38 @@ def _ingest_hardware(
             products = getattr(products_container, "product", []) or []
             prod = products[0] if products else None
 
-            session.merge(Hardware(
-                id=hw.id,
-                manufacturer_id=mfr_id,
-                name=prod.text if prod else None,
-                order_number=prod.order_number if prod else None,
-                is_rail_mounted=getattr(prod, "is_rail_mounted", None) if prod else None,
-                width_mm=getattr(prod, "width_in_millimeter", None) if prod else None,
-                description=getattr(prod, "visible_description", None) if prod else None,
-                default_language=getattr(prod, "default_language", None) if prod else None,
-                serial_number=getattr(hw, "serial_number", None),
-                version_number=getattr(hw, "version_number", None),
-                bus_current=getattr(hw, "bus_current", None),
-                has_application_program=getattr(hw, "has_application_program", None),
-                is_coupler=getattr(hw, "is_coupler", None),
-                is_power_supply=getattr(hw, "is_power_supply", None),
-                is_ip_enabled=getattr(hw, "is_ipenabled", None),
-                no_download_without_plugin=getattr(hw, "no_download_without_plugin", None),
-            ))
+            session.merge(
+                Hardware(
+                    id=hw.id,
+                    manufacturer_id=mfr_id,
+                    name=prod.text if prod else None,
+                    order_number=prod.order_number if prod else None,
+                    is_rail_mounted=getattr(prod, "is_rail_mounted", None)
+                    if prod
+                    else None,
+                    width_mm=getattr(prod, "width_in_millimeter", None)
+                    if prod
+                    else None,
+                    description=getattr(prod, "visible_description", None)
+                    if prod
+                    else None,
+                    default_language=getattr(prod, "default_language", None)
+                    if prod
+                    else None,
+                    serial_number=getattr(hw, "serial_number", None),
+                    version_number=getattr(hw, "version_number", None),
+                    bus_current=getattr(hw, "bus_current", None),
+                    has_application_program=getattr(
+                        hw, "has_application_program", None
+                    ),
+                    is_coupler=getattr(hw, "is_coupler", None),
+                    is_power_supply=getattr(hw, "is_power_supply", None),
+                    is_ip_enabled=getattr(hw, "is_ipenabled", None),
+                    no_download_without_plugin=getattr(
+                        hw, "no_download_without_plugin", None
+                    ),
+                )
+            )
 
             h2ps_container = getattr(hw, "hardware2_programs", None)
             for h2p in getattr(h2ps_container, "hardware2_program", []) or []:
@@ -91,35 +108,47 @@ def _ingest_hardware(
                     xml_date = getattr(reg, "registration_date", None)
                     reg_date = xml_date.to_date() if xml_date is not None else None
 
-                session.merge(HardwareProgram(
-                    id=h2p.id,
-                    hardware_id=hw.id,
-                    application_id=app_id,
-                    knxprod_path=knxprod_path,
-                    registration_status=reg_status,
-                    registration_number=reg_number,
-                    registration_date=reg_date,
-                ))
+                session.merge(
+                    HardwareProgram(
+                        id=h2p.id,
+                        hardware_id=hw.id,
+                        application_id=app_id,
+                        knxprod_path=knxprod_path,
+                        registration_status=reg_status,
+                        registration_number=reg_number,
+                        registration_date=reg_date,
+                    )
+                )
 
                 for mt in getattr(h2p, "medium_types", []) or []:
-                    session.merge(HardwareProgramMediumType(hardware_program_id=h2p.id, medium_type=mt))
+                    session.merge(
+                        HardwareProgramMediumType(
+                            hardware_program_id=h2p.id, medium_type=mt
+                        )
+                    )
 
 
 def _ingest_section(
     session: Session, section: Any, mfr_id: str, parent_id: str | None
 ) -> None:
     """Recursively upsert a catalog section and its children and product references."""
-    session.merge(CatalogSection(
-        id=section.id,
-        manufacturer_id=mfr_id,
-        parent_id=parent_id,
-        name=section.name,
-        number=getattr(section, "number", None),
-    ))
+    session.merge(
+        CatalogSection(
+            id=section.id,
+            manufacturer_id=mfr_id,
+            parent_id=parent_id,
+            name=section.name,
+            number=getattr(section, "number", None),
+        )
+    )
     for item in getattr(section, "catalog_item", []) or []:
         prod_ref = getattr(item, "hardware2_program_ref_id", None)
         if prod_ref:
-            session.merge(CatalogSectionProduct(section_id=section.id, hardware_program_id=prod_ref))
+            session.merge(
+                CatalogSectionProduct(
+                    section_id=section.id, hardware_program_id=prod_ref
+                )
+            )
     for child in getattr(section, "catalog_section", []) or []:
         _ingest_section(session, child, mfr_id, section.id)
 

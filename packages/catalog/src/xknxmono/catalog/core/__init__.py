@@ -18,35 +18,36 @@ Example::
       for hw in results:
           print(hw.name, hw.order_number)
 """
+
 from xknxmono.catalog.core.catalog_sections import (
-  CatalogSectionNode,
-  build_catalog_tree,
-  collect_section_ids,
-  list_catalog_sections,
+    CatalogSectionNode,
+    build_catalog_tree,
+    collect_section_ids,
+    list_catalog_sections,
 )
 from xknxmono.catalog.core.hardware import (
-  HardwareFilters,
-  get_application_detail,
-  get_application_xml,
-  get_hardware,
-  get_hardware_program,
-  list_hardware,
+    HardwareFilters,
+    get_application_detail,
+    get_application_xml,
+    get_hardware,
+    get_hardware_program,
+    list_hardware,
 )
 from xknxmono.catalog.core.manufacturers import get_manufacturer, list_manufacturers
 from xknxmono.catalog.core.upload import upload_knxprod
 
 __all__ = [
-  "CatalogSectionNode",
-  "HardwareFilters",
-  "build_catalog_tree",
-  "collect_section_ids",
-  "get_application_detail",
-  "get_application_xml",
-  "get_hardware",
-  "get_hardware_program",
-  "get_manufacturer",
-  "list_catalog_sections",
-  "list_hardware",
-  "list_manufacturers",
-  "upload_knxprod",
+    "CatalogSectionNode",
+    "HardwareFilters",
+    "build_catalog_tree",
+    "collect_section_ids",
+    "get_application_detail",
+    "get_application_xml",
+    "get_hardware",
+    "get_hardware_program",
+    "get_manufacturer",
+    "list_catalog_sections",
+    "list_hardware",
+    "list_manufacturers",
+    "upload_knxprod",
 ]
