@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v10.parameter_calculation_t_lparameters_parameter_ref_ref import (
-    ParameterCalculationLparametersParameterRefRef,
-)
+from xknxmono.models.files.v10.calculation_parameter_ref_t import CalculationParameterRef
 
 __NAMESPACE__ = "http://knx.org/xml/project/10"
 
@@ -18,7 +16,7 @@ class ParameterCalculationLparameters:
     class Meta:
         global_type = False
 
-    parameter_ref_ref: list[ParameterCalculationLparametersParameterRefRef] = field(
+    parameter_ref_ref: list[CalculationParameterRef] = field(
         default_factory=list,
         metadata={
             "name": "ParameterRefRef",

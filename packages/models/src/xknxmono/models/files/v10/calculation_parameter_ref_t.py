@@ -2,20 +2,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v12.parameter_ref_ref_t import ParameterRefRef
-
-__NAMESPACE__ = "http://knx.org/xml/project/12"
+__NAMESPACE__ = "http://knx.org/xml/project/10"
 
 
 @dataclass(slots=True, kw_only=True)
-class ParameterCalculationLparametersParameterRefRef(ParameterRefRef):
+class CalculationParameterRef:
     """
+    :ivar ref_id: registration-relevant
     :ivar alias_name: registration-relevant
     """
 
     class Meta:
-        global_type = False
+        name = "CalculationParameterRef_t"
 
+    ref_id: str = field(
+        metadata={
+            "name": "RefId",
+            "type": "Attribute",
+        }
+    )
     alias_name: None | str = field(
         default=None,
         metadata={

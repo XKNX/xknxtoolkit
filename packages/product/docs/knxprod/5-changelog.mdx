@@ -81,9 +81,13 @@ The namespace `http://knx.org/xml/project/{version}` identifies the schema versi
 - **`ComObjectT`**: added `IoTpointReference` — links a com object to an IoT data point.
 - **`Hardware2ProgramT`**: added `SleepCycleTimeSeconds` for RF battery devices.
 - New: `IoTpointParameterT` class supporting IoT integration.
+- `LdCtrlWritePropT`added `Trim` attribute
+- `ParameterTypeT` added `TextAlignment` & `IoTEncoding` attribute
+- `ApplicationProgramChannelT` added `IsSemantic` attribute
+- `Columns` in `ComObjectParameterBlockT` added `TextAlignment` attribute
 
 ## v22 → v23
 
-- **`ApplicationProgramT`**: added `CloudConnect` and `Profile` — cloud connectivity configuration.
+- **`ApplicationProgram`**: added `CloudConnect` and `Profile` — cloud connectivity configuration.
 - New: `IoT` and `Profile` classes.
 - New enum: `ApplicationProgramTCloudConnect`.

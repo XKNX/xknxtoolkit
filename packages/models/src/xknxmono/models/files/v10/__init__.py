@@ -2,9 +2,6 @@ from xknxmono.models.files.v10.access_t import Access
 from xknxmono.models.files.v10.addin_data_t import AddinData
 from xknxmono.models.files.v10.application_program_channel_t import ApplicationProgramChannel
 from xknxmono.models.files.v10.application_program_dynamic_t import ApplicationProgramDynamic
-from xknxmono.models.files.v10.application_program_dynamic_t_channel_independent_block import (
-    ApplicationProgramDynamicChannelIndependentBlock,
-)
 from xknxmono.models.files.v10.application_program_ipconfig_t import ApplicationProgramIpconfig
 from xknxmono.models.files.v10.application_program_ref_t import ApplicationProgramRef
 from xknxmono.models.files.v10.application_program_static_t import ApplicationProgramStatic
@@ -84,6 +81,7 @@ from xknxmono.models.files.v10.binary_data_ref_t import BinaryDataRef
 from xknxmono.models.files.v10.binary_data_t import BinaryData
 from xknxmono.models.files.v10.building_part_t import BuildingPart
 from xknxmono.models.files.v10.bus_access_t import BusAccess
+from xknxmono.models.files.v10.calculation_parameter_ref_t import CalculationParameterRef
 from xknxmono.models.files.v10.capability_t import Capability
 from xknxmono.models.files.v10.catalog_section_t import CatalogSection
 from xknxmono.models.files.v10.catalog_section_t_catalog_item import CatalogSectionCatalogItem
@@ -91,6 +89,7 @@ from xknxmono.models.files.v10.channel_choose_t import (
     ChannelChoose,
     ChannelChooseWhen,
 )
+from xknxmono.models.files.v10.channel_independent_block_t import ChannelIndependentBlock
 from xknxmono.models.files.v10.com_object_instance_ref_t import ComObjectInstanceRef
 from xknxmono.models.files.v10.com_object_instance_ref_t_connectors import (
     ComObjectInstanceRefConnectors,
@@ -327,14 +326,8 @@ from xknxmono.models.files.v10.parameter_calculation_t_language import Parameter
 from xknxmono.models.files.v10.parameter_calculation_t_lparameters import (
     ParameterCalculationLparameters,
 )
-from xknxmono.models.files.v10.parameter_calculation_t_lparameters_parameter_ref_ref import (
-    ParameterCalculationLparametersParameterRefRef,
-)
 from xknxmono.models.files.v10.parameter_calculation_t_rparameters import (
     ParameterCalculationRparameters,
-)
-from xknxmono.models.files.v10.parameter_calculation_t_rparameters_parameter_ref_ref import (
-    ParameterCalculationRparametersParameterRefRef,
 )
 from xknxmono.models.files.v10.parameter_instance_ref_t import ParameterInstanceRef
 from xknxmono.models.files.v10.parameter_ref_ref_t import ParameterRefRef
@@ -441,7 +434,6 @@ __all__ = [
     "AddinData",
     "ApplicationProgramChannel",
     "ApplicationProgramDynamic",
-    "ApplicationProgramDynamicChannelIndependentBlock",
     "ApplicationProgramIpconfig",
     "ApplicationProgramRef",
     "ApplicationProgramStatic",
@@ -475,11 +467,13 @@ __all__ = [
     "BinaryData",
     "BuildingPart",
     "BusAccess",
+    "CalculationParameterRef",
     "Capability",
     "CatalogSection",
     "CatalogSectionCatalogItem",
     "ChannelChoose",
     "ChannelChooseWhen",
+    "ChannelIndependentBlock",
     "ComObjectInstanceRef",
     "ComObjectInstanceRefConnectors",
     "ComObjectInstanceRefConnectorsReceive",
@@ -618,9 +612,7 @@ __all__ = [
     "ParameterCalculation",
     "ParameterCalculationLanguage",
     "ParameterCalculationLparameters",
-    "ParameterCalculationLparametersParameterRefRef",
     "ParameterCalculationRparameters",
-    "ParameterCalculationRparametersParameterRefRef",
     "ParameterInstanceRef",
     "ParameterRefRef",
     "ParameterRef",

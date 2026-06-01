@@ -245,10 +245,10 @@ class DeviceInstance:
             "format": "base64",
         },
     )
-    is_communication_object_visibility_calculated: None | bool = field(
+    is_activity_calculated: None | bool = field(
         default=None,
         metadata={
-            "name": "IsCommunicationObjectVisibilityCalculated",
+            "name": "IsActivityCalculated",
             "type": "Attribute",
         },
     )
@@ -313,13 +313,6 @@ class DeviceInstance:
         default=None,
         metadata={
             "name": "DownloadCounter",
-            "type": "Attribute",
-        },
-    )
-    is_activity_calculated: None | bool = field(
-        default=None,
-        metadata={
-            "name": "IsActivityCalculated",
             "type": "Attribute",
         },
     )

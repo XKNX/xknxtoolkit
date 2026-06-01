@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.intermediate.com_object_instance_ref_t_connectors import (
-    ComObjectInstanceRefConnectors,
-)
 from xknxmono.models.intermediate.com_object_priority_t import ComObjectPriority
 from xknxmono.models.intermediate.enable_t import Enable
 
@@ -14,13 +11,6 @@ class ComObjectInstanceRef:
     class Meta:
         name = "ComObjectInstanceRef_t"
 
-    connectors: None | ComObjectInstanceRefConnectors = field(
-        default=None,
-        metadata={
-            "name": "Connectors",
-            "type": "Element",
-        },
-    )
     id: None | str = field(
         default=None,
         metadata={

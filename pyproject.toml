@@ -18,6 +18,7 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.4",
     "pyright>=1.1",
+    "structlog>=24.0.0",  # injected logger type for xknx-models converter; no runtime dep there
 ]
 
 [tool.pytest.ini_options]

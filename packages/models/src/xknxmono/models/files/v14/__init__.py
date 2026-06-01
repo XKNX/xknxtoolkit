@@ -9,9 +9,6 @@ from xknxmono.models.files.v14.application_program_channel_t import (
     ComObjectParameterChooseWhen,
 )
 from xknxmono.models.files.v14.application_program_dynamic_t import ApplicationProgramDynamic
-from xknxmono.models.files.v14.application_program_dynamic_t_channel_independent_block import (
-    ApplicationProgramDynamicChannelIndependentBlock,
-)
 from xknxmono.models.files.v14.application_program_ipconfig_t import ApplicationProgramIpconfig
 from xknxmono.models.files.v14.application_program_ref_t import ApplicationProgramRef
 from xknxmono.models.files.v14.application_program_static_t import ApplicationProgramStatic
@@ -130,9 +127,11 @@ from xknxmono.models.files.v14.bus_interface_t_connectors_connector import (
 )
 from xknxmono.models.files.v14.button_t import Button
 from xknxmono.models.files.v14.button_t_event_handler_online import ButtonEventHandlerOnline
+from xknxmono.models.files.v14.calculation_parameter_ref_t import CalculationParameterRef
 from xknxmono.models.files.v14.capability_t import Capability
 from xknxmono.models.files.v14.catalog_section_t import CatalogSection
 from xknxmono.models.files.v14.catalog_section_t_catalog_item import CatalogSectionCatalogItem
+from xknxmono.models.files.v14.channel_independent_block_t import ChannelIndependentBlock
 from xknxmono.models.files.v14.channel_instance_t import ChannelInstance
 from xknxmono.models.files.v14.com_object_instance_ref_t import ComObjectInstanceRef
 from xknxmono.models.files.v14.com_object_instance_ref_t_connectors import (
@@ -492,14 +491,8 @@ from xknxmono.models.files.v14.parameter_calculation_t_language import Parameter
 from xknxmono.models.files.v14.parameter_calculation_t_lparameters import (
     ParameterCalculationLparameters,
 )
-from xknxmono.models.files.v14.parameter_calculation_t_lparameters_parameter_ref_ref import (
-    ParameterCalculationLparametersParameterRefRef,
-)
 from xknxmono.models.files.v14.parameter_calculation_t_rparameters import (
     ParameterCalculationRparameters,
-)
-from xknxmono.models.files.v14.parameter_calculation_t_rparameters_parameter_ref_ref import (
-    ParameterCalculationRparametersParameterRefRef,
 )
 from xknxmono.models.files.v14.parameter_instance_ref_t import ParameterInstanceRef
 from xknxmono.models.files.v14.parameter_ref_ref_t import ParameterRefRef
@@ -550,9 +543,6 @@ from xknxmono.models.files.v14.parameter_type_t_type_time_unit import ParameterT
 from xknxmono.models.files.v14.parameter_validation_t import ParameterValidation
 from xknxmono.models.files.v14.parameter_validation_t_parameters import (
     ParameterValidationParameters,
-)
-from xknxmono.models.files.v14.parameter_validation_t_parameters_parameter_ref_ref import (
-    ParameterValidationParametersParameterRefRef,
 )
 from xknxmono.models.files.v14.procedure_type_t import ProcedureType
 from xknxmono.models.files.v14.project_t import Project
@@ -637,7 +627,6 @@ __all__ = [
     "ComObjectParameterChoose",
     "ComObjectParameterChooseWhen",
     "ApplicationProgramDynamic",
-    "ApplicationProgramDynamicChannelIndependentBlock",
     "ApplicationProgramIpconfig",
     "ApplicationProgramRef",
     "ApplicationProgramStatic",
@@ -686,9 +675,11 @@ __all__ = [
     "BusInterfaceConnectorsConnector",
     "Button",
     "ButtonEventHandlerOnline",
+    "CalculationParameterRef",
     "Capability",
     "CatalogSection",
     "CatalogSectionCatalogItem",
+    "ChannelIndependentBlock",
     "ChannelInstance",
     "ComObjectInstanceRef",
     "ComObjectInstanceRefConnectors",
@@ -884,9 +875,7 @@ __all__ = [
     "ParameterCalculation",
     "ParameterCalculationLanguage",
     "ParameterCalculationLparameters",
-    "ParameterCalculationLparametersParameterRefRef",
     "ParameterCalculationRparameters",
-    "ParameterCalculationRparametersParameterRefRef",
     "ParameterInstanceRef",
     "ParameterRefRef",
     "ParameterRef",
@@ -917,7 +906,6 @@ __all__ = [
     "ParameterTypeTypeTimeUnit",
     "ParameterValidation",
     "ParameterValidationParameters",
-    "ParameterValidationParametersParameterRefRef",
     "ProcedureType",
     "Project",
     "ProjectAddinData",

@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.files.v23.application_program_static_t_security_roles_security_role import (
     ApplicationProgramStaticSecurityRolesSecurityRole,
 )

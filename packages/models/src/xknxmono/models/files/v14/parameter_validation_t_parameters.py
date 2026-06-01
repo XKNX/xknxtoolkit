@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v14.parameter_validation_t_parameters_parameter_ref_ref import (
-    ParameterValidationParametersParameterRefRef,
-)
+from xknxmono.models.files.v14.calculation_parameter_ref_t import CalculationParameterRef
 
 __NAMESPACE__ = "http://knx.org/xml/project/14"
 
@@ -18,7 +16,7 @@ class ParameterValidationParameters:
     class Meta:
         global_type = False
 
-    parameter_ref_ref: list[ParameterValidationParametersParameterRefRef] = field(
+    parameter_ref_ref: list[CalculationParameterRef] = field(
         default_factory=list,
         metadata={
             "name": "ParameterRefRef",

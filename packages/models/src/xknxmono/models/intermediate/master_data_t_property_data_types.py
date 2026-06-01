@@ -19,10 +19,3 @@ class MasterDataPropertyDataTypes:
             "type": "Element",
         },
     )
-    order_number_formatting_script: None | str = field(
-        default=None,
-        metadata={
-            "name": "OrderNumberFormattingScript",
-            "type": "Element",
-        },
-    )

@@ -4,9 +4,6 @@ from dataclasses import dataclass, field
 
 from xknxmono.models.intermediate.function_type_t import FunctionType
 from xknxmono.models.intermediate.functions_group_t import FunctionsGroup
-from xknxmono.models.intermediate.master_data_t_function_types_public_keys import (
-    MasterDataFunctionTypesPublicKeys,
-)
 
 
 @dataclass(slots=True, kw_only=True)
@@ -25,20 +22,6 @@ class MasterDataFunctionTypes:
         default_factory=list,
         metadata={
             "name": "FunctionType",
-            "type": "Element",
-        },
-    )
-    order_number_formatting_script: None | str = field(
-        default=None,
-        metadata={
-            "name": "OrderNumberFormattingScript",
-            "type": "Element",
-        },
-    )
-    public_keys: None | MasterDataFunctionTypesPublicKeys = field(
-        default=None,
-        metadata={
-            "name": "PublicKeys",
             "type": "Element",
         },
     )

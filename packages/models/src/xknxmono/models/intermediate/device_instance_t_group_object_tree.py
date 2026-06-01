@@ -19,14 +19,6 @@ class DeviceInstanceGroupObjectTree:
             "type": "Element",
         },
     )
-    data: None | bytes = field(
-        default=None,
-        metadata={
-            "name": "Data",
-            "type": "Element",
-            "format": "base64",
-        },
-    )
     group_object_instances: list[str] = field(
         default_factory=list,
         metadata={

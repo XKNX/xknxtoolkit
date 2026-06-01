@@ -17,11 +17,3 @@ class DeviceInstanceGroupObjectTreeNodes:
             "type": "Element",
         },
     )
-    data: None | bytes = field(
-        default=None,
-        metadata={
-            "name": "Data",
-            "type": "Element",
-            "format": "base64",
-        },
-    )

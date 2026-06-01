@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.files.v23.application_program_static_t_parameters_parameter import (
     ApplicationProgramStaticParametersParameter,
 )

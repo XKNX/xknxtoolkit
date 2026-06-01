@@ -5,8 +5,6 @@ from dataclasses import dataclass, field
 from xknxmono.models.intermediate.hardware_t_hardware2_programs import HardwareHardware2Programs
 from xknxmono.models.intermediate.hardware_t_products import HardwareProducts
 from xknxmono.models.intermediate.rfdevice_mode_t import RfdeviceMode
-from xknxmono.models.intermediate.rfrx_capabilities_t import RfrxCapabilities
-from xknxmono.models.intermediate.rftx_capabilities_t import RftxCapabilities
 
 
 @dataclass(slots=True, kw_only=True)
@@ -34,12 +32,9 @@ class Hardware:
     :ivar no_download_without_plugin:
     :ivar non_reg_relevant_data_version:
     :ivar is_rfretransmitter: registration-relevant
-    :ivar runtime_unidirectional: registration-relevant
     :ivar rfdevice_mode: registration-relevant
     :ivar internal_description:
     :ivar tp256:
-    :ivar rfrx_capabilities: registration-relevant
-    :ivar rftx_capabilities: registration-relevant
     :ivar semantics:
     """
 
@@ -198,13 +193,6 @@ class Hardware:
             "type": "Attribute",
         },
     )
-    runtime_unidirectional: bool = field(
-        default=False,
-        metadata={
-            "name": "RuntimeUnidirectional",
-            "type": "Attribute",
-        },
-    )
     rfdevice_mode: RfdeviceMode = field(
         default=RfdeviceMode.READY,
         metadata={
@@ -223,20 +211,6 @@ class Hardware:
         default=None,
         metadata={
             "name": "Tp256",
-            "type": "Attribute",
-        },
-    )
-    rfrx_capabilities: None | RfrxCapabilities = field(
-        default=None,
-        metadata={
-            "name": "RFRxCapabilities",
-            "type": "Attribute",
-        },
-    )
-    rftx_capabilities: None | RftxCapabilities = field(
-        default=None,
-        metadata={
-            "name": "RFTxCapabilities",
             "type": "Attribute",
         },
     )

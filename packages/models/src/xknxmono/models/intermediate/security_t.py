@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 from xsdata.models.datatype import XmlDateTime
 
 from xknxmono.models.intermediate.security_mode_t import SecurityMode
-from xknxmono.models.intermediate.security_t_role import SecurityRole
 
 
 @dataclass(slots=True, kw_only=True)
@@ -13,13 +12,6 @@ class Security:
     class Meta:
         name = "Security_t"
 
-    role: None | SecurityRole = field(
-        default=None,
-        metadata={
-            "name": "Role",
-            "type": "Element",
-        },
-    )
     loaded_iprouting_backbone_key: None | str = field(
         default=None,
         metadata={

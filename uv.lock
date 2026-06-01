@@ -1605,6 +1605,7 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "structlog" },
 ]
 
 [package.metadata]
@@ -1623,6 +1624,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=0.23" },
     { name = "pytest-cov", specifier = ">=4.0" },
     { name = "ruff", specifier = ">=0.4" },
+    { name = "structlog", specifier = ">=24.0.0" },
 ]
 
 [[package]]

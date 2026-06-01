@@ -26,12 +26,6 @@ from xknxmono.models.intermediate.application_program_static_t_association_table
 from xknxmono.models.intermediate.application_program_static_t_binary_data import (
     ApplicationProgramStaticBinaryData,
 )
-from xknxmono.models.intermediate.application_program_static_t_binary_data_exclude_memory import (
-    ApplicationProgramStaticBinaryDataExcludeMemory,
-)
-from xknxmono.models.intermediate.application_program_static_t_binary_data_exclude_property import (
-    ApplicationProgramStaticBinaryDataExcludeProperty,
-)
 from xknxmono.models.intermediate.application_program_static_t_bus_interfaces import (
     ApplicationProgramStaticBusInterfaces,
 )
@@ -73,9 +67,6 @@ from xknxmono.models.intermediate.application_program_static_t_extension_baggage
 )
 from xknxmono.models.intermediate.application_program_static_t_fixup_list import (
     ApplicationProgramStaticFixupList,
-)
-from xknxmono.models.intermediate.application_program_static_t_fixup_list_baggage import (
-    ApplicationProgramStaticFixupListBaggage,
 )
 from xknxmono.models.intermediate.application_program_static_t_messages import (
     ApplicationProgramStaticMessages,
@@ -161,15 +152,6 @@ from xknxmono.models.intermediate.catalog_section_t_catalog_item import CatalogS
 from xknxmono.models.intermediate.channel_independent_block_t import ChannelIndependentBlock
 from xknxmono.models.intermediate.channel_instance_t import ChannelInstance
 from xknxmono.models.intermediate.com_object_instance_ref_t import ComObjectInstanceRef
-from xknxmono.models.intermediate.com_object_instance_ref_t_connectors import (
-    ComObjectInstanceRefConnectors,
-)
-from xknxmono.models.intermediate.com_object_instance_ref_t_connectors_receive import (
-    ComObjectInstanceRefConnectorsReceive,
-)
-from xknxmono.models.intermediate.com_object_instance_ref_t_connectors_send import (
-    ComObjectInstanceRefConnectorsSend,
-)
 from xknxmono.models.intermediate.com_object_parameter_block_t_columns import (
     ComObjectParameterBlockColumns,
 )
@@ -470,15 +452,6 @@ from xknxmono.models.intermediate.master_data_t import MasterData
 from xknxmono.models.intermediate.master_data_t_datapoint_roles import MasterDataDatapointRoles
 from xknxmono.models.intermediate.master_data_t_datapoint_types import MasterDataDatapointTypes
 from xknxmono.models.intermediate.master_data_t_function_types import MasterDataFunctionTypes
-from xknxmono.models.intermediate.master_data_t_function_types_public_keys import (
-    MasterDataFunctionTypesPublicKeys,
-)
-from xknxmono.models.intermediate.master_data_t_function_types_public_keys_public_key import (
-    MasterDataFunctionTypesPublicKeysPublicKey,
-)
-from xknxmono.models.intermediate.master_data_t_function_types_public_keys_public_key_rsakey_value import (
-    MasterDataFunctionTypesPublicKeysPublicKeyRsakeyValue,
-)
 from xknxmono.models.intermediate.master_data_t_functional_blocks import MasterDataFunctionalBlocks
 from xknxmono.models.intermediate.master_data_t_functional_blocks_functional_block import (
     MasterDataFunctionalBlocksFunctionalBlock,
@@ -486,32 +459,8 @@ from xknxmono.models.intermediate.master_data_t_functional_blocks_functional_blo
 from xknxmono.models.intermediate.master_data_t_functional_blocks_functional_block_parameters import (
     MasterDataFunctionalBlocksFunctionalBlockParameters,
 )
-from xknxmono.models.intermediate.master_data_t_functional_blocks_functional_block_parameters_language import (
-    MasterDataFunctionalBlocksFunctionalBlockParametersLanguage,
-)
 from xknxmono.models.intermediate.master_data_t_functional_blocks_functional_block_parameters_parameter import (
     MasterDataFunctionalBlocksFunctionalBlockParametersParameter,
-)
-from xknxmono.models.intermediate.master_data_t_functional_blocks_functional_block_public_key import (
-    MasterDataFunctionalBlocksFunctionalBlockPublicKey,
-)
-from xknxmono.models.intermediate.master_data_t_functional_blocks_functional_block_public_key_rsakey_value import (
-    MasterDataFunctionalBlocksFunctionalBlockPublicKeyRsakeyValue,
-)
-from xknxmono.models.intermediate.master_data_t_functional_blocks_parameters import (
-    MasterDataFunctionalBlocksParameters,
-)
-from xknxmono.models.intermediate.master_data_t_functional_blocks_parameters_parameter import (
-    MasterDataFunctionalBlocksParametersParameter,
-)
-from xknxmono.models.intermediate.master_data_t_functional_blocks_public_keys import (
-    MasterDataFunctionalBlocksPublicKeys,
-)
-from xknxmono.models.intermediate.master_data_t_functional_blocks_public_keys_public_key import (
-    MasterDataFunctionalBlocksPublicKeysPublicKey,
-)
-from xknxmono.models.intermediate.master_data_t_functional_blocks_public_keys_public_key_rsakey_value import (
-    MasterDataFunctionalBlocksPublicKeysPublicKeyRsakeyValue,
 )
 from xknxmono.models.intermediate.master_data_t_interface_object_properties import (
     MasterDataInterfaceObjectProperties,
@@ -570,12 +519,6 @@ from xknxmono.models.intermediate.master_data_t_property_data_types_property_dat
     MasterDataPropertyDataTypesPropertyDataType,
 )
 from xknxmono.models.intermediate.master_data_t_space_usages import MasterDataSpaceUsages
-from xknxmono.models.intermediate.master_data_t_space_usages_public_key import (
-    MasterDataSpaceUsagesPublicKey,
-)
-from xknxmono.models.intermediate.master_data_t_space_usages_public_key_rsakey_value import (
-    MasterDataSpaceUsagesPublicKeyRsakeyValue,
-)
 from xknxmono.models.intermediate.member_status_t import MemberStatus
 from xknxmono.models.intermediate.memory_parameter_t import MemoryParameter
 from xknxmono.models.intermediate.memory_type_t import MemoryType
@@ -792,7 +735,6 @@ from xknxmono.models.intermediate.rfrx_capabilities_t import RfrxCapabilities
 from xknxmono.models.intermediate.rftx_capabilities_t import RftxCapabilities
 from xknxmono.models.intermediate.security_mode_t import SecurityMode
 from xknxmono.models.intermediate.security_t import Security
-from xknxmono.models.intermediate.security_t_role import SecurityRole
 from xknxmono.models.intermediate.segment_base_t import SegmentBase
 from xknxmono.models.intermediate.space_t import Space
 from xknxmono.models.intermediate.space_type_t import SpaceType
@@ -839,8 +781,6 @@ __all__ = [
     "ApplicationProgramStaticAllocators",
     "ApplicationProgramStaticAssociationTable",
     "ApplicationProgramStaticBinaryData",
-    "ApplicationProgramStaticBinaryDataExcludeMemory",
-    "ApplicationProgramStaticBinaryDataExcludeProperty",
     "ApplicationProgramStaticBusInterfaces",
     "ApplicationProgramStaticBusInterfacesBusInterface",
     "ApplicationProgramStaticBusInterfacesBusInterfaceAccessType",
@@ -855,7 +795,6 @@ __all__ = [
     "ApplicationProgramStaticExtension",
     "ApplicationProgramStaticExtensionBaggage",
     "ApplicationProgramStaticFixupList",
-    "ApplicationProgramStaticFixupListBaggage",
     "ApplicationProgramStaticMessages",
     "ApplicationProgramStaticMessagesMessage",
     "ApplicationProgramStaticOptions",
@@ -896,9 +835,6 @@ __all__ = [
     "ChannelIndependentBlock",
     "ChannelInstance",
     "ComObjectInstanceRef",
-    "ComObjectInstanceRefConnectors",
-    "ComObjectInstanceRefConnectorsReceive",
-    "ComObjectInstanceRefConnectorsSend",
     "ComObjectParameterBlockColumns",
     "ComObjectParameterBlockColumnsColumn",
     "ComObjectParameterBlockRows",
@@ -1061,21 +997,10 @@ __all__ = [
     "MasterDataDatapointRoles",
     "MasterDataDatapointTypes",
     "MasterDataFunctionTypes",
-    "MasterDataFunctionTypesPublicKeys",
-    "MasterDataFunctionTypesPublicKeysPublicKey",
-    "MasterDataFunctionTypesPublicKeysPublicKeyRsakeyValue",
     "MasterDataFunctionalBlocks",
     "MasterDataFunctionalBlocksFunctionalBlock",
     "MasterDataFunctionalBlocksFunctionalBlockParameters",
-    "MasterDataFunctionalBlocksFunctionalBlockParametersLanguage",
     "MasterDataFunctionalBlocksFunctionalBlockParametersParameter",
-    "MasterDataFunctionalBlocksFunctionalBlockPublicKey",
-    "MasterDataFunctionalBlocksFunctionalBlockPublicKeyRsakeyValue",
-    "MasterDataFunctionalBlocksParameters",
-    "MasterDataFunctionalBlocksParametersParameter",
-    "MasterDataFunctionalBlocksPublicKeys",
-    "MasterDataFunctionalBlocksPublicKeysPublicKey",
-    "MasterDataFunctionalBlocksPublicKeysPublicKeyRsakeyValue",
     "MasterDataInterfaceObjectProperties",
     "MasterDataInterfaceObjectPropertiesInterfaceObjectProperty",
     "MasterDataInterfaceObjectTypes",
@@ -1099,8 +1024,6 @@ __all__ = [
     "MasterDataPropertyDataTypes",
     "MasterDataPropertyDataTypesPropertyDataType",
     "MasterDataSpaceUsages",
-    "MasterDataSpaceUsagesPublicKey",
-    "MasterDataSpaceUsagesPublicKeyRsakeyValue",
     "MemberStatus",
     "MemoryParameter",
     "MemoryType",
@@ -1223,7 +1146,6 @@ __all__ = [
     "RftxCapabilities",
     "SecurityMode",
     "Security",
-    "SecurityRole",
     "SegmentBase",
     "Space",
     "SpaceType",

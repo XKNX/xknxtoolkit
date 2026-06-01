@@ -4,8 +4,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from .models.code import Code
+
 if TYPE_CHECKING:
     from . import dynamic
+    from .protocols import LoadProcedures
 
 
 class ParamTypeKind(Enum):
@@ -94,50 +97,6 @@ class DynamicChoose:
     conditions: list[DynamicWhen] = field(default_factory=list)
 
 
-@dataclass
-class AbsoluteSegment:
-    id: str
-    address: int
-    size: int
-    data: bytes | None = None
-    mask: bytes | None = None
-    name: str | None = None
-    user_memory: bool = False
-
-
-@dataclass
-class RelativeSegment:
-    id: str
-    offset: int
-    size: int
-    data: bytes | None = None
-    mask: bytes | None = None
-    name: str | None = None
-
-
-@dataclass
-class Code:
-    absolute_segments: list[AbsoluteSegment] = field(default_factory=list)
-    relative_segments: list[RelativeSegment] = field(default_factory=list)
-
-
-@dataclass
-class LdCtrlStep:
-    kind: str
-    applies_to: str
-    details: str
-
-
-@dataclass
-class LoadProcedure:
-    steps: list[LdCtrlStep] = field(default_factory=list)
-
-
-@dataclass
-class LoadProcedures:
-    style: str
-    procedures: list[LoadProcedure] = field(default_factory=list)
-
 
 @dataclass
 class DeviceApplication:
@@ -147,6 +106,7 @@ class DeviceApplication:
     com_objects: list[ComObject]
     parameters: list[Parameter]
     dynamic: DynamicElement | None = None
+    load_procedure_style: str | None = None
     load_procedures: LoadProcedures | None = None
     code: Code | None = None
 

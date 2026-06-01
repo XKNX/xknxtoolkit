@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.intermediate.addin_data_t import AddinData
 from xknxmono.models.intermediate.completion_status_t import CompletionStatus
 from xknxmono.models.intermediate.group_addresses_t import GroupAddresses
 from xknxmono.models.intermediate.locations_t import Locations
@@ -14,7 +13,6 @@ from xknxmono.models.intermediate.security_mode_t import SecurityMode
 from xknxmono.models.intermediate.split_infos_t import SplitInfos
 from xknxmono.models.intermediate.topology_t import Topology
 from xknxmono.models.intermediate.trades_t import Trades
-from xknxmono.models.intermediate.user_file_t import UserFile
 
 
 @dataclass(slots=True, kw_only=True)
@@ -58,20 +56,6 @@ class ProjectInstallationsInstallation:
         default=None,
         metadata={
             "name": "SplitInfos",
-            "type": "Element",
-        },
-    )
-    addin_data: list[AddinData] = field(
-        default_factory=list,
-        metadata={
-            "name": "AddinData",
-            "type": "Element",
-        },
-    )
-    user_file: list[UserFile] = field(
-        default_factory=list,
-        metadata={
-            "name": "UserFile",
             "type": "Element",
         },
     )

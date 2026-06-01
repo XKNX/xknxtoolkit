@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.files.v23.parameter_validation_t import ParameterValidation
 
 __NAMESPACE__ = "http://knx.org/xml/project/23"

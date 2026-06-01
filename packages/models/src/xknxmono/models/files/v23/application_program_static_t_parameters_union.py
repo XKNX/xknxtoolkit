@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.files.v23.memory_union_t import MemoryUnion
 from xknxmono.models.files.v23.property_union_t import PropertyUnion
 from xknxmono.models.files.v23.union_parameter_t import UnionParameter

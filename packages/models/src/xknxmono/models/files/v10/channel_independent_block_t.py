@@ -10,9 +10,9 @@ __NAMESPACE__ = "http://knx.org/xml/project/10"
 
 
 @dataclass(slots=True, kw_only=True)
-class ApplicationProgramDynamicChannelIndependentBlock:
+class ChannelIndependentBlock:
     class Meta:
-        global_type = False
+        name = "ChannelIndependentBlock_t"
 
     choice: list[ComObjectParameterBlock | ChannelChoose | BinaryDataRef] = field(
         default_factory=list,
