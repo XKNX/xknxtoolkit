@@ -86,7 +86,9 @@ class CatFollower:
             self._wander_timer += dt
             if self._wander_timer >= self._next_wander:
                 self._wandering = True
-                self._target_x = random.uniform(vp.pos.x + margin, vp.pos.x + vp.size.x - margin)
+                self._target_x = random.uniform(
+                    vp.pos.x + margin, vp.pos.x + vp.size.x - margin
+                )
                 self._target_y = ground_y
 
         dx = self._target_x - self._x
@@ -165,6 +167,10 @@ class CatFollower:
         tex = imgui.ImTextureRef(self._tex_id)
         dl = imgui.get_foreground_draw_list()
         if self._facing_right:
-            dl.add_image(tex, (px, py), (px + draw_w, py + draw_h), (u0, 0.0), (u1, 1.0))
+            dl.add_image(
+                tex, (px, py), (px + draw_w, py + draw_h), (u0, 0.0), (u1, 1.0)
+            )
         else:
-            dl.add_image(tex, (px, py), (px + draw_w, py + draw_h), (u1, 0.0), (u0, 1.0))
+            dl.add_image(
+                tex, (px, py), (px + draw_w, py + draw_h), (u1, 0.0), (u0, 1.0)
+            )

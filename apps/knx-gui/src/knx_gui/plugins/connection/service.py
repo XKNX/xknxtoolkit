@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from knx_gui.types import Device
     from xknx import XKNX
 
+
 class ConnectionService:
     def __init__(self) -> None:
         self._log: Logger
@@ -60,9 +61,7 @@ class ConnectionService:
         cemi = CEMIFrame.from_knx(raw_cemi)
         return self.run_async(self._xknx.knxip_interface.send_cemi(cemi))
 
-    def read_programming_mode_devices(
-        self, timeout: float = 3.0
-    ) -> Future[Any] | None:
+    def read_programming_mode_devices(self, timeout: float = 3.0) -> Future[Any] | None:
         if self._xknx is None:
             self._log.warning("read_programming_mode_devices called while disconnected")
             return None
@@ -72,9 +71,15 @@ class ConnectionService:
         self, serial: bytes, address: str
     ) -> Future[Any] | None:
         if self._xknx is None:
-            self._log.warning("assign_individual_address_by_serial called while disconnected")
+            self._log.warning(
+                "assign_individual_address_by_serial called while disconnected"
+            )
             return None
-        self._log.debug("Assigning individual address by serial", address=address, serial=serial.hex())
+        self._log.debug(
+            "Assigning individual address by serial",
+            address=address,
+            serial=serial.hex(),
+        )
         return self.run_async(
             nm_individual_address_serial_number_write(self._xknx, serial, address)
         )
@@ -86,9 +91,13 @@ class ConnectionService:
         self._log.debug("Assigning individual address", address=address)
         return self.run_async(nm_individual_address_write(self._xknx, address))
 
-    def assign_individual_address_for_device(self, device: Device) -> Future[Any] | None:
+    def assign_individual_address_for_device(
+        self, device: Device
+    ) -> Future[Any] | None:
         if not device.individual_address:
-            self._log.warning("Device has no individual address assigned", device=device.name)
+            self._log.warning(
+                "Device has no individual address assigned", device=device.name
+            )
             return None
         return self.assign_individual_address(device.individual_address)
 

@@ -43,7 +43,9 @@ class NodeEditorPlugin:
             return None
         self._api.project.link_com_object_to_ga(output_co_id, ga_id, is_sending=True)
         self._api.project.link_com_object_to_ga(input_co_id, ga_id, is_sending=False)
-        self._log.debug("link added", ga_id=ga_id, output=output_co_id, input=input_co_id)
+        self._log.debug(
+            "link added", ga_id=ga_id, output=output_co_id, input=input_co_id
+        )
         return ga_id
 
     def _remove_link(self, ga_id: int) -> None:

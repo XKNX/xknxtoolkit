@@ -88,7 +88,10 @@ class ConfigurePanel:
         )
         if imgui.is_item_deactivated_after_edit():
             self._on_individual_address_change(device, self._address_buffer)
-        if not imgui.is_item_active() and self._address_buffer != device.individual_address:
+        if (
+            not imgui.is_item_active()
+            and self._address_buffer != device.individual_address
+        ):
             self._address_buffer = device.individual_address
 
         if self._on_program_device is not None:
@@ -140,9 +143,17 @@ class ConfigurePanel:
                             | imgui.TableFlags_.sizing_stretch_prop
                         )
                         if imgui.begin_table(f"##lpt{i}", 3, _table_flags):
-                            imgui.table_setup_column("Kind", imgui.TableColumnFlags_.width_stretch, 0.3)
-                            imgui.table_setup_column("Applies To", imgui.TableColumnFlags_.width_stretch, 0.15)
-                            imgui.table_setup_column("Details", imgui.TableColumnFlags_.width_stretch, 0.55)
+                            imgui.table_setup_column(
+                                "Kind", imgui.TableColumnFlags_.width_stretch, 0.3
+                            )
+                            imgui.table_setup_column(
+                                "Applies To",
+                                imgui.TableColumnFlags_.width_stretch,
+                                0.15,
+                            )
+                            imgui.table_setup_column(
+                                "Details", imgui.TableColumnFlags_.width_stretch, 0.55
+                            )
                             imgui.table_headers_row()
                             for step in proc.steps:
                                 imgui.table_next_row()

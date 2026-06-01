@@ -105,6 +105,8 @@ class LogPanel:
         imgui.text(record.event)
         imgui.pop_style_color()
         if record.payload:
-            payload_str = "  " + "  ".join(f"{k}={v}" for k, v in record.payload.items())
+            payload_str = "  " + "  ".join(
+                f"{k}={v}" for k, v in record.payload.items()
+            )
             imgui.same_line(0, 0)
             imgui.text_disabled(payload_str)

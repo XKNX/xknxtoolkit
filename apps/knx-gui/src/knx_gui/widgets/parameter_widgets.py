@@ -173,7 +173,12 @@ def _render_node(
     if is_open:
         if node.param_ref_ids:
             req = _render_param_table(
-                device, node.param_ref_ids, params_by_id, on_change, deferred_enum, node.id
+                device,
+                node.param_ref_ids,
+                params_by_id,
+                on_change,
+                deferred_enum,
+                node.id,
             )
             if req is not None:
                 popup_request = req

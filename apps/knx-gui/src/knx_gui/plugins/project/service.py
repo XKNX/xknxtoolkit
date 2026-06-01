@@ -172,7 +172,12 @@ class ProjectService:
         max_sub = 0
         for ga in gas:
             parts = ga.address.split("/")
-            if len(parts) == 3 and parts[0] == "0" and parts[1] == "0" and parts[2].isdecimal():
+            if (
+                len(parts) == 3
+                and parts[0] == "0"
+                and parts[1] == "0"
+                and parts[2].isdecimal()
+            ):
                 max_sub = max(max_sub, int(parts[2]))
         self._next_ga_sub = max_sub + 1
 

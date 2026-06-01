@@ -27,6 +27,7 @@ def create_translator(domain: str, locale_dir: Path):
             return trans.gettext(text)
         except FileNotFoundError:
             return text
+
     return translate
 
 
