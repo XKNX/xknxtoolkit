@@ -12,7 +12,7 @@ by their XML name and flag the things a converter — or a manual intermediate e
 
 Findings are de-duplicated across versions, so each line shows which versions exhibit it.
 
-Run:  uv run python -m xknxmono.models.adapters.report
+Run:  uv run python packages/models/scripts/report.py
 """
 
 from __future__ import annotations

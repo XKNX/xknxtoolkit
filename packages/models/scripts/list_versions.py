@@ -1,21 +1,24 @@
-"""Show per-version file additions/removals across generated_cluster versions."""
+"""Show per-version file additions/removals across the generated `files.vXX` models.
+
+Run:  uv run python packages/models/scripts/list_versions.py
+"""
 
 from pathlib import Path
 
-CLUSTER = Path(__file__).parent / "generated_cluster"
+FILES = Path(__file__).parent.parent / "src" / "xknxmono" / "models" / "files"
 
 
 def get_files(version: str) -> set[str]:
     return {
         p.stem
-        for p in (CLUSTER / version).glob("*.py")
+        for p in (FILES / version).glob("*.py")
         if p.name != "__init__.py"
     }
 
 
 def main() -> None:
     versions = sorted(
-        d.name for d in CLUSTER.iterdir() if d.is_dir() and d.name.startswith("v")
+        d.name for d in FILES.iterdir() if d.is_dir() and d.name.startswith("v")
     )
 
     prev: set[str] = set()

@@ -7,7 +7,7 @@ containment is drawn as composition (`*--`) labelled with the XML element name a
 (`0..1` optional, `1` required, `0..*` list). Types are de-duplicated, so a type shared by several
 parents appears once with multiple incoming edges.
 
-Run:  uv run python -m xknxmono.models.adapters.viz [out_dir]
+Run:  uv run python packages/models/scripts/viz.py [out_dir]
       (writes ir_master_data.md, ir_product.md, ir_project.md; out_dir defaults to the CWD)
 
 View the .md files on GitHub, in VS Code (Markdown preview), or paste into https://mermaid.live.
