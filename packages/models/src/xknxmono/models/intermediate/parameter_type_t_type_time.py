@@ -1,11 +1,11 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.parameter_type_t_type_time_uihint import (
     ParameterTypeTypeTimeUihint,
 )
-from xknxmono.models.intermediate.parameter_type_t_type_time_unit import ParameterTypeTypeTimeUnit
+from xknxmono.models.intermediate.parameter_type_t_type_time_unit import (
+    ParameterTypeTypeTimeUnit,
+)
 
 
 @dataclass(slots=True, kw_only=True)

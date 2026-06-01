@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.resource_access_rights_t import ResourceAccessRights
 
 

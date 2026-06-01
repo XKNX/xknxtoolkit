@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v11.calculation_parameter_ref_t import CalculationParameterRef
+from xknxmono.models.files.v11.calculation_parameter_ref_t import (
+    CalculationParameterRef,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/11"
 

@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.io_tpoint_parameter_t import IoPointParameter
 from xknxmono.models.intermediate.module_def_static_t_parameters_parameter_memory import (
     ModuleDefStaticParametersParameterMemory,

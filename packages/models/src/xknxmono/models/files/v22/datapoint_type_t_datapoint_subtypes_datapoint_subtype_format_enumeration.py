@@ -14,16 +14,16 @@ class DatapointTypeDatapointSubtypesDatapointSubtypeFormatEnumeration:
     class Meta:
         global_type = False
 
-    enum_value: list[DatapointTypeDatapointSubtypesDatapointSubtypeFormatEnumerationEnumValue] = (
-        field(
-            default_factory=list,
-            metadata={
-                "name": "EnumValue",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/22",
-                "min_occurs": 1,
-            },
-        )
+    enum_value: list[
+        DatapointTypeDatapointSubtypesDatapointSubtypeFormatEnumerationEnumValue
+    ] = field(
+        default_factory=list,
+        metadata={
+            "name": "EnumValue",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/22",
+            "min_occurs": 1,
+        },
     )
     id: str = field(
         metadata={

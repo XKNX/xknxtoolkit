@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.master_data_t_manufacturers_manufacturer_public_keys_public_key import (
     MasterDataManufacturersManufacturerPublicKeysPublicKey,
 )

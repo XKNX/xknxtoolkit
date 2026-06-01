@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.application_program_channel_t import (
     ApplicationProgramChannel,
     Repeat,
@@ -49,33 +47,33 @@ class DependentChannelChooseWhen(When):
     class Meta:
         global_type = False
 
-    choice: list[ApplicationProgramChannel | DependentChannelChoose | Rename | Module | Repeat] = (
-        field(
-            default_factory=list,
-            metadata={
-                "type": "Elements",
-                "choices": (
-                    {
-                        "name": "Channel",
-                        "type": ApplicationProgramChannel,
-                    },
-                    {
-                        "name": "choose",
-                        "type": DependentChannelChoose,
-                    },
-                    {
-                        "name": "Rename",
-                        "type": Rename,
-                    },
-                    {
-                        "name": "Module",
-                        "type": Module,
-                    },
-                    {
-                        "name": "Repeat",
-                        "type": Repeat,
-                    },
-                ),
-            },
-        )
+    choice: list[
+        ApplicationProgramChannel | DependentChannelChoose | Rename | Module | Repeat
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "Channel",
+                    "type": ApplicationProgramChannel,
+                },
+                {
+                    "name": "choose",
+                    "type": DependentChannelChoose,
+                },
+                {
+                    "name": "Rename",
+                    "type": Rename,
+                },
+                {
+                    "name": "Module",
+                    "type": Module,
+                },
+                {
+                    "name": "Repeat",
+                    "type": Repeat,
+                },
+            ),
+        },
     )

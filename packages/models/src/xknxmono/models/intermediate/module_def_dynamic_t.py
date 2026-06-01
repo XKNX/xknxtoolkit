@@ -7,8 +7,12 @@ from xknxmono.models.intermediate.application_program_channel_t import (
     ComObjectParameterBlock,
     Repeat,
 )
-from xknxmono.models.intermediate.channel_independent_block_t import ChannelIndependentBlock
-from xknxmono.models.intermediate.dependent_channel_choose_t import DependentChannelChoose
+from xknxmono.models.intermediate.channel_independent_block_t import (
+    ChannelIndependentBlock,
+)
+from xknxmono.models.intermediate.dependent_channel_choose_t import (
+    DependentChannelChoose,
+)
 from xknxmono.models.intermediate.module_t import Module
 
 

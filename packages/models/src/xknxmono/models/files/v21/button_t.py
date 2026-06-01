@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from xknxmono.models.files.v21.access_t import Access
-from xknxmono.models.files.v21.button_t_event_handler_online import ButtonEventHandlerOnline
+from xknxmono.models.files.v21.button_t_event_handler_online import (
+    ButtonEventHandlerOnline,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/21"
 

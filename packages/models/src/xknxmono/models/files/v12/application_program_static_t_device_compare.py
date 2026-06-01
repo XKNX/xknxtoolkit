@@ -26,13 +26,15 @@ class ApplicationProgramStaticDeviceCompare:
             "namespace": "http://knx.org/xml/project/12",
         },
     )
-    exclude_property: list[ApplicationProgramStaticDeviceCompareExcludeProperty] = field(
-        default_factory=list,
-        metadata={
-            "name": "ExcludeProperty",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/12",
-        },
+    exclude_property: list[ApplicationProgramStaticDeviceCompareExcludeProperty] = (
+        field(
+            default_factory=list,
+            metadata={
+                "name": "ExcludeProperty",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/12",
+            },
+        )
     )
     standard_com_tables_expectable: ComTableExpectation = field(
         default=ComTableExpectation.TRY,

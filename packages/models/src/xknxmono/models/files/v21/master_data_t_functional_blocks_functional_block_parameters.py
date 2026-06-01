@@ -14,14 +14,16 @@ class MasterDataFunctionalBlocksFunctionalBlockParameters:
     class Meta:
         global_type = False
 
-    parameter: list[MasterDataFunctionalBlocksFunctionalBlockParametersParameter] = field(
-        default_factory=list,
-        metadata={
-            "name": "Parameter",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/21",
-            "min_occurs": 1,
-        },
+    parameter: list[MasterDataFunctionalBlocksFunctionalBlockParametersParameter] = (
+        field(
+            default_factory=list,
+            metadata={
+                "name": "Parameter",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/21",
+                "min_occurs": 1,
+            },
+        )
     )
     object_type: str = field(
         metadata={

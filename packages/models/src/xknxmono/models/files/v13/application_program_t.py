@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v13.application_program_dynamic_t import ApplicationProgramDynamic
-from xknxmono.models.files.v13.application_program_ipconfig_t import ApplicationProgramIpconfig
-from xknxmono.models.files.v13.application_program_static_t import ApplicationProgramStatic
+from xknxmono.models.files.v13.application_program_dynamic_t import (
+    ApplicationProgramDynamic,
+)
+from xknxmono.models.files.v13.application_program_ipconfig_t import (
+    ApplicationProgramIpconfig,
+)
+from xknxmono.models.files.v13.application_program_static_t import (
+    ApplicationProgramStatic,
+)
 from xknxmono.models.files.v13.application_program_type_t import ApplicationProgramType
 from xknxmono.models.files.v13.load_procedure_style_t import LoadProcedureStyle
 

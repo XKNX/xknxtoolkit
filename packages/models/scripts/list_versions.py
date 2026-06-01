@@ -9,11 +9,7 @@ FILES = Path(__file__).parent.parent / "src" / "xknxmono" / "models" / "files"
 
 
 def get_files(version: str) -> set[str]:
-    return {
-        p.stem
-        for p in (FILES / version).glob("*.py")
-        if p.name != "__init__.py"
-    }
+    return {p.stem for p in (FILES / version).glob("*.py") if p.name != "__init__.py"}
 
 
 def main() -> None:

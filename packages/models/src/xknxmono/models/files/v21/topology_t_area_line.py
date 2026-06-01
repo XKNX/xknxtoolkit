@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from xknxmono.models.files.v21.completion_status_t import CompletionStatus
-from xknxmono.models.files.v21.topology_t_area_line_segment import TopologyAreaLineSegment
+from xknxmono.models.files.v21.topology_t_area_line_segment import (
+    TopologyAreaLineSegment,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/21"
 

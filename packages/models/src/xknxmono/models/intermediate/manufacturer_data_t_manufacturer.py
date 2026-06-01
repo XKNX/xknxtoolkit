@@ -31,12 +31,14 @@ class ManufacturerDataManufacturer:
             "type": "Element",
         },
     )
-    application_programs: None | ManufacturerDataManufacturerApplicationPrograms = field(
-        default=None,
-        metadata={
-            "name": "ApplicationPrograms",
-            "type": "Element",
-        },
+    application_programs: None | ManufacturerDataManufacturerApplicationPrograms = (
+        field(
+            default=None,
+            metadata={
+                "name": "ApplicationPrograms",
+                "type": "Element",
+            },
+        )
     )
     baggages: None | ManufacturerDataManufacturerBaggages = field(
         default=None,

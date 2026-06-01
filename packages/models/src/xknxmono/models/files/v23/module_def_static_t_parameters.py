@@ -17,7 +17,9 @@ class ModuleDefStaticParameters:
     class Meta:
         global_type = False
 
-    choice: list[ModuleDefStaticParametersParameter | ModuleDefStaticParametersUnion] = field(
+    choice: list[
+        ModuleDefStaticParametersParameter | ModuleDefStaticParametersUnion
+    ] = field(
         default_factory=list,
         metadata={
             "type": "Elements",

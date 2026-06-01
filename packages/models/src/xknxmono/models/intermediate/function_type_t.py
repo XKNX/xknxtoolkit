@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from xknxmono.models.intermediate.deprecation_status_t import DeprecationStatus
-from xknxmono.models.intermediate.function_type_t_function_point import FunctionTypeFunctionPoint
+from xknxmono.models.intermediate.function_type_t_function_point import (
+    FunctionTypeFunctionPoint,
+)
 
 
 @dataclass(slots=True, kw_only=True)

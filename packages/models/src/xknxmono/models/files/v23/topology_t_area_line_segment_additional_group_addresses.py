@@ -14,12 +14,14 @@ class TopologyAreaLineSegmentAdditionalGroupAddresses:
     class Meta:
         global_type = False
 
-    group_address: list[TopologyAreaLineSegmentAdditionalGroupAddressesGroupAddress] = field(
-        default_factory=list,
-        metadata={
-            "name": "GroupAddress",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/23",
-            "min_occurs": 1,
-        },
+    group_address: list[TopologyAreaLineSegmentAdditionalGroupAddressesGroupAddress] = (
+        field(
+            default_factory=list,
+            metadata={
+                "name": "GroupAddress",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/23",
+                "min_occurs": 1,
+            },
+        )
     )

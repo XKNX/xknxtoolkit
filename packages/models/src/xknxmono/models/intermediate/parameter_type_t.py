@@ -1,19 +1,35 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
-from xknxmono.models.intermediate.parameter_type_t_type_color import ParameterTypeTypeColor
-from xknxmono.models.intermediate.parameter_type_t_type_date import ParameterTypeTypeDate
-from xknxmono.models.intermediate.parameter_type_t_type_float import ParameterTypeTypeFloat
-from xknxmono.models.intermediate.parameter_type_t_type_ipaddress import ParameterTypeTypeIpaddress
-from xknxmono.models.intermediate.parameter_type_t_type_number import ParameterTypeTypeNumber
-from xknxmono.models.intermediate.parameter_type_t_type_picture import ParameterTypeTypePicture
-from xknxmono.models.intermediate.parameter_type_t_type_raw_data import ParameterTypeTypeRawData
+from xknxmono.models.intermediate.parameter_type_t_type_color import (
+    ParameterTypeTypeColor,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_date import (
+    ParameterTypeTypeDate,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_float import (
+    ParameterTypeTypeFloat,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress import (
+    ParameterTypeTypeIpaddress,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_number import (
+    ParameterTypeTypeNumber,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_picture import (
+    ParameterTypeTypePicture,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_raw_data import (
+    ParameterTypeTypeRawData,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_restriction import (
     ParameterTypeTypeRestriction,
 )
-from xknxmono.models.intermediate.parameter_type_t_type_text import ParameterTypeTypeText
-from xknxmono.models.intermediate.parameter_type_t_type_time import ParameterTypeTypeTime
+from xknxmono.models.intermediate.parameter_type_t_type_text import (
+    ParameterTypeTypeText,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_time import (
+    ParameterTypeTypeTime,
+)
 from xknxmono.models.intermediate.text_alignment_t import TextAlignment
 
 

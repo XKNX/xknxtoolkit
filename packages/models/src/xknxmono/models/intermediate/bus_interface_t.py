@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.intermediate.bus_interface_t_connectors import BusInterfaceConnectors
+from xknxmono.models.intermediate.bus_interface_t_connectors import (
+    BusInterfaceConnectors,
+)
 
 
 @dataclass(slots=True, kw_only=True)

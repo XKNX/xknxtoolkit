@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.mask_version_t_mask_entries_mask_entry import (
     MaskVersionMaskEntriesMaskEntry,
 )

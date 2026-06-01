@@ -5,7 +5,9 @@ from dataclasses import dataclass, field
 from xknxmono.models.intermediate.p2_plink_bus_interface_endpoint_t import (
     P2PlinkBusInterfaceEndpoint,
 )
-from xknxmono.models.intermediate.p2_plink_device_endpoint_t import P2PlinkDeviceEndpoint
+from xknxmono.models.intermediate.p2_plink_device_endpoint_t import (
+    P2PlinkDeviceEndpoint,
+)
 
 
 @dataclass(slots=True, kw_only=True)

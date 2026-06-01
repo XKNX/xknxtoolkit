@@ -14,12 +14,14 @@ class MasterDataManufacturersManufacturerPublicKeysPublicKey:
     class Meta:
         global_type = False
 
-    rsakey_value: MasterDataManufacturersManufacturerPublicKeysPublicKeyRsakeyValue = field(
-        metadata={
-            "name": "RSAKeyValue",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/12",
-        }
+    rsakey_value: MasterDataManufacturersManufacturerPublicKeysPublicKeyRsakeyValue = (
+        field(
+            metadata={
+                "name": "RSAKeyValue",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/12",
+            }
+        )
     )
     id: str = field(
         metadata={

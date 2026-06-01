@@ -128,13 +128,15 @@ class ApplicationProgramStatic:
             "namespace": "http://knx.org/xml/project/22",
         },
     )
-    parameter_calculations: None | ApplicationProgramStaticParameterCalculations = field(
-        default=None,
-        metadata={
-            "name": "ParameterCalculations",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/22",
-        },
+    parameter_calculations: None | ApplicationProgramStaticParameterCalculations = (
+        field(
+            default=None,
+            metadata={
+                "name": "ParameterCalculations",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/22",
+            },
+        )
     )
     parameter_validations: None | ApplicationProgramStaticParameterValidations = field(
         default=None,

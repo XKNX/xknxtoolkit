@@ -10,7 +10,9 @@ from xknxmono.models.files.v20.button_t import Button
 from xknxmono.models.files.v20.com_object_parameter_block_t_columns import (
     ComObjectParameterBlockColumns,
 )
-from xknxmono.models.files.v20.com_object_parameter_block_t_rows import ComObjectParameterBlockRows
+from xknxmono.models.files.v20.com_object_parameter_block_t_rows import (
+    ComObjectParameterBlockRows,
+)
 from xknxmono.models.files.v20.com_object_ref_ref_t import ComObjectRefRef
 from xknxmono.models.files.v20.module_t import Module
 from xknxmono.models.files.v20.parameter_block_layout_t import ParameterBlockLayout
@@ -182,7 +184,12 @@ class ApplicationProgramChannel:
         name = "ApplicationProgramChannel_t"
 
     choice: list[
-        ComObjectParameterBlock | ComObjectRefRef | BinaryDataRef | Module | Repeat | ChannelChoose
+        ComObjectParameterBlock
+        | ComObjectRefRef
+        | BinaryDataRef
+        | Module
+        | Repeat
+        | ChannelChoose
     ] = field(
         default_factory=list,
         metadata={

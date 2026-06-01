@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v21.parameter_type_t_type_number_type import ParameterTypeTypeNumberType
+from xknxmono.models.files.v21.parameter_type_t_type_number_type import (
+    ParameterTypeTypeNumberType,
+)
 from xknxmono.models.files.v21.parameter_type_t_type_number_uihint import (
     ParameterTypeTypeNumberUihint,
 )

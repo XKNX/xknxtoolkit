@@ -122,12 +122,14 @@ class ApplicationProgramStatic:
             "type": "Element",
         },
     )
-    parameter_calculations: None | ApplicationProgramStaticParameterCalculations = field(
-        default=None,
-        metadata={
-            "name": "ParameterCalculations",
-            "type": "Element",
-        },
+    parameter_calculations: None | ApplicationProgramStaticParameterCalculations = (
+        field(
+            default=None,
+            metadata={
+                "name": "ParameterCalculations",
+                "type": "Element",
+            },
+        )
     )
     parameter_validations: None | ApplicationProgramStaticParameterValidations = field(
         default=None,

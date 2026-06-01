@@ -1,9 +1,6 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xsdata.models.datatype import XmlDate
-
 from xknxmono.models.intermediate.registration_info_t_registration_key import (
     RegistrationInfoRegistrationKey,
 )

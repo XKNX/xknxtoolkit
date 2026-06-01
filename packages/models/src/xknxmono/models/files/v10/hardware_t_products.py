@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v10.hardware_t_products_product import HardwareProductsProduct
+from xknxmono.models.files.v10.hardware_t_products_product import (
+    HardwareProductsProduct,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/10"
 

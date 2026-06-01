@@ -5,7 +5,9 @@ from dataclasses import dataclass, field
 from xknxmono.models.files.v10.access_t import Access
 from xknxmono.models.files.v10.assign_t import Assign
 from xknxmono.models.files.v10.binary_data_ref_t import BinaryDataRef
-from xknxmono.models.files.v10.com_object_parameter_choose_t import ComObjectParameterChoose
+from xknxmono.models.files.v10.com_object_parameter_choose_t import (
+    ComObjectParameterChoose,
+)
 from xknxmono.models.files.v10.com_object_ref_ref_t import ComObjectRefRef
 from xknxmono.models.files.v10.parameter_ref_ref_t import ParameterRefRef
 from xknxmono.models.files.v10.parameter_separator_t import ParameterSeparator

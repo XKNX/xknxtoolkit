@@ -1,9 +1,9 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.access_t import Access
-from xknxmono.models.intermediate.parameter_separator_t_uihint import ParameterSeparatorUihint
+from xknxmono.models.intermediate.parameter_separator_t_uihint import (
+    ParameterSeparatorUihint,
+)
 from xknxmono.models.intermediate.text_alignment_t import TextAlignment
 
 

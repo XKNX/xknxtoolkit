@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.module_def_dynamic_t import ModuleDefDynamic
 from xknxmono.models.intermediate.module_def_static_t import ModuleDefStatic
 from xknxmono.models.intermediate.module_def_t_arguments import ModuleDefArguments

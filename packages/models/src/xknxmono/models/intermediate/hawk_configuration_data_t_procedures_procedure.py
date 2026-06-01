@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.hawk_configuration_data_t_procedures_procedure_value import (
     HawkConfigurationDataProceduresProcedureValue,
 )
@@ -22,7 +20,9 @@ class HawkConfigurationDataProceduresProcedure(LoadProcedure):
             "type": "Attribute",
         }
     )
-    procedure_sub_type: LdCtrlProcType | HawkConfigurationDataProceduresProcedureValue = field(
+    procedure_sub_type: (
+        LdCtrlProcType | HawkConfigurationDataProceduresProcedureValue
+    ) = field(
         metadata={
             "name": "ProcedureSubType",
             "type": "Attribute",

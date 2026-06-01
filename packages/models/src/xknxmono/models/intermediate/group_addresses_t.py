@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.intermediate.group_addresses_t_group_ranges import GroupAddressesGroupRanges
+from xknxmono.models.intermediate.group_addresses_t_group_ranges import (
+    GroupAddressesGroupRanges,
+)
 
 
 @dataclass(slots=True, kw_only=True)

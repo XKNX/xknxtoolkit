@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from xknxmono.models.files.v11.binary_data_ref_t import BinaryDataRef
-from xknxmono.models.files.v11.com_object_parameter_block_t import ComObjectParameterBlock
+from xknxmono.models.files.v11.com_object_parameter_block_t import (
+    ComObjectParameterBlock,
+)
 from xknxmono.models.files.v11.com_object_ref_ref_t import ComObjectRefRef
 from xknxmono.models.files.v11.rename_t import Rename
 from xknxmono.models.files.v11.when_t import When
@@ -43,7 +45,11 @@ class ChannelChooseWhen(When):
         global_type = False
 
     choice: list[
-        ComObjectParameterBlock | ComObjectRefRef | BinaryDataRef | ChannelChoose | Rename
+        ComObjectParameterBlock
+        | ComObjectRefRef
+        | BinaryDataRef
+        | ChannelChoose
+        | Rename
     ] = field(
         default_factory=list,
         metadata={

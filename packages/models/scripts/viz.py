@@ -76,7 +76,9 @@ def class_diagram(root_cls: type, title: str) -> str:
                 rels.append(f'  {key} *-- "{card}" {type_key(m)} : {label}')
                 walk(m)
         blocks.append(
-            f"  class {key} {{\n" + "\n".join(attrs) + "\n  }" if attrs else f"  class {key}"
+            f"  class {key} {{\n" + "\n".join(attrs) + "\n  }"
+            if attrs
+            else f"  class {key}"
         )
 
     walk(root_cls)

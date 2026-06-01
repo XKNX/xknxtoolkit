@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v20.load_procedures_t_load_procedure import LoadProceduresLoadProcedure
+from xknxmono.models.files.v20.load_procedures_t_load_procedure import (
+    LoadProceduresLoadProcedure,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/20"
 

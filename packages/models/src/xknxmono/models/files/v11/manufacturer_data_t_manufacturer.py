@@ -34,13 +34,15 @@ class ManufacturerDataManufacturer:
             "namespace": "http://knx.org/xml/project/11",
         },
     )
-    application_programs: None | ManufacturerDataManufacturerApplicationPrograms = field(
-        default=None,
-        metadata={
-            "name": "ApplicationPrograms",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/11",
-        },
+    application_programs: None | ManufacturerDataManufacturerApplicationPrograms = (
+        field(
+            default=None,
+            metadata={
+                "name": "ApplicationPrograms",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/11",
+            },
+        )
     )
     baggages: None | ManufacturerDataManufacturerBaggages = field(
         default=None,

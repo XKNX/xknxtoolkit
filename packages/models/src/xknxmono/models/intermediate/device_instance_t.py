@@ -8,7 +8,9 @@ from xknxmono.models.intermediate.completion_status_t import CompletionStatus
 from xknxmono.models.intermediate.device_instance_t_additional_addresses import (
     DeviceInstanceAdditionalAddresses,
 )
-from xknxmono.models.intermediate.device_instance_t_binary_data import DeviceInstanceBinaryData
+from xknxmono.models.intermediate.device_instance_t_binary_data import (
+    DeviceInstanceBinaryData,
+)
 from xknxmono.models.intermediate.device_instance_t_bus_interfaces import (
     DeviceInstanceBusInterfaces,
 )

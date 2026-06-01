@@ -16,7 +16,8 @@ class ApplicationProgramStaticParameters:
         global_type = False
 
     choice: list[
-        ApplicationProgramStaticParametersParameter | ApplicationProgramStaticParametersUnion
+        ApplicationProgramStaticParametersParameter
+        | ApplicationProgramStaticParametersUnion
     ] = field(
         default_factory=list,
         metadata={

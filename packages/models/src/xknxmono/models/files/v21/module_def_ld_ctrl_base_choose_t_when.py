@@ -7,14 +7,18 @@ from xknxmono.models.files.v21.ld_ctrl_declare_prop_desc_t import LdCtrlDeclareP
 from xknxmono.models.files.v21.ld_ctrl_delay_t import LdCtrlDelay
 from xknxmono.models.files.v21.ld_ctrl_merge_t import LdCtrlMerge
 from xknxmono.models.files.v21.ld_ctrl_progress_text_t import LdCtrlProgressText
-from xknxmono.models.files.v21.module_def_ld_ctrl_compare_prop_t import ModuleDefLdCtrlCompareProp
+from xknxmono.models.files.v21.module_def_ld_ctrl_compare_prop_t import (
+    ModuleDefLdCtrlCompareProp,
+)
 from xknxmono.models.files.v21.module_def_ld_ctrl_invoke_function_prop_t import (
     ModuleDefLdCtrlInvokeFunctionProp,
 )
 from xknxmono.models.files.v21.module_def_ld_ctrl_read_function_prop_t import (
     ModuleDefLdCtrlReadFunctionProp,
 )
-from xknxmono.models.files.v21.module_def_ld_ctrl_write_prop_t import ModuleDefLdCtrlWriteProp
+from xknxmono.models.files.v21.module_def_ld_ctrl_write_prop_t import (
+    ModuleDefLdCtrlWriteProp,
+)
 from xknxmono.models.files.v21.when_t import When
 
 __NAMESPACE__ = "http://knx.org/xml/project/21"

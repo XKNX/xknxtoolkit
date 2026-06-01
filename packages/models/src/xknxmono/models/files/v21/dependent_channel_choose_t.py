@@ -52,38 +52,38 @@ class DependentChannelChooseWhen(When):
     class Meta:
         global_type = False
 
-    choice: list[ApplicationProgramChannel | DependentChannelChoose | Rename | Module | Repeat] = (
-        field(
-            default_factory=list,
-            metadata={
-                "type": "Elements",
-                "choices": (
-                    {
-                        "name": "Channel",
-                        "type": ApplicationProgramChannel,
-                        "namespace": "http://knx.org/xml/project/21",
-                    },
-                    {
-                        "name": "choose",
-                        "type": DependentChannelChoose,
-                        "namespace": "http://knx.org/xml/project/21",
-                    },
-                    {
-                        "name": "Rename",
-                        "type": Rename,
-                        "namespace": "http://knx.org/xml/project/21",
-                    },
-                    {
-                        "name": "Module",
-                        "type": Module,
-                        "namespace": "http://knx.org/xml/project/21",
-                    },
-                    {
-                        "name": "Repeat",
-                        "type": Repeat,
-                        "namespace": "http://knx.org/xml/project/21",
-                    },
-                ),
-            },
-        )
+    choice: list[
+        ApplicationProgramChannel | DependentChannelChoose | Rename | Module | Repeat
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "Channel",
+                    "type": ApplicationProgramChannel,
+                    "namespace": "http://knx.org/xml/project/21",
+                },
+                {
+                    "name": "choose",
+                    "type": DependentChannelChoose,
+                    "namespace": "http://knx.org/xml/project/21",
+                },
+                {
+                    "name": "Rename",
+                    "type": Rename,
+                    "namespace": "http://knx.org/xml/project/21",
+                },
+                {
+                    "name": "Module",
+                    "type": Module,
+                    "namespace": "http://knx.org/xml/project/21",
+                },
+                {
+                    "name": "Repeat",
+                    "type": Repeat,
+                    "namespace": "http://knx.org/xml/project/21",
+                },
+            ),
+        },
     )

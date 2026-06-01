@@ -24,7 +24,9 @@ class HawkConfigurationDataProceduresProcedure(LoadProcedure):
             "type": "Attribute",
         }
     )
-    procedure_sub_type: LdCtrlProcType | HawkConfigurationDataProceduresProcedureValue = field(
+    procedure_sub_type: (
+        LdCtrlProcType | HawkConfigurationDataProceduresProcedureValue
+    ) = field(
         metadata={
             "name": "ProcedureSubType",
             "type": "Attribute",

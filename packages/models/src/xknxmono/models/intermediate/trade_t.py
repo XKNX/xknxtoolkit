@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.completion_status_t import CompletionStatus
 from xknxmono.models.intermediate.device_instance_ref_t import DeviceInstanceRef
 

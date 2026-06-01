@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.bus_access_t import BusAccess
 from xknxmono.models.intermediate.completion_status_t import CompletionStatus
 from xknxmono.models.intermediate.device_instance_t import DeviceInstance
@@ -29,7 +27,9 @@ class TopologyAreaLineSegment:
             "type": "Element",
         },
     )
-    additional_group_addresses: None | TopologyAreaLineSegmentAdditionalGroupAddresses = field(
+    additional_group_addresses: (
+        None | TopologyAreaLineSegmentAdditionalGroupAddresses
+    ) = field(
         default=None,
         metadata={
             "name": "AdditionalGroupAddresses",

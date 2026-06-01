@@ -23,12 +23,14 @@ class ApplicationProgramStaticDeviceCompare:
             "type": "Element",
         },
     )
-    exclude_property: list[ApplicationProgramStaticDeviceCompareExcludeProperty] = field(
-        default_factory=list,
-        metadata={
-            "name": "ExcludeProperty",
-            "type": "Element",
-        },
+    exclude_property: list[ApplicationProgramStaticDeviceCompareExcludeProperty] = (
+        field(
+            default_factory=list,
+            metadata={
+                "name": "ExcludeProperty",
+                "type": "Element",
+            },
+        )
     )
     standard_com_tables_expectable: ComTableExpectation = field(
         default=ComTableExpectation.TRY,

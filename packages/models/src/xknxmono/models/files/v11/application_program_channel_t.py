@@ -4,7 +4,9 @@ from dataclasses import dataclass, field
 
 from xknxmono.models.files.v11.binary_data_ref_t import BinaryDataRef
 from xknxmono.models.files.v11.channel_choose_t import ChannelChoose
-from xknxmono.models.files.v11.com_object_parameter_block_t import ComObjectParameterBlock
+from xknxmono.models.files.v11.com_object_parameter_block_t import (
+    ComObjectParameterBlock,
+)
 from xknxmono.models.files.v11.com_object_ref_ref_t import ComObjectRefRef
 
 __NAMESPACE__ = "http://knx.org/xml/project/11"
@@ -23,35 +25,35 @@ class ApplicationProgramChannel:
     class Meta:
         name = "ApplicationProgramChannel_t"
 
-    choice: list[ComObjectParameterBlock | ComObjectRefRef | BinaryDataRef | ChannelChoose] = (
-        field(
-            default_factory=list,
-            metadata={
-                "type": "Elements",
-                "choices": (
-                    {
-                        "name": "ParameterBlock",
-                        "type": ComObjectParameterBlock,
-                        "namespace": "http://knx.org/xml/project/11",
-                    },
-                    {
-                        "name": "ComObjectRefRef",
-                        "type": ComObjectRefRef,
-                        "namespace": "http://knx.org/xml/project/11",
-                    },
-                    {
-                        "name": "BinaryDataRef",
-                        "type": BinaryDataRef,
-                        "namespace": "http://knx.org/xml/project/11",
-                    },
-                    {
-                        "name": "choose",
-                        "type": ChannelChoose,
-                        "namespace": "http://knx.org/xml/project/11",
-                    },
-                ),
-            },
-        )
+    choice: list[
+        ComObjectParameterBlock | ComObjectRefRef | BinaryDataRef | ChannelChoose
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "ParameterBlock",
+                    "type": ComObjectParameterBlock,
+                    "namespace": "http://knx.org/xml/project/11",
+                },
+                {
+                    "name": "ComObjectRefRef",
+                    "type": ComObjectRefRef,
+                    "namespace": "http://knx.org/xml/project/11",
+                },
+                {
+                    "name": "BinaryDataRef",
+                    "type": BinaryDataRef,
+                    "namespace": "http://knx.org/xml/project/11",
+                },
+                {
+                    "name": "choose",
+                    "type": ChannelChoose,
+                    "namespace": "http://knx.org/xml/project/11",
+                },
+            ),
+        },
     )
     name: str = field(
         metadata={

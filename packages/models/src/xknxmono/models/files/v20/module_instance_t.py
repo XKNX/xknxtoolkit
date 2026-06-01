@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v20.module_instance_t_arguments import ModuleInstanceArguments
+from xknxmono.models.files.v20.module_instance_t_arguments import (
+    ModuleInstanceArguments,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/20"
 

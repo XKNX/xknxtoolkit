@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
 from xknxmono.models.intermediate.module_t_text_arg import ModuleTextArg
 

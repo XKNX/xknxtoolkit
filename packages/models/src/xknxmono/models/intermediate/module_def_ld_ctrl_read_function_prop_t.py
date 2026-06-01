@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.intermediate.ld_ctrl_read_function_prop_t import LdCtrlReadFunctionProp
+from xknxmono.models.intermediate.ld_ctrl_read_function_prop_t import (
+    LdCtrlReadFunctionProp,
+)
 
 
 @dataclass(slots=True, kw_only=True)

@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.intermediate.application_program_dynamic_t import ApplicationProgramDynamic
-from xknxmono.models.intermediate.application_program_ipconfig_t import ApplicationProgramIpconfig
-from xknxmono.models.intermediate.application_program_static_t import ApplicationProgramStatic
+from xknxmono.models.intermediate.application_program_dynamic_t import (
+    ApplicationProgramDynamic,
+)
+from xknxmono.models.intermediate.application_program_ipconfig_t import (
+    ApplicationProgramIpconfig,
+)
+from xknxmono.models.intermediate.application_program_static_t import (
+    ApplicationProgramStatic,
+)
 from xknxmono.models.intermediate.application_program_t_cloud_connect import (
     ApplicationProgramCloudConnect,
 )
@@ -14,8 +20,12 @@ from xknxmono.models.intermediate.application_program_t_min_ets_version import (
 from xknxmono.models.intermediate.application_program_t_module_defs import (
     ApplicationProgramModuleDefs,
 )
-from xknxmono.models.intermediate.application_program_t_profile import ApplicationProgramProfile
-from xknxmono.models.intermediate.application_program_type_t import ApplicationProgramType
+from xknxmono.models.intermediate.application_program_t_profile import (
+    ApplicationProgramProfile,
+)
+from xknxmono.models.intermediate.application_program_type_t import (
+    ApplicationProgramType,
+)
 from xknxmono.models.intermediate.load_procedure_style_t import LoadProcedureStyle
 
 

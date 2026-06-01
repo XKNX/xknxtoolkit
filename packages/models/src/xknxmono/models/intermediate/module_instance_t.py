@@ -1,8 +1,8 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
-from xknxmono.models.intermediate.module_instance_t_arguments import ModuleInstanceArguments
+from xknxmono.models.intermediate.module_instance_t_arguments import (
+    ModuleInstanceArguments,
+)
 
 
 @dataclass(slots=True, kw_only=True)

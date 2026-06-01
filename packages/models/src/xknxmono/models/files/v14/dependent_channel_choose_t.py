@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v14.application_program_channel_t import ApplicationProgramChannel
+from xknxmono.models.files.v14.application_program_channel_t import (
+    ApplicationProgramChannel,
+)
 from xknxmono.models.files.v14.rename_t import Rename
 from xknxmono.models.files.v14.when_t import When
 

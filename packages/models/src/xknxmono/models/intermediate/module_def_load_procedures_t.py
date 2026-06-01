@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.intermediate.module_def_load_procedure_t import ModuleDefLoadProcedure
+from xknxmono.models.intermediate.module_def_load_procedure_t import (
+    ModuleDefLoadProcedure,
+)
 
 
 @dataclass(slots=True, kw_only=True)

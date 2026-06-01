@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.intermediate.hardware_t_hardware2_programs import HardwareHardware2Programs
+from xknxmono.models.intermediate.hardware_t_hardware2_programs import (
+    HardwareHardware2Programs,
+)
 from xknxmono.models.intermediate.hardware_t_products import HardwareProducts
 from xknxmono.models.intermediate.rfdevice_mode_t import RfdeviceMode
 

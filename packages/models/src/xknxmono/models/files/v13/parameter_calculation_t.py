@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v13.parameter_calculation_t_language import ParameterCalculationLanguage
+from xknxmono.models.files.v13.parameter_calculation_t_language import (
+    ParameterCalculationLanguage,
+)
 from xknxmono.models.files.v13.parameter_calculation_t_lparameters import (
     ParameterCalculationLparameters,
 )

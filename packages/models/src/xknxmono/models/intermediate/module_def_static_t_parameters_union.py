@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.module_def_static_t_parameters_union_memory import (
     ModuleDefStaticParametersUnionMemory,
 )
@@ -23,7 +21,9 @@ class ModuleDefStaticParametersUnion:
         global_type = False
 
     choice: (
-        None | ModuleDefStaticParametersUnionMemory | ModuleDefStaticParametersUnionProperty
+        None
+        | ModuleDefStaticParametersUnionMemory
+        | ModuleDefStaticParametersUnionProperty
     ) = field(
         default=None,
         metadata={

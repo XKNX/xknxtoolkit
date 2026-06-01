@@ -2,12 +2,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v22.module_def_load_procedures_t import ModuleDefLoadProcedures
-from xknxmono.models.files.v22.module_def_static_t_allocators import ModuleDefStaticAllocators
+from xknxmono.models.files.v22.module_def_load_procedures_t import (
+    ModuleDefLoadProcedures,
+)
+from xknxmono.models.files.v22.module_def_static_t_allocators import (
+    ModuleDefStaticAllocators,
+)
 from xknxmono.models.files.v22.module_def_static_t_com_object_refs import (
     ModuleDefStaticComObjectRefs,
 )
-from xknxmono.models.files.v22.module_def_static_t_com_objects import ModuleDefStaticComObjects
+from xknxmono.models.files.v22.module_def_static_t_com_objects import (
+    ModuleDefStaticComObjects,
+)
 from xknxmono.models.files.v22.module_def_static_t_parameter_calculations import (
     ModuleDefStaticParameterCalculations,
 )
@@ -17,7 +23,9 @@ from xknxmono.models.files.v22.module_def_static_t_parameter_refs import (
 from xknxmono.models.files.v22.module_def_static_t_parameter_validations import (
     ModuleDefStaticParameterValidations,
 )
-from xknxmono.models.files.v22.module_def_static_t_parameters import ModuleDefStaticParameters
+from xknxmono.models.files.v22.module_def_static_t_parameters import (
+    ModuleDefStaticParameters,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/22"
 

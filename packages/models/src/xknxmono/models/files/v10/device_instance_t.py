@@ -8,7 +8,9 @@ from xknxmono.models.files.v10.completion_status_t import CompletionStatus
 from xknxmono.models.files.v10.device_instance_t_additional_addresses import (
     DeviceInstanceAdditionalAddresses,
 )
-from xknxmono.models.files.v10.device_instance_t_binary_data import DeviceInstanceBinaryData
+from xknxmono.models.files.v10.device_instance_t_binary_data import (
+    DeviceInstanceBinaryData,
+)
 from xknxmono.models.files.v10.device_instance_t_com_object_instance_refs import (
     DeviceInstanceComObjectInstanceRefs,
 )

@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from xknxmono.models.intermediate.access_t import Access
-from xknxmono.models.intermediate.button_t_event_handler_online import ButtonEventHandlerOnline
+from xknxmono.models.intermediate.button_t_event_handler_online import (
+    ButtonEventHandlerOnline,
+)
 
 
 @dataclass(slots=True, kw_only=True)

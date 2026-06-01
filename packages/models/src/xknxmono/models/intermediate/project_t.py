@@ -1,10 +1,10 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.project_t_addin_data import ProjectAddinData
 from xknxmono.models.intermediate.project_t_installations import ProjectInstallations
-from xknxmono.models.intermediate.project_t_project_information import ProjectProjectInformation
+from xknxmono.models.intermediate.project_t_project_information import (
+    ProjectProjectInformation,
+)
 from xknxmono.models.intermediate.project_t_user_files import ProjectUserFiles
 
 

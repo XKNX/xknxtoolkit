@@ -1,9 +1,9 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.ld_ctrl_base_t import LdCtrlBase
-from xknxmono.models.intermediate.ld_ctrl_control_variable_t import LdCtrlControlVariable
+from xknxmono.models.intermediate.ld_ctrl_control_variable_t import (
+    LdCtrlControlVariable,
+)
 
 
 @dataclass(slots=True, kw_only=True)

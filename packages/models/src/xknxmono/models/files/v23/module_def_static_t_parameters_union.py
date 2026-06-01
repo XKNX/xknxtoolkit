@@ -25,7 +25,9 @@ class ModuleDefStaticParametersUnion:
         global_type = False
 
     choice: (
-        None | ModuleDefStaticParametersUnionMemory | ModuleDefStaticParametersUnionProperty
+        None
+        | ModuleDefStaticParametersUnionMemory
+        | ModuleDefStaticParametersUnionProperty
     ) = field(
         default=None,
         metadata={

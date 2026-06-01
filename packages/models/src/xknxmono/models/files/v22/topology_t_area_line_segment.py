@@ -33,7 +33,9 @@ class TopologyAreaLineSegment:
             "namespace": "http://knx.org/xml/project/22",
         },
     )
-    additional_group_addresses: None | TopologyAreaLineSegmentAdditionalGroupAddresses = field(
+    additional_group_addresses: (
+        None | TopologyAreaLineSegmentAdditionalGroupAddresses
+    ) = field(
         default=None,
         metadata={
             "name": "AdditionalGroupAddresses",

@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.parameter_type_t_type_ipaddress_address_type import (
     ParameterTypeTypeIpaddressAddressType,
 )

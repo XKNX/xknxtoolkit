@@ -6,7 +6,9 @@ from xknxmono.models.files.v13.hawk_configuration_data_t import HawkConfiguratio
 from xknxmono.models.files.v13.mask_version_t_downward_compatible_masks import (
     MaskVersionDownwardCompatibleMasks,
 )
-from xknxmono.models.files.v13.mask_version_t_management_model import MaskVersionManagementModel
+from xknxmono.models.files.v13.mask_version_t_management_model import (
+    MaskVersionManagementModel,
+)
 from xknxmono.models.files.v13.mask_version_t_mask_entries import MaskVersionMaskEntries
 
 __NAMESPACE__ = "http://knx.org/xml/project/13"

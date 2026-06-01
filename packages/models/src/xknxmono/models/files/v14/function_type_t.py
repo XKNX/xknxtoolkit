@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from xknxmono.models.files.v14.deprecation_status_t import DeprecationStatus
-from xknxmono.models.files.v14.function_type_t_function_point import FunctionTypeFunctionPoint
+from xknxmono.models.files.v14.function_type_t_function_point import (
+    FunctionTypeFunctionPoint,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/14"
 

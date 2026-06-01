@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from xknxmono.models.files.v23.topology_t_area import TopologyArea
-from xknxmono.models.files.v23.topology_t_unassigned_devices import TopologyUnassignedDevices
+from xknxmono.models.files.v23.topology_t_unassigned_devices import (
+    TopologyUnassignedDevices,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/23"
 

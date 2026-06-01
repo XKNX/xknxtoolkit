@@ -40,10 +40,7 @@ def type_map(module) -> dict[str, type]:
 
 def field_index(cls: type) -> dict[str, Field]:
     """Map XML name (metadata['name'] or python name) → field."""
-    return {
-        (f.metadata or {}).get("name", f.name): f
-        for f in dataclasses.fields(cls)
-    }
+    return {(f.metadata or {}).get("name", f.name): f for f in dataclasses.fields(cls)}
 
 
 def is_required(f: Field) -> bool:
@@ -82,7 +79,13 @@ def main() -> None:
                 if fname not in vf and is_required(ifd):
                     findings[("REQUIRED-GAP", key, fname)].add(v)
 
-    order = ["REQUIRED-GAP", "LIST->SCALAR", "SCALAR->LIST", "DROPPED", "MISSING-TYPE-IN-INTERMEDIATE"]
+    order = [
+        "REQUIRED-GAP",
+        "LIST->SCALAR",
+        "SCALAR->LIST",
+        "DROPPED",
+        "MISSING-TYPE-IN-INTERMEDIATE",
+    ]
     for kind in order:
         rows = sorted((t, f, vs) for (k, t, f), vs in findings.items() if k == kind)
         if not rows:

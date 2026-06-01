@@ -1,9 +1,9 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.completion_status_t import CompletionStatus
-from xknxmono.models.intermediate.topology_t_area_line_segment import TopologyAreaLineSegment
+from xknxmono.models.intermediate.topology_t_area_line_segment import (
+    TopologyAreaLineSegment,
+)
 
 
 @dataclass(slots=True, kw_only=True)

@@ -10,10 +10,16 @@ from xknxmono.models.intermediate.application_program_channel_t import (
     ComObjectParameterChooseWhen,
     Repeat,
 )
-from xknxmono.models.intermediate.application_program_dynamic_t import ApplicationProgramDynamic
-from xknxmono.models.intermediate.application_program_ipconfig_t import ApplicationProgramIpconfig
+from xknxmono.models.intermediate.application_program_dynamic_t import (
+    ApplicationProgramDynamic,
+)
+from xknxmono.models.intermediate.application_program_ipconfig_t import (
+    ApplicationProgramIpconfig,
+)
 from xknxmono.models.intermediate.application_program_ref_t import ApplicationProgramRef
-from xknxmono.models.intermediate.application_program_static_t import ApplicationProgramStatic
+from xknxmono.models.intermediate.application_program_static_t import (
+    ApplicationProgramStatic,
+)
 from xknxmono.models.intermediate.application_program_static_t_address_table import (
     ApplicationProgramStaticAddressTable,
 )
@@ -129,27 +135,41 @@ from xknxmono.models.intermediate.application_program_t_min_ets_version import (
 from xknxmono.models.intermediate.application_program_t_module_defs import (
     ApplicationProgramModuleDefs,
 )
-from xknxmono.models.intermediate.application_program_t_profile import ApplicationProgramProfile
+from xknxmono.models.intermediate.application_program_t_profile import (
+    ApplicationProgramProfile,
+)
 from xknxmono.models.intermediate.application_program_t_profile_io_t import (
     ApplicationProgramProfileIo,
 )
-from xknxmono.models.intermediate.application_program_type_t import ApplicationProgramType
+from xknxmono.models.intermediate.application_program_type_t import (
+    ApplicationProgramType,
+)
 from xknxmono.models.intermediate.assign_t import Assign
 from xknxmono.models.intermediate.binary_data_ref_t import BinaryDataRef
 from xknxmono.models.intermediate.binary_data_t import BinaryData
 from xknxmono.models.intermediate.bus_access_t import BusAccess
 from xknxmono.models.intermediate.bus_interface_t import BusInterface
-from xknxmono.models.intermediate.bus_interface_t_connectors import BusInterfaceConnectors
+from xknxmono.models.intermediate.bus_interface_t_connectors import (
+    BusInterfaceConnectors,
+)
 from xknxmono.models.intermediate.bus_interface_t_connectors_connector import (
     BusInterfaceConnectorsConnector,
 )
 from xknxmono.models.intermediate.button_t import Button
-from xknxmono.models.intermediate.button_t_event_handler_online import ButtonEventHandlerOnline
-from xknxmono.models.intermediate.calculation_parameter_ref_t import CalculationParameterRef
+from xknxmono.models.intermediate.button_t_event_handler_online import (
+    ButtonEventHandlerOnline,
+)
+from xknxmono.models.intermediate.calculation_parameter_ref_t import (
+    CalculationParameterRef,
+)
 from xknxmono.models.intermediate.capability_t import Capability
 from xknxmono.models.intermediate.catalog_section_t import CatalogSection
-from xknxmono.models.intermediate.catalog_section_t_catalog_item import CatalogSectionCatalogItem
-from xknxmono.models.intermediate.channel_independent_block_t import ChannelIndependentBlock
+from xknxmono.models.intermediate.catalog_section_t_catalog_item import (
+    CatalogSectionCatalogItem,
+)
+from xknxmono.models.intermediate.channel_independent_block_t import (
+    ChannelIndependentBlock,
+)
 from xknxmono.models.intermediate.channel_instance_t import ChannelInstance
 from xknxmono.models.intermediate.com_object_instance_ref_t import ComObjectInstanceRef
 from xknxmono.models.intermediate.com_object_parameter_block_t_columns import (
@@ -227,7 +247,9 @@ from xknxmono.models.intermediate.device_instance_t_additional_addresses import 
 from xknxmono.models.intermediate.device_instance_t_additional_addresses_address import (
     DeviceInstanceAdditionalAddressesAddress,
 )
-from xknxmono.models.intermediate.device_instance_t_binary_data import DeviceInstanceBinaryData
+from xknxmono.models.intermediate.device_instance_t_binary_data import (
+    DeviceInstanceBinaryData,
+)
 from xknxmono.models.intermediate.device_instance_t_binary_data_binary_data import (
     DeviceInstanceBinaryDataBinaryData,
 )
@@ -263,19 +285,27 @@ from xknxmono.models.intermediate.enable_t import Enable
 from xknxmono.models.intermediate.fixup_t import Fixup
 from xknxmono.models.intermediate.function_t import Function
 from xknxmono.models.intermediate.function_type_t import FunctionType
-from xknxmono.models.intermediate.function_type_t_function_point import FunctionTypeFunctionPoint
+from xknxmono.models.intermediate.function_type_t_function_point import (
+    FunctionTypeFunctionPoint,
+)
 from xknxmono.models.intermediate.functions_group_t import FunctionsGroup
 from xknxmono.models.intermediate.group_address_ref_t import GroupAddressRef
 from xknxmono.models.intermediate.group_address_style_t import GroupAddressStyle
 from xknxmono.models.intermediate.group_address_t import GroupAddress
 from xknxmono.models.intermediate.group_addresses_t import GroupAddresses
-from xknxmono.models.intermediate.group_addresses_t_group_ranges import GroupAddressesGroupRanges
+from xknxmono.models.intermediate.group_addresses_t_group_ranges import (
+    GroupAddressesGroupRanges,
+)
 from xknxmono.models.intermediate.group_range_t import GroupRange
 from xknxmono.models.intermediate.hardware2_program_t import Hardware2Program
 from xknxmono.models.intermediate.hardware_t import Hardware
-from xknxmono.models.intermediate.hardware_t_hardware2_programs import HardwareHardware2Programs
+from xknxmono.models.intermediate.hardware_t_hardware2_programs import (
+    HardwareHardware2Programs,
+)
 from xknxmono.models.intermediate.hardware_t_products import HardwareProducts
-from xknxmono.models.intermediate.hardware_t_products_product import HardwareProductsProduct
+from xknxmono.models.intermediate.hardware_t_products_product import (
+    HardwareProductsProduct,
+)
 from xknxmono.models.intermediate.hardware_t_products_product_attributes import (
     HardwareProductsProductAttributes,
 )
@@ -368,22 +398,32 @@ from xknxmono.models.intermediate.ld_ctrl_base_t_on_error import LdCtrlBaseOnErr
 from xknxmono.models.intermediate.ld_ctrl_clear_cached_object_types_t import (
     LdCtrlClearCachedObjectTypes,
 )
-from xknxmono.models.intermediate.ld_ctrl_clear_lcfilter_table_t import LdCtrlClearLcfilterTable
+from xknxmono.models.intermediate.ld_ctrl_clear_lcfilter_table_t import (
+    LdCtrlClearLcfilterTable,
+)
 from xknxmono.models.intermediate.ld_ctrl_compare_base_t import LdCtrlCompareBase
 from xknxmono.models.intermediate.ld_ctrl_compare_mem_t import LdCtrlCompareMem
 from xknxmono.models.intermediate.ld_ctrl_compare_prop_t import LdCtrlCompareProp
 from xknxmono.models.intermediate.ld_ctrl_compare_rel_mem_t import LdCtrlCompareRelMem
 from xknxmono.models.intermediate.ld_ctrl_connect_t import LdCtrlConnect
-from xknxmono.models.intermediate.ld_ctrl_control_variable_t import LdCtrlControlVariable
-from xknxmono.models.intermediate.ld_ctrl_declare_prop_desc_t import LdCtrlDeclarePropDesc
+from xknxmono.models.intermediate.ld_ctrl_control_variable_t import (
+    LdCtrlControlVariable,
+)
+from xknxmono.models.intermediate.ld_ctrl_declare_prop_desc_t import (
+    LdCtrlDeclarePropDesc,
+)
 from xknxmono.models.intermediate.ld_ctrl_delay_t import LdCtrlDelay
 from xknxmono.models.intermediate.ld_ctrl_disconnect_t import LdCtrlDisconnect
 from xknxmono.models.intermediate.ld_ctrl_error_cause_t import LdCtrlErrorCause
-from xknxmono.models.intermediate.ld_ctrl_invoke_function_prop_t import LdCtrlInvokeFunctionProp
+from xknxmono.models.intermediate.ld_ctrl_invoke_function_prop_t import (
+    LdCtrlInvokeFunctionProp,
+)
 from xknxmono.models.intermediate.ld_ctrl_load_completed_t import LdCtrlLoadCompleted
 from xknxmono.models.intermediate.ld_ctrl_load_image_mem_t import LdCtrlLoadImageMem
 from xknxmono.models.intermediate.ld_ctrl_load_image_prop_t import LdCtrlLoadImageProp
-from xknxmono.models.intermediate.ld_ctrl_load_image_rel_mem_t import LdCtrlLoadImageRelMem
+from xknxmono.models.intermediate.ld_ctrl_load_image_rel_mem_t import (
+    LdCtrlLoadImageRelMem,
+)
 from xknxmono.models.intermediate.ld_ctrl_load_t import LdCtrlLoad
 from xknxmono.models.intermediate.ld_ctrl_map_error_t import LdCtrlMapError
 from xknxmono.models.intermediate.ld_ctrl_master_reset_t import LdCtrlMasterReset
@@ -392,10 +432,14 @@ from xknxmono.models.intermediate.ld_ctrl_mem_addr_space_t import LdCtrlMemAddrS
 from xknxmono.models.intermediate.ld_ctrl_merge_t import LdCtrlMerge
 from xknxmono.models.intermediate.ld_ctrl_proc_type_t import LdCtrlProcType
 from xknxmono.models.intermediate.ld_ctrl_progress_text_t import LdCtrlProgressText
-from xknxmono.models.intermediate.ld_ctrl_read_function_prop_t import LdCtrlReadFunctionProp
+from xknxmono.models.intermediate.ld_ctrl_read_function_prop_t import (
+    LdCtrlReadFunctionProp,
+)
 from xknxmono.models.intermediate.ld_ctrl_rel_segment_t import LdCtrlRelSegment
 from xknxmono.models.intermediate.ld_ctrl_restart_t import LdCtrlRestart
-from xknxmono.models.intermediate.ld_ctrl_set_control_variable_t import LdCtrlSetControlVariable
+from xknxmono.models.intermediate.ld_ctrl_set_control_variable_t import (
+    LdCtrlSetControlVariable,
+)
 from xknxmono.models.intermediate.ld_ctrl_task_ctrl1_t import LdCtrlTaskCtrl1
 from xknxmono.models.intermediate.ld_ctrl_task_ctrl2_t import LdCtrlTaskCtrl2
 from xknxmono.models.intermediate.ld_ctrl_task_ptr_t import LdCtrlTaskPtr
@@ -443,16 +487,28 @@ from xknxmono.models.intermediate.mask_version_t_downward_compatible_masks impor
 from xknxmono.models.intermediate.mask_version_t_downward_compatible_masks_downward_compatible_mask import (
     MaskVersionDownwardCompatibleMasksDownwardCompatibleMask,
 )
-from xknxmono.models.intermediate.mask_version_t_management_model import MaskVersionManagementModel
-from xknxmono.models.intermediate.mask_version_t_mask_entries import MaskVersionMaskEntries
+from xknxmono.models.intermediate.mask_version_t_management_model import (
+    MaskVersionManagementModel,
+)
+from xknxmono.models.intermediate.mask_version_t_mask_entries import (
+    MaskVersionMaskEntries,
+)
 from xknxmono.models.intermediate.mask_version_t_mask_entries_mask_entry import (
     MaskVersionMaskEntriesMaskEntry,
 )
 from xknxmono.models.intermediate.master_data_t import MasterData
-from xknxmono.models.intermediate.master_data_t_datapoint_roles import MasterDataDatapointRoles
-from xknxmono.models.intermediate.master_data_t_datapoint_types import MasterDataDatapointTypes
-from xknxmono.models.intermediate.master_data_t_function_types import MasterDataFunctionTypes
-from xknxmono.models.intermediate.master_data_t_functional_blocks import MasterDataFunctionalBlocks
+from xknxmono.models.intermediate.master_data_t_datapoint_roles import (
+    MasterDataDatapointRoles,
+)
+from xknxmono.models.intermediate.master_data_t_datapoint_types import (
+    MasterDataDatapointTypes,
+)
+from xknxmono.models.intermediate.master_data_t_function_types import (
+    MasterDataFunctionTypes,
+)
+from xknxmono.models.intermediate.master_data_t_functional_blocks import (
+    MasterDataFunctionalBlocks,
+)
 from xknxmono.models.intermediate.master_data_t_functional_blocks_functional_block import (
     MasterDataFunctionalBlocksFunctionalBlock,
 )
@@ -475,7 +531,9 @@ from xknxmono.models.intermediate.master_data_t_interface_object_types_interface
     MasterDataInterfaceObjectTypesInterfaceObjectType,
 )
 from xknxmono.models.intermediate.master_data_t_languages import MasterDataLanguages
-from xknxmono.models.intermediate.master_data_t_manufacturers import MasterDataManufacturers
+from xknxmono.models.intermediate.master_data_t_manufacturers import (
+    MasterDataManufacturers,
+)
 from xknxmono.models.intermediate.master_data_t_manufacturers_manufacturer import (
     MasterDataManufacturersManufacturer,
 )
@@ -503,12 +561,18 @@ from xknxmono.models.intermediate.master_data_t_manufacturers_manufacturer_publi
 from xknxmono.models.intermediate.master_data_t_manufacturers_manufacturer_space_usages import (
     MasterDataManufacturersManufacturerSpaceUsages,
 )
-from xknxmono.models.intermediate.master_data_t_mask_versions import MasterDataMaskVersions
-from xknxmono.models.intermediate.master_data_t_medium_types import MasterDataMediumTypes
+from xknxmono.models.intermediate.master_data_t_mask_versions import (
+    MasterDataMaskVersions,
+)
+from xknxmono.models.intermediate.master_data_t_medium_types import (
+    MasterDataMediumTypes,
+)
 from xknxmono.models.intermediate.master_data_t_medium_types_medium_type import (
     MasterDataMediumTypesMediumType,
 )
-from xknxmono.models.intermediate.master_data_t_product_languages import MasterDataProductLanguages
+from xknxmono.models.intermediate.master_data_t_product_languages import (
+    MasterDataProductLanguages,
+)
 from xknxmono.models.intermediate.master_data_t_product_languages_language import (
     MasterDataProductLanguagesLanguage,
 )
@@ -518,7 +582,9 @@ from xknxmono.models.intermediate.master_data_t_property_data_types import (
 from xknxmono.models.intermediate.master_data_t_property_data_types_property_data_type import (
     MasterDataPropertyDataTypesPropertyDataType,
 )
-from xknxmono.models.intermediate.master_data_t_space_usages import MasterDataSpaceUsages
+from xknxmono.models.intermediate.master_data_t_space_usages import (
+    MasterDataSpaceUsages,
+)
 from xknxmono.models.intermediate.member_status_t import MemberStatus
 from xknxmono.models.intermediate.memory_parameter_t import MemoryParameter
 from xknxmono.models.intermediate.memory_type_t import MemoryType
@@ -526,7 +592,9 @@ from xknxmono.models.intermediate.memory_union_t import MemoryUnion
 from xknxmono.models.intermediate.module_arg_t import ModuleArg
 from xknxmono.models.intermediate.module_def_arg_type_t import ModuleDefArgType
 from xknxmono.models.intermediate.module_def_dynamic_t import ModuleDefDynamic
-from xknxmono.models.intermediate.module_def_ld_ctrl_base_choose_t import ModuleDefLdCtrlBaseChoose
+from xknxmono.models.intermediate.module_def_ld_ctrl_base_choose_t import (
+    ModuleDefLdCtrlBaseChoose,
+)
 from xknxmono.models.intermediate.module_def_ld_ctrl_base_choose_t_when import (
     ModuleDefLdCtrlBaseChooseWhen,
 )
@@ -539,15 +607,25 @@ from xknxmono.models.intermediate.module_def_ld_ctrl_invoke_function_prop_t impo
 from xknxmono.models.intermediate.module_def_ld_ctrl_read_function_prop_t import (
     ModuleDefLdCtrlReadFunctionProp,
 )
-from xknxmono.models.intermediate.module_def_ld_ctrl_write_prop_t import ModuleDefLdCtrlWriteProp
-from xknxmono.models.intermediate.module_def_load_procedure_t import ModuleDefLoadProcedure
-from xknxmono.models.intermediate.module_def_load_procedures_t import ModuleDefLoadProcedures
+from xknxmono.models.intermediate.module_def_ld_ctrl_write_prop_t import (
+    ModuleDefLdCtrlWriteProp,
+)
+from xknxmono.models.intermediate.module_def_load_procedure_t import (
+    ModuleDefLoadProcedure,
+)
+from xknxmono.models.intermediate.module_def_load_procedures_t import (
+    ModuleDefLoadProcedures,
+)
 from xknxmono.models.intermediate.module_def_static_t import ModuleDefStatic
-from xknxmono.models.intermediate.module_def_static_t_allocators import ModuleDefStaticAllocators
+from xknxmono.models.intermediate.module_def_static_t_allocators import (
+    ModuleDefStaticAllocators,
+)
 from xknxmono.models.intermediate.module_def_static_t_com_object_refs import (
     ModuleDefStaticComObjectRefs,
 )
-from xknxmono.models.intermediate.module_def_static_t_com_objects import ModuleDefStaticComObjects
+from xknxmono.models.intermediate.module_def_static_t_com_objects import (
+    ModuleDefStaticComObjects,
+)
 from xknxmono.models.intermediate.module_def_static_t_com_objects_com_object import (
     ModuleDefStaticComObjectsComObject,
 )
@@ -560,7 +638,9 @@ from xknxmono.models.intermediate.module_def_static_t_parameter_refs import (
 from xknxmono.models.intermediate.module_def_static_t_parameter_validations import (
     ModuleDefStaticParameterValidations,
 )
-from xknxmono.models.intermediate.module_def_static_t_parameters import ModuleDefStaticParameters
+from xknxmono.models.intermediate.module_def_static_t_parameters import (
+    ModuleDefStaticParameters,
+)
 from xknxmono.models.intermediate.module_def_static_t_parameters_parameter import (
     ModuleDefStaticParametersParameter,
 )
@@ -584,12 +664,16 @@ from xknxmono.models.intermediate.module_def_t import (
     ModuleDefSubModuleDefs,
 )
 from xknxmono.models.intermediate.module_def_t_arguments import ModuleDefArguments
-from xknxmono.models.intermediate.module_def_t_arguments_argument import ModuleDefArgumentsArgument
+from xknxmono.models.intermediate.module_def_t_arguments_argument import (
+    ModuleDefArgumentsArgument,
+)
 from xknxmono.models.intermediate.module_def_t_arguments_argument_alignment import (
     ModuleDefArgumentsArgumentAlignment,
 )
 from xknxmono.models.intermediate.module_instance_t import ModuleInstance
-from xknxmono.models.intermediate.module_instance_t_arguments import ModuleInstanceArguments
+from xknxmono.models.intermediate.module_instance_t_arguments import (
+    ModuleInstanceArguments,
+)
 from xknxmono.models.intermediate.module_instance_t_arguments_argument import (
     ModuleInstanceArgumentsArgument,
 )
@@ -604,7 +688,9 @@ from xknxmono.models.intermediate.node_t_type import NodeType
 from xknxmono.models.intermediate.p2_plink_bus_interface_endpoint_t import (
     P2PlinkBusInterfaceEndpoint,
 )
-from xknxmono.models.intermediate.p2_plink_device_endpoint_t import P2PlinkDeviceEndpoint
+from xknxmono.models.intermediate.p2_plink_device_endpoint_t import (
+    P2PlinkDeviceEndpoint,
+)
 from xknxmono.models.intermediate.p2_plink_endpoint_t import P2PlinkEndpoint
 from xknxmono.models.intermediate.p2_plinks_t import P2Plinks
 from xknxmono.models.intermediate.p2_plinks_t_p2_plink import P2PlinksP2Plink
@@ -624,39 +710,55 @@ from xknxmono.models.intermediate.parameter_instance_ref_t import ParameterInsta
 from xknxmono.models.intermediate.parameter_ref_ref_t import ParameterRefRef
 from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 from xknxmono.models.intermediate.parameter_separator_t import ParameterSeparator
-from xknxmono.models.intermediate.parameter_separator_t_uihint import ParameterSeparatorUihint
+from xknxmono.models.intermediate.parameter_separator_t_uihint import (
+    ParameterSeparatorUihint,
+)
 from xknxmono.models.intermediate.parameter_type_t import ParameterType
-from xknxmono.models.intermediate.parameter_type_t_type_color import ParameterTypeTypeColor
+from xknxmono.models.intermediate.parameter_type_t_type_color import (
+    ParameterTypeTypeColor,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_color_space import (
     ParameterTypeTypeColorSpace,
 )
-from xknxmono.models.intermediate.parameter_type_t_type_date import ParameterTypeTypeDate
+from xknxmono.models.intermediate.parameter_type_t_type_date import (
+    ParameterTypeTypeDate,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_date_encoding import (
     ParameterTypeTypeDateEncoding,
 )
-from xknxmono.models.intermediate.parameter_type_t_type_float import ParameterTypeTypeFloat
+from xknxmono.models.intermediate.parameter_type_t_type_float import (
+    ParameterTypeTypeFloat,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_float_encoding import (
     ParameterTypeTypeFloatEncoding,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_float_uihint import (
     ParameterTypeTypeFloatUihint,
 )
-from xknxmono.models.intermediate.parameter_type_t_type_ipaddress import ParameterTypeTypeIpaddress
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress import (
+    ParameterTypeTypeIpaddress,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_ipaddress_address_type import (
     ParameterTypeTypeIpaddressAddressType,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_ipaddress_version import (
     ParameterTypeTypeIpaddressVersion,
 )
-from xknxmono.models.intermediate.parameter_type_t_type_number import ParameterTypeTypeNumber
+from xknxmono.models.intermediate.parameter_type_t_type_number import (
+    ParameterTypeTypeNumber,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_number_type import (
     ParameterTypeTypeNumberType,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_number_uihint import (
     ParameterTypeTypeNumberUihint,
 )
-from xknxmono.models.intermediate.parameter_type_t_type_picture import ParameterTypeTypePicture
-from xknxmono.models.intermediate.parameter_type_t_type_raw_data import ParameterTypeTypeRawData
+from xknxmono.models.intermediate.parameter_type_t_type_picture import (
+    ParameterTypeTypePicture,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_raw_data import (
+    ParameterTypeTypeRawData,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_restriction import (
     ParameterTypeTypeRestriction,
 )
@@ -669,12 +771,18 @@ from xknxmono.models.intermediate.parameter_type_t_type_restriction_enumeration 
 from xknxmono.models.intermediate.parameter_type_t_type_restriction_uihint import (
     ParameterTypeTypeRestrictionUihint,
 )
-from xknxmono.models.intermediate.parameter_type_t_type_text import ParameterTypeTypeText
-from xknxmono.models.intermediate.parameter_type_t_type_time import ParameterTypeTypeTime
+from xknxmono.models.intermediate.parameter_type_t_type_text import (
+    ParameterTypeTypeText,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_time import (
+    ParameterTypeTypeTime,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_time_uihint import (
     ParameterTypeTypeTimeUihint,
 )
-from xknxmono.models.intermediate.parameter_type_t_type_time_unit import ParameterTypeTypeTimeUnit
+from xknxmono.models.intermediate.parameter_type_t_type_time_unit import (
+    ParameterTypeTypeTimeUnit,
+)
 from xknxmono.models.intermediate.parameter_validation_t import ParameterValidation
 from xknxmono.models.intermediate.parameter_validation_t_parameters import (
     ParameterValidationParameters,
@@ -689,7 +797,9 @@ from xknxmono.models.intermediate.project_t_installations_installation import (
 from xknxmono.models.intermediate.project_t_installations_installation_split_type import (
     ProjectInstallationsInstallationSplitType,
 )
-from xknxmono.models.intermediate.project_t_project_information import ProjectProjectInformation
+from xknxmono.models.intermediate.project_t_project_information import (
+    ProjectProjectInformation,
+)
 from xknxmono.models.intermediate.project_t_project_information_device_certificates import (
     ProjectProjectInformationDeviceCertificates,
 )
@@ -748,14 +858,18 @@ from xknxmono.models.intermediate.to_do_status_t import ToDoStatus
 from xknxmono.models.intermediate.topology_t import Topology
 from xknxmono.models.intermediate.topology_t_area import TopologyArea
 from xknxmono.models.intermediate.topology_t_area_line import TopologyAreaLine
-from xknxmono.models.intermediate.topology_t_area_line_segment import TopologyAreaLineSegment
+from xknxmono.models.intermediate.topology_t_area_line_segment import (
+    TopologyAreaLineSegment,
+)
 from xknxmono.models.intermediate.topology_t_area_line_segment_additional_group_addresses import (
     TopologyAreaLineSegmentAdditionalGroupAddresses,
 )
 from xknxmono.models.intermediate.topology_t_area_line_segment_additional_group_addresses_group_address import (
     TopologyAreaLineSegmentAdditionalGroupAddressesGroupAddress,
 )
-from xknxmono.models.intermediate.topology_t_unassigned_devices import TopologyUnassignedDevices
+from xknxmono.models.intermediate.topology_t_unassigned_devices import (
+    TopologyUnassignedDevices,
+)
 from xknxmono.models.intermediate.trade_t import Trade
 from xknxmono.models.intermediate.trades_t import Trades
 from xknxmono.models.intermediate.union_parameter_t import UnionParameter

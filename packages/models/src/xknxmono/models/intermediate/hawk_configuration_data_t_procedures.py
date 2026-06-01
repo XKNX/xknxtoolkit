@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.hawk_configuration_data_t_procedures_procedure import (
     HawkConfigurationDataProceduresProcedure,
 )

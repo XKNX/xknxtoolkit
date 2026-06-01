@@ -10,7 +10,9 @@ from xknxmono.models.files.v14.button_t import Button
 from xknxmono.models.files.v14.com_object_parameter_block_t_columns import (
     ComObjectParameterBlockColumns,
 )
-from xknxmono.models.files.v14.com_object_parameter_block_t_rows import ComObjectParameterBlockRows
+from xknxmono.models.files.v14.com_object_parameter_block_t_rows import (
+    ComObjectParameterBlockRows,
+)
 from xknxmono.models.files.v14.com_object_ref_ref_t import ComObjectRefRef
 from xknxmono.models.files.v14.parameter_block_layout_t import ParameterBlockLayout
 from xknxmono.models.files.v14.parameter_ref_ref_t import ParameterRefRef
@@ -106,35 +108,35 @@ class ApplicationProgramChannel:
     class Meta:
         name = "ApplicationProgramChannel_t"
 
-    choice: list[ComObjectParameterBlock | ComObjectRefRef | BinaryDataRef | ChannelChoose] = (
-        field(
-            default_factory=list,
-            metadata={
-                "type": "Elements",
-                "choices": (
-                    {
-                        "name": "ParameterBlock",
-                        "type": ForwardRef("ComObjectParameterBlock"),
-                        "namespace": "http://knx.org/xml/project/14",
-                    },
-                    {
-                        "name": "ComObjectRefRef",
-                        "type": ComObjectRefRef,
-                        "namespace": "http://knx.org/xml/project/14",
-                    },
-                    {
-                        "name": "BinaryDataRef",
-                        "type": BinaryDataRef,
-                        "namespace": "http://knx.org/xml/project/14",
-                    },
-                    {
-                        "name": "choose",
-                        "type": ForwardRef("ChannelChoose"),
-                        "namespace": "http://knx.org/xml/project/14",
-                    },
-                ),
-            },
-        )
+    choice: list[
+        ComObjectParameterBlock | ComObjectRefRef | BinaryDataRef | ChannelChoose
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "ParameterBlock",
+                    "type": ForwardRef("ComObjectParameterBlock"),
+                    "namespace": "http://knx.org/xml/project/14",
+                },
+                {
+                    "name": "ComObjectRefRef",
+                    "type": ComObjectRefRef,
+                    "namespace": "http://knx.org/xml/project/14",
+                },
+                {
+                    "name": "BinaryDataRef",
+                    "type": BinaryDataRef,
+                    "namespace": "http://knx.org/xml/project/14",
+                },
+                {
+                    "name": "choose",
+                    "type": ForwardRef("ChannelChoose"),
+                    "namespace": "http://knx.org/xml/project/14",
+                },
+            ),
+        },
     )
     name: str = field(
         metadata={
@@ -406,7 +408,11 @@ class ChannelChooseWhen(When):
         global_type = False
 
     choice: list[
-        ComObjectParameterBlock | ComObjectRefRef | BinaryDataRef | ChannelChoose | Rename
+        ComObjectParameterBlock
+        | ComObjectRefRef
+        | BinaryDataRef
+        | ChannelChoose
+        | Rename
     ] = field(
         default_factory=list,
         metadata={

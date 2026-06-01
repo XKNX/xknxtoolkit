@@ -6,29 +6,41 @@ from xknxmono.models.intermediate.ld_ctrl_abs_segment_t import LdCtrlAbsSegment
 from xknxmono.models.intermediate.ld_ctrl_clear_cached_object_types_t import (
     LdCtrlClearCachedObjectTypes,
 )
-from xknxmono.models.intermediate.ld_ctrl_clear_lcfilter_table_t import LdCtrlClearLcfilterTable
+from xknxmono.models.intermediate.ld_ctrl_clear_lcfilter_table_t import (
+    LdCtrlClearLcfilterTable,
+)
 from xknxmono.models.intermediate.ld_ctrl_compare_mem_t import LdCtrlCompareMem
 from xknxmono.models.intermediate.ld_ctrl_compare_prop_t import LdCtrlCompareProp
 from xknxmono.models.intermediate.ld_ctrl_compare_rel_mem_t import LdCtrlCompareRelMem
 from xknxmono.models.intermediate.ld_ctrl_connect_t import LdCtrlConnect
-from xknxmono.models.intermediate.ld_ctrl_declare_prop_desc_t import LdCtrlDeclarePropDesc
+from xknxmono.models.intermediate.ld_ctrl_declare_prop_desc_t import (
+    LdCtrlDeclarePropDesc,
+)
 from xknxmono.models.intermediate.ld_ctrl_delay_t import LdCtrlDelay
 from xknxmono.models.intermediate.ld_ctrl_disconnect_t import LdCtrlDisconnect
-from xknxmono.models.intermediate.ld_ctrl_invoke_function_prop_t import LdCtrlInvokeFunctionProp
+from xknxmono.models.intermediate.ld_ctrl_invoke_function_prop_t import (
+    LdCtrlInvokeFunctionProp,
+)
 from xknxmono.models.intermediate.ld_ctrl_load_completed_t import LdCtrlLoadCompleted
 from xknxmono.models.intermediate.ld_ctrl_load_image_mem_t import LdCtrlLoadImageMem
 from xknxmono.models.intermediate.ld_ctrl_load_image_prop_t import LdCtrlLoadImageProp
-from xknxmono.models.intermediate.ld_ctrl_load_image_rel_mem_t import LdCtrlLoadImageRelMem
+from xknxmono.models.intermediate.ld_ctrl_load_image_rel_mem_t import (
+    LdCtrlLoadImageRelMem,
+)
 from xknxmono.models.intermediate.ld_ctrl_load_t import LdCtrlLoad
 from xknxmono.models.intermediate.ld_ctrl_map_error_t import LdCtrlMapError
 from xknxmono.models.intermediate.ld_ctrl_master_reset_t import LdCtrlMasterReset
 from xknxmono.models.intermediate.ld_ctrl_max_length_t import LdCtrlMaxLength
 from xknxmono.models.intermediate.ld_ctrl_merge_t import LdCtrlMerge
 from xknxmono.models.intermediate.ld_ctrl_progress_text_t import LdCtrlProgressText
-from xknxmono.models.intermediate.ld_ctrl_read_function_prop_t import LdCtrlReadFunctionProp
+from xknxmono.models.intermediate.ld_ctrl_read_function_prop_t import (
+    LdCtrlReadFunctionProp,
+)
 from xknxmono.models.intermediate.ld_ctrl_rel_segment_t import LdCtrlRelSegment
 from xknxmono.models.intermediate.ld_ctrl_restart_t import LdCtrlRestart
-from xknxmono.models.intermediate.ld_ctrl_set_control_variable_t import LdCtrlSetControlVariable
+from xknxmono.models.intermediate.ld_ctrl_set_control_variable_t import (
+    LdCtrlSetControlVariable,
+)
 from xknxmono.models.intermediate.ld_ctrl_task_ctrl1_t import LdCtrlTaskCtrl1
 from xknxmono.models.intermediate.ld_ctrl_task_ctrl2_t import LdCtrlTaskCtrl2
 from xknxmono.models.intermediate.ld_ctrl_task_ptr_t import LdCtrlTaskPtr

@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v20.parameter_type_t_type_time_uihint import ParameterTypeTypeTimeUihint
-from xknxmono.models.files.v20.parameter_type_t_type_time_unit import ParameterTypeTypeTimeUnit
+from xknxmono.models.files.v20.parameter_type_t_type_time_uihint import (
+    ParameterTypeTypeTimeUihint,
+)
+from xknxmono.models.files.v20.parameter_type_t_type_time_unit import (
+    ParameterTypeTypeTimeUnit,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/20"
 

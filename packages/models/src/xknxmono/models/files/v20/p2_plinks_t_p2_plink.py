@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v20.p2_plink_bus_interface_endpoint_t import P2PlinkBusInterfaceEndpoint
+from xknxmono.models.files.v20.p2_plink_bus_interface_endpoint_t import (
+    P2PlinkBusInterfaceEndpoint,
+)
 from xknxmono.models.files.v20.p2_plink_device_endpoint_t import P2PlinkDeviceEndpoint
 
 __NAMESPACE__ = "http://knx.org/xml/project/20"

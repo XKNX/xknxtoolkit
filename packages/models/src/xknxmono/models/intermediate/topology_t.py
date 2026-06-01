@@ -1,9 +1,9 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.topology_t_area import TopologyArea
-from xknxmono.models.intermediate.topology_t_unassigned_devices import TopologyUnassignedDevices
+from xknxmono.models.intermediate.topology_t_unassigned_devices import (
+    TopologyUnassignedDevices,
+)
 
 
 @dataclass(slots=True, kw_only=True)

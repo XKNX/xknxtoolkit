@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v21.ld_ctrl_invoke_function_prop_t import LdCtrlInvokeFunctionProp
+from xknxmono.models.files.v21.ld_ctrl_invoke_function_prop_t import (
+    LdCtrlInvokeFunctionProp,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/21"
 

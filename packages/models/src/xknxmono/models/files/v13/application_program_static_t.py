@@ -86,13 +86,15 @@ class ApplicationProgramStatic:
             "namespace": "http://knx.org/xml/project/13",
         },
     )
-    parameter_calculations: None | ApplicationProgramStaticParameterCalculations = field(
-        default=None,
-        metadata={
-            "name": "ParameterCalculations",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/13",
-        },
+    parameter_calculations: None | ApplicationProgramStaticParameterCalculations = (
+        field(
+            default=None,
+            metadata={
+                "name": "ParameterCalculations",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/13",
+            },
+        )
     )
     com_object_table: None | ApplicationProgramStaticComObjectTable = field(
         default=None,

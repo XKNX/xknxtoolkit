@@ -17,33 +17,33 @@ class ChannelIndependentBlock:
     class Meta:
         name = "ChannelIndependentBlock_t"
 
-    choice: list[ComObjectParameterBlock | ChannelChoose | BinaryDataRef | ComObjectRefRef] = (
-        field(
-            default_factory=list,
-            metadata={
-                "type": "Elements",
-                "choices": (
-                    {
-                        "name": "ParameterBlock",
-                        "type": ComObjectParameterBlock,
-                        "namespace": "http://knx.org/xml/project/14",
-                    },
-                    {
-                        "name": "choose",
-                        "type": ChannelChoose,
-                        "namespace": "http://knx.org/xml/project/14",
-                    },
-                    {
-                        "name": "BinaryDataRef",
-                        "type": BinaryDataRef,
-                        "namespace": "http://knx.org/xml/project/14",
-                    },
-                    {
-                        "name": "ComObjectRefRef",
-                        "type": ComObjectRefRef,
-                        "namespace": "http://knx.org/xml/project/14",
-                    },
-                ),
-            },
-        )
+    choice: list[
+        ComObjectParameterBlock | ChannelChoose | BinaryDataRef | ComObjectRefRef
+    ] = field(
+        default_factory=list,
+        metadata={
+            "type": "Elements",
+            "choices": (
+                {
+                    "name": "ParameterBlock",
+                    "type": ComObjectParameterBlock,
+                    "namespace": "http://knx.org/xml/project/14",
+                },
+                {
+                    "name": "choose",
+                    "type": ChannelChoose,
+                    "namespace": "http://knx.org/xml/project/14",
+                },
+                {
+                    "name": "BinaryDataRef",
+                    "type": BinaryDataRef,
+                    "namespace": "http://knx.org/xml/project/14",
+                },
+                {
+                    "name": "ComObjectRefRef",
+                    "type": ComObjectRefRef,
+                    "namespace": "http://knx.org/xml/project/14",
+                },
+            ),
+        },
     )

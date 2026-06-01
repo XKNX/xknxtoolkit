@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v20.group_addresses_t_group_ranges import GroupAddressesGroupRanges
+from xknxmono.models.files.v20.group_addresses_t_group_ranges import (
+    GroupAddressesGroupRanges,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/20"
 

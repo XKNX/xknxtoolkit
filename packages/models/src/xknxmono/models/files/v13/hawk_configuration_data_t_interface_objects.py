@@ -14,12 +14,14 @@ class HawkConfigurationDataInterfaceObjects:
     class Meta:
         global_type = False
 
-    interface_object: list[HawkConfigurationDataInterfaceObjectsInterfaceObject] = field(
-        default_factory=list,
-        metadata={
-            "name": "InterfaceObject",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/13",
-            "min_occurs": 1,
-        },
+    interface_object: list[HawkConfigurationDataInterfaceObjectsInterfaceObject] = (
+        field(
+            default_factory=list,
+            metadata={
+                "name": "InterfaceObject",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/13",
+                "min_occurs": 1,
+            },
+        )
     )

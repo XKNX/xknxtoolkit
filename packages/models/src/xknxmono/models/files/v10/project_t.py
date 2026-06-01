@@ -4,7 +4,9 @@ from dataclasses import dataclass, field
 
 from xknxmono.models.files.v10.project_t_add_in_data import ProjectAddInData
 from xknxmono.models.files.v10.project_t_installations import ProjectInstallations
-from xknxmono.models.files.v10.project_t_project_information import ProjectProjectInformation
+from xknxmono.models.files.v10.project_t_project_information import (
+    ProjectProjectInformation,
+)
 from xknxmono.models.files.v10.project_t_user_files import ProjectUserFiles
 
 __NAMESPACE__ = "http://knx.org/xml/project/10"

@@ -14,14 +14,14 @@ class MaskVersionDownwardCompatibleMasks:
     class Meta:
         global_type = False
 
-    downward_compatible_mask: list[MaskVersionDownwardCompatibleMasksDownwardCompatibleMask] = (
-        field(
-            default_factory=list,
-            metadata={
-                "name": "DownwardCompatibleMask",
-                "type": "Element",
-                "namespace": "http://knx.org/xml/project/12",
-                "min_occurs": 1,
-            },
-        )
+    downward_compatible_mask: list[
+        MaskVersionDownwardCompatibleMasksDownwardCompatibleMask
+    ] = field(
+        default_factory=list,
+        metadata={
+            "name": "DownwardCompatibleMask",
+            "type": "Element",
+            "namespace": "http://knx.org/xml/project/12",
+            "min_occurs": 1,
+        },
     )

@@ -4,7 +4,9 @@ from dataclasses import dataclass, field
 
 from xknxmono.models.files.v10.binary_data_ref_t import BinaryDataRef
 from xknxmono.models.files.v10.channel_choose_t import ChannelChoose
-from xknxmono.models.files.v10.com_object_parameter_block_t import ComObjectParameterBlock
+from xknxmono.models.files.v10.com_object_parameter_block_t import (
+    ComObjectParameterBlock,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/10"
 

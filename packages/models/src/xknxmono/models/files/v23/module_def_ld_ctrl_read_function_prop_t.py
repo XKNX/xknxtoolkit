@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v23.ld_ctrl_read_function_prop_t import LdCtrlReadFunctionProp
+from xknxmono.models.files.v23.ld_ctrl_read_function_prop_t import (
+    LdCtrlReadFunctionProp,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/23"
 

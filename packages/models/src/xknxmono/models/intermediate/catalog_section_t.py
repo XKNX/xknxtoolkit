@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.intermediate.catalog_section_t_catalog_item import CatalogSectionCatalogItem
+from xknxmono.models.intermediate.catalog_section_t_catalog_item import (
+    CatalogSectionCatalogItem,
+)
 
 
 @dataclass(slots=True, kw_only=True)

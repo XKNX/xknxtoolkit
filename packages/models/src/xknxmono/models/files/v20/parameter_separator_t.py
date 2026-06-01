@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from xknxmono.models.files.v20.access_t import Access
-from xknxmono.models.files.v20.parameter_separator_t_uihint import ParameterSeparatorUihint
+from xknxmono.models.files.v20.parameter_separator_t_uihint import (
+    ParameterSeparatorUihint,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/20"
 

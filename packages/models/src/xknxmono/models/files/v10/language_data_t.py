@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v10.language_data_t_translation_unit import LanguageDataTranslationUnit
+from xknxmono.models.files.v10.language_data_t_translation_unit import (
+    LanguageDataTranslationUnit,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/10"
 

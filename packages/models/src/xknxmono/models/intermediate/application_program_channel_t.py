@@ -108,7 +108,12 @@ class ApplicationProgramChannel:
         name = "ApplicationProgramChannel_t"
 
     choice: list[
-        ComObjectParameterBlock | ComObjectRefRef | BinaryDataRef | Module | Repeat | ChannelChoose
+        ComObjectParameterBlock
+        | ComObjectRefRef
+        | BinaryDataRef
+        | Module
+        | Repeat
+        | ChannelChoose
     ] = field(
         default_factory=list,
         metadata={

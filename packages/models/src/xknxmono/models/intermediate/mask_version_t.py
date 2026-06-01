@@ -1,13 +1,15 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.hawk_configuration_data_t import HawkConfigurationData
 from xknxmono.models.intermediate.mask_version_t_downward_compatible_masks import (
     MaskVersionDownwardCompatibleMasks,
 )
-from xknxmono.models.intermediate.mask_version_t_management_model import MaskVersionManagementModel
-from xknxmono.models.intermediate.mask_version_t_mask_entries import MaskVersionMaskEntries
+from xknxmono.models.intermediate.mask_version_t_management_model import (
+    MaskVersionManagementModel,
+)
+from xknxmono.models.intermediate.mask_version_t_mask_entries import (
+    MaskVersionMaskEntries,
+)
 
 
 @dataclass(slots=True, kw_only=True)

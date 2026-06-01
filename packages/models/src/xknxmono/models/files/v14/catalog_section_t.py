@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from xknxmono.models.files.v14.catalog_section_t_catalog_item import CatalogSectionCatalogItem
+from xknxmono.models.files.v14.catalog_section_t_catalog_item import (
+    CatalogSectionCatalogItem,
+)
 
 __NAMESPACE__ = "http://knx.org/xml/project/14"
 

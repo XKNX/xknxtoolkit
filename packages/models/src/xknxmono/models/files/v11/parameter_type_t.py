@@ -4,9 +4,15 @@ from dataclasses import dataclass, field
 
 from xknxmono.models.files.v11.parameter_type_t_type_date import ParameterTypeTypeDate
 from xknxmono.models.files.v11.parameter_type_t_type_float import ParameterTypeTypeFloat
-from xknxmono.models.files.v11.parameter_type_t_type_ipaddress import ParameterTypeTypeIpaddress
-from xknxmono.models.files.v11.parameter_type_t_type_number import ParameterTypeTypeNumber
-from xknxmono.models.files.v11.parameter_type_t_type_picture import ParameterTypeTypePicture
+from xknxmono.models.files.v11.parameter_type_t_type_ipaddress import (
+    ParameterTypeTypeIpaddress,
+)
+from xknxmono.models.files.v11.parameter_type_t_type_number import (
+    ParameterTypeTypeNumber,
+)
+from xknxmono.models.files.v11.parameter_type_t_type_picture import (
+    ParameterTypeTypePicture,
+)
 from xknxmono.models.files.v11.parameter_type_t_type_restriction import (
     ParameterTypeTypeRestriction,
 )

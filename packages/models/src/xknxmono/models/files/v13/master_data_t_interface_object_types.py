@@ -14,12 +14,14 @@ class MasterDataInterfaceObjectTypes:
     class Meta:
         global_type = False
 
-    interface_object_type: list[MasterDataInterfaceObjectTypesInterfaceObjectType] = field(
-        default_factory=list,
-        metadata={
-            "name": "InterfaceObjectType",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/13",
-            "min_occurs": 1,
-        },
+    interface_object_type: list[MasterDataInterfaceObjectTypesInterfaceObjectType] = (
+        field(
+            default_factory=list,
+            metadata={
+                "name": "InterfaceObjectType",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/13",
+                "min_occurs": 1,
+            },
+        )
     )

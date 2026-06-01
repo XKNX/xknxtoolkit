@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.resource_addr_space_t import ResourceAddrSpace
 from xknxmono.models.intermediate.resource_name_t import ResourceName
 

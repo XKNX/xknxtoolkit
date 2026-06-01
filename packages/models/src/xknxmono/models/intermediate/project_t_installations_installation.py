@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.completion_status_t import CompletionStatus
 from xknxmono.models.intermediate.group_addresses_t import GroupAddresses
 from xknxmono.models.intermediate.locations_t import Locations

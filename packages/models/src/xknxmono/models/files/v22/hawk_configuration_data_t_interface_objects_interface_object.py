@@ -14,13 +14,15 @@ class HawkConfigurationDataInterfaceObjectsInterfaceObject:
     class Meta:
         global_type = False
 
-    property: list[HawkConfigurationDataInterfaceObjectsInterfaceObjectProperty] = field(
-        default_factory=list,
-        metadata={
-            "name": "Property",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/22",
-        },
+    property: list[HawkConfigurationDataInterfaceObjectsInterfaceObjectProperty] = (
+        field(
+            default_factory=list,
+            metadata={
+                "name": "Property",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/22",
+            },
+        )
     )
     index: None | int = field(
         default=None,

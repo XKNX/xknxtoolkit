@@ -18,7 +18,12 @@ class ChannelIndependentBlock:
         name = "ChannelIndependentBlock_t"
 
     choice: list[
-        ComObjectParameterBlock | ChannelChoose | BinaryDataRef | ComObjectRefRef | Module | Repeat
+        ComObjectParameterBlock
+        | ChannelChoose
+        | BinaryDataRef
+        | ComObjectRefRef
+        | Module
+        | Repeat
     ] = field(
         default_factory=list,
         metadata={

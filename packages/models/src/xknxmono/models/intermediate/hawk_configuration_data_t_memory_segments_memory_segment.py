@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from xknxmono.models.intermediate.hawk_configuration_data_t_memory_segments_memory_segment_access_rights import (
     HawkConfigurationDataMemorySegmentsMemorySegmentAccessRights,
 )

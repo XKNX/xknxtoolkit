@@ -25,11 +25,13 @@ class ApplicationProgramStaticDeviceCompare:
             "namespace": "http://knx.org/xml/project/10",
         },
     )
-    exclude_property: list[ApplicationProgramStaticDeviceCompareExcludeProperty] = field(
-        default_factory=list,
-        metadata={
-            "name": "ExcludeProperty",
-            "type": "Element",
-            "namespace": "http://knx.org/xml/project/10",
-        },
+    exclude_property: list[ApplicationProgramStaticDeviceCompareExcludeProperty] = (
+        field(
+            default_factory=list,
+            metadata={
+                "name": "ExcludeProperty",
+                "type": "Element",
+                "namespace": "http://knx.org/xml/project/10",
+            },
+        )
     )
