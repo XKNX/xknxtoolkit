@@ -16,9 +16,11 @@ from __future__ import annotations
 
 import base64
 import datetime
-from typing import Any
 
 from pydantic import BaseModel, field_serializer, field_validator
+
+from xknxmono.catalog.models import HardwareProgramMediumType
+from xknxmono.product import ParamTypeKind
 
 
 class ManufacturerResponse(BaseModel):
@@ -55,17 +57,9 @@ class HardwareProgramResponse(BaseModel):
 
     @field_validator("medium_types", mode="before")
     @classmethod
-    def _flatten_medium_types(cls, v: Any) -> list[str]:
-        """Accept either a list of ORM ``HardwareProgramMediumType`` objects or plain strings.
-
-        When the value comes from the ORM relationship it is a list of
-        ``HardwareProgramMediumType`` instances; extract their ``.medium_type``
-        string attribute.  Plain ``str`` values (e.g. from tests or dict input)
-        are passed through unchanged.
-        """
-        return [
-            item.medium_type if hasattr(item, "medium_type") else item for item in v
-        ]
+    def _flatten_medium_types(cls, v: list[HardwareProgramMediumType]) -> list[str]:
+        """Flatten the ORM ``HardwareProgramMediumType`` relationship into a list of strings."""
+        return [item.medium_type for item in v]
 
 
 HardwareProgramResponse.model_rebuild()
@@ -154,9 +148,9 @@ class ApplicationDetailResponse(BaseModel):
 
         @field_validator("kind", mode="before")
         @classmethod
-        def _extract_enum_value(cls, v: Any) -> str:
-            """Accept either a plain string or a ``ParamTypeKind`` enum; return its string value."""
-            return v.value if hasattr(v, "value") else v
+        def _extract_enum_value(cls, v: ParamTypeKind) -> str:
+            """Return the string value of the ``ParamTypeKind`` enum."""
+            return v.value
 
     class Parameter(BaseModel):
         """An application parameter with its current value and type."""
@@ -206,8 +200,8 @@ class ApplicationDetailResponse(BaseModel):
         """The complete loadable code for an application program, split into absolute and relative segments."""
 
         model_config = {"from_attributes": True}
-        absolute_segments: list[ApplicationDetailResponse.AbsoluteSegment]
-        relative_segments: list[ApplicationDetailResponse.RelativeSegment]
+        absolute_segment: list[ApplicationDetailResponse.AbsoluteSegment]
+        relative_segment: list[ApplicationDetailResponse.RelativeSegment]
 
     application_id: str
     name: str

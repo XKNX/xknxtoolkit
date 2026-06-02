@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
+
 from xknxmono.catalog.core.catalog_sections import collect_section_ids
 from xknxmono.catalog.models import (
     Application,
@@ -15,9 +16,9 @@ from xknxmono.catalog.models import (
     HardwareProgram,
     HardwareProgramMediumType,
 )
-from xknxmono.product.application import DeviceApplication
-from xknxmono.product.archive import ProductArchive
-from xknxmono.product.parser import parse_application_xml
+from xknxmono.product import Application as ProductApplication
+from xknxmono.product import parse_application_xml
+from xknxmono.product.archive import Archive
 
 
 @dataclass
@@ -232,7 +233,7 @@ def get_application_xml(db: Session, program_id: str) -> tuple[bytes, str] | Non
         return None
 
     manufacturer_id = program.hardware.manufacturer_id
-    archive = ProductArchive(program.knxprod_path)
+    archive = Archive(program.knxprod_path)
     with archive:
         app_xmls = archive.get_application_xmls(manufacturer_id)
         xml_bytes = app_xmls.get(program.application_id)
@@ -241,7 +242,7 @@ def get_application_xml(db: Session, program_id: str) -> tuple[bytes, str] | Non
         return xml_bytes, manufacturer_id
 
 
-def get_application_detail(db: Session, program_id: str) -> DeviceApplication | None:
+def get_application_detail(db: Session, program_id: str) -> ProductApplication | None:
     """Return the parsed application detail for a hardware program.
 
     Opens the ``.knxprod`` archive and parses the application XML via
@@ -270,7 +271,7 @@ def get_application_detail(db: Session, program_id: str) -> DeviceApplication | 
         return None
 
     manufacturer_id = program.hardware.manufacturer_id
-    archive = ProductArchive(program.knxprod_path)
+    archive = Archive(program.knxprod_path)
     with archive:
         app_xmls = archive.get_application_xmls(manufacturer_id)
         xml_bytes = app_xmls.get(program.application_id)
@@ -278,5 +279,5 @@ def get_application_detail(db: Session, program_id: str) -> DeviceApplication | 
             return None
         apps = parse_application_xml(xml_bytes, manufacturer_id)
         return next(
-            (a for a in apps if a.application_id == program.application_id), None
+            (a for a in apps if a.id == program.application_id), None
         )

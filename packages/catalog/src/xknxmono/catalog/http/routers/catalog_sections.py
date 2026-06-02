@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from xknxmono.catalog.core.catalog_sections import (
     CatalogSectionNode,
     build_catalog_tree,

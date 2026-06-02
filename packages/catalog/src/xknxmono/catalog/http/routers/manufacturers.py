@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from xknxmono.catalog.core.manufacturers import get_manufacturer, list_manufacturers
 from xknxmono.catalog.db import get_db
 from xknxmono.catalog.http.schemas import ManufacturerResponse

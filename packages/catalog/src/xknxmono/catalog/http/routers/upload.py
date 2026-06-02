@@ -1,6 +1,7 @@
 """Upload router: accept .knxprod file uploads and ingest them into the catalog."""
 
 from fastapi import APIRouter, HTTPException, UploadFile
+
 from xknxmono.catalog.core.upload import upload_knxprod as _upload_knxprod
 from xknxmono.catalog.db import get_knxprod_dir
 from xknxmono.product.errors import ArchiveError

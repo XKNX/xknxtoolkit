@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
+
 from xknxmono.catalog.core.hardware import (
     HardwareFilters,
     get_application_detail,
@@ -68,7 +69,16 @@ def get_program_application(
     if app is None:
         raise HTTPException(404, "Application not found in archive")
 
-    return ApplicationDetailResponse.model_validate(app)
+    return ApplicationDetailResponse.model_validate(
+        {
+            "application_id": app.id,
+            "name": app.name,
+            "manufacturer_id": app.manufacturer_id,
+            "com_objects": app.com_objects(),
+            "parameters": app.parameters(),
+            "code": app.code,
+        }
+    )
 
 
 @router.get("/{hardware_id}", response_model=HardwareResponse)

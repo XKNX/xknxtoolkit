@@ -3,6 +3,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from xknxmono.catalog.http.routers import (
     catalog_sections,
     hardware,

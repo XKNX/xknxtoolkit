@@ -3,6 +3,7 @@
 import os
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -10,6 +11,7 @@ load_dotenv()
 
 from sqlalchemy import create_engine, event  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
+
 from xknxmono.catalog.models import Base  # noqa: E402
 
 _PACKAGE_DIR = Path(__file__).parents[3]
@@ -34,7 +36,7 @@ def _make_engine(url: str):
     engine = create_engine(url, connect_args={"check_same_thread": False})
 
     @event.listens_for(engine, "connect")
-    def set_pragmas(dbapi_conn, _):
+    def set_pragmas(dbapi_conn: Any, _: Any) -> None:  # pyright: ignore[reportUnusedFunction]
         cursor = dbapi_conn.cursor()
         cursor.execute("PRAGMA journal_mode=DELETE")
         cursor.execute("PRAGMA foreign_keys=ON")

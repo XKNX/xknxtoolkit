@@ -1,12 +1,12 @@
-"""Core ingestion logic for .knxprod files."""
+"""Core ingestion logic for .knxprod files — populates the catalog DB from a product Registry."""
 
 from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Any
 
 from sqlalchemy.orm import Session
+
 from xknxmono.catalog.db import get_engine
 from xknxmono.catalog.models import (
     Application,
@@ -17,148 +17,114 @@ from xknxmono.catalog.models import (
     HardwareProgramMediumType,
     Manufacturer,
 )
-from xknxmono.product.archive import ProductArchive
-from xknxmono.product.data import load_archive
+from xknxmono.product import DeviceProgram, Registry, load
 
 
-def _walk_manufacturer_data(knx: Any):
-    """Yield each manufacturer entry from a parsed KNX XML root object."""
-    md = getattr(knx, "manufacturer_data", None)
-    yield from getattr(md, "manufacturer", []) or []
+def _ingest_manufacturers(session: Session, reg: Registry) -> None:
+    names = reg.master.manufacturers
+    mids = set(reg.manufacturer_to_hardware) | set(reg.manufacturer_to_section)
+    for mid in mids:
+        session.merge(Manufacturer(id=mid, name=names.get(mid)))
 
 
-def _ingest_applications(session: Session, data_applications: list[Any]) -> None:
-    """Upsert all application programs from the parsed application XML objects into the database."""
-    for app_knx in data_applications:
-        for mfr in _walk_manufacturer_data(app_knx):
-            app_programs = getattr(mfr, "application_programs", None)
-            for ap in getattr(app_programs, "application_program", []) or []:
-                session.merge(
-                    Application(
-                        id=ap.id,
-                        name=getattr(ap, "name", None) or ap.id,
-                        application_number=getattr(ap, "application_number", None),
-                        application_version=getattr(ap, "application_version", None),
-                        mask_version=getattr(ap, "mask_version", None),
-                        is_secure_enabled=getattr(ap, "is_secure_enabled", False),
-                    )
-                )
+def _ingest_applications(session: Session, reg: Registry) -> None:
+    for app in reg.applications.values():
+        program = app.program
+        session.merge(
+            Application(
+                id=app.id,
+                name=app.name,
+                application_number=program.application_number,
+                application_version=program.application_version,
+                mask_version=program.mask_version,
+                is_secure_enabled=bool(program.is_secure_enabled),
+            )
+        )
 
 
-def _ingest_hardware(
-    session: Session, hw_knx: Any, mfr_id: str, knxprod_path: str
-) -> None:
-    """Upsert hardware items and their hardware programs from the parsed Hardware.xml object."""
-    if not session.get(Manufacturer, mfr_id):
-        session.add(Manufacturer(id=mfr_id, name=None))
-
-    for mfr in _walk_manufacturer_data(hw_knx):
-        hw_container = getattr(mfr, "hardware", None)
-        for hw in getattr(hw_container, "hardware", []) or []:
-            products_container = getattr(hw, "products", None)
-            products = getattr(products_container, "product", []) or []
-            prod = products[0] if products else None
-
+def _ingest_hardware(session: Session, reg: Registry, knxprod_path: str) -> None:
+    for mfr_id, hardware_ids in reg.manufacturer_to_hardware.items():
+        for hardware_id in hardware_ids:
+            hw = reg.hardware[hardware_id]
+            raw = hw.raw
+            products = list(reg.products_for_hardware(hardware_id).values())
+            product = products[0] if products else None
             session.merge(
                 Hardware(
                     id=hw.id,
                     manufacturer_id=mfr_id,
-                    name=prod.text if prod else None,
-                    order_number=prod.order_number if prod else None,
-                    is_rail_mounted=getattr(prod, "is_rail_mounted", None)
-                    if prod
-                    else None,
-                    width_mm=getattr(prod, "width_in_millimeter", None)
-                    if prod
-                    else None,
-                    description=getattr(prod, "visible_description", None)
-                    if prod
-                    else None,
-                    default_language=getattr(prod, "default_language", None)
-                    if prod
-                    else None,
-                    serial_number=getattr(hw, "serial_number", None),
-                    version_number=getattr(hw, "version_number", None),
-                    bus_current=getattr(hw, "bus_current", None),
-                    has_application_program=getattr(
-                        hw, "has_application_program", None
-                    ),
-                    is_coupler=getattr(hw, "is_coupler", None),
-                    is_power_supply=getattr(hw, "is_power_supply", None),
-                    is_ip_enabled=getattr(hw, "is_ipenabled", None),
-                    no_download_without_plugin=getattr(
-                        hw, "no_download_without_plugin", None
-                    ),
+                    name=product.name if product else hw.name,
+                    order_number=product.order_number if product else None,
+                    is_rail_mounted=product.rail_mounted if product else None,
+                    width_mm=product.width_mm if product else None,
+                    description=product.raw.visible_description if product else None,
+                    default_language=product.raw.default_language if product else None,
+                    serial_number=raw.serial_number,
+                    version_number=raw.version_number,
+                    bus_current=raw.bus_current,
+                    has_application_program=raw.has_application_program,
+                    is_coupler=raw.is_coupler,
+                    is_power_supply=raw.is_power_supply,
+                    is_ip_enabled=raw.is_ipenabled,
+                    no_download_without_plugin=raw.no_download_without_plugin,
                 )
             )
-
-            h2ps_container = getattr(hw, "hardware2_programs", None)
-            for h2p in getattr(h2ps_container, "hardware2_program", []) or []:
-                app_refs = getattr(h2p, "application_program_ref", []) or []
-                app_id = app_refs[0].ref_id if app_refs else None
-
-                reg = getattr(h2p, "registration_info", None)
-                reg_status = None
-                reg_number = None
-                reg_date = None
-                if reg is not None:
-                    status = getattr(reg, "registration_status", None)
-                    reg_status = status.value if status is not None else None
-                    reg_number = getattr(reg, "registration_number", None)
-                    xml_date = getattr(reg, "registration_date", None)
-                    reg_date = xml_date.to_date() if xml_date is not None else None
-
-                session.merge(
-                    HardwareProgram(
-                        id=h2p.id,
-                        hardware_id=hw.id,
-                        application_id=app_id,
-                        knxprod_path=knxprod_path,
-                        registration_status=reg_status,
-                        registration_number=reg_number,
-                        registration_date=reg_date,
-                    )
-                )
-
-                for mt in getattr(h2p, "medium_types", []) or []:
-                    session.merge(
-                        HardwareProgramMediumType(
-                            hardware_program_id=h2p.id, medium_type=mt
-                        )
-                    )
+            for program in reg.programs_for_hardware(hardware_id).values():
+                _ingest_program(session, hw.id, program, knxprod_path)
 
 
-def _ingest_section(
-    session: Session, section: Any, mfr_id: str, parent_id: str | None
+def _ingest_program(
+    session: Session, hardware_id: str, program: DeviceProgram, knxprod_path: str
 ) -> None:
-    """Recursively upsert a catalog section and its children and product references."""
+    app_id = program.application_ref_ids[0] if program.application_ref_ids else None
+
+    reg_status = reg_number = reg_date = None
+    info = program.raw.registration_info
+    if info is not None:
+        reg_status = info.registration_status.value
+        reg_number = info.registration_number
+        reg_date = info.registration_date.to_date() if info.registration_date else None
+
     session.merge(
-        CatalogSection(
-            id=section.id,
-            manufacturer_id=mfr_id,
-            parent_id=parent_id,
-            name=section.name,
-            number=getattr(section, "number", None),
+        HardwareProgram(
+            id=program.id,
+            hardware_id=hardware_id,
+            application_id=app_id,
+            knxprod_path=knxprod_path,
+            registration_status=reg_status,
+            registration_number=reg_number,
+            registration_date=reg_date,
         )
     )
-    for item in getattr(section, "catalog_item", []) or []:
-        prod_ref = getattr(item, "hardware2_program_ref_id", None)
-        if prod_ref:
+    for medium_type in program.raw.medium_types or []:
+        session.merge(
+            HardwareProgramMediumType(
+                hardware_program_id=program.id, medium_type=medium_type
+            )
+        )
+
+
+def _ingest_catalog(session: Session, reg: Registry) -> None:
+    for mfr_id, section_ids in reg.manufacturer_to_section.items():
+        for section_id in section_ids:
+            section = reg.catalog_sections[section_id]
             session.merge(
-                CatalogSectionProduct(
-                    section_id=section.id, hardware_program_id=prod_ref
+                CatalogSection(
+                    id=section.id,
+                    manufacturer_id=mfr_id,
+                    parent_id=section.parent_id,
+                    name=section.name or section.id,
+                    number=section.number,
                 )
             )
-    for child in getattr(section, "catalog_section", []) or []:
-        _ingest_section(session, child, mfr_id, section.id)
-
-
-def _ingest_catalog(session: Session, cat_knx: Any, mfr_id: str) -> None:
-    """Upsert all top-level catalog sections for a manufacturer from the parsed Catalog.xml object."""
-    for mfr in _walk_manufacturer_data(cat_knx):
-        cat_container = getattr(mfr, "catalog", None)
-        for section in getattr(cat_container, "catalog_section", []) or []:
-            _ingest_section(session, section, mfr_id, None)
+            for item in reg.items_for_section(section_id).values():
+                if item.hardware2_program_ref_id:
+                    session.merge(
+                        CatalogSectionProduct(
+                            section_id=section.id,
+                            hardware_program_id=item.hardware2_program_ref_id,
+                        )
+                    )
 
 
 def upload_knxprod(content: bytes, dest_dir: Path) -> Path:
@@ -171,12 +137,12 @@ def upload_knxprod(content: bytes, dest_dir: Path) -> Path:
     if path.exists():
         return path
 
-    with ProductArchive(content) as archive, Session(get_engine()) as session:
-        for mfr_id in archive.manufacturer_ids:
-            data = load_archive(archive, mfr_id)
-            _ingest_applications(session, data.applications)
-            _ingest_hardware(session, data.hardware, mfr_id, str(path))
-            _ingest_catalog(session, data.catalog, mfr_id)
+    registry = load(content)
+    with Session(get_engine()) as session:
+        _ingest_manufacturers(session, registry)
+        _ingest_applications(session, registry)
+        _ingest_hardware(session, registry, str(path))
+        _ingest_catalog(session, registry)
         session.commit()
 
     path.write_bytes(content)

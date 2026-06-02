@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
+
 from xknxmono.catalog.models import CatalogSection
 
 
