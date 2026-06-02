@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from xknxmono.keyring.generated.knx_keyring import (
+from xknxmono.keyring.files.knx_keyring import (
     Backbone,
     Devices,
     GroupAddresses,
