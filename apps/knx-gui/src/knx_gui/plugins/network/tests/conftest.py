@@ -1,8 +1,6 @@
 from datetime import UTC, datetime
 
 import pytest
-
-from knx_gui.types import TelegramRecord
 from xknx.dpt import DPTArray, DPTBinary
 from xknx.telegram import Telegram
 from xknx.telegram.apci import (
@@ -43,6 +41,8 @@ from xknx.telegram.apci import (
     UserMemoryResponse,
     UserMemoryWrite,
 )
+
+from knx_gui.types import TelegramRecord
 
 
 def make_telegram_record(source: str, dest: str, payload, sec: int) -> TelegramRecord:

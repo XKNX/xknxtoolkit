@@ -5,11 +5,11 @@ from datetime import datetime
 from enum import Enum
 
 from imgui_bundle import imgui
+from xknx.telegram import Telegram as XknxTelegram
 
 from knx_gui.dpt import DPT
 from xknxmono.product import DeviceApplication, ParamType
 from xknxmono.product.dynamic import VisibleNode
-from xknx.telegram import Telegram as XknxTelegram
 
 
 class PinDir(Enum):

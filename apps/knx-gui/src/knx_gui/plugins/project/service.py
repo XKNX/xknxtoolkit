@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from knx_gui.dpt import lookup_or_make_dpt
-from xknxmono.product import DeviceApplication, parse_application_xml
 from knx_gui.plugins.project.db import (
     AreaCreated,
     AreaModel,
@@ -32,6 +31,7 @@ from knx_gui.plugins.project.db import (
     ProjectDatabase,
 )
 from knx_gui.types import ComObject, Device
+from xknxmono.product import DeviceApplication, parse_application_xml
 
 if TYPE_CHECKING:
     from knx_gui.plugins.base import Logger

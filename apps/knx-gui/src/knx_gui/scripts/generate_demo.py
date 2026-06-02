@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from xknxmono.product import parse_application_xml
 from knx_gui.plugins.catalog.db import (
     ApplicationModel,
     CatalogDatabase,
@@ -15,6 +14,7 @@ from knx_gui.plugins.project.db import (
     LineCreated,
     ProjectDatabase,
 )
+from xknxmono.product import parse_application_xml
 
 
 @dataclass

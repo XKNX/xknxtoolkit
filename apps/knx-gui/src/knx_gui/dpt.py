@@ -3,7 +3,6 @@ from enum import Enum
 from functools import lru_cache
 
 from imgui_bundle import imgui
-
 from xknx.dpt import DPTBase
 
 

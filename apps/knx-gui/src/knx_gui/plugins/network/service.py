@@ -3,9 +3,10 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from knx_gui.types import TelegramRecord
 from xknx.cemi import CEMIFrame
 from xknx.telegram import Telegram
+
+from knx_gui.types import TelegramRecord
 
 if TYPE_CHECKING:
     from knx_gui.plugins.base import Logger

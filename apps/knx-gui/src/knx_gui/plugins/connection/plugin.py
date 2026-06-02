@@ -6,15 +6,15 @@ from enum import Enum
 from typing import Any
 
 from imgui_bundle import imgui
+from xknx import XKNX
+from xknx.io.connection import ConnectionConfig, ConnectionType
+from xknx.io.gateway_scanner import GatewayDescriptor
+from xknx.io.self_description import request_description
 
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.connection.interface import ObservableKNXIPInterfaceThreaded
 from knx_gui.plugins.connection.strings import S
 from knx_gui.types import color_u32
-from xknx import XKNX
-from xknx.io.connection import ConnectionConfig, ConnectionType
-from xknx.io.gateway_scanner import GatewayDescriptor
-from xknx.io.self_description import request_description
 
 
 class ConnectionState(Enum):

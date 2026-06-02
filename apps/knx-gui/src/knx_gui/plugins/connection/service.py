@@ -13,9 +13,10 @@ from xknx.management.procedures import (
 )
 
 if TYPE_CHECKING:
+    from xknx import XKNX
+
     from knx_gui.plugins.base import Logger
     from knx_gui.types import Device
-    from xknx import XKNX
 
 
 class ConnectionService:

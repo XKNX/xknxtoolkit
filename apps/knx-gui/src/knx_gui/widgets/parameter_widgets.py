@@ -3,10 +3,10 @@ from dataclasses import dataclass
 
 from imgui_bundle import imgui
 
-from xknxmono.product import ParamTypeKind
-from xknxmono.product.dynamic import VisibleNode
 from knx_gui.plugins.node_editor.strings import S
 from knx_gui.types import Device, Parameter
+from xknxmono.product import ParamTypeKind
+from xknxmono.product.dynamic import VisibleNode
 
 
 @dataclass
