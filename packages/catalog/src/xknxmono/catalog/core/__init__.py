@@ -6,19 +6,25 @@ Python context (scripts, GUI applications, tests) without starting an HTTP serve
 
 Example::
 
-  from sqlalchemy.orm import Session
-  from xknxmono.catalog.db import get_engine
-  from xknxmono.catalog.core import HardwareFilters, list_hardware, upload_knxprod
   from pathlib import Path
+  from sqlalchemy.orm import Session
+  from xknxmono.catalog.db import make_engine, knxprod_dir_for
+  from xknxmono.catalog.core import HardwareFilters, list_hardware, upload_knxprod
 
-  upload_knxprod(Path("device.knxprod").read_bytes(), dest_dir=Path("data/knxprod"))
+  engine = make_engine("sqlite:///catalog.db")
+  upload_knxprod(Path("device.knxprod").read_bytes(), knxprod_dir_for(Path("catalog.db")), engine)
 
-  with Session(get_engine()) as db:
+  with Session(engine) as db:
       results = list_hardware(db, HardwareFilters(manufacturer_id=["M-0001"], limit=10))
       for hw in results:
           print(hw.name, hw.order_number)
 """
 
+from xknxmono.catalog.core.applications import (
+    ApplicationSummary,
+    get_application_detail_by_id,
+    list_applications,
+)
 from xknxmono.catalog.core.catalog_sections import (
     CatalogSectionNode,
     build_catalog_tree,
@@ -37,15 +43,18 @@ from xknxmono.catalog.core.manufacturers import get_manufacturer, list_manufactu
 from xknxmono.catalog.core.upload import upload_knxprod
 
 __all__ = [
+    "ApplicationSummary",
     "CatalogSectionNode",
     "HardwareFilters",
     "build_catalog_tree",
     "collect_section_ids",
     "get_application_detail",
+    "get_application_detail_by_id",
     "get_application_xml",
     "get_hardware",
     "get_hardware_program",
     "get_manufacturer",
+    "list_applications",
     "list_catalog_sections",
     "list_hardware",
     "list_manufacturers",

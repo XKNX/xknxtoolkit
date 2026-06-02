@@ -11,7 +11,7 @@ from xknxmono.catalog.core.catalog_sections import (
     list_catalog_sections,
 )
 from xknxmono.catalog.core.manufacturers import get_manufacturer
-from xknxmono.catalog.db import get_db
+from xknxmono.catalog.http.deps import get_db
 from xknxmono.catalog.http.schemas import CatalogSectionResponse
 
 router = APIRouter(prefix="/manufacturers", tags=["Manufacturers"])

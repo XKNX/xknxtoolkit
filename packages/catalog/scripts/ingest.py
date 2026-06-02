@@ -10,19 +10,26 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from xknxmono.catalog.core.upload import upload_knxprod  # noqa: E402
-from xknxmono.catalog.db import get_knxprod_dir  # noqa: E402
+from xknxmono.catalog.db import (  # noqa: E402
+    default_db_url,
+    knxprod_dir_for,
+    make_engine,
+)
 from xknxmono.product.errors import ArchiveError  # noqa: E402
 
 
 def main() -> None:
-    source_dir = sys.argv[1] if len(sys.argv) > 1 else str(get_knxprod_dir())
+    url = default_db_url()
+    engine = make_engine(url)
+    dest_dir = knxprod_dir_for(Path(url.removeprefix("sqlite:///")))
+
+    source_dir = sys.argv[1] if len(sys.argv) > 1 else str(dest_dir)
 
     source_path = Path(source_dir)
     if not source_path.exists():
         print(f"ERROR: KNXPROD_DIR not found: {source_path}", file=sys.stderr)
         sys.exit(1)
 
-    dest_dir = get_knxprod_dir()
     files = sorted(source_path.glob("*.knxprod"))
     total = len(files)
     print(f"Found {total} .knxprod files in {source_path}")
@@ -32,7 +39,7 @@ def main() -> None:
         if i % 100 == 0 or i == total:
             print(f"  [{i}/{total}] {fp.name}")
         try:
-            upload_knxprod(fp.read_bytes(), dest_dir)
+            upload_knxprod(fp.read_bytes(), dest_dir, engine)
         except ArchiveError as e:
             print(f"  SKIP {fp.name}: {e}", file=sys.stderr)
             errors += 1

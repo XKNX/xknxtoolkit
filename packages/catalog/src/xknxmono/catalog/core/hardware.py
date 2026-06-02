@@ -255,7 +255,7 @@ def get_application_detail(db: Session, program_id: str) -> ProductApplication |
       program_id: The hardware program's primary-key identifier.
 
     Returns:
-      A :class:`~xknxmono.product.application.DeviceApplication` instance with
+      A :class:`~xknxmono.product.application.Application` instance with
       com objects, parameters, and code populated, or ``None`` if not found.
 
     Raises:

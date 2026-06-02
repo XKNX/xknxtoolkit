@@ -14,7 +14,7 @@ from xknxmono.catalog.core.hardware import (
     get_hardware_program,
     list_hardware,
 )
-from xknxmono.catalog.db import get_db
+from xknxmono.catalog.http.deps import get_db
 from xknxmono.catalog.http.schemas import ApplicationDetailResponse, HardwareResponse
 from xknxmono.product.errors import ArchiveError
 

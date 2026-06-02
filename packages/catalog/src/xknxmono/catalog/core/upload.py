@@ -5,9 +5,9 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from xknxmono.catalog.db import get_engine
 from xknxmono.catalog.models import (
     Application,
     CatalogSection,
@@ -127,8 +127,8 @@ def _ingest_catalog(session: Session, reg: Registry) -> None:
                     )
 
 
-def upload_knxprod(content: bytes, dest_dir: Path) -> Path:
-    """Ingest .knxprod bytes. Returns the path where the file was saved.
+def upload_knxprod(content: bytes, dest_dir: Path, engine: Engine) -> Path:
+    """Ingest .knxprod bytes into the database behind ``engine``. Returns the path where the file was saved.
 
     Skips silently if the same content (by SHA3-256) was already ingested.
     File is written to disk only after a successful DB commit.
@@ -138,7 +138,7 @@ def upload_knxprod(content: bytes, dest_dir: Path) -> Path:
         return path
 
     registry = load(content)
-    with Session(get_engine()) as session:
+    with Session(engine) as session:
         _ingest_manufacturers(session, registry)
         _ingest_applications(session, registry)
         _ingest_hardware(session, registry, str(path))
