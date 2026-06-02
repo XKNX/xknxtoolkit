@@ -5,7 +5,7 @@ from xknxmono.product import (
     DynamicElement,
     DynamicWhen,
 )
-from xknxmono.product.dynamic import (
+from xknxmono.product.parser.dynamic import (
     filter_visible_com_objects,
     visible_com_object_ids,
 )

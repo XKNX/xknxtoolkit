@@ -1,170 +1,130 @@
+"""`Application` — the resolution facade over a single IR application program.
+
+It wraps one `intermediate.ApplicationProgram` (the IR is exposed directly as `.program`) and
+resolves the per-program views consumers care about: com objects, parameters, parameter types,
+the dynamic visibility tree, code, and load procedures.
+"""
+
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import TYPE_CHECKING
 
-from .models.code import Code
+from xknxmono.models import detect_version
+from xknxmono.models.intermediate.application_program_t import ApplicationProgram
+from xknxmono.models.intermediate.knx import Knx
+from xknxmono.models.intermediate.load_procedure_style_t import LoadProcedureStyle
+
+from .data import to_ir
+from .parser import (
+    build_app_dynamic_tree,
+    extract_app_com_objects,
+    extract_app_param_types,
+    extract_app_parameters,
+)
+from .parser import dynamic as dy
+from .parser.com_objects import ComObject
+from .parser.parameters import Parameter, ParamType
 
 if TYPE_CHECKING:
-    from . import dynamic
-    from .protocols import LoadProcedures
+    from xknxmono.models.intermediate.application_program_static_t_code import (
+        ApplicationProgramStaticCode,
+    )
+    from xknxmono.models.intermediate.load_procedures_t import LoadProcedures
+
+    from .parser.dynamic import DynamicElement, VisibleNode
 
 
-class ParamTypeKind(Enum):
-    ENUM = "enum"
-    NUMBER = "number"
-    TEXT = "text"
-    TIME = "time"
-    CHECKBOX = "checkbox"
-    PICTURE = "picture"
-    UNKNOWN = "unknown"
+@dataclass(slots=True)
+class Application:
+    """One application program, resolved on demand. `program` is the raw IR; the methods return
+    the computed value types."""
 
-
-@dataclass
-class EnumOption:
-    value: str
-    text: str
-
-
-@dataclass
-class ParamType:
-    kind: ParamTypeKind
-    options: list[EnumOption] = field(default_factory=list)
-    min_value: int | None = None
-    max_value: int | None = None
-    size_bits: int | None = None
-
-
-@dataclass
-class ComObjectFlags:
-    communication: bool = True
-    read: bool = False
-    write: bool = False
-    transmit: bool = False
-    update: bool = False
-    read_on_init: bool = False
-    read_locked: bool = False
-    write_locked: bool = False
-    transmit_locked: bool = False
-    update_locked: bool = False
-    read_on_init_locked: bool = False
-
-
-@dataclass
-class ComObject:
-    id: str
-    name: str
-    number: int
-    dpt_codes: list[str]
-    flags: ComObjectFlags
-
-
-@dataclass
-class Parameter:
-    id: str
-    ref_id: str
-    name: str
-    text: str
-    value: str
-    param_type_id: str
-    param_type: ParamType | None = None
-
-
-@dataclass
-class DynamicElement:
-    id: str | None = None
-    name: str | None = None
-    text: str | None = None
-    number: int | None = None
-    header_param_ref_id: str | None = None
-    param_ref_ids: list[str] = field(default_factory=list)
-    com_object_ref_ids: list[str] = field(default_factory=list)
-    children: list[DynamicElement] = field(default_factory=list)
-    chooses: list[DynamicChoose] = field(default_factory=list)
-
-
-@dataclass
-class DynamicWhen:
-    test_values: list[str] = field(default_factory=list)
-    is_default: bool = False
-    content: DynamicElement | None = None
-
-
-@dataclass
-class DynamicChoose:
-    param_ref_id: str
-    conditions: list[DynamicWhen] = field(default_factory=list)
-
-
-
-@dataclass
-class DeviceApplication:
-    application_id: str
-    name: str
+    program: ApplicationProgram
+    version: str
     manufacturer_id: str
-    com_objects: list[ComObject]
-    parameters: list[Parameter]
-    dynamic: DynamicElement | None = None
-    load_procedure_style: str | None = None
-    load_procedures: LoadProcedures | None = None
-    code: Code | None = None
+    _params: list[Parameter] | None = field(default=None, repr=False, compare=False)
+    _tree: DynamicElement | None = field(default=None, repr=False, compare=False)
+    _tree_built: bool = field(default=False, repr=False, compare=False)
 
-    _cached_tree: list[dynamic.TreeNode] | None = None
-    _cached_params_by_id: dict[str, Parameter] | None = None
+    @property
+    def id(self) -> str:
+        return self.program.id
 
-    def _get_visible_tree(
-        self, param_values: dict[str, str] | None = None
-    ) -> list[dynamic.VisibleNode]:
-        from . import dynamic as dy
+    @property
+    def name(self) -> str:
+        return self.program.name or self.program.id
 
-        if self._cached_tree is None:
-            self._cached_tree = dy.build_tree(self.dynamic)
-            self._cached_params_by_id = {p.id: p for p in self.parameters}
+    # --- resolved views ------------------------------------------------------
+    def param_types(self) -> dict[str, ParamType]:
+        return extract_app_param_types(self.program)
 
-        if param_values is None:
-            param_values = {p.id: p.value for p in self.parameters}
+    def parameters(self) -> list[Parameter]:
+        if self._params is None:
+            self._params = extract_app_parameters(self.program)
+        return self._params
 
-        return dy.evaluate_tree_cached(
-            self._cached_tree, param_values, self._cached_params_by_id or {}
+    def com_objects(self) -> list[ComObject]:
+        return extract_app_com_objects(self.program)
+
+    def dynamic_tree(self) -> DynamicElement | None:
+        if not self._tree_built:
+            self._tree = build_app_dynamic_tree(self.program)
+            self._tree_built = True
+        return self._tree
+
+    @property
+    def code(self) -> ApplicationProgramStaticCode | None:
+        return self.program.static.code if self.program.static else None
+
+    @property
+    def load_procedures(self) -> LoadProcedures | None:
+        return self.program.static.load_procedures if self.program.static else None
+
+    @property
+    def load_procedure_style(self) -> LoadProcedureStyle | None:
+        return self.program.load_procedure_style
+
+    # --- dynamic visibility --------------------------------------------------
+    def _values_or_defaults(self, values: dict[str, str] | None) -> dict[str, str]:
+        if values is not None:
+            return values
+        return {p.id: p.value for p in self.parameters()}
+
+    def visible_tree(self, values: dict[str, str] | None = None) -> list[VisibleNode]:
+        return dy.evaluate_tree(
+            self.dynamic_tree(),
+            self._values_or_defaults(values),
+            {p.id: p for p in self.parameters()},
         )
-
-    def get_visible_tree(
-        self, param_values: dict[str, str] | None = None
-    ) -> list[dynamic.VisibleNode]:
-        return self._get_visible_tree(param_values)
 
     def visible_parameters(
-        self, param_values: dict[str, str] | None = None
+        self, values: dict[str, str] | None = None
     ) -> list[Parameter]:
-        if self.dynamic is None:
-            return self.parameters
-
-        visible_ids = self._collect_visible_param_ids(param_values)
-        return [p for p in self.parameters if p.id in visible_ids]
+        return dy.visible_parameters(self.parameters(), self.dynamic_tree(), values)
 
     def visible_com_objects(
-        self, param_values: dict[str, str] | None = None
+        self, values: dict[str, str] | None = None
     ) -> list[ComObject]:
-        from . import dynamic as dy
-
-        if param_values is None:
-            param_values = {p.id: p.value for p in self.parameters}
-
         return dy.filter_visible_com_objects(
-            self.com_objects, self.dynamic, param_values
+            self.com_objects(), self.dynamic_tree(), self._values_or_defaults(values)
         )
 
-    def _collect_visible_param_ids(
-        self, param_values: dict[str, str] | None
-    ) -> set[str]:
-        if param_values is None:
-            param_values = {p.id: p.value for p in self.parameters}
 
-        from . import dynamic as dy
+def _programs(knx: Knx) -> Iterator[ApplicationProgram]:
+    if knx.manufacturer_data is None:
+        return
+    for manufacturer in knx.manufacturer_data.manufacturer:
+        if manufacturer.application_programs is not None:
+            yield from manufacturer.application_programs.application_program
 
-        if not self.dynamic:
-            return set()
 
-        params, _ = dy.collect_all_visible_refs(self.dynamic, param_values)
-        return params
+def parse_application_xml(xml_bytes: bytes, manufacturer_id: str) -> list[Application]:
+    """Load a single application XML in isolation (no hardware/catalog context)."""
+    version = detect_version(xml_bytes)
+    knx = to_ir(xml_bytes, version)
+    return [
+        Application(program=p, version=version, manufacturer_id=manufacturer_id)
+        for p in _programs(knx)
+    ]

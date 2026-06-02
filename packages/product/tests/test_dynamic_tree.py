@@ -1,11 +1,10 @@
-
 from xknxmono.product import (
     DynamicChoose,
     DynamicElement,
     DynamicWhen,
     Parameter,
 )
-from xknxmono.product.dynamic import (
+from xknxmono.product.parser.dynamic import (
     TreeNode,
     VisibleNode,
     _build_children,
@@ -311,12 +310,20 @@ class TestEvaluateTreeCached:
         elem1 = make_element(id="a", text="Same", param_ref_ids=["p1"])
         elem2 = make_element(id="b", text="Same", param_ref_ids=["p2"])
         node1 = TreeNode(
-            id="a", name=None, text="Same", header_param_ref_id=None,
-            element=elem1, visibility=always_visible,
+            id="a",
+            name=None,
+            text="Same",
+            header_param_ref_id=None,
+            element=elem1,
+            visibility=always_visible,
         )
         node2 = TreeNode(
-            id="b", name=None, text="Same", header_param_ref_id=None,
-            element=elem2, visibility=always_visible,
+            id="b",
+            name=None,
+            text="Same",
+            header_param_ref_id=None,
+            element=elem2,
+            visibility=always_visible,
         )
 
         result = evaluate_tree_cached([node1, node2], {}, {})
@@ -329,12 +336,19 @@ class TestEvaluateNodes:
     def test_filters_by_visibility(self):
         elem = make_element(id="test", text="Test", param_ref_ids=["p1"])
         visible = TreeNode(
-            id="visible", name=None, text="Visible", header_param_ref_id=None,
-            element=elem, visibility=always_visible,
+            id="visible",
+            name=None,
+            text="Visible",
+            header_param_ref_id=None,
+            element=elem,
+            visibility=always_visible,
         )
         hidden_elem = make_element(id="hidden", text="Hidden", param_ref_ids=["p2"])
         hidden = TreeNode(
-            id="hidden", name=None, text="Hidden", header_param_ref_id=None,
+            id="hidden",
+            name=None,
+            text="Hidden",
+            header_param_ref_id=None,
             element=hidden_elem,
             visibility=make_condition("show", ["1"], is_default=False),
         )
@@ -347,8 +361,12 @@ class TestEvaluateNodes:
     def test_skips_empty_nodes(self):
         elem = make_element(id="empty", text="Empty")
         node = TreeNode(
-            id="empty", name=None, text="Empty", header_param_ref_id=None,
-            element=elem, visibility=always_visible,
+            id="empty",
+            name=None,
+            text="Empty",
+            header_param_ref_id=None,
+            element=elem,
+            visibility=always_visible,
         )
 
         result = _evaluate_nodes([node], {}, {})
@@ -357,13 +375,22 @@ class TestEvaluateNodes:
     def test_includes_nodes_with_children_only(self):
         child_elem = make_element(id="child", text="Child", param_ref_ids=["p1"])
         child = TreeNode(
-            id="child", name=None, text="Child", header_param_ref_id=None,
-            element=child_elem, visibility=always_visible,
+            id="child",
+            name=None,
+            text="Child",
+            header_param_ref_id=None,
+            element=child_elem,
+            visibility=always_visible,
         )
         parent_elem = make_element(id="parent", text="Parent")
         parent = TreeNode(
-            id="parent", name=None, text="Parent", header_param_ref_id=None,
-            element=parent_elem, visibility=always_visible, children=[child],
+            id="parent",
+            name=None,
+            text="Parent",
+            header_param_ref_id=None,
+            element=parent_elem,
+            visibility=always_visible,
+            children=[child],
         )
 
         result = _evaluate_nodes([parent], {}, {})
@@ -375,8 +402,12 @@ class TestEvaluateNodes:
     def test_fallback_display_name(self):
         elem = make_element(id="test", param_ref_ids=["p1"])
         node = TreeNode(
-            id="test", name=None, text=None, header_param_ref_id=None,
-            element=elem, visibility=always_visible,
+            id="test",
+            name=None,
+            text=None,
+            header_param_ref_id=None,
+            element=elem,
+            visibility=always_visible,
         )
 
         result = _evaluate_nodes([node], {}, {})
@@ -394,7 +425,9 @@ class TestCollectVisibleRefs:
         assert coms == ["co1"]
 
     def test_includes_refs_from_matching_when(self):
-        content = make_element(param_ref_ids=["nested_p"], com_object_ref_ids=["nested_co"])
+        content = make_element(
+            param_ref_ids=["nested_p"], com_object_ref_ids=["nested_co"]
+        )
         choose = DynamicChoose(
             param_ref_id="sel",
             conditions=[DynamicWhen(test_values=["1"], content=content)],
@@ -431,9 +464,11 @@ class TestCollectVisibleRefs:
 
 class TestCollectAllVisibleRefs:
     def test_includes_refs_from_children(self):
-        from xknxmono.product.dynamic import collect_all_visible_refs
+        from xknxmono.product.parser.dynamic import collect_all_visible_refs
 
-        child1 = make_element(param_ref_ids=["child1_p"], com_object_ref_ids=["child1_co"])
+        child1 = make_element(
+            param_ref_ids=["child1_p"], com_object_ref_ids=["child1_co"]
+        )
         child2 = make_element(param_ref_ids=["child2_p"])
         element = make_element(param_ref_ids=["root_p"], children=[child1, child2])
 
@@ -445,7 +480,7 @@ class TestCollectAllVisibleRefs:
         assert "child1_co" in coms
 
     def test_includes_refs_from_nested_children(self):
-        from xknxmono.product.dynamic import collect_all_visible_refs
+        from xknxmono.product.parser.dynamic import collect_all_visible_refs
 
         grandchild = make_element(param_ref_ids=["gc_p"])
         child = make_element(children=[grandchild])
@@ -457,7 +492,7 @@ class TestCollectAllVisibleRefs:
         assert "gc_p" in params
 
     def test_includes_refs_from_chooses(self):
-        from xknxmono.product.dynamic import collect_all_visible_refs
+        from xknxmono.product.parser.dynamic import collect_all_visible_refs
 
         content = make_element(param_ref_ids=["nested_p"])
         choose = DynamicChoose(
@@ -472,7 +507,7 @@ class TestCollectAllVisibleRefs:
         assert "nested_p" in params
 
     def test_includes_refs_from_children_inside_choose_content(self):
-        from xknxmono.product.dynamic import collect_all_visible_refs
+        from xknxmono.product.parser.dynamic import collect_all_visible_refs
 
         grandchild = make_element(param_ref_ids=["gc_p"], com_object_ref_ids=["gc_co"])
         child = make_element(param_ref_ids=["child_p"], children=[grandchild])
@@ -530,8 +565,12 @@ class TestResolveName:
         param = make_param("header", text="Header Text")
         elem = make_element(id="test")
         node = TreeNode(
-            id="test", name="Name", text="Text", header_param_ref_id="header",
-            element=elem, visibility=always_visible,
+            id="test",
+            name="Name",
+            text="Text",
+            header_param_ref_id="header",
+            element=elem,
+            visibility=always_visible,
         )
 
         result = _resolve_name(node, {"header": param})
@@ -540,8 +579,12 @@ class TestResolveName:
     def test_uses_text_when_no_header_param(self):
         elem = make_element(id="test")
         node = TreeNode(
-            id="test", name="Name", text="Text", header_param_ref_id=None,
-            element=elem, visibility=always_visible,
+            id="test",
+            name="Name",
+            text="Text",
+            header_param_ref_id=None,
+            element=elem,
+            visibility=always_visible,
         )
 
         result = _resolve_name(node, {})
@@ -550,8 +593,12 @@ class TestResolveName:
     def test_uses_name_when_no_text(self):
         elem = make_element(id="test")
         node = TreeNode(
-            id="test", name="Name", text=None, header_param_ref_id=None,
-            element=elem, visibility=always_visible,
+            id="test",
+            name="Name",
+            text=None,
+            header_param_ref_id=None,
+            element=elem,
+            visibility=always_visible,
         )
 
         result = _resolve_name(node, {})
@@ -560,8 +607,12 @@ class TestResolveName:
     def test_returns_none_when_no_name_or_text(self):
         elem = make_element(id="test")
         node = TreeNode(
-            id="test", name=None, text=None, header_param_ref_id=None,
-            element=elem, visibility=always_visible,
+            id="test",
+            name=None,
+            text=None,
+            header_param_ref_id=None,
+            element=elem,
+            visibility=always_visible,
         )
 
         result = _resolve_name(node, {})
@@ -571,8 +622,12 @@ class TestResolveName:
         param = make_param("header", text="")
         elem = make_element(id="test")
         node = TreeNode(
-            id="test", name="Name", text="Text", header_param_ref_id="header",
-            element=elem, visibility=always_visible,
+            id="test",
+            name="Name",
+            text="Text",
+            header_param_ref_id="header",
+            element=elem,
+            visibility=always_visible,
         )
 
         result = _resolve_name(node, {"header": param})
@@ -581,8 +636,12 @@ class TestResolveName:
     def test_ignores_missing_header_param(self):
         elem = make_element(id="test")
         node = TreeNode(
-            id="test", name="Name", text="Text", header_param_ref_id="missing",
-            element=elem, visibility=always_visible,
+            id="test",
+            name="Name",
+            text="Text",
+            header_param_ref_id="missing",
+            element=elem,
+            visibility=always_visible,
         )
 
         result = _resolve_name(node, {})
@@ -591,8 +650,19 @@ class TestResolveName:
 
 class TestFlattenGeneric:
     def test_flattens_generic_node(self):
-        child = VisibleNode(id="child", display_name="Child", param_ref_ids=["p1"], com_object_ref_ids=[])
-        generic = VisibleNode(id="generic", display_name="Generic", param_ref_ids=[], com_object_ref_ids=[], children=[child])
+        child = VisibleNode(
+            id="child",
+            display_name="Child",
+            param_ref_ids=["p1"],
+            com_object_ref_ids=[],
+        )
+        generic = VisibleNode(
+            id="generic",
+            display_name="Generic",
+            param_ref_ids=[],
+            com_object_ref_ids=[],
+            children=[child],
+        )
         nodes = [generic]
 
         _flatten_generic(nodes)
@@ -601,8 +671,19 @@ class TestFlattenGeneric:
         assert nodes[0].display_name == "Child"
 
     def test_flattens_channel_node(self):
-        child = VisibleNode(id="child", display_name="Child", param_ref_ids=["p1"], com_object_ref_ids=[])
-        channel = VisibleNode(id="channel", display_name="Channel", param_ref_ids=[], com_object_ref_ids=[], children=[child])
+        child = VisibleNode(
+            id="child",
+            display_name="Child",
+            param_ref_ids=["p1"],
+            com_object_ref_ids=[],
+        )
+        channel = VisibleNode(
+            id="channel",
+            display_name="Channel",
+            param_ref_ids=[],
+            com_object_ref_ids=[],
+            children=[child],
+        )
         nodes = [channel]
 
         _flatten_generic(nodes)
@@ -611,8 +692,19 @@ class TestFlattenGeneric:
         assert nodes[0].display_name == "Child"
 
     def test_flattens_question_mark_node(self):
-        child = VisibleNode(id="child", display_name="Child", param_ref_ids=["p1"], com_object_ref_ids=[])
-        unknown = VisibleNode(id="unknown", display_name="?", param_ref_ids=[], com_object_ref_ids=[], children=[child])
+        child = VisibleNode(
+            id="child",
+            display_name="Child",
+            param_ref_ids=["p1"],
+            com_object_ref_ids=[],
+        )
+        unknown = VisibleNode(
+            id="unknown",
+            display_name="?",
+            param_ref_ids=[],
+            com_object_ref_ids=[],
+            children=[child],
+        )
         nodes = [unknown]
 
         _flatten_generic(nodes)
@@ -621,8 +713,19 @@ class TestFlattenGeneric:
         assert nodes[0].display_name == "Child"
 
     def test_does_not_flatten_with_params(self):
-        child = VisibleNode(id="child", display_name="Child", param_ref_ids=["p1"], com_object_ref_ids=[])
-        generic = VisibleNode(id="generic", display_name="Generic", param_ref_ids=["p2"], com_object_ref_ids=[], children=[child])
+        child = VisibleNode(
+            id="child",
+            display_name="Child",
+            param_ref_ids=["p1"],
+            com_object_ref_ids=[],
+        )
+        generic = VisibleNode(
+            id="generic",
+            display_name="Generic",
+            param_ref_ids=["p2"],
+            com_object_ref_ids=[],
+            children=[child],
+        )
         nodes = [generic]
 
         _flatten_generic(nodes)
@@ -631,7 +734,12 @@ class TestFlattenGeneric:
         assert nodes[0].display_name == "Generic"
 
     def test_does_not_flatten_without_children(self):
-        generic = VisibleNode(id="generic", display_name="Generic", param_ref_ids=[], com_object_ref_ids=[])
+        generic = VisibleNode(
+            id="generic",
+            display_name="Generic",
+            param_ref_ids=[],
+            com_object_ref_ids=[],
+        )
         nodes = [generic]
 
         _flatten_generic(nodes)
@@ -640,9 +748,26 @@ class TestFlattenGeneric:
         assert nodes[0].display_name == "Generic"
 
     def test_flattens_nested_generic(self):
-        inner = VisibleNode(id="inner", display_name="Inner", param_ref_ids=["p1"], com_object_ref_ids=[])
-        middle = VisibleNode(id="middle", display_name="generic", param_ref_ids=[], com_object_ref_ids=[], children=[inner])
-        outer = VisibleNode(id="outer", display_name="CHANNEL", param_ref_ids=[], com_object_ref_ids=[], children=[middle])
+        inner = VisibleNode(
+            id="inner",
+            display_name="Inner",
+            param_ref_ids=["p1"],
+            com_object_ref_ids=[],
+        )
+        middle = VisibleNode(
+            id="middle",
+            display_name="generic",
+            param_ref_ids=[],
+            com_object_ref_ids=[],
+            children=[inner],
+        )
+        outer = VisibleNode(
+            id="outer",
+            display_name="CHANNEL",
+            param_ref_ids=[],
+            com_object_ref_ids=[],
+            children=[middle],
+        )
         nodes = [outer]
 
         _flatten_generic(nodes)
@@ -651,7 +776,12 @@ class TestFlattenGeneric:
         assert nodes[0].display_name == "Inner"
 
     def test_keeps_regular_nodes(self):
-        node = VisibleNode(id="test", display_name="Settings", param_ref_ids=["p1"], com_object_ref_ids=[])
+        node = VisibleNode(
+            id="test",
+            display_name="Settings",
+            param_ref_ids=["p1"],
+            com_object_ref_ids=[],
+        )
         nodes = [node]
 
         _flatten_generic(nodes)
@@ -660,9 +790,26 @@ class TestFlattenGeneric:
         assert nodes[0].display_name == "Settings"
 
     def test_flattens_in_children_recursively(self):
-        grandchild = VisibleNode(id="gc", display_name="GrandChild", param_ref_ids=["p1"], com_object_ref_ids=[])
-        generic_child = VisibleNode(id="gen", display_name="Generic", param_ref_ids=[], com_object_ref_ids=[], children=[grandchild])
-        parent = VisibleNode(id="parent", display_name="Parent", param_ref_ids=["p2"], com_object_ref_ids=[], children=[generic_child])
+        grandchild = VisibleNode(
+            id="gc",
+            display_name="GrandChild",
+            param_ref_ids=["p1"],
+            com_object_ref_ids=[],
+        )
+        generic_child = VisibleNode(
+            id="gen",
+            display_name="Generic",
+            param_ref_ids=[],
+            com_object_ref_ids=[],
+            children=[grandchild],
+        )
+        parent = VisibleNode(
+            id="parent",
+            display_name="Parent",
+            param_ref_ids=["p2"],
+            com_object_ref_ids=[],
+            children=[generic_child],
+        )
         nodes = [parent]
 
         _flatten_generic(nodes)
@@ -674,9 +821,15 @@ class TestFlattenGeneric:
 
 class TestNumberDuplicates:
     def test_numbers_duplicate_names(self):
-        node1 = VisibleNode(id="a", display_name="Channel", param_ref_ids=[], com_object_ref_ids=[])
-        node2 = VisibleNode(id="b", display_name="Channel", param_ref_ids=[], com_object_ref_ids=[])
-        node3 = VisibleNode(id="c", display_name="Channel", param_ref_ids=[], com_object_ref_ids=[])
+        node1 = VisibleNode(
+            id="a", display_name="Channel", param_ref_ids=[], com_object_ref_ids=[]
+        )
+        node2 = VisibleNode(
+            id="b", display_name="Channel", param_ref_ids=[], com_object_ref_ids=[]
+        )
+        node3 = VisibleNode(
+            id="c", display_name="Channel", param_ref_ids=[], com_object_ref_ids=[]
+        )
         nodes = [node1, node2, node3]
 
         _number_duplicates(nodes)
@@ -686,8 +839,12 @@ class TestNumberDuplicates:
         assert nodes[2].display_name == "Channel 3"
 
     def test_leaves_unique_names_unchanged(self):
-        node1 = VisibleNode(id="a", display_name="Settings", param_ref_ids=[], com_object_ref_ids=[])
-        node2 = VisibleNode(id="b", display_name="Advanced", param_ref_ids=[], com_object_ref_ids=[])
+        node1 = VisibleNode(
+            id="a", display_name="Settings", param_ref_ids=[], com_object_ref_ids=[]
+        )
+        node2 = VisibleNode(
+            id="b", display_name="Advanced", param_ref_ids=[], com_object_ref_ids=[]
+        )
         nodes = [node1, node2]
 
         _number_duplicates(nodes)
@@ -696,9 +853,15 @@ class TestNumberDuplicates:
         assert nodes[1].display_name == "Advanced"
 
     def test_handles_mixed_duplicates(self):
-        node1 = VisibleNode(id="a", display_name="Channel", param_ref_ids=[], com_object_ref_ids=[])
-        node2 = VisibleNode(id="b", display_name="Settings", param_ref_ids=[], com_object_ref_ids=[])
-        node3 = VisibleNode(id="c", display_name="Channel", param_ref_ids=[], com_object_ref_ids=[])
+        node1 = VisibleNode(
+            id="a", display_name="Channel", param_ref_ids=[], com_object_ref_ids=[]
+        )
+        node2 = VisibleNode(
+            id="b", display_name="Settings", param_ref_ids=[], com_object_ref_ids=[]
+        )
+        node3 = VisibleNode(
+            id="c", display_name="Channel", param_ref_ids=[], com_object_ref_ids=[]
+        )
         nodes = [node1, node2, node3]
 
         _number_duplicates(nodes)

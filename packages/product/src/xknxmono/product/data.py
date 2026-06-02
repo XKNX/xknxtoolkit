@@ -1,49 +1,18 @@
+"""Convert a KNX XML to the unified IR.
+
+The per-version `files.vXX` models are an implementation detail of parsing; once read they are
+immediately converted to the `intermediate` (IR) representation, which is what the rest of the
+package works with (IR-only — the per-version models are not retained).
+"""
+
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
-
-from xknxmono.models import detect_version, load_xml, serialize_xml
-
-if TYPE_CHECKING:
-    from xknxmono.product.archive import ProductArchive
+from xknxmono.models import load_xml
+from xknxmono.models.adapters.convert import Context, convert
+from xknxmono.models.intermediate.knx import Knx
 
 
-def load_archive(archive: ProductArchive, manufacturer_id: str) -> ProductData:
-    master_xml = archive.get_master_xml()
-    version = detect_version(master_xml)
-
-    master = load_xml(master_xml, version)
-    catalog = load_xml(archive.get_catalog_xml(manufacturer_id), version)
-    hardware = load_xml(archive.get_hardware_xml(manufacturer_id), version)
-    applications = [load_xml(app_xml, version) for app_xml in archive.get_application_xmls(manufacturer_id).values()]
-
-    return ProductData(
-        version=version,
-        master=master,
-        catalog=catalog,
-        hardware=hardware,
-        applications=applications,
-    )
-
-
-@dataclass(slots=True)
-class ProductData:
-    version: str
-    master: Any
-    catalog: Any
-    hardware: Any
-    applications: list[Any]
-
-    @classmethod
-    def from_archive(cls, archive: ProductArchive, manufacturer_id: str) -> ProductData:
-        return load_archive(archive, manufacturer_id)
-
-    def to_master_xml(self) -> bytes:
-        return serialize_xml(self.master, self.version)
-
-    def to_catalog_xml(self) -> bytes:
-        return serialize_xml(self.catalog, self.version)
-
-    def to_hardware_xml(self) -> bytes:
-        return serialize_xml(self.hardware, self.version)
+def to_ir(xml_bytes: bytes, version: str) -> Knx:
+    """Parse `xml_bytes` with the per-version model, then convert to the unified IR."""
+    model = load_xml(xml_bytes, version)
+    return convert(Context(version=version), model, Knx)

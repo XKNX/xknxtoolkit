@@ -15,7 +15,7 @@ MANUFACTURER_PATTERN = re.compile(r"^M-[0-9A-Fa-f]{4}$")
 APPLICATION_PATTERN = re.compile(r"^M-[0-9A-Fa-f]{4}_A-.+\.xml$")
 
 
-class ProductArchive:
+class Archive:
     """Reader for .knxprod archive files containing KNX device definitions."""
 
     __slots__ = ("_entries", "_manufacturer_ids", "_source_holder", "_zipfile")
@@ -53,7 +53,9 @@ class ProductArchive:
         manufacturer_ids = {d for d in root_dirs if MANUFACTURER_PATTERN.match(d)}
 
         if not manufacturer_ids:
-            raise ArchiveError("No manufacturer directory found (expected M-XXXX pattern)")
+            raise ArchiveError(
+                "No manufacturer directory found (expected M-XXXX pattern)"
+            )
 
         return manufacturer_ids
 
@@ -121,7 +123,7 @@ class ProductArchive:
         """Return all file paths in the archive."""
         return list(self._entries)
 
-    def __enter__(self) -> ProductArchive:
+    def __enter__(self) -> Archive:
         return self
 
     def __exit__(self, *args: object) -> None:
