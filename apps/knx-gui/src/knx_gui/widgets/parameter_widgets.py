@@ -5,8 +5,7 @@ from imgui_bundle import imgui
 
 from knx_gui.plugins.node_editor.strings import S
 from knx_gui.types import Device, Parameter
-from xknxmono.product import ParamTypeKind
-from xknxmono.product.dynamic import VisibleNode
+from xknxmono.product import ParamTypeKind, VisibleNode
 
 
 @dataclass

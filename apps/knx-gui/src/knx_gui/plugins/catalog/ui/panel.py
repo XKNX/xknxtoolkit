@@ -2,13 +2,13 @@ from collections.abc import Callable
 
 from imgui_bundle import imgui
 
-from knx_gui.plugins.catalog.service import CatalogEntry
+from xknxmono.catalog import ApplicationSummary
 
 
 class CatalogPanel:
     def __init__(
         self,
-        get_entries: Callable[[], list[CatalogEntry]],
+        get_entries: Callable[[], list[ApplicationSummary]],
         on_select: Callable[[str], None],
     ) -> None:
         self._get_entries = get_entries
@@ -32,12 +32,14 @@ class CatalogPanel:
         if not entries:
             return
 
-        by_manufacturer: dict[str, list[CatalogEntry]] = {}
+        by_manufacturer: dict[str, list[ApplicationSummary]] = {}
         manufacturer_labels: dict[str, str] = {}
         for entry in entries:
             if entry.manufacturer_id not in by_manufacturer:
                 by_manufacturer[entry.manufacturer_id] = []
-                manufacturer_labels[entry.manufacturer_id] = entry.manufacturer_name
+                manufacturer_labels[entry.manufacturer_id] = (
+                    entry.manufacturer_name or entry.manufacturer_id
+                )
             by_manufacturer[entry.manufacturer_id].append(entry)
 
         sorted_mfrs = sorted(

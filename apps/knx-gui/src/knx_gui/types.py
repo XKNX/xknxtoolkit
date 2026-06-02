@@ -8,8 +8,7 @@ from imgui_bundle import imgui
 from xknx.telegram import Telegram as XknxTelegram
 
 from knx_gui.dpt import DPT
-from xknxmono.product import DeviceApplication, ParamType
-from xknxmono.product.dynamic import VisibleNode
+from xknxmono.product import Application, ParamType, VisibleNode
 
 
 class PinDir(Enum):
@@ -183,7 +182,7 @@ class Parameter:
 class Device:
     node_id: int
     name: str
-    app: DeviceApplication
+    app: Application
     individual_address: str
     com_objects: list[ComObject] = field(default_factory=list)
     _param_values: dict[str, str] = field(default_factory=dict)
@@ -197,14 +196,14 @@ class Device:
     def __post_init__(self) -> None:
         if not self.com_objects:
             self.com_objects = self._create_com_objects_from_app()
-        for p in self.app.parameters:
+        for p in self.app.parameters():
             self._param_values[p.id] = p.value
 
     def _create_com_objects_from_app(self) -> list[ComObject]:
         from knx_gui.dpt import DPT_UNKNOWN, lookup_or_make_dpt
 
         result: list[ComObject] = []
-        for co in self.app.com_objects:
+        for co in self.app.com_objects():
             flags = ComObjectFlags(
                 communication=co.flags.communication,
                 read=co.flags.read,

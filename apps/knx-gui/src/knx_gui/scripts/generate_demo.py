@@ -3,18 +3,13 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from knx_gui.plugins.catalog.db import (
-    ApplicationModel,
-    CatalogDatabase,
-    get_application_xml,
-)
+from knx_gui.plugins.catalog import CatalogService
 from knx_gui.plugins.project.db import (
     AreaCreated,
     DeviceAdded,
     LineCreated,
     ProjectDatabase,
 )
-from xknxmono.product import parse_application_xml
 
 
 @dataclass
@@ -37,12 +32,11 @@ def generate_demo(output_path: Path, catalog_path: Path) -> None:
     if output_path.exists():
         output_path.unlink()
 
-    catalog = CatalogDatabase(catalog_path)
     if not catalog_path.exists():
         print(f"Error: catalog not found at {catalog_path}")
         print("Run 'uv run generate-catalog' first")
         return
-    catalog.open()
+    catalog = CatalogService(catalog_path)
 
     db = ProjectDatabase(output_path)
     db.create()
@@ -58,28 +52,14 @@ def generate_demo(output_path: Path, catalog_path: Path) -> None:
     print("Created: Line 1.1 (Floor 1)")
 
     for demo_device in DEMO_DEVICES:
-        xml_data = get_application_xml(catalog, demo_device.template_id)
-        if not xml_data:
+        app = catalog.get_application(demo_device.template_id)
+        if app is None:
             print(f"Warning: {demo_device.template_id} not in catalog, skipping")
             continue
 
-        app_model = (
-            catalog.session.query(ApplicationModel)
-            .filter_by(application_id=demo_device.template_id)
-            .first()
-        )
-        if not app_model:
-            continue
-
-        apps = parse_application_xml(xml_data, app_model.manufacturer_id)
-        if not apps:
-            print(f"Warning: failed to parse {demo_device.template_id}, skipping")
-            continue
-
-        app = apps[0]
-        params = [(p.id, p.value) for p in app.parameters]
+        params = [(p.id, p.value) for p in app.parameters()]
         com_objs = []
-        for co in app.com_objects:
+        for co in app.com_objects():
             dpt_major, dpt_minor = 0, 0
             if co.dpt_codes:
                 parts = co.dpt_codes[0].split(".")
@@ -108,10 +88,9 @@ def generate_demo(output_path: Path, catalog_path: Path) -> None:
         )
         db.event_store.append(event)
         print(
-            f"Added: {demo_device.name} ({len(app.com_objects)} total, {len(app.visible_com_objects())} visible)"
+            f"Added: {demo_device.name} ({len(app.com_objects())} total, {len(app.visible_com_objects())} visible)"
         )
 
-    catalog.close()
     db.close()
     print(f"\nDemo project saved to: {output_path}")
 

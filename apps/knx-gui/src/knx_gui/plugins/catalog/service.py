@@ -1,55 +1,49 @@
-from dataclasses import dataclass
+"""Catalog service backed by the shared `xknxmono.catalog` package.
+
+The on-disk catalog (SQLite + stored .knxprod files) and all ingestion/query logic live in
+`xknxmono.catalog`; this service owns the engine for the GUI's catalog file and is a thin, caching
+adapter over the package. Entries are `ApplicationSummary` rows; selected applications are returned
+as IR-backed product `Application` objects.
+"""
+
 from pathlib import Path
 
-from knx_gui.plugins.catalog.db import (
-    ApplicationModel,
-    CatalogDatabase,
-    get_application_xml,
-    load_knxprod_to_catalog,
+from sqlalchemy.orm import Session
+
+from xknxmono.catalog import (
+    ApplicationSummary,
+    get_application_detail_by_id,
+    knxprod_dir_for,
+    list_applications,
+    make_engine,
+    upload_knxprod,
 )
-
-
-@dataclass
-class CatalogEntry:
-    application_id: str
-    manufacturer_id: str
-    manufacturer_name: str
-    name: str
+from xknxmono.product import Application
 
 
 class CatalogService:
-    def __init__(self, catalog: CatalogDatabase) -> None:
-        self._catalog = catalog
-        self._entries: list[CatalogEntry] | None = None
+    def __init__(self, catalog_path: Path) -> None:
+        self._engine = make_engine(f"sqlite:///{catalog_path}")
+        self._knxprod_dir = knxprod_dir_for(catalog_path)
+        self._entries: list[ApplicationSummary] | None = None
 
-    @property
-    def session(self):
-        return self._catalog.session
-
-    def get_entries(self) -> list[CatalogEntry]:
-        if self._entries is not None:
-            return self._entries
-        entries: list[CatalogEntry] = []
-        for app in self._catalog.session.query(ApplicationModel).all():
-            entries.append(
-                CatalogEntry(
-                    application_id=app.application_id,
-                    manufacturer_id=app.manufacturer_id,
-                    manufacturer_name=app.manufacturer_name,
-                    name=app.name,
-                )
-            )
-        self._entries = entries
-        return entries
+    def get_entries(self) -> list[ApplicationSummary]:
+        if self._entries is None:
+            with Session(self._engine) as db:
+                self._entries = list_applications(db)
+        return self._entries
 
     def import_knxprod(self, path: Path) -> list[str]:
-        added = load_knxprod_to_catalog(self._catalog, path)
-        if added:
-            self._entries = None
-        return added
+        """Ingest a .knxprod into the catalog; returns the application ids newly added."""
+        before = {e.application_id for e in self.get_entries()}
+        upload_knxprod(path.read_bytes(), self._knxprod_dir, self._engine)
+        self._entries = None
+        after = {e.application_id for e in self.get_entries()}
+        return sorted(after - before)
 
-    def get_application_xml(self, application_id: str) -> bytes | None:
-        return get_application_xml(self._catalog, application_id)
+    def get_application(self, application_id: str) -> Application | None:
+        with Session(self._engine) as db:
+            return get_application_detail_by_id(db, application_id)
 
     def refresh(self) -> None:
         self._entries = None

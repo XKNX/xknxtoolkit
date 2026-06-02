@@ -31,7 +31,7 @@ from knx_gui.plugins.project.db import (
     ProjectDatabase,
 )
 from knx_gui.types import ComObject, Device
-from xknxmono.product import DeviceApplication, parse_application_xml
+from xknxmono.product import Application
 
 if TYPE_CHECKING:
     from knx_gui.plugins.base import Logger
@@ -95,7 +95,7 @@ class ProjectService:
             self._emit("device_selected", device)
 
     def add_device_to_state(
-        self, app: "DeviceApplication", individual_address: str = ""
+        self, app: "Application", individual_address: str = ""
     ) -> Device:
         device = Device(
             node_id=self._next_device_id,
@@ -108,7 +108,7 @@ class ProjectService:
         return device
 
     def add_device_to_state_with_id(
-        self, app: "DeviceApplication", node_id: int, individual_address: str = ""
+        self, app: "Application", node_id: int, individual_address: str = ""
     ) -> Device:
         device = Device(
             node_id=node_id,
@@ -228,23 +228,8 @@ class ProjectService:
         if selected_node_id is not None:
             self._selected_device = self.find_device_by_node_id(selected_node_id)
 
-    def _get_app_for_template(self, template_id: str) -> DeviceApplication | None:
-        from knx_gui.plugins.catalog.db import ApplicationModel
-
-        xml_data = self._catalog.get_application_xml(template_id)
-        if not xml_data:
-            return None
-        app_model = (
-            self._catalog.session.query(ApplicationModel)
-            .filter_by(application_id=template_id)
-            .first()
-        )
-        if not app_model:
-            return None
-        apps = parse_application_xml(xml_data, app_model.manufacturer_id)
-        if not apps:
-            return None
-        return apps[0]
+    def _get_app_for_template(self, template_id: str) -> Application | None:
+        return self._catalog.get_application(template_id)
 
     @property
     def is_open(self) -> bool:
@@ -288,15 +273,15 @@ class ProjectService:
         self,
         template_id: str,
         name: str,
-        app: "DeviceApplication",
+        app: "Application",
         individual_address: str = "",
     ) -> int | None:
         if not self._db:
             return None
 
-        params = [(p.id, p.value) for p in app.parameters]
+        params = [(p.id, p.value) for p in app.parameters()]
         com_objs = []
-        for co in app.com_objects:
+        for co in app.com_objects():
             dpt_major, dpt_minor = 0, 0
             if co.dpt_codes:
                 parts = co.dpt_codes[0].split(".")

@@ -107,7 +107,7 @@ class ConfigurePanel:
             self._render_label_value(
                 S.CONFIGURE_MANUFACTURER, device.app.manufacturer_id
             )
-            self._render_label_value(S.CONFIGURE_APPLICATION, device.app.application_id)
+            self._render_label_value(S.CONFIGURE_APPLICATION, device.app.id)
 
         params = device.get_visible_parameters()
         if params and imgui.collapsing_header(

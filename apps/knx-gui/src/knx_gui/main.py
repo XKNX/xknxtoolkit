@@ -6,7 +6,7 @@ from imgui_bundle import portable_file_dialogs as pfd
 
 from knx_gui.plugins.base import API_VERSION, Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.cat import CatPlugin
-from knx_gui.plugins.catalog import CatalogDatabase, CatalogPlugin, CatalogService
+from knx_gui.plugins.catalog import CatalogPlugin, CatalogService
 from knx_gui.plugins.connection import ConnectionPlugin
 from knx_gui.plugins.connection.service import ConnectionService
 from knx_gui.plugins.logger import LoggerPlugin, LogService
@@ -14,18 +14,13 @@ from knx_gui.plugins.network import NetworkPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
 from knx_gui.strings import S, set_locale
-from xknxmono.product import DeviceApplication
+from xknxmono.product import Application
 from xknxmono.product.errors import ArchiveError
 
 
 class KnxGuiApp:
     def __init__(self, catalog_path: Path) -> None:
-        self._catalog_db = CatalogDatabase(catalog_path)
-        if catalog_path.exists():
-            self._catalog_db.open()
-        else:
-            self._catalog_db.create()
-        self._catalog_service = CatalogService(self._catalog_db)
+        self._catalog_service = CatalogService(catalog_path)
 
         self._open_file_dialog: pfd.open_file | None = None
         self._save_file_dialog: pfd.save_file | None = None
@@ -75,7 +70,6 @@ class KnxGuiApp:
         self._node_editor_plugin.shutdown()
         if self._project_service.is_open:
             self._project_service.close()
-        self._catalog_db.close()
 
     def _new_project(self) -> None:
         self._save_project_dialog = pfd.save_file(
@@ -152,11 +146,11 @@ class KnxGuiApp:
             self._log.error("import error", path=path, error=f"{type(e).__name__}: {e}")
 
     def _add_candidate_as_device(
-        self, app: DeviceApplication, template_id: str | None = None
+        self, app: Application, template_id: str | None = None
     ) -> None:
         self._log.info("adding device", name=app.name)
         if template_id is None:
-            template_id = f"{app.manufacturer_id}_{app.application_id}"
+            template_id = f"{app.manufacturer_id}_{app.id}"
 
         device_id = self._project_service.add_device(
             template_id=template_id,
