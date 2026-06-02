@@ -1,4 +1,4 @@
-exclude = ["**/generated"]
+exclude = ["**/files", "**/intermediate"]
 
 [lint]
 select = [
@@ -16,7 +16,7 @@ ignore = [
 ]
 
 [lint.isort]
-known-first-party = ["xknx"]
+known-first-party = ["xknxmono"]
 
 [format]
 quote-style = "double"

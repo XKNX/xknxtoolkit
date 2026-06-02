@@ -1,6 +1,12 @@
 {
-  "include": ["packages/*/src"],
-  "exclude": ["**/generated"],
+  "include": [
+    "packages/catalog/src",
+    "packages/keyring/src",
+    "packages/models/src",
+    "packages/product/src",
+    "packages/project/src"
+  ],
+  "exclude": ["**/files", "**/intermediate"],
   "pythonVersion": "3.12",
   "typeCheckingMode": "strict",
   "reportMissingTypeStubs": false
