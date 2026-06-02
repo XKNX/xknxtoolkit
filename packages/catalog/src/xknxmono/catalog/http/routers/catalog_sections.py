@@ -3,20 +3,15 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 
-from xknxmono.catalog.core.catalog_sections import (
-    CatalogSectionNode,
-    build_catalog_tree,
-    list_catalog_sections,
-)
-from xknxmono.catalog.core.manufacturers import get_manufacturer
-from xknxmono.catalog.http.deps import get_db
+from xknxmono.catalog.core.catalog_sections import CatalogSectionNode
+from xknxmono.catalog.core.service import CatalogService
+from xknxmono.catalog.http.deps import get_service
 from xknxmono.catalog.http.schemas import CatalogSectionResponse
 
 router = APIRouter(prefix="/manufacturers", tags=["Manufacturers"])
 
-DbDep = Annotated[Session, Depends(get_db)]
+ServiceDep = Annotated[CatalogService, Depends(get_service)]
 
 _cache: dict[str, list[CatalogSectionResponse]] = {}
 
@@ -36,12 +31,11 @@ def _node_to_out(node: CatalogSectionNode) -> CatalogSectionResponse:
 @router.get(
     "/{manufacturer_id}/catalog-sections", response_model=list[CatalogSectionResponse]
 )
-def list_catalog_sections_endpoint(manufacturer_id: str, db: DbDep):
+def list_catalog_sections_endpoint(manufacturer_id: str, service: ServiceDep):
     """Return the full catalog section tree for a manufacturer, with results cached in memory."""
-    if not get_manufacturer(db, manufacturer_id):
+    if not service.get_manufacturer(manufacturer_id):
         raise HTTPException(404, "Manufacturer not found")
     if manufacturer_id not in _cache:
-        sections = list_catalog_sections(db, manufacturer_id)
-        tree = build_catalog_tree(sections)
+        tree = service.catalog_tree(manufacturer_id)
         _cache[manufacturer_id] = [_node_to_out(node) for node in tree]
     return _cache[manufacturer_id]

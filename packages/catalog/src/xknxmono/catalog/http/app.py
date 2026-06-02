@@ -8,7 +8,8 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from xknxmono.catalog.db import default_db_url, knxprod_dir_for, make_engine
+from xknxmono.catalog.core.service import CatalogService
+from xknxmono.catalog.db import default_db_url
 from xknxmono.catalog.http.routers import (
     catalog_sections,
     hardware,
@@ -19,12 +20,10 @@ from xknxmono.catalog.http.routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Create the application's engine (and resolve its .knxprod store) on startup; dispose on shutdown."""
-    url = default_db_url()
-    app.state.engine = make_engine(url)
-    app.state.knxprod_dir = knxprod_dir_for(Path(url.removeprefix("sqlite:///")))
+    """Create the application's catalog service (which owns the engine + .knxprod store) on startup."""
+    db_path = Path(default_db_url().removeprefix("sqlite:///"))
+    app.state.service = CatalogService(db_path)
     yield
-    app.state.engine.dispose()
 
 
 app = FastAPI(

@@ -1,16 +1,15 @@
 """FastAPI dependencies for the catalog HTTP layer.
 
-Sessions are created from the engine the application owns (``app.state.engine``, set up in the
-lifespan handler in :mod:`xknxmono.catalog.http.app`) — there is no global engine.
+The application owns a single :class:`~xknxmono.catalog.core.service.CatalogService` (created in the
+lifespan handler in :mod:`xknxmono.catalog.http.app` and stored on ``app.state.service``); routers
+depend on it rather than on a session or engine directly.
 """
 
-from collections.abc import Generator
-
 from fastapi import Request
-from sqlalchemy.orm import Session
+
+from xknxmono.catalog.core.service import CatalogService
 
 
-def get_db(request: Request) -> Generator[Session, None, None]:
-    """Yield a session bound to the application's engine, closing it after the request."""
-    with Session(request.app.state.engine) as session:
-        yield session
+def get_service(request: Request) -> CatalogService:
+    """Return the application's catalog service."""
+    return request.app.state.service

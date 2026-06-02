@@ -24,6 +24,7 @@ This package provides two layers:
 from xknxmono.catalog.core import (
     ApplicationSummary,
     CatalogSectionNode,
+    CatalogService,
     HardwareFilters,
     build_catalog_tree,
     collect_section_ids,
@@ -44,6 +45,7 @@ from xknxmono.catalog.db import default_db_url, knxprod_dir_for, make_engine
 __all__ = [
     "ApplicationSummary",
     "CatalogSectionNode",
+    "CatalogService",
     "HardwareFilters",
     "build_catalog_tree",
     "collect_section_ids",

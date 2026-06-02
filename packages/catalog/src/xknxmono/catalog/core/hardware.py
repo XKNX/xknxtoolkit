@@ -2,8 +2,8 @@
 
 import datetime
 from collections.abc import Sequence
-from dataclasses import dataclass, field
 
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -21,19 +21,21 @@ from xknxmono.product import parse_application_xml
 from xknxmono.product.archive import Archive
 
 
-@dataclass
-class HardwareFilters:
+class HardwareFilters(BaseModel):
     """Filter parameters for :func:`list_hardware`.
 
     All fields default to their "no filter" state so callers only set what they
     need. String and boolean filters are ANDed together. Repeatable list filters
     (``manufacturer_id``, ``medium_type``) match any item in the list (OR within
     the list, AND with other filters).
+
+    This is a Pydantic model so it doubles as a FastAPI query-parameter model
+    (``Annotated[HardwareFilters, Query()]``) with working list defaults.
     """
 
-    manufacturer_id: list[str] = field(default_factory=list[str])
+    manufacturer_id: list[str] = Field(default_factory=list)
     """Restrict results to hardware belonging to these manufacturer M-XXXX IDs."""
-    medium_type: list[str] = field(default_factory=list[str])
+    medium_type: list[str] = Field(default_factory=list)
     """Restrict results to hardware that supports at least one of these medium types (e.g. ``"TP"``, ``"IP"``, ``"RF"``)."""
     section_id: str | None = None
     """Restrict results to hardware listed in this catalog section or any of its descendants."""
