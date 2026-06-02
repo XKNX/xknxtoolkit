@@ -50,7 +50,9 @@ def detect_version(xml_bytes: bytes) -> str:
 
 def get_model_class(version: str) -> type[Any]:
     if version not in VERSION_MODULES:
-        raise VersionError(f"Unsupported KNX version: {version}. Supported: {', '.join(sorted(SUPPORTED_VERSIONS))}")
+        raise VersionError(
+            f"Unsupported KNX version: {version}. Supported: {', '.join(sorted(SUPPORTED_VERSIONS))}"
+        )
     return VERSION_MODULES[version].Knx
 
 

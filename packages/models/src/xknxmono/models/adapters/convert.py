@@ -10,6 +10,11 @@ version predates it.
 Nothing here changes the intermediate model; every version-specific quirk lives in an override.
 """
 
+# This is the reflective field-copy engine: it walks arbitrary per-version `files.vXX` dataclasses
+# via getattr, so `src` is intentionally `Any` and the unknown-type rules don't apply here. The
+# @override-decorated handlers are registered into OVERRIDES by the decorator and only invoked
+# through that table, so their module-level names also read as unused.
+# pyright: reportUnusedFunction=false, reportUnknownArgumentType=false, reportUnknownVariableType=false, reportUnknownMemberType=false
 from __future__ import annotations
 
 import types
@@ -141,6 +146,27 @@ def _unwrap(hint: Any) -> tuple[bool, Any]:
 # --- core converter -------------------------------------------------------
 
 
+def _union_dataclass_members(hint: Any) -> list[type]:
+    """The dataclass members of a Union hint (xs:choice), or [] if it isn't such a union."""
+    if get_origin(hint) in (typing.Union, types.UnionType):
+        return [a for a in get_args(hint) if isinstance(a, type) and is_dataclass(a)]
+    return []
+
+
+def _convert_choice(
+    ctx: Context, value: Any, members: list[type], is_list: bool
+) -> Any:
+    """Convert xs:choice content: match each source item to the IR union member with the same
+    type key (Meta.name) and convert it. Items with no IR counterpart are passed through."""
+    by_key = {type_key(m): m for m in members}
+
+    def one(item: Any) -> Any:
+        target = by_key.get(type_key(type(item)))
+        return convert(ctx, item, target) if target is not None else item
+
+    return [one(v) for v in value] if is_list else one(value)
+
+
 def convert(ctx: Context, src: Any, target_cls: type) -> Any:
     """Build a `target_cls` instance from `src`: overrides first, then copy same-named fields."""
     hints = _hints(target_cls)
@@ -165,7 +191,10 @@ def convert(ctx: Context, src: Any, target_cls: type) -> Any:
         if src_val is None:
             continue
         is_list, base = _unwrap(hints.get(f.name, f.type))
-        if is_dataclass(base):
+        members = _union_dataclass_members(base)
+        if members:  # xs:choice — convert each member to its matching IR union type
+            kwargs[f.name] = _convert_choice(ctx, src_val, members, is_list)
+        elif isinstance(base, type) and is_dataclass(base):
             kwargs[f.name] = (
                 [convert(ctx, v, base) for v in src_val]
                 if is_list
@@ -187,7 +216,7 @@ def convert(ctx: Context, src: Any, target_cls: type) -> Any:
 
 @override("GroupAddress_t")
 def _group_address(ctx: Context, src: Any) -> dict[str, Any]:
-    """v10–v12 stored DatapointType as a list (IDREFS); the unified model is a single ref.
+    """v10-v12 stored DatapointType as a list (IDREFS); the unified model is a single ref.
     Accept 0/1 entries; reject genuine multi-DPT records rather than silently dropping data."""
     dpt = getattr(src, "datapoint_type", None)
     if isinstance(dpt, list):
@@ -389,7 +418,7 @@ def _line(ctx: Context, src: Any) -> dict[str, Any]:
         if val is None or val == []:
             continue
         is_list, base = _unwrap(hints[fname])
-        if is_dataclass(base):
+        if isinstance(base, type) and is_dataclass(base):
             seg_kwargs[fname] = (
                 [convert(ctx, v, base) for v in val]
                 if is_list

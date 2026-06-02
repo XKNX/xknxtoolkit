@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+
 from xknxmono.models.adapters.convert import (
     Context,
     ConversionError,
@@ -556,6 +557,7 @@ def test_injected_logger_captures_per_segment_events():
 
     import structlog
     from structlog.testing import capture_logs
+
     from xknxmono.models.adapters.convert import _installation
 
     src = NS(
