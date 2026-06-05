@@ -1,22 +1,24 @@
-"""Generate the demo.xknx project file using devices from the catalog."""
+"""Generate the demo.xknx project file using devices from the catalog.
+
+Builds a small sample project (one area/line + a few devices) directly on the project package, so it
+does not depend on the GUI layer. Devices are product-centric: each demo application is resolved to a
+catalog product, and the device stores that product's refs.
+"""
 
 from dataclasses import dataclass
 from pathlib import Path
 
-from knx_gui.plugins.catalog import CatalogService
-from knx_gui.plugins.project.db import (
-    AreaCreated,
-    DeviceAdded,
-    LineCreated,
-    ProjectDatabase,
-)
+from xknxmono.catalog import CatalogService
+from xknxmono.project import ProjectService
+
+_INSTALLATION = 0
 
 
 @dataclass
 class DemoDevice:
-    template_id: str
+    application_id: str
     name: str
-    individual_address: str
+    individual_address: str  # "area.line.device"
 
 
 DEMO_DEVICES = [
@@ -36,63 +38,49 @@ def generate_demo(output_path: Path, catalog_path: Path) -> None:
         print(f"Error: catalog not found at {catalog_path}")
         print("Run 'uv run generate-catalog' first")
         return
+
     catalog = CatalogService(catalog_path)
+    products = {
+        p.application_id: p for p in catalog.list_products() if p.application_id
+    }
 
-    db = ProjectDatabase(output_path)
-    db.create()
+    svc = ProjectService()
+    pid = svc.create(output_path, "P-DEMO")
 
-    area_event = AreaCreated(area_id=0, area_number=1, name="Building")
-    db.event_store.append(area_event)
-    print("Created: Area 1 (Building)")
+    area_id = svc.create_area(pid, _INSTALLATION, 1, "Building")
+    line_id = svc.create_line(pid, area_id, 1, "Floor 1")
+    segment_id = _segment_of_line(svc, pid, line_id)
+    print("Created: Area 1 (Building) / Line 1.1 (Floor 1)")
 
-    line_event = LineCreated(
-        line_id=0, area_id=area_event.area_id, line_number=1, name="Floor 1"
-    )
-    db.event_store.append(line_event)
-    print("Created: Line 1.1 (Floor 1)")
-
-    for demo_device in DEMO_DEVICES:
-        app = catalog.get_application(demo_device.template_id)
-        if app is None:
-            print(f"Warning: {demo_device.template_id} not in catalog, skipping")
+    for demo in DEMO_DEVICES:
+        product = products.get(demo.application_id)
+        app = catalog.get_application(demo.application_id)
+        if product is None or app is None:
+            print(f"Warning: {demo.application_id} not in catalog, skipping")
             continue
-
-        params = [(p.id, p.value) for p in app.parameters()]
-        com_objs = []
-        for co in app.com_objects():
-            dpt_major, dpt_minor = 0, 0
-            if co.dpt_codes:
-                parts = co.dpt_codes[0].split(".")
-                dpt_major = int(parts[0]) if len(parts) > 0 else 0
-                dpt_minor = int(parts[1]) if len(parts) > 1 else 0
-            com_objs.append(
-                {
-                    "co_id": co.id,
-                    "dpt_major": dpt_major,
-                    "dpt_minor": dpt_minor,
-                    "flag_communication": co.flags.communication,
-                    "flag_read": co.flags.read,
-                    "flag_write": co.flags.write,
-                    "flag_transmit": co.flags.transmit,
-                    "flag_update": co.flags.update,
-                }
-            )
-
-        event = DeviceAdded(
-            device_id=0,
-            individual_address=demo_device.individual_address,
-            template_id=demo_device.template_id,
-            name=demo_device.name,
-            parameters=params,
-            com_objects=com_objs,
+        octet = int(demo.individual_address.split(".")[2])
+        svc.add_device(
+            pid,
+            segment_id,
+            product.product_ref_id,
+            address=octet,
+            name=demo.name,
+            hardware2program_ref_id=product.hardware2program_ref_id,
+            parameters=[(p.id, p.value) for p in app.parameters()],
+            com_objects=[(co.id, None) for co in app.com_objects()],
         )
-        db.event_store.append(event)
-        print(
-            f"Added: {demo_device.name} ({len(app.com_objects())} total, {len(app.visible_com_objects())} visible)"
-        )
+        print(f"Added: {demo.name} ({demo.individual_address})")
 
-    db.close()
+    svc.close(pid)
     print(f"\nDemo project saved to: {output_path}")
+
+
+def _segment_of_line(svc: ProjectService, pid: str, line_id: int) -> int:
+    for area in svc.topology(pid, _INSTALLATION).areas:
+        for line in area.lines:
+            if line.id == line_id:
+                return line.segments[0].id
+    raise RuntimeError(f"line {line_id} not found")
 
 
 def main() -> None:

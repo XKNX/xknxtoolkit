@@ -128,13 +128,14 @@ class ConfigurePanel:
             self._com_flags_table.render(device, visible_cos)
 
         lp = device.app.load_procedures
-        if lp is not None:
-            total_steps = sum(len(p.steps) for p in lp.procedures)
+        procedures = getattr(lp, "procedures", None)
+        if procedures:
+            total_steps = sum(len(p.steps) for p in procedures)
             if imgui.collapsing_header(
                 S.CONFIGURE_LOAD_PROCEDURES.format(count=total_steps)
             ):
-                imgui.text_disabled(lp.style)
-                for i, proc in enumerate(lp.procedures):
+                imgui.text_disabled(getattr(lp, "style", ""))
+                for i, proc in enumerate(procedures):
                     label = f"Procedure {i + 1}  ({len(proc.steps)} steps)##lp{i}"
                     if imgui.tree_node(label):
                         _table_flags = (

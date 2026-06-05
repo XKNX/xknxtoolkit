@@ -196,8 +196,8 @@ class Device:
     def __post_init__(self) -> None:
         if not self.com_objects:
             self.com_objects = self._create_com_objects_from_app()
-        for p in self.app.parameters():
-            self._param_values[p.id] = p.value
+        # the complete default map (incl. non-displayable params) so visibility conditions resolve
+        self._param_values.update(self.app.default_values())
 
     def _create_com_objects_from_app(self) -> list[ComObject]:
         from knx_gui.dpt import DPT_UNKNOWN, lookup_or_make_dpt
@@ -296,7 +296,7 @@ class Device:
     def get_visible_tree(self) -> list[VisibleNode]:
         if not self._tree_dirty and self._cached_visible_tree:
             return self._cached_visible_tree
-        self._cached_visible_tree = self.app.get_visible_tree(self._param_values)
+        self._cached_visible_tree = self.app.visible_tree(self._param_values)
         self._tree_dirty = False
         return self._cached_visible_tree
 

@@ -74,9 +74,6 @@ class ProjectPlugin:
             ),
         ]
 
-        api.project.subscribe("flag_changed", self._on_flag_changed)
-        api.project.subscribe("param_changed", self._on_param_changed)
-
     def _get_areas(self) -> list[Area]:
         return [
             Area(id=a.id, number=a.area_number, name=a.name)
@@ -166,46 +163,8 @@ class ProjectPlugin:
     ) -> None:
         self._api.project.set_flag(device, co_id, flag_name, new_value)
 
-    def _on_param_changed(
-        self, device: "Device", param_id: str, old_value: str, new_value: str
-    ) -> None:
-        self._api.project.set_parameter(device.node_id, param_id, old_value, new_value)
-
-    def _on_flag_changed(
-        self,
-        device: "Device",
-        co_id: str,
-        flag_name: str,
-        old_value: bool,
-        new_value: bool,
-    ) -> None:
-        self._api.project.set_com_object_flag(
-            device.node_id, co_id, flag_name, old_value, new_value
-        )
-
     def _get_history_entries(self):
-        from knx_gui.plugins.project.db import EventModel
-        from knx_gui.plugins.project.db.events import deserialize_event
-        from knx_gui.plugins.project.ui import HistoryEntry
-
-        if not self._api.project.session:
-            return []
-
-        entries = []
-        for event_model in (
-            self._api.project.session.query(EventModel)
-            .order_by(EventModel.id.desc())
-            .all()
-        ):
-            event = deserialize_event(event_model.type, event_model.data)
-            entries.append(
-                HistoryEntry(
-                    id=event_model.id,
-                    display_text=event.display_text(),
-                    reverted=event_model.reverted,
-                )
-            )
-        return entries
+        return self._api.project.history()
 
     def _handle_jump_to(self, event_id: int) -> None:
         self._api.project.jump_to(event_id)

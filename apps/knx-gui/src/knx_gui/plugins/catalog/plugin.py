@@ -25,7 +25,9 @@ class CatalogPlugin:
 
     def _on_select(self, product: ProductSummary) -> None:
         if product.application_id is None:
-            self._log.warning("product has no application", product=product.product_ref_id)
+            self._log.warning(
+                "product has no application", product=product.product_ref_id
+            )
             return
         app = self._api.catalog.get_application(product.application_id)
         if app is None:
@@ -35,14 +37,12 @@ class CatalogPlugin:
             return
 
         device_id = self._api.project.add_device(
-            template_id=product.application_id,
+            product_ref_id=product.product_ref_id,
+            hardware2program_ref_id=product.hardware2program_ref_id,
             name=app.name,
             app=app,
         )
         if device_id:
-            self._api.project.add_device_to_state_with_id(
-                app=app, node_id=device_id, individual_address=""
-            )
             self._log.info("device added", name=app.name, id=device_id)
 
     @property

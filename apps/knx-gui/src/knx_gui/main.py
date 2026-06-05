@@ -14,7 +14,6 @@ from knx_gui.plugins.network import NetworkPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
 from knx_gui.strings import S, set_locale
-from xknxmono.product import Application
 from xknxmono.product.errors import ArchiveError
 
 
@@ -144,25 +143,6 @@ class KnxGuiApp:
             self._log.error("archive error", path=path, error=str(e))
         except (OSError, ValueError) as e:
             self._log.error("import error", path=path, error=f"{type(e).__name__}: {e}")
-
-    def _add_candidate_as_device(
-        self, app: Application, template_id: str | None = None
-    ) -> None:
-        self._log.info("adding device", name=app.name)
-        if template_id is None:
-            template_id = f"{app.manufacturer_id}_{app.id}"
-
-        device_id = self._project_service.add_device(
-            template_id=template_id,
-            name=app.name,
-            app=app,
-        )
-        if device_id:
-            self._project_service.add_device_to_state_with_id(
-                app=app, node_id=device_id, address=""
-            )
-        else:
-            self._project_service.add_device_to_state(app=app, address="")
 
     def gui_status_bar(self) -> None:
         self._connection_plugin.render_status_indicator()

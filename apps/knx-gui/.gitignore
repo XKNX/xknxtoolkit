@@ -1,5 +1,7 @@
 *.ini
 *.xknxcatalog
+*.xknx
+knxprod/
 NodeEditor.json
 .venv/
 internal/
