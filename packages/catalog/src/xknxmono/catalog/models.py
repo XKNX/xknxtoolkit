@@ -128,13 +128,18 @@ class CatalogSection(Base):
 
 
 class CatalogSectionProduct(Base):
-    """Many-to-many join between a catalog section and the hardware programs it lists."""
+    """A catalog item: an orderable product (``product_ref_id``) running a specific hardware program,
+    as listed in a catalog section — the product-centric browse/selection unit. ``id`` is the
+    CatalogItem id."""
 
     __tablename__ = "catalog_section_products"
 
+    id: Mapped[str] = mapped_column(String, primary_key=True)
     section_id: Mapped[str] = mapped_column(
-        ForeignKey("catalog_sections.id"), primary_key=True, index=True
+        ForeignKey("catalog_sections.id"), nullable=False, index=True
     )
     hardware_program_id: Mapped[str] = mapped_column(
-        ForeignKey("hardware_programs.id"), primary_key=True
+        ForeignKey("hardware_programs.id"), nullable=False, index=True
     )
+    product_ref_id: Mapped[str | None] = mapped_column(String, index=True)
+    name: Mapped[str | None] = mapped_column(Text)

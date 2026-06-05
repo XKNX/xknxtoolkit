@@ -33,6 +33,7 @@ from xknxmono.catalog.core.hardware import (
     list_hardware,
 )
 from xknxmono.catalog.core.manufacturers import get_manufacturer, list_manufacturers
+from xknxmono.catalog.core.products import ProductSummary, list_products
 from xknxmono.catalog.core.upload import upload_knxprod
 from xknxmono.catalog.db import knxprod_dir_for, make_engine
 from xknxmono.catalog.models import (
@@ -115,6 +116,11 @@ class CatalogService:
         """Every application with its manufacturer (an app-first view over the schema)."""
         with Session(self._engine) as db:
             return list_applications(db)
+
+    def list_products(self) -> list[ProductSummary]:
+        """Every orderable product with its program/application refs (a product-first view)."""
+        with Session(self._engine) as db:
+            return list_products(db)
 
     def get_application(self, application_id: str) -> Application | None:
         """The parsed (IR-backed) application for an application id, or ``None``."""

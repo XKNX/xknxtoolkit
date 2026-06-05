@@ -9,8 +9,10 @@ dependencies = [
     "sqlalchemy>=2.0.49",
     "structlog>=24.0.0",
     "xknx>=3.0.0",
+    "xknx-catalog",
     "xknx-models",
     "xknx-product",
+    "xknx-project",
 ]
 
 [project.scripts]
@@ -28,5 +30,7 @@ build-backend = "hatchling.build"
 packages = ["src/knx_gui"]
 
 [tool.uv.sources]
+xknx-catalog = { workspace = true }
 xknx-models = { workspace = true }
 xknx-product = { workspace = true }
+xknx-project = { workspace = true }

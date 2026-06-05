@@ -7,31 +7,32 @@ re-reads them every frame), path-based import, and reporting which applications 
 
 from pathlib import Path
 
-from xknxmono.catalog import ApplicationSummary
 from xknxmono.catalog import CatalogService as _CatalogService
+from xknxmono.catalog import ProductSummary
 from xknxmono.product import Application
 
 
 class CatalogService:
     def __init__(self, catalog_path: Path) -> None:
         self._service = _CatalogService(catalog_path)
-        self._entries: list[ApplicationSummary] | None = None
+        self._products: list[ProductSummary] | None = None
 
-    def get_entries(self) -> list[ApplicationSummary]:
-        if self._entries is None:
-            self._entries = self._service.list_applications()
-        return self._entries
+    def get_products(self) -> list[ProductSummary]:
+        """Product-centric browse entries — each carries the product/program refs add_device needs."""
+        if self._products is None:
+            self._products = self._service.list_products()
+        return self._products
 
     def import_knxprod(self, path: Path) -> list[str]:
-        """Ingest a .knxprod into the catalog; returns the application ids newly added."""
-        before = {e.application_id for e in self.get_entries()}
+        """Ingest a .knxprod into the catalog; returns the product refs newly added."""
+        before = {p.product_ref_id for p in self.get_products()}
         self._service.import_knxprod(path.read_bytes())
-        self._entries = None
-        after = {e.application_id for e in self.get_entries()}
+        self._products = None
+        after = {p.product_ref_id for p in self.get_products()}
         return sorted(after - before)
 
     def get_application(self, application_id: str) -> Application | None:
         return self._service.get_application(application_id)
 
     def refresh(self) -> None:
-        self._entries = None
+        self._products = None

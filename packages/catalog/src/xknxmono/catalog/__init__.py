@@ -26,6 +26,7 @@ from xknxmono.catalog.core import (
     CatalogSectionNode,
     CatalogService,
     HardwareFilters,
+    ProductSummary,
     build_catalog_tree,
     collect_section_ids,
     get_application_detail,
@@ -38,6 +39,7 @@ from xknxmono.catalog.core import (
     list_catalog_sections,
     list_hardware,
     list_manufacturers,
+    list_products,
     upload_knxprod,
 )
 from xknxmono.catalog.db import default_db_url, knxprod_dir_for, make_engine
@@ -47,6 +49,7 @@ __all__ = [
     "CatalogSectionNode",
     "CatalogService",
     "HardwareFilters",
+    "ProductSummary",
     "build_catalog_tree",
     "collect_section_ids",
     "default_db_url",
@@ -61,6 +64,7 @@ __all__ = [
     "list_catalog_sections",
     "list_hardware",
     "list_manufacturers",
+    "list_products",
     "make_engine",
     "upload_knxprod",
 ]

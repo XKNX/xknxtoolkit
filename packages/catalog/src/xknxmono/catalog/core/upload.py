@@ -121,8 +121,11 @@ def _ingest_catalog(session: Session, reg: Registry) -> None:
                 if item.hardware2_program_ref_id:
                     session.merge(
                         CatalogSectionProduct(
+                            id=item.id,
                             section_id=section.id,
                             hardware_program_id=item.hardware2_program_ref_id,
+                            product_ref_id=item.product_ref_id,
+                            name=item.name,
                         )
                     )
 

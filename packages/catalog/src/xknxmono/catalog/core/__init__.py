@@ -40,6 +40,7 @@ from xknxmono.catalog.core.hardware import (
     list_hardware,
 )
 from xknxmono.catalog.core.manufacturers import get_manufacturer, list_manufacturers
+from xknxmono.catalog.core.products import ProductSummary, list_products
 from xknxmono.catalog.core.service import CatalogService
 from xknxmono.catalog.core.upload import upload_knxprod
 
@@ -48,6 +49,7 @@ __all__ = [
     "CatalogSectionNode",
     "CatalogService",
     "HardwareFilters",
+    "ProductSummary",
     "build_catalog_tree",
     "collect_section_ids",
     "get_application_detail",
@@ -60,5 +62,6 @@ __all__ = [
     "list_catalog_sections",
     "list_hardware",
     "list_manufacturers",
+    "list_products",
     "upload_knxprod",
 ]

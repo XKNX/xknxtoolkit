@@ -642,8 +642,10 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "structlog" },
     { name = "xknx" },
+    { name = "xknx-catalog" },
     { name = "xknx-models" },
     { name = "xknx-product" },
+    { name = "xknx-project" },
 ]
 
 [package.optional-dependencies]
@@ -663,8 +665,10 @@ requires-dist = [
     { name = "sqlalchemy", specifier = ">=2.0.49" },
     { name = "structlog", specifier = ">=24.0.0" },
     { name = "xknx", specifier = ">=3.0.0" },
+    { name = "xknx-catalog", editable = "packages/catalog" },
     { name = "xknx-models", editable = "packages/models" },
     { name = "xknx-product", editable = "packages/product" },
+    { name = "xknx-project", editable = "packages/project" },
 ]
 provides-extras = ["dev"]
 
