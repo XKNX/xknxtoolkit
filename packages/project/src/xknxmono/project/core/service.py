@@ -96,9 +96,10 @@ class DeviceInfo:
 
 @dataclass(frozen=True)
 class LinkInfo:
-    """A com-object's link to a group address; ``is_sending`` marks the one it transmits to."""
+    """A link between a com-object and a group address; ``is_sending`` marks a transmitting link."""
 
     id: int
+    com_object_id: int
     group_address_id: int
     is_sending: bool
 
@@ -251,22 +252,20 @@ class ProjectService:
         return event.ga_id
 
     def link_com_object(
-        self, project_id: str, com_object_id: int, group_address_id: int
+        self,
+        project_id: str,
+        com_object_id: int,
+        group_address_id: int,
+        *,
+        sending: bool = False,
     ) -> int:
-        """Link a com-object to a group address. The first link on a com-object becomes its sending
-        link automatically (KNX's "first link is the sending one"); use
-        :meth:`set_com_object_sending` to change which link sends."""
+        """Link a com-object to a group address; ``sending`` marks it as the transmitting link.
+        Use :meth:`set_com_object_sending` to reassign the sender across a com-object's links."""
         state = self._state(project_id)
-        has_sender = (
-            state.session.query(ComObjectLink)
-            .filter_by(com_object_id=com_object_id, is_sending=True)
-            .first()
-            is not None
-        )
         event = LinkComObject(
             com_object_id=com_object_id,
             group_address_id=group_address_id,
-            is_sending=not has_sender,
+            is_sending=sending,
         )
         state.store.append(event)
         assert event.link_id is not None
@@ -400,19 +399,25 @@ class ProjectService:
 
     def com_object_links(self, project_id: str, com_object_id: int) -> list[LinkInfo]:
         """A com-object's links (to group addresses), with the sending one flagged."""
-        rows = (
+        return self._links(
             self._state(project_id)
             .session.query(ComObjectLink)
             .filter_by(com_object_id=com_object_id)
             .order_by(ComObjectLink.id)
             .all()
         )
-        return [
-            LinkInfo(
-                id=r.id, group_address_id=r.group_address_id, is_sending=r.is_sending
-            )
-            for r in rows
-        ]
+
+    def group_address_links(
+        self, project_id: str, group_address_id: int
+    ) -> list[LinkInfo]:
+        """Every com-object linked to a group address (its assignments), sending flagged."""
+        return self._links(
+            self._state(project_id)
+            .session.query(ComObjectLink)
+            .filter_by(group_address_id=group_address_id)
+            .order_by(ComObjectLink.id)
+            .all()
+        )
 
     def group_addresses(self, project_id: str) -> list[GroupAddressInfo]:
         state = self._state(project_id)
@@ -505,6 +510,17 @@ class ProjectService:
         )
 
     # --- internals --------------------------------------------------------
+
+    def _links(self, rows: list[ComObjectLink]) -> list[LinkInfo]:
+        return [
+            LinkInfo(
+                id=r.id,
+                com_object_id=r.com_object_id,
+                group_address_id=r.group_address_id,
+                is_sending=r.is_sending,
+            )
+            for r in rows
+        ]
 
     def _ga_info(self, ga: GroupAddress, style: GroupAddressStyle) -> GroupAddressInfo:
         return GroupAddressInfo(

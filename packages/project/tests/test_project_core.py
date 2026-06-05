@@ -147,16 +147,15 @@ def test_link_sending_first_then_reassign(tmp_path: Path):
     co = svc.devices(pid)[0].com_objects[0]
     g1 = svc.create_group_address(pid, 0, 1, "G1")
     g2 = svc.create_group_address(pid, 0, 2, "G2")
-    l1 = svc.link_com_object(pid, co.id, g1)
-    l2 = svc.link_com_object(pid, co.id, g2)
+    l1 = svc.link_com_object(pid, co.id, g1, sending=True)
+    l2 = svc.link_com_object(pid, co.id, g2)  # receive-only by default
 
-    # the first link is the sender; the second is receive-only
     assert {ln.id: ln.is_sending for ln in svc.com_object_links(pid, co.id)} == {
         l1: True,
         l2: False,
     }
 
-    svc.set_com_object_sending(pid, l2)  # reassign -> still exactly one sender
+    svc.set_com_object_sending(pid, l2)  # reassign -> exactly one sender
     assert {ln.id: ln.is_sending for ln in svc.com_object_links(pid, co.id)} == {
         l1: False,
         l2: True,
@@ -167,6 +166,14 @@ def test_link_sending_first_then_reassign(tmp_path: Path):
         l1: True,
         l2: False,
     }
+
+    # the GA side: every com-object assigned to g1, with the sending flag and com-object id
+    [assignment] = svc.group_address_links(pid, g1)
+    assert (assignment.id, assignment.com_object_id, assignment.is_sending) == (
+        l1,
+        co.id,
+        True,
+    )
 
 
 def test_com_object_channel_id(tmp_path: Path):
