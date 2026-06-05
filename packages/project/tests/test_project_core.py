@@ -392,6 +392,25 @@ def test_free_style_creates_flat_ranges(tmp_path: Path):
     assert {ga.id for ga in ranges[0].group_addresses} == {g1, g2}
 
 
+def test_device_info_carries_refs(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    seg = _backbone_segment(svc, pid)
+    dev = svc.add_device(
+        pid,
+        seg,
+        "M-0162_H-x-2_P-y",
+        address=5,
+        name="Switch",
+        hardware2program_ref_id="M-0162_H-x-2_HP-0009-20-98C4",
+    )
+    info = svc.device(pid, dev)
+    assert info.id == dev
+    assert info.name == "Switch"
+    assert info.individual_address == "0.0.5"
+    assert info.product_ref_id == "M-0162_H-x-2_P-y"
+    assert info.hardware2program_ref_id == "M-0162_H-x-2_HP-0009-20-98C4"
+
+
 def test_ia_format_parse():
     assert format_ia(1, 1, 5) == "1.1.5"
     assert parse_ia("1.1.5") == (1, 1, 5)

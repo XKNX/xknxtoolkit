@@ -74,6 +74,18 @@ class GroupAddressInfo:
     links: list[int]
 
 
+@dataclass(frozen=True)
+class DeviceInfo:
+    """A device resolved for display. The refs identify the catalog product and the loaded program;
+    callers resolve the application from them (the project package itself is ref-only)."""
+
+    id: int
+    name: str
+    individual_address: str | None
+    product_ref_id: str
+    hardware2program_ref_id: str | None
+
+
 class ProjectService:
     def __init__(self) -> None:
         self._projects: dict[str, _Open] = {}
@@ -156,6 +168,10 @@ class ProjectService:
         parameters: list[tuple[str, str]] | None = None,
         com_object_refs: list[str] | None = None,
     ) -> int:
+        """Add a device. ``product_ref_id`` is the catalog product; ``hardware2program_ref_id`` is
+        the loaded program through which the application resolves. The project package is ref-only —
+        it never reads the catalog, so the caller expands the application and passes its
+        ``parameters`` (``(ref_id, value)``) and ``com_object_refs`` (``ref_id``) in."""
         state = self._state(project_id)
         if address is not None:
             self._check_unique_address(state, segment_id, address)
@@ -289,6 +305,20 @@ class ProjectService:
     def devices(self, project_id: str) -> list[Device]:
         return self._state(project_id).session.query(Device).order_by(Device.id).all()
 
+    def device(self, project_id: str, device_id: int) -> DeviceInfo:
+        """A device resolved for display (composed individual address + catalog/program refs)."""
+        state = self._state(project_id)
+        device = state.session.get(Device, device_id)
+        if device is None:
+            raise KeyError(f"No device with id {device_id}")
+        return DeviceInfo(
+            id=device.id,
+            name=device.name,
+            individual_address=self._compose_ia(device),
+            product_ref_id=device.product_ref_id,
+            hardware2program_ref_id=device.hardware2program_ref_id,
+        )
+
     def group_addresses(self, project_id: str) -> list[GroupAddressInfo]:
         state = self._state(project_id)
         style = self._style(state)
@@ -330,10 +360,7 @@ class ProjectService:
         device = state.session.get(Device, device_id)
         if device is None:
             raise KeyError(f"No device with id {device_id}")
-        if device.address is None:
-            return None
-        line = device.segment.line
-        return format_ia(line.area.address, line.address, device.address)
+        return self._compose_ia(device)
 
     def next_free_individual_address(self, project_id: str, line_id: int) -> int:
         """The lowest unused device octet (1-255) across all segments of the line."""
@@ -409,6 +436,12 @@ class ProjectService:
         project = state.session.query(Project).first()
         assert project is not None
         return GroupAddressStyle(project.group_address_style)
+
+    def _compose_ia(self, device: Device) -> str | None:
+        if device.address is None:
+            return None
+        line = device.segment.line
+        return format_ia(line.area.address, line.address, device.address)
 
     def _first_segment(self, state: _Open, line: Line) -> Segment:
         segment = (
