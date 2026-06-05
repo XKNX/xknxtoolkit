@@ -27,9 +27,7 @@ def _new(
     style: GroupAddressStyle = GroupAddressStyle.THREE_LEVEL,
 ) -> tuple[ProjectService, str]:
     svc = ProjectService()
-    pid = svc.create(
-        tmp_path / f"{name}.xknxproj", project_id, group_address_style=style
-    )
+    pid = svc.create(tmp_path / f"{name}.xknx", project_id, group_address_style=style)
     return svc, pid
 
 
@@ -191,7 +189,7 @@ def test_undo_truncates_redo(tmp_path: Path):
 
 
 def test_save_and_reopen(tmp_path: Path):
-    path = tmp_path / "project.xknxproj"
+    path = tmp_path / "project.xknx"
     svc = ProjectService()
     pid = svc.create(path, "P-0001")
     seg = _backbone_segment(svc, pid)
