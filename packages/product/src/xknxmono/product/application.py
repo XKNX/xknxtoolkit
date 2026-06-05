@@ -21,6 +21,7 @@ from .parser import (
     build_app_dynamic_tree,
     extract_app_com_objects,
     extract_app_param_types,
+    extract_app_param_values,
     extract_app_parameters,
 )
 from .parser import dynamic as dy
@@ -45,6 +46,7 @@ class Application:
     version: str
     manufacturer_id: str
     _params: list[Parameter] | None = field(default=None, repr=False, compare=False)
+    _values: dict[str, str] | None = field(default=None, repr=False, compare=False)
     _tree: DynamicElement | None = field(default=None, repr=False, compare=False)
     _tree_built: bool = field(default=False, repr=False, compare=False)
 
@@ -86,11 +88,18 @@ class Application:
     def load_procedure_style(self) -> LoadProcedureStyle | None:
         return self.program.load_procedure_style
 
+    def default_values(self) -> dict[str, str]:
+        """Every parameter's default value (incl. non-displayable params), keyed by ParameterRef id.
+        This is the complete map the dynamic visibility tree must be evaluated against."""
+        if self._values is None:
+            self._values = extract_app_param_values(self.program)
+        return self._values
+
     # --- dynamic visibility --------------------------------------------------
     def _values_or_defaults(self, values: dict[str, str] | None) -> dict[str, str]:
         if values is not None:
             return values
-        return {p.id: p.value for p in self.parameters()}
+        return self.default_values()
 
     def visible_tree(self, values: dict[str, str] | None = None) -> list[VisibleNode]:
         return dy.evaluate_tree(

@@ -16,6 +16,9 @@ from xknxmono.models.intermediate import (
     ApplicationProgramStaticParameters,
     ApplicationProgramStaticParametersParameter,
     ApplicationProgramStaticParametersUnion,
+    ModuleDefStaticParameters,
+    ModuleDefStaticParametersParameter,
+    ModuleDefStaticParametersUnion,
     ParameterRef,
     ParameterType,
     ParameterTypeTypeFloat,
@@ -144,19 +147,30 @@ def _types_from_static(static: modules.Static) -> dict[str, ParamType]:
 # --- parameters -------------------------------------------------------------------
 
 
+_UNION_TYPES = (
+    ApplicationProgramStaticParametersUnion,
+    ModuleDefStaticParametersUnion,
+)
+
+
 def _iter_bases(
     container: ApplicationProgramStaticParameters
-    | ApplicationProgramStaticParametersUnion,
-) -> Iterator[ApplicationProgramStaticParametersParameter]:
+    | ApplicationProgramStaticParametersUnion
+    | ModuleDefStaticParameters
+    | ModuleDefStaticParametersUnion,
+) -> Iterator[
+    ApplicationProgramStaticParametersParameter | ModuleDefStaticParametersParameter
+]:
     """Yield base Parameter elements. A Union holds its parameters in `.parameter` (its own
     `.choice` is just the MemoryUnion/PropertyUnion discriminator); the top-level Parameters holds
-    Parameter | Union members in its compound `.choice`."""
-    if isinstance(container, ApplicationProgramStaticParametersUnion):
+    Parameter | Union members in its compound `.choice`. Handles both the application-program and
+    module-def variants (a module-def static uses the parallel ``ModuleDef*`` types)."""
+    if isinstance(container, _UNION_TYPES):
         # The IR's Union holds its own parallel `...UnionParameter` type; treated uniformly here.
         yield from container.parameter  # pyright: ignore[reportReturnType]
         return
     for item in container.choice:
-        if isinstance(item, ApplicationProgramStaticParametersUnion):
+        if isinstance(item, _UNION_TYPES):
             yield from _iter_bases(item)
         else:
             yield item
@@ -214,3 +228,31 @@ def extract(app: ApplicationProgram) -> list[Parameter]:
     for static in modules.iter_statics(app, modules.collect(app)):
         parameters.extend(_params_from_static(static, param_types))
     return parameters
+
+
+def _values_from_static(static: modules.Static) -> dict[str, str]:
+    parameters = static.parameters
+    base_by_id = (
+        {p.id: p for p in _iter_bases(parameters) if p.id}  # pyright: ignore[reportArgumentType]
+        if parameters is not None
+        else {}
+    )
+    refs_container = static.parameter_refs
+    refs: list[ParameterRef] = refs_container.parameter_ref if refs_container else []
+    values: dict[str, str] = {}
+    for ref in refs:
+        if not ref.id:
+            continue
+        base = base_by_id.get(ref.ref_id or "")
+        values[ref.id] = ref.value or (base.value if base else None) or ""
+    return values
+
+
+def extract_values(app: ApplicationProgram) -> dict[str, str]:
+    """Every parameter-ref's default value keyed by ParameterRef id — a superset of :func:`extract`
+    that includes non-displayable (text-less) params. Visibility conditions reference those internal
+    params, so this complete map is what should drive the dynamic tree."""
+    values: dict[str, str] = {}
+    for static in modules.iter_statics(app, modules.collect(app)):
+        values.update(_values_from_static(static))
+    return values
