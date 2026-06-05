@@ -203,6 +203,49 @@ class CreateLine(Event):
 
 @_register
 @dataclass
+class CreateSegment(Event):
+    event_type: ClassVar[str] = "CreateSegment"
+
+    line_id: int
+    number: int
+    medium_type: str
+    name: str
+    segment_id: int | None = None
+
+    def apply(self, session: Session) -> None:
+        segment = Segment(
+            line_id=self.line_id,
+            number=self.number,
+            medium_type=self.medium_type,
+            name=self.name,
+        )
+        if self.segment_id is not None:
+            segment.id = self.segment_id
+        session.add(segment)
+        session.flush()
+        self.segment_id = segment.id
+
+    def revert(self, session: Session) -> None:
+        segment = session.get(Segment, self.segment_id)
+        if segment is not None:
+            session.delete(segment)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "line_id": self.line_id,
+            "number": self.number,
+            "medium_type": self.medium_type,
+            "name": self.name,
+            "segment_id": self.segment_id,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CreateSegment:
+        return cls(**data)
+
+
+@_register
+@dataclass
 class AddDevice(Event):
     event_type: ClassVar[str] = "AddDevice"
 
@@ -643,6 +686,13 @@ class RemoveArea(_SubtreeDelete):
 class RemoveLine(_SubtreeDelete):
     event_type: ClassVar[str] = "RemoveLine"
     _model: ClassVar[type[Base]] = Line
+
+
+@_register
+@dataclass
+class RemoveSegment(_SubtreeDelete):
+    event_type: ClassVar[str] = "RemoveSegment"
+    _model: ClassVar[type[Base]] = Segment
 
 
 @_register

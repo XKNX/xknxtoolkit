@@ -31,12 +31,14 @@ from xknxmono.project.core.events import (
     CreateArea,
     CreateGroupAddress,
     CreateLine,
+    CreateSegment,
     LinkComObject,
     MoveDevice,
     RemoveArea,
     RemoveDevice,
     RemoveGroupAddress,
     RemoveLine,
+    RemoveSegment,
     RenameArea,
     RenameLine,
     SetComObjectFlag,
@@ -171,6 +173,29 @@ class ProjectService:
         assert event.line_id is not None
         return event.line_id
 
+    def add_segment(
+        self,
+        project_id: str,
+        line_id: int,
+        *,
+        medium_type: str = MEDIUM_TP,
+        name: str = "",
+    ) -> int:
+        """Add a media segment to a line (its number continues the line's existing segments)."""
+        state = self._state(project_id)
+        highest = (
+            state.session.query(func.max(Segment.number))
+            .filter_by(line_id=line_id)
+            .scalar()
+        )
+        number = highest + 1 if highest is not None else 0
+        event = CreateSegment(
+            line_id=line_id, number=number, medium_type=medium_type, name=name
+        )
+        state.store.append(event)
+        assert event.segment_id is not None
+        return event.segment_id
+
     def add_device(
         self,
         project_id: str,
@@ -282,6 +307,9 @@ class ProjectService:
 
     def remove_line(self, project_id: str, line_id: int) -> None:
         self._state(project_id).store.append(RemoveLine(target_id=line_id))
+
+    def remove_segment(self, project_id: str, segment_id: int) -> None:
+        self._state(project_id).store.append(RemoveSegment(target_id=segment_id))
 
     def remove_group_address(self, project_id: str, group_address_id: int) -> None:
         self._state(project_id).store.append(

@@ -263,6 +263,24 @@ def test_remove_device_undo_restores_subtree(tmp_path: Path):
     assert [link_.id for link_ in restored.com_objects[0].links] == [link]
 
 
+def test_add_and_remove_segment(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    line_id = svc.topology(pid, 0).areas[0].lines[0].id
+    seg2 = svc.add_segment(pid, line_id, name="TP segment")
+    segments = svc.topology(pid, 0).areas[0].lines[0].segments
+    assert [s.number for s in segments] == [0, 1]  # continues the backbone segment
+    assert segments[1].id == seg2 and segments[1].medium_type == "MT-0"
+
+    dev = svc.add_device(pid, seg2, PRODUCT, address=1, name="D")
+    svc.remove_segment(pid, seg2)
+    assert svc.devices(pid) == []  # the nested device went with the segment
+    assert [s.number for s in svc.topology(pid, 0).areas[0].lines[0].segments] == [0]
+
+    svc.undo(pid)  # restore the segment and its device
+    assert [d.id for d in svc.devices(pid)] == [dev]
+    assert seg2 in [s.id for s in svc.topology(pid, 0).areas[0].lines[0].segments]
+
+
 def test_remove_area_cascades_and_undo(tmp_path: Path):
     svc, pid = _new(tmp_path)
     area = svc.create_area(pid, 0, 1, "Area")
