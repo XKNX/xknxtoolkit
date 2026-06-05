@@ -128,7 +128,9 @@ def test_set_parameter_undo_restores_old_value(tmp_path: Path):
 def test_link_com_object(tmp_path: Path):
     svc, pid = _new(tmp_path)
     seg = _backbone_segment(svc, pid)
-    svc.add_device(pid, seg, PRODUCT, address=1, name="D", com_object_refs=["O-1_R-1"])
+    svc.add_device(
+        pid, seg, PRODUCT, address=1, name="D", com_objects=[("O-1_R-1", None)]
+    )
     ga = svc.create_group_address(pid, 0, 1, "GA")
     co = svc.devices(pid)[0].com_objects[0]
     link = svc.link_com_object(pid, co.id, ga)
@@ -136,6 +138,46 @@ def test_link_com_object(tmp_path: Path):
     svc.undo(pid)
     assert co.links == []
     assert link is not None
+
+
+def test_link_sending_first_then_reassign(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    seg = _backbone_segment(svc, pid)
+    svc.add_device(
+        pid, seg, PRODUCT, address=1, name="D", com_objects=[("O-1_R-1", None)]
+    )
+    co = svc.devices(pid)[0].com_objects[0]
+    g1 = svc.create_group_address(pid, 0, 1, "G1")
+    g2 = svc.create_group_address(pid, 0, 2, "G2")
+    l1 = svc.link_com_object(pid, co.id, g1)
+    l2 = svc.link_com_object(pid, co.id, g2)
+
+    # the first link is the sender; the second is receive-only
+    assert {ln.id: ln.is_sending for ln in svc.com_object_links(pid, co.id)} == {
+        l1: True,
+        l2: False,
+    }
+
+    svc.set_com_object_sending(pid, l2)  # reassign -> still exactly one sender
+    assert {ln.id: ln.is_sending for ln in svc.com_object_links(pid, co.id)} == {
+        l1: False,
+        l2: True,
+    }
+
+    svc.undo(pid)  # back to l1 sending
+    assert {ln.id: ln.is_sending for ln in svc.com_object_links(pid, co.id)} == {
+        l1: True,
+        l2: False,
+    }
+
+
+def test_com_object_channel_id(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    seg = _backbone_segment(svc, pid)
+    svc.add_device(
+        pid, seg, PRODUCT, address=1, name="D", com_objects=[("O-1_R-1", "CH-1")]
+    )
+    assert svc.devices(pid)[0].com_objects[0].channel_id == "CH-1"
 
 
 def test_undo_truncates_redo(tmp_path: Path):
@@ -202,7 +244,7 @@ def test_remove_device_undo_restores_subtree(tmp_path: Path):
         address=1,
         name="D",
         parameters=[("P-1", "9")],
-        com_object_refs=["O-1_R-1"],
+        com_objects=[("O-1_R-1", None)],
     )
     ga = svc.create_group_address(pid, 0, 1, "GA")
     co = svc.devices(pid)[0].com_objects[0]
@@ -285,7 +327,9 @@ def test_move_device_rejects_duplicate_address(tmp_path: Path):
 def test_unlink_com_object(tmp_path: Path):
     svc, pid = _new(tmp_path)
     seg = _backbone_segment(svc, pid)
-    svc.add_device(pid, seg, PRODUCT, address=1, name="D", com_object_refs=["O-1_R-1"])
+    svc.add_device(
+        pid, seg, PRODUCT, address=1, name="D", com_objects=[("O-1_R-1", None)]
+    )
     ga = svc.create_group_address(pid, 0, 1, "GA")
     co = svc.devices(pid)[0].com_objects[0]
     link = svc.link_com_object(pid, co.id, ga)
@@ -395,7 +439,9 @@ def test_free_style_creates_flat_ranges(tmp_path: Path):
 def test_set_com_object_flag_override(tmp_path: Path):
     svc, pid = _new(tmp_path)
     seg = _backbone_segment(svc, pid)
-    svc.add_device(pid, seg, PRODUCT, address=1, name="D", com_object_refs=["O-1_R-1"])
+    svc.add_device(
+        pid, seg, PRODUCT, address=1, name="D", com_objects=[("O-1_R-1", None)]
+    )
     co = svc.devices(pid)[0].com_objects[0]
     assert co.communication_flag is None  # inherit from product by default
 

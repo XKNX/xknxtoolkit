@@ -40,6 +40,7 @@ from xknxmono.project.core.events import (
     RenameArea,
     RenameLine,
     SetComObjectFlag,
+    SetComObjectSending,
     SetDeviceName,
     SetGroupAddressDatapointType,
     SetParameter,
@@ -49,6 +50,7 @@ from xknxmono.project.core.skeleton import MEDIUM_TP, seed_new_project
 from xknxmono.project.db import make_engine, url_for
 from xknxmono.project.models import (
     Area,
+    ComObjectLink,
     Device,
     GroupAddress,
     GroupRange,
@@ -88,6 +90,15 @@ class DeviceInfo:
     individual_address: str | None
     product_ref_id: str
     hardware2program_ref_id: str | None
+
+
+@dataclass(frozen=True)
+class LinkInfo:
+    """A com-object's link to a group address; ``is_sending`` marks the one it transmits to."""
+
+    id: int
+    group_address_id: int
+    is_sending: bool
 
 
 class ProjectService:
@@ -170,12 +181,12 @@ class ProjectService:
         name: str = "",
         hardware2program_ref_id: str | None = None,
         parameters: list[tuple[str, str]] | None = None,
-        com_object_refs: list[str] | None = None,
+        com_objects: list[tuple[str, str | None]] | None = None,
     ) -> int:
         """Add a device. ``product_ref_id`` is the catalog product; ``hardware2program_ref_id`` is
         the loaded program through which the application resolves. The project package is ref-only —
         it never reads the catalog, so the caller expands the application and passes its
-        ``parameters`` (``(ref_id, value)``) and ``com_object_refs`` (``ref_id``) in."""
+        ``parameters`` (``(ref_id, value)``) and ``com_objects`` (``(ref_id, channel_id)``) in."""
         state = self._state(project_id)
         if address is not None:
             self._check_unique_address(state, segment_id, address)
@@ -186,7 +197,7 @@ class ProjectService:
             product_ref_id=product_ref_id,
             hardware2program_ref_id=hardware2program_ref_id,
             parameters=[[ref, value] for ref, value in (parameters or [])],
-            com_object_refs=list(com_object_refs or []),
+            com_objects=[[ref, channel] for ref, channel in (com_objects or [])],
         )
         state.store.append(event)
         assert event.device_id is not None
@@ -217,13 +228,28 @@ class ProjectService:
     def link_com_object(
         self, project_id: str, com_object_id: int, group_address_id: int
     ) -> int:
+        """Link a com-object to a group address. The first link on a com-object becomes its sending
+        link automatically (KNX's "first link is the sending one"); use
+        :meth:`set_com_object_sending` to change which link sends."""
         state = self._state(project_id)
+        has_sender = (
+            state.session.query(ComObjectLink)
+            .filter_by(com_object_id=com_object_id, is_sending=True)
+            .first()
+            is not None
+        )
         event = LinkComObject(
-            com_object_id=com_object_id, group_address_id=group_address_id
+            com_object_id=com_object_id,
+            group_address_id=group_address_id,
+            is_sending=not has_sender,
         )
         state.store.append(event)
         assert event.link_id is not None
         return event.link_id
+
+    def set_com_object_sending(self, project_id: str, link_id: int) -> None:
+        """Make this link the com-object's sending link, clearing the bit on its sibling links."""
+        self._state(project_id).store.append(SetComObjectSending(link_id=link_id))
 
     def set_com_object_flag(
         self, project_id: str, com_object_id: int, flag: str, value: bool | None
@@ -343,6 +369,22 @@ class ProjectService:
             product_ref_id=device.product_ref_id,
             hardware2program_ref_id=device.hardware2program_ref_id,
         )
+
+    def com_object_links(self, project_id: str, com_object_id: int) -> list[LinkInfo]:
+        """A com-object's links (to group addresses), with the sending one flagged."""
+        rows = (
+            self._state(project_id)
+            .session.query(ComObjectLink)
+            .filter_by(com_object_id=com_object_id)
+            .order_by(ComObjectLink.id)
+            .all()
+        )
+        return [
+            LinkInfo(
+                id=r.id, group_address_id=r.group_address_id, is_sending=r.is_sending
+            )
+            for r in rows
+        ]
 
     def group_addresses(self, project_id: str) -> list[GroupAddressInfo]:
         state = self._state(project_id)

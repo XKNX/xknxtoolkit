@@ -212,7 +212,8 @@ class AddDevice(Event):
     product_ref_id: str
     hardware2program_ref_id: str | None
     parameters: list[list[str]] = field(default_factory=list[list[str]])
-    com_object_refs: list[str] = field(default_factory=list[str])
+    # each entry is [ref_id, channel_id] (channel_id may be None)
+    com_objects: list[list[str | None]] = field(default_factory=list[list[str | None]])
     device_id: int | None = None
     parameter_ids: list[int] = field(default_factory=list[int])
     com_object_ids: list[int] = field(default_factory=list[int])
@@ -232,8 +233,9 @@ class AddDevice(Event):
             if i < len(self.parameter_ids):
                 param.id = self.parameter_ids[i]
             device.parameters.append(param)
-        for i, ref_id in enumerate(self.com_object_refs):
-            com_object = ComObject(ref_id=ref_id)
+        for i, (ref_id, channel_id) in enumerate(self.com_objects):
+            assert ref_id is not None
+            com_object = ComObject(ref_id=ref_id, channel_id=channel_id)
             if i < len(self.com_object_ids):
                 com_object.id = self.com_object_ids[i]
             device.com_objects.append(com_object)
@@ -256,7 +258,7 @@ class AddDevice(Event):
             "product_ref_id": self.product_ref_id,
             "hardware2program_ref_id": self.hardware2program_ref_id,
             "parameters": self.parameters,
-            "com_object_refs": self.com_object_refs,
+            "com_objects": self.com_objects,
             "device_id": self.device_id,
             "parameter_ids": self.parameter_ids,
             "com_object_ids": self.com_object_ids,
@@ -426,11 +428,14 @@ class LinkComObject(Event):
 
     com_object_id: int
     group_address_id: int
+    is_sending: bool = False
     link_id: int | None = None
 
     def apply(self, session: Session) -> None:
         link = ComObjectLink(
-            com_object_id=self.com_object_id, group_address_id=self.group_address_id
+            com_object_id=self.com_object_id,
+            group_address_id=self.group_address_id,
+            is_sending=self.is_sending,
         )
         if self.link_id is not None:
             link.id = self.link_id
@@ -447,6 +452,7 @@ class LinkComObject(Event):
         return {
             "com_object_id": self.com_object_id,
             "group_address_id": self.group_address_id,
+            "is_sending": self.is_sending,
             "link_id": self.link_id,
         }
 
@@ -539,6 +545,52 @@ class SetGroupAddressDatapointType(Event):
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SetGroupAddressDatapointType:
+        return cls(**data)
+
+
+@_register
+@dataclass
+class SetComObjectSending(Event):
+    """Make one link the sending link, clearing the sending bit on the com-object's other links so
+    at most one is sending. ``previous`` captures every sibling's prior bit for revert."""
+
+    event_type: ClassVar[str] = "SetComObjectSending"
+
+    link_id: int
+    captured: bool = False
+    previous: dict[str, bool] = field(default_factory=dict[str, bool])
+
+    def apply(self, session: Session) -> None:
+        link = session.get(ComObjectLink, self.link_id)
+        if link is None:
+            return
+        siblings = (
+            session.query(ComObjectLink)
+            .filter_by(com_object_id=link.com_object_id)
+            .all()
+        )
+        self.previous = {str(s.id): s.is_sending for s in siblings}
+        self.captured = True
+        for sibling in siblings:
+            sibling.is_sending = sibling.id == self.link_id
+
+    def revert(self, session: Session) -> None:
+        if not self.captured:
+            return
+        for sibling_id, was_sending in self.previous.items():
+            sibling = session.get(ComObjectLink, int(sibling_id))
+            if sibling is not None:
+                sibling.is_sending = was_sending
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "link_id": self.link_id,
+            "captured": self.captured,
+            "previous": self.previous,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SetComObjectSending:
         return cls(**data)
 
 

@@ -151,8 +151,10 @@ class Parameter(Base):
 class ComObject(Base):
     """A com-object instance ref: ``ref_id`` points into the application's com-object refs.
 
-    The flags are *overrides* (``None`` = inherit from the product/application definition; a value
-    forces ``Enabled``/``Disabled``). Defaults and lock state live on the product, not here.
+    ``channel_id`` references the ApplicationProgramChannel the instance lives in (``None`` when it
+    is in the channel-independent block). The flags are *overrides* (``None`` = inherit from the
+    product/application definition; a value forces ``Enabled``/``Disabled``). Defaults and lock state
+    live on the product, not here.
     """
 
     __tablename__ = "com_objects"
@@ -162,6 +164,7 @@ class ComObject(Base):
         ForeignKey("devices.id"), nullable=False, index=True
     )
     ref_id: Mapped[str] = mapped_column(String, nullable=False)
+    channel_id: Mapped[str | None] = mapped_column(String)
 
     read_flag: Mapped[bool | None] = mapped_column(Boolean)
     write_flag: Mapped[bool | None] = mapped_column(Boolean)
@@ -224,7 +227,9 @@ class GroupAddress(Base):
 
 
 class ComObjectLink(Base):
-    """A link between a com-object instance and a group address."""
+    """A link between a com-object instance and a group address. ``is_sending`` marks the (single)
+    group address this object transmits to; the rest are receive-only. (The IR encodes this
+    positionally as the first entry of its ``Links`` list; we store the bit directly.)"""
 
     __tablename__ = "com_object_links"
 
@@ -235,6 +240,7 @@ class ComObjectLink(Base):
     group_address_id: Mapped[int] = mapped_column(
         ForeignKey("group_addresses.id"), nullable=False, index=True
     )
+    is_sending: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     com_object: Mapped["ComObject"] = relationship(back_populates="links")
     group_address: Mapped["GroupAddress"] = relationship(back_populates="links")
