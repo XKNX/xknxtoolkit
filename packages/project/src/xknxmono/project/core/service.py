@@ -19,6 +19,8 @@ from sqlalchemy.orm import Session
 from xknxmono.project.core.addressing import (
     GroupAddressStyle,
     format_ga,
+    format_ia,
+    parse_ia,
     ranges_for,
 )
 from xknxmono.project.core.event_store import EventStore, HistoryEntry
@@ -43,10 +45,12 @@ from xknxmono.project.core.events import (
 from xknxmono.project.core.skeleton import MEDIUM_TP, seed_new_project
 from xknxmono.project.db import make_engine, url_for
 from xknxmono.project.models import (
+    Area,
     Device,
     GroupAddress,
     GroupRange,
     Installation,
+    Line,
     Project,
     Segment,
 )
@@ -318,6 +322,66 @@ class ProjectService:
             raise ValueError("no free group address available")
         return address
 
+    # --- individual-address helpers ---------------------------------------
+
+    def individual_address(self, project_id: str, device_id: int) -> str | None:
+        """The device's ``area.line.device`` string, or ``None`` if its octet is unassigned."""
+        state = self._state(project_id)
+        device = state.session.get(Device, device_id)
+        if device is None:
+            raise KeyError(f"No device with id {device_id}")
+        if device.address is None:
+            return None
+        line = device.segment.line
+        return format_ia(line.area.address, line.address, device.address)
+
+    def next_free_individual_address(self, project_id: str, line_id: int) -> int:
+        """The lowest unused device octet (1-255) across all segments of the line."""
+        state = self._state(project_id)
+        if state.session.get(Line, line_id) is None:
+            raise KeyError(f"No line with id {line_id}")
+        used = {
+            octet
+            for (octet,) in state.session.query(Device.address)
+            .join(Segment, Device.segment_id == Segment.id)
+            .filter(Segment.line_id == line_id, Device.address.is_not(None))
+        }
+        octet = 1
+        while octet in used:
+            octet += 1
+        if octet > 255:
+            raise ValueError("no free individual address on this line")
+        return octet
+
+    def set_individual_address(
+        self, project_id: str, device_id: int, address: str
+    ) -> None:
+        """Place a device at an ``area.line.device`` address within its installation.
+
+        Resolves the target line by its area/line numbers and uses that line's first segment (the
+        segment is a media grouping, not part of the address). Raises if no such line exists."""
+        state = self._state(project_id)
+        device = state.session.get(Device, device_id)
+        if device is None:
+            raise KeyError(f"No device with id {device_id}")
+        area_no, line_no, octet = parse_ia(address)
+        installation_id = device.segment.line.area.installation_id
+        line = (
+            state.session.query(Line)
+            .join(Area, Line.area_id == Area.id)
+            .filter(
+                Area.installation_id == installation_id,
+                Area.address == area_no,
+                Line.address == line_no,
+            )
+            .first()
+        )
+        if line is None:
+            raise KeyError(f"No line {area_no}.{line_no} in this installation")
+        self.move_device(
+            project_id, device_id, self._first_segment(state, line).id, octet
+        )
+
     # --- internals --------------------------------------------------------
 
     def _ga_info(self, ga: GroupAddress, style: GroupAddressStyle) -> GroupAddressInfo:
@@ -345,6 +409,17 @@ class ProjectService:
         project = state.session.query(Project).first()
         assert project is not None
         return GroupAddressStyle(project.group_address_style)
+
+    def _first_segment(self, state: _Open, line: Line) -> Segment:
+        segment = (
+            state.session.query(Segment)
+            .filter_by(line_id=line.id)
+            .order_by(Segment.id)
+            .first()
+        )
+        if segment is None:
+            raise KeyError(f"Line {line.id} has no segment")
+        return segment
 
     def _check_unique_address(
         self,

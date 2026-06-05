@@ -35,6 +35,17 @@ def parse_ga(text: str, style: GroupAddressStyle) -> int:
     return (main << 11) | (middle << 8) | sub
 
 
+def format_ia(area: int, line: int, device: int) -> str:
+    """Render an individual address from its topology parts as ``area.line.device`` (e.g. ``1.1.5``)."""
+    return f"{area}.{line}.{device}"
+
+
+def parse_ia(text: str) -> tuple[int, int, int]:
+    """Parse an ``area.line.device`` individual-address string into its three numbers."""
+    area, line, device = text.split(".")
+    return int(area), int(line), int(device)
+
+
 def ranges_for(address: int, style: GroupAddressStyle) -> list[tuple[int, int, str]]:
     """The named ``GroupRange`` chain (top → leaf) that should contain ``address`` in this style.
 

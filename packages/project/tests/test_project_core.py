@@ -6,7 +6,9 @@ from xknxmono.project import ProjectService
 from xknxmono.project.core.addressing import (
     GroupAddressStyle,
     format_ga,
+    format_ia,
     parse_ga,
+    parse_ia,
     ranges_for,
 )
 
@@ -388,6 +390,57 @@ def test_free_style_creates_flat_ranges(tmp_path: Path):
     assert ranges[0].parent_id is None and ranges[0].name == "Group addresses"
     assert ranges[0].children == []
     assert {ga.id for ga in ranges[0].group_addresses} == {g1, g2}
+
+
+def test_ia_format_parse():
+    assert format_ia(1, 1, 5) == "1.1.5"
+    assert parse_ia("1.1.5") == (1, 1, 5)
+    assert parse_ia("0.0.0") == (0, 0, 0)
+
+
+def test_individual_address_compose(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    seg = _backbone_segment(svc, pid)  # backbone is area 0 / line 0
+    dev = svc.add_device(pid, seg, PRODUCT, address=5, name="D")
+    assert svc.individual_address(pid, dev) == "0.0.5"
+
+    unassigned = svc.add_device(pid, seg, PRODUCT, name="U")  # no octet
+    assert svc.individual_address(pid, unassigned) is None
+
+
+def test_next_free_individual_address(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    seg = _backbone_segment(svc, pid)
+    line_id = svc.topology(pid, 0).areas[0].lines[0].id
+    assert svc.next_free_individual_address(pid, line_id) == 1
+    svc.add_device(pid, seg, PRODUCT, address=1, name="A")
+    svc.add_device(pid, seg, PRODUCT, address=2, name="B")
+    assert svc.next_free_individual_address(pid, line_id) == 3
+
+
+def test_set_individual_address_moves_to_line(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    backbone = _backbone_segment(svc, pid)
+    area = svc.create_area(pid, 0, 1, "Area")
+    svc.create_line(pid, area, 1, "Line")  # area 1 / line 1
+    other = svc.topology(pid, 0).areas[1].lines[0].segments[0].id
+
+    dev = svc.add_device(pid, backbone, PRODUCT, address=9, name="D")
+    svc.set_individual_address(pid, dev, "1.1.5")  # move onto area 1 / line 1, octet 5
+    assert svc.devices(pid)[0].segment_id == other
+    assert svc.individual_address(pid, dev) == "1.1.5"
+
+    # undo returns it to the backbone at 0.0.9
+    svc.undo(pid)
+    assert svc.individual_address(pid, dev) == "0.0.9"
+
+
+def test_set_individual_address_unknown_line(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    seg = _backbone_segment(svc, pid)
+    dev = svc.add_device(pid, seg, PRODUCT, address=1, name="D")
+    with pytest.raises(KeyError, match=r"No line 3\.4"):
+        svc.set_individual_address(pid, dev, "3.4.5")
 
 
 def test_multiple_concurrent_projects(tmp_path: Path):
