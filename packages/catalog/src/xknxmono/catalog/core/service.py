@@ -15,7 +15,9 @@ from sqlalchemy.orm import Session
 
 from xknxmono.catalog.core.applications import (
     ApplicationSummary,
+    get_application_detail,
     get_application_detail_by_id,
+    get_application_xml,
     list_applications,
 )
 from xknxmono.catalog.core.catalog_sections import (
@@ -26,8 +28,6 @@ from xknxmono.catalog.core.catalog_sections import (
 )
 from xknxmono.catalog.core.hardware import (
     HardwareFilters,
-    get_application_detail,
-    get_application_xml,
     get_hardware,
     get_hardware_program,
     list_hardware,

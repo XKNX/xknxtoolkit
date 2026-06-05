@@ -16,9 +16,6 @@ from xknxmono.catalog.models import (
     HardwareProgram,
     HardwareProgramMediumType,
 )
-from xknxmono.product import Application as ProductApplication
-from xknxmono.product import parse_application_xml
-from xknxmono.product.archive import Archive
 
 
 class HardwareFilters(BaseModel):
@@ -206,80 +203,3 @@ def get_hardware_program(
             HardwareProgram.hardware_id == hardware_id,
         )
     ).first()
-
-
-def get_application_xml(db: Session, program_id: str) -> tuple[bytes, str] | None:
-    """Return the raw application XML bytes and manufacturer ID for a hardware program.
-
-    Opens the ``.knxprod`` archive on disk for the given program and extracts the
-    application XML. Returns ``None`` if the program does not exist or has no
-    associated application, or if the application XML is not found in the archive.
-
-    Args:
-      db: An active SQLAlchemy session.
-      program_id: The hardware program's primary-key identifier.
-
-    Returns:
-      A ``(xml_bytes, manufacturer_id)`` tuple, or ``None`` if not found.
-
-    Raises:
-      :exc:`xknxmono.product.errors.ArchiveError`: If the ``.knxprod`` archive
-        cannot be opened or read.
-    """
-    program = db.scalars(
-        select(HardwareProgram)
-        .options(selectinload(HardwareProgram.hardware))
-        .where(HardwareProgram.id == program_id)
-    ).first()
-    if not program or not program.application_id:
-        return None
-
-    manufacturer_id = program.hardware.manufacturer_id
-    archive = Archive(program.knxprod_path)
-    with archive:
-        app_xmls = archive.get_application_xmls(manufacturer_id)
-        xml_bytes = app_xmls.get(program.application_id)
-        if xml_bytes is None:
-            return None
-        return xml_bytes, manufacturer_id
-
-
-def get_application_detail(db: Session, program_id: str) -> ProductApplication | None:
-    """Return the parsed application detail for a hardware program.
-
-    Opens the ``.knxprod`` archive and parses the application XML via
-    :func:`xknxmono.product.parser.parse_application_xml`. Returns ``None`` if
-    the program does not exist, has no linked application, or the application is
-    not present in the archive.
-
-    Args:
-      db: An active SQLAlchemy session.
-      program_id: The hardware program's primary-key identifier.
-
-    Returns:
-      A :class:`~xknxmono.product.application.Application` instance with
-      com objects, parameters, and code populated, or ``None`` if not found.
-
-    Raises:
-      :exc:`xknxmono.product.errors.ArchiveError`: If the ``.knxprod`` archive
-        cannot be opened or read.
-    """
-    program = db.scalars(
-        select(HardwareProgram)
-        .options(selectinload(HardwareProgram.hardware))
-        .where(HardwareProgram.id == program_id)
-    ).first()
-    if not program or not program.application_id:
-        return None
-
-    manufacturer_id = program.hardware.manufacturer_id
-    archive = Archive(program.knxprod_path)
-    with archive:
-        app_xmls = archive.get_application_xmls(manufacturer_id)
-        xml_bytes = app_xmls.get(program.application_id)
-        if xml_bytes is None:
-            return None
-        apps = parse_application_xml(xml_bytes, manufacturer_id)
-        return next(
-            (a for a in apps if a.id == program.application_id), None
-        )
