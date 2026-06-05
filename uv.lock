@@ -1580,11 +1580,15 @@ name = "xknx-project"
 version = "0.1.0"
 source = { editable = "packages/project" }
 dependencies = [
+    { name = "sqlalchemy" },
     { name = "xknx-models" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "xknx-models", editable = "packages/models" }]
+requires-dist = [
+    { name = "sqlalchemy", specifier = ">=2.0.0" },
+    { name = "xknx-models", editable = "packages/models" },
+]
 
 [[package]]
 name = "xknxtoolkit"

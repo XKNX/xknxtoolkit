@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "XKNX project library"
 requires-python = ">=3.12"
 dependencies = [
+    "sqlalchemy>=2.0.0",
     "xknx-models",
 ]
 
