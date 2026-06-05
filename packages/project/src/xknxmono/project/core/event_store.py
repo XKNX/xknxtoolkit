@@ -5,13 +5,23 @@ walk the cursor (no rows are deleted), so the history is fully re-playable and s
 ``append`` truncates any redo branch, applies the event, and persists it.
 """
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from xknxmono.project.core.events import Event, deserialize_event
 from xknxmono.project.models import Event as EventModel
+
+
+@dataclass(frozen=True)
+class HistoryEntry:
+    id: int
+    event_type: str
+    data: dict[str, Any]
+    reverted: bool
 
 
 class EventStore:
@@ -111,6 +121,24 @@ class EventStore:
             self.undo()
         while self._cursor < target_id and self.can_redo():
             self.redo()
+
+    def history(self) -> list[HistoryEntry]:
+        """All events, newest first, as (id, command name, payload, reverted) — the caller renders
+        the label (presentation/i18n is a UI concern)."""
+        models = (
+            self._session.execute(select(EventModel).order_by(EventModel.id.desc()))
+            .scalars()
+            .all()
+        )
+        return [
+            HistoryEntry(
+                id=model.id,
+                event_type=model.type,
+                data=model.data,
+                reverted=model.reverted,
+            )
+            for model in models
+        ]
 
     @property
     def cursor(self) -> int:

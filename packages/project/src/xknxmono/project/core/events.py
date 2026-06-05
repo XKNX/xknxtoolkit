@@ -13,11 +13,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import Session
 
-from xknxmono.project.core.skeleton import MEDIUM_IP, three_level_ranges
+from xknxmono.project.core.skeleton import MEDIUM_IP
 from xknxmono.project.models import (
     Area,
+    Base,
     ComObject,
     ComObjectLink,
     Device,
@@ -59,9 +61,6 @@ class Event(ABC):
     @classmethod
     @abstractmethod
     def from_dict(cls, data: dict[str, Any]) -> Event: ...
-
-    def display_text(self) -> str:
-        return self.event_type
 
 
 @_register
@@ -118,9 +117,6 @@ class AddInstallation(Event):
     def from_dict(cls, data: dict[str, Any]) -> AddInstallation:
         return cls(**data)
 
-    def display_text(self) -> str:
-        return f"Add installation {self.name!r}"
-
 
 @_register
 @dataclass
@@ -158,9 +154,6 @@ class CreateArea(Event):
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CreateArea:
         return cls(**data)
-
-    def display_text(self) -> str:
-        return f"Create area {self.address}"
 
 
 @_register
@@ -206,9 +199,6 @@ class CreateLine(Event):
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CreateLine:
         return cls(**data)
-
-    def display_text(self) -> str:
-        return f"Create line {self.address}"
 
 
 @_register
@@ -276,9 +266,6 @@ class AddDevice(Event):
     def from_dict(cls, data: dict[str, Any]) -> AddDevice:
         return cls(**data)
 
-    def display_text(self) -> str:
-        return f"Add device {self.name!r}"
-
 
 @_register
 @dataclass
@@ -340,84 +327,64 @@ class SetParameter(Event):
     def from_dict(cls, data: dict[str, Any]) -> SetParameter:
         return cls(**data)
 
-    def display_text(self) -> str:
-        return f"Set {self.ref_id} = {self.value!r}"
-
 
 @_register
 @dataclass
 class CreateGroupAddress(Event):
-    """Add a group address, ETS-style: find-or-create the containing main/middle ranges as one
-    undoable step (``created_main``/``created_middle`` record which ranges this event created)."""
+    """Add a group address, finding-or-creating its containing range chain as one undoable step.
+
+    ``levels`` is the ``[range_start, range_end, name]`` chain (top → leaf) the address belongs in
+    for the project's style — see :func:`xknxmono.project.core.addressing.ranges_for`. ``range_ids``
+    and ``created`` (captured on apply) record each level's row id and whether this event created it,
+    so revert removes only what it added and redo re-creates with the same ids."""
 
     event_type: ClassVar[str] = "CreateGroupAddress"
 
     installation_id: int
     address: int
     name: str
-    main_range_id: int | None = None
-    middle_range_id: int | None = None
+    levels: list[list[Any]] = field(default_factory=list[list[Any]])
+    range_ids: list[int] = field(default_factory=list[int])
+    created: list[bool] = field(default_factory=list[bool])
     ga_id: int | None = None
-    created_main: bool = False
-    created_middle: bool = False
 
     def apply(self, session: Session) -> None:
-        main_start, main_end, mid_start, mid_end = three_level_ranges(self.address)
-
-        main = (
-            session.query(GroupRange)
-            .filter_by(
-                installation_id=self.installation_id,
-                parent_id=None,
-                range_start=main_start,
+        parent_id: int | None = None
+        range_ids: list[int] = []
+        created: list[bool] = []
+        for i, (start, end, range_name) in enumerate(self.levels):
+            existing = (
+                session.query(GroupRange)
+                .filter_by(
+                    installation_id=self.installation_id,
+                    parent_id=parent_id,
+                    range_start=start,
+                )
+                .first()
             )
-            .first()
-        )
-        if main is None:
-            main = GroupRange(
-                installation_id=self.installation_id,
-                parent_id=None,
-                range_start=main_start,
-                range_end=main_end,
-                name="New main group",
-            )
-            if self.main_range_id is not None:
-                main.id = self.main_range_id
-            session.add(main)
-            session.flush()
-            self.created_main = True
-        else:
-            self.created_main = False
-        self.main_range_id = main.id
-
-        middle = (
-            session.query(GroupRange)
-            .filter_by(
-                installation_id=self.installation_id,
-                parent_id=main.id,
-                range_start=mid_start,
-            )
-            .first()
-        )
-        if middle is None:
-            middle = GroupRange(
-                installation_id=self.installation_id,
-                parent_id=main.id,
-                range_start=mid_start,
-                range_end=mid_end,
-                name="New middle group",
-            )
-            if self.middle_range_id is not None:
-                middle.id = self.middle_range_id
-            session.add(middle)
-            session.flush()
-            self.created_middle = True
-        else:
-            self.created_middle = False
-        self.middle_range_id = middle.id
+            if existing is None:
+                group_range = GroupRange(
+                    installation_id=self.installation_id,
+                    parent_id=parent_id,
+                    range_start=start,
+                    range_end=end,
+                    name=range_name,
+                )
+                if i < len(self.range_ids):
+                    group_range.id = self.range_ids[i]
+                session.add(group_range)
+                session.flush()
+                created.append(True)
+            else:
+                group_range = existing
+                created.append(False)
+            range_ids.append(group_range.id)
+            parent_id = group_range.id
+        self.range_ids = range_ids
+        self.created = created
 
         ga = GroupAddress(
-            group_range_id=middle.id, address=self.address, name=self.name
+            group_range_id=parent_id, address=self.address, name=self.name
         )
         if self.ga_id is not None:
             ga.id = self.ga_id
@@ -426,12 +393,11 @@ class CreateGroupAddress(Event):
         self.ga_id = ga.id
 
     def revert(self, session: Session) -> None:
-        # Delete the outermost thing this event created; cascade removes everything nested under it
-        # (a created main contains the created middle, which contains the group address).
-        if self.created_main:
-            target = session.get(GroupRange, self.main_range_id)
-        elif self.created_middle:
-            target = session.get(GroupRange, self.middle_range_id)
+        # Delete the shallowest range this event created (cascade removes deeper created ranges and
+        # the group address); if it created none, just remove the group address itself.
+        first_created = next((i for i, made in enumerate(self.created) if made), None)
+        if first_created is not None:
+            target = session.get(GroupRange, self.range_ids[first_created])
         else:
             target = session.get(GroupAddress, self.ga_id)
         if target is not None:
@@ -442,19 +408,15 @@ class CreateGroupAddress(Event):
             "installation_id": self.installation_id,
             "address": self.address,
             "name": self.name,
-            "main_range_id": self.main_range_id,
-            "middle_range_id": self.middle_range_id,
+            "levels": self.levels,
+            "range_ids": self.range_ids,
+            "created": self.created,
             "ga_id": self.ga_id,
-            "created_main": self.created_main,
-            "created_middle": self.created_middle,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CreateGroupAddress:
         return cls(**data)
-
-    def display_text(self) -> str:
-        return f"Create group address {self.address}"
 
 
 @_register
@@ -492,5 +454,245 @@ class LinkComObject(Event):
     def from_dict(cls, data: dict[str, Any]) -> LinkComObject:
         return cls(**data)
 
-    def display_text(self) -> str:
-        return "Link com-object"
+
+# --- reversible deletes (snapshot the subtree, restore it on revert) ----------
+
+
+@dataclass
+class _SubtreeDelete(Event):
+    """Delete a row (and everything cascade-owned under it), capturing the deleted rows so revert
+    re-inserts them with their original ids — keeping any external foreign keys valid."""
+
+    _model: ClassVar[type[Base]]
+
+    target_id: int
+    rows: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
+
+    def apply(self, session: Session) -> None:
+        obj = session.get(self._model, self.target_id)
+        if obj is not None:
+            self.rows = _snapshot_subtree(obj)
+            session.delete(obj)
+
+    def revert(self, session: Session) -> None:
+        _restore_rows(session, self.rows)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"target_id": self.target_id, "rows": self.rows}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> _SubtreeDelete:
+        return cls(**data)
+
+
+@_register
+@dataclass
+class RemoveDevice(_SubtreeDelete):
+    event_type: ClassVar[str] = "RemoveDevice"
+    _model: ClassVar[type[Base]] = Device
+
+
+@_register
+@dataclass
+class RemoveArea(_SubtreeDelete):
+    event_type: ClassVar[str] = "RemoveArea"
+    _model: ClassVar[type[Base]] = Area
+
+
+@_register
+@dataclass
+class RemoveLine(_SubtreeDelete):
+    event_type: ClassVar[str] = "RemoveLine"
+    _model: ClassVar[type[Base]] = Line
+
+
+@_register
+@dataclass
+class RemoveGroupAddress(_SubtreeDelete):
+    event_type: ClassVar[str] = "RemoveGroupAddress"
+    _model: ClassVar[type[Base]] = GroupAddress
+
+
+@_register
+@dataclass
+class UnlinkComObject(_SubtreeDelete):
+    event_type: ClassVar[str] = "UnlinkComObject"
+    _model: ClassVar[type[Base]] = ComObjectLink
+
+
+# --- field changes (capture the old value, restore it on revert) --------------
+
+
+@_register
+@dataclass
+class RenameArea(Event):
+    event_type: ClassVar[str] = "RenameArea"
+
+    area_id: int
+    name: str
+    old_name: str | None = None
+
+    def apply(self, session: Session) -> None:
+        area = session.get(Area, self.area_id)
+        if area is not None:
+            self.old_name = area.name
+            area.name = self.name
+
+    def revert(self, session: Session) -> None:
+        area = session.get(Area, self.area_id)
+        if area is not None and self.old_name is not None:
+            area.name = self.old_name
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"area_id": self.area_id, "name": self.name, "old_name": self.old_name}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RenameArea:
+        return cls(**data)
+
+
+@_register
+@dataclass
+class RenameLine(Event):
+    event_type: ClassVar[str] = "RenameLine"
+
+    line_id: int
+    name: str
+    old_name: str | None = None
+
+    def apply(self, session: Session) -> None:
+        line = session.get(Line, self.line_id)
+        if line is not None:
+            self.old_name = line.name
+            line.name = self.name
+
+    def revert(self, session: Session) -> None:
+        line = session.get(Line, self.line_id)
+        if line is not None and self.old_name is not None:
+            line.name = self.old_name
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"line_id": self.line_id, "name": self.name, "old_name": self.old_name}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RenameLine:
+        return cls(**data)
+
+
+@_register
+@dataclass
+class SetDeviceName(Event):
+    event_type: ClassVar[str] = "SetDeviceName"
+
+    device_id: int
+    name: str
+    old_name: str | None = None
+
+    def apply(self, session: Session) -> None:
+        device = session.get(Device, self.device_id)
+        if device is not None:
+            self.old_name = device.name
+            device.name = self.name
+
+    def revert(self, session: Session) -> None:
+        device = session.get(Device, self.device_id)
+        if device is not None and self.old_name is not None:
+            device.name = self.old_name
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "device_id": self.device_id,
+            "name": self.name,
+            "old_name": self.old_name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SetDeviceName:
+        return cls(**data)
+
+
+@_register
+@dataclass
+class MoveDevice(Event):
+    """Move a device to another segment and/or change its individual-address octet."""
+
+    event_type: ClassVar[str] = "MoveDevice"
+
+    device_id: int
+    segment_id: int
+    address: int | None
+    old_segment_id: int | None = None
+    old_address: int | None = None
+
+    def apply(self, session: Session) -> None:
+        device = session.get(Device, self.device_id)
+        if device is not None:
+            self.old_segment_id = device.segment_id
+            self.old_address = device.address
+            device.segment_id = self.segment_id
+            device.address = self.address
+
+    def revert(self, session: Session) -> None:
+        device = session.get(Device, self.device_id)
+        if device is not None and self.old_segment_id is not None:
+            device.segment_id = self.old_segment_id
+            device.address = self.old_address
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "device_id": self.device_id,
+            "segment_id": self.segment_id,
+            "address": self.address,
+            "old_segment_id": self.old_segment_id,
+            "old_address": self.old_address,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> MoveDevice:
+        return cls(**data)
+
+
+# --- subtree snapshot helpers -------------------------------------------------
+
+_MODELS: dict[str, type[Base]] = {
+    m.__name__: m
+    for m in (
+        Installation,
+        Area,
+        Line,
+        Segment,
+        Device,
+        Parameter,
+        ComObject,
+        GroupRange,
+        GroupAddress,
+        ComObjectLink,
+    )
+}
+
+
+def _row_to_dict(obj: Base) -> dict[str, Any]:
+    mapper = sa_inspect(type(obj))
+    data: dict[str, Any] = {"__model__": type(obj).__name__}
+    for column in mapper.columns:
+        data[column.name] = getattr(obj, column.name)
+    return data
+
+
+def _snapshot_subtree(obj: Base) -> list[dict[str, Any]]:
+    """Capture ``obj`` then every cascade-owned descendant, parents first (restore-safe order)."""
+    rows = [_row_to_dict(obj)]
+    mapper = sa_inspect(type(obj))
+    for rel in mapper.relationships:
+        if rel.direction.name == "ONETOMANY" and rel.cascade.delete_orphan:
+            for child in getattr(obj, rel.key):
+                rows.extend(_snapshot_subtree(child))
+    return rows
+
+
+def _restore_rows(session: Session, rows: list[dict[str, Any]]) -> None:
+    for data in rows:
+        payload = dict(data)
+        model = _MODELS[payload.pop("__model__")]
+        session.add(model(**payload))
+    session.flush()

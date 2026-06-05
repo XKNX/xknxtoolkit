@@ -16,7 +16,12 @@ from sqlalchemy import func
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from xknxmono.project.core.event_store import EventStore
+from xknxmono.project.core.addressing import (
+    GroupAddressStyle,
+    format_ga,
+    ranges_for,
+)
+from xknxmono.project.core.event_store import EventStore, HistoryEntry
 from xknxmono.project.core.events import (
     AddDevice,
     AddInstallation,
@@ -24,13 +29,23 @@ from xknxmono.project.core.events import (
     CreateGroupAddress,
     CreateLine,
     LinkComObject,
+    MoveDevice,
+    RemoveArea,
+    RemoveDevice,
+    RemoveGroupAddress,
+    RemoveLine,
+    RenameArea,
+    RenameLine,
+    SetDeviceName,
     SetParameter,
+    UnlinkComObject,
 )
 from xknxmono.project.core.skeleton import MEDIUM_TP, seed_new_project
 from xknxmono.project.db import make_engine, url_for
 from xknxmono.project.models import (
     Device,
     GroupAddress,
+    GroupRange,
     Installation,
     Project,
     Segment,
@@ -44,17 +59,34 @@ class _Open:
     store: EventStore
 
 
+@dataclass(frozen=True)
+class GroupAddressInfo:
+    """A group address resolved for display: its value, the style-formatted string, and its links."""
+
+    id: int
+    address: int
+    text: str
+    name: str
+    links: list[int]
+
+
 class ProjectService:
     def __init__(self) -> None:
         self._projects: dict[str, _Open] = {}
 
     # --- lifecycle --------------------------------------------------------
 
-    def create(self, path: Path | str, project_id: str | None = None) -> str:
+    def create(
+        self,
+        path: Path | str,
+        project_id: str | None = None,
+        *,
+        group_address_style: GroupAddressStyle = GroupAddressStyle.THREE_LEVEL,
+    ) -> str:
         pid = project_id or f"P-{uuid4().hex[:8].upper()}"
         engine = make_engine(url_for(Path(path)))
         session = Session(engine)
-        seed_new_project(session, pid, "New project")
+        seed_new_project(session, pid, "New project", group_address_style)
         self._register(pid, engine, session)
         return pid
 
@@ -147,10 +179,12 @@ class ProjectService:
         self, project_id: str, installation: int, address: int, name: str
     ) -> int:
         state = self._state(project_id)
+        levels = ranges_for(address, self._style(state))
         event = CreateGroupAddress(
             installation_id=self._installation(state, installation).id,
             address=address,
             name=name,
+            levels=[[start, end, range_name] for start, end, range_name in levels],
         )
         state.store.append(event)
         assert event.ga_id is not None
@@ -167,13 +201,68 @@ class ProjectService:
         assert event.link_id is not None
         return event.link_id
 
-    # --- undo / redo ------------------------------------------------------
+    # --- remove / rename / move -------------------------------------------
+
+    def remove_device(self, project_id: str, device_id: int) -> None:
+        self._state(project_id).store.append(RemoveDevice(target_id=device_id))
+
+    def remove_area(self, project_id: str, area_id: int) -> None:
+        self._state(project_id).store.append(RemoveArea(target_id=area_id))
+
+    def remove_line(self, project_id: str, line_id: int) -> None:
+        self._state(project_id).store.append(RemoveLine(target_id=line_id))
+
+    def remove_group_address(self, project_id: str, group_address_id: int) -> None:
+        self._state(project_id).store.append(
+            RemoveGroupAddress(target_id=group_address_id)
+        )
+
+    def unlink_com_object(self, project_id: str, link_id: int) -> None:
+        self._state(project_id).store.append(UnlinkComObject(target_id=link_id))
+
+    def rename_area(self, project_id: str, area_id: int, name: str) -> None:
+        self._state(project_id).store.append(RenameArea(area_id=area_id, name=name))
+
+    def rename_line(self, project_id: str, line_id: int, name: str) -> None:
+        self._state(project_id).store.append(RenameLine(line_id=line_id, name=name))
+
+    def set_device_name(self, project_id: str, device_id: int, name: str) -> None:
+        self._state(project_id).store.append(
+            SetDeviceName(device_id=device_id, name=name)
+        )
+
+    def move_device(
+        self, project_id: str, device_id: int, segment_id: int, address: int | None
+    ) -> None:
+        state = self._state(project_id)
+        if address is not None:
+            self._check_unique_address(state, segment_id, address, exclude=device_id)
+        state.store.append(
+            MoveDevice(device_id=device_id, segment_id=segment_id, address=address)
+        )
+
+    # --- undo / redo / history --------------------------------------------
 
     def undo(self, project_id: str) -> bool:
         return self._state(project_id).store.undo()
 
     def redo(self, project_id: str) -> bool:
         return self._state(project_id).store.redo()
+
+    def can_undo(self, project_id: str) -> bool:
+        return self._state(project_id).store.can_undo()
+
+    def can_redo(self, project_id: str) -> bool:
+        return self._state(project_id).store.can_redo()
+
+    def cursor(self, project_id: str) -> int:
+        return self._state(project_id).store.cursor
+
+    def jump_to(self, project_id: str, event_id: int) -> None:
+        self._state(project_id).store.jump_to(event_id)
+
+    def history(self, project_id: str) -> list[HistoryEntry]:
+        return self._state(project_id).store.history()
 
     # --- reads ------------------------------------------------------------
 
@@ -196,15 +285,49 @@ class ProjectService:
     def devices(self, project_id: str) -> list[Device]:
         return self._state(project_id).session.query(Device).order_by(Device.id).all()
 
-    def group_addresses(self, project_id: str) -> list[GroupAddress]:
-        return (
-            self._state(project_id)
-            .session.query(GroupAddress)
-            .order_by(GroupAddress.id)
-            .all()
-        )
+    def group_addresses(self, project_id: str) -> list[GroupAddressInfo]:
+        state = self._state(project_id)
+        style = self._style(state)
+        rows = state.session.query(GroupAddress).order_by(GroupAddress.id).all()
+        return [self._ga_info(row, style) for row in rows]
+
+    def group_address(self, project_id: str, group_address_id: int) -> GroupAddressInfo:
+        state = self._state(project_id)
+        ga = state.session.get(GroupAddress, group_address_id)
+        if ga is None:
+            raise KeyError(f"No group address with id {group_address_id}")
+        return self._ga_info(ga, self._style(state))
+
+    def next_free_group_address(
+        self, project_id: str, installation: int, *, start: int = 1
+    ) -> int:
+        """The lowest unused group-address value (>= ``start``) in the installation. Address 0 is
+        reserved, so allocation begins at 1."""
+        state = self._state(project_id)
+        inst = self._installation(state, installation)
+        used = {
+            address
+            for (address,) in state.session.query(GroupAddress.address)
+            .join(GroupRange, GroupAddress.group_range_id == GroupRange.id)
+            .filter(GroupRange.installation_id == inst.id)
+        }
+        address = max(1, start)
+        while address in used:
+            address += 1
+        if address > 0xFFFF:
+            raise ValueError("no free group address available")
+        return address
 
     # --- internals --------------------------------------------------------
+
+    def _ga_info(self, ga: GroupAddress, style: GroupAddressStyle) -> GroupAddressInfo:
+        return GroupAddressInfo(
+            id=ga.id,
+            address=ga.address,
+            text=format_ga(ga.address, style),
+            name=ga.name,
+            links=[link.com_object_id for link in ga.links],
+        )
 
     def _register(self, project_id: str, engine: Engine, session: Session) -> None:
         self._projects[project_id] = _Open(engine, session, EventStore(session))
@@ -218,18 +341,29 @@ class ProjectService:
             raise KeyError(f"No installation with index {index}")
         return inst
 
+    def _style(self, state: _Open) -> GroupAddressStyle:
+        project = state.session.query(Project).first()
+        assert project is not None
+        return GroupAddressStyle(project.group_address_style)
+
     def _check_unique_address(
-        self, state: _Open, segment_id: int, address: int
+        self,
+        state: _Open,
+        segment_id: int,
+        address: int,
+        exclude: int | None = None,
     ) -> None:
         segment = state.session.get(Segment, segment_id)
         if segment is None:
             raise KeyError(f"No segment with id {segment_id}")
-        clash = (
+        query = (
             state.session.query(Device)
             .join(Segment, Device.segment_id == Segment.id)
             .filter(Segment.line_id == segment.line_id, Device.address == address)
-            .first()
         )
+        if exclude is not None:
+            query = query.filter(Device.id != exclude)
+        clash = query.first()
         if clash is not None:
             raise ValueError(
                 f"Individual address {address} already used on this line by device {clash.id}"
