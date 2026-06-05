@@ -149,7 +149,11 @@ class Parameter(Base):
 
 
 class ComObject(Base):
-    """A com-object instance ref: ``ref_id`` points into the application's com-object refs."""
+    """A com-object instance ref: ``ref_id`` points into the application's com-object refs.
+
+    The flags are *overrides* (``None`` = inherit from the product/application definition; a value
+    forces ``Enabled``/``Disabled``). Defaults and lock state live on the product, not here.
+    """
 
     __tablename__ = "com_objects"
 
@@ -158,6 +162,13 @@ class ComObject(Base):
         ForeignKey("devices.id"), nullable=False, index=True
     )
     ref_id: Mapped[str] = mapped_column(String, nullable=False)
+
+    read_flag: Mapped[bool | None] = mapped_column(Boolean)
+    write_flag: Mapped[bool | None] = mapped_column(Boolean)
+    communication_flag: Mapped[bool | None] = mapped_column(Boolean)
+    transmit_flag: Mapped[bool | None] = mapped_column(Boolean)
+    update_flag: Mapped[bool | None] = mapped_column(Boolean)
+    read_on_init_flag: Mapped[bool | None] = mapped_column(Boolean)
 
     device: Mapped["Device"] = relationship(back_populates="com_objects")
     links: Mapped[list["ComObjectLink"]] = relationship(
@@ -204,6 +215,7 @@ class GroupAddress(Base):
     )
     address: Mapped[int] = mapped_column(Integer, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    datapoint_type: Mapped[str | None] = mapped_column(String)
 
     group_range: Mapped["GroupRange"] = relationship(back_populates="group_addresses")
     links: Mapped[list["ComObjectLink"]] = relationship(

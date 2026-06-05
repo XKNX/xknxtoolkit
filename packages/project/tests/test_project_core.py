@@ -392,6 +392,35 @@ def test_free_style_creates_flat_ranges(tmp_path: Path):
     assert {ga.id for ga in ranges[0].group_addresses} == {g1, g2}
 
 
+def test_set_com_object_flag_override(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    seg = _backbone_segment(svc, pid)
+    svc.add_device(pid, seg, PRODUCT, address=1, name="D", com_object_refs=["O-1_R-1"])
+    co = svc.devices(pid)[0].com_objects[0]
+    assert co.communication_flag is None  # inherit from product by default
+
+    svc.set_com_object_flag(pid, co.id, "communication_flag", True)
+    assert svc.devices(pid)[0].com_objects[0].communication_flag is True
+    svc.undo(pid)
+    assert (
+        svc.devices(pid)[0].com_objects[0].communication_flag is None
+    )  # back to inherit
+
+    with pytest.raises(ValueError, match="Unknown com-object flag"):
+        svc.set_com_object_flag(pid, co.id, "bogus_flag", True)
+
+
+def test_group_address_datapoint_type(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    gid = svc.create_group_address(pid, 0, 1, "Switch")
+    assert svc.group_address(pid, gid).datapoint_type is None
+
+    svc.set_group_address_datapoint_type(pid, gid, "DPST-1-1")
+    assert svc.group_address(pid, gid).datapoint_type == "DPST-1-1"
+    svc.undo(pid)
+    assert svc.group_address(pid, gid).datapoint_type is None
+
+
 def test_device_info_carries_refs(tmp_path: Path):
     svc, pid = _new(tmp_path)
     seg = _backbone_segment(svc, pid)

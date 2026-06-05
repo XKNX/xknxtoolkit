@@ -25,6 +25,7 @@ from xknxmono.project.core.addressing import (
 )
 from xknxmono.project.core.event_store import EventStore, HistoryEntry
 from xknxmono.project.core.events import (
+    COM_OBJECT_FLAGS,
     AddDevice,
     AddInstallation,
     CreateArea,
@@ -38,7 +39,9 @@ from xknxmono.project.core.events import (
     RemoveLine,
     RenameArea,
     RenameLine,
+    SetComObjectFlag,
     SetDeviceName,
+    SetGroupAddressDatapointType,
     SetParameter,
     UnlinkComObject,
 )
@@ -71,6 +74,7 @@ class GroupAddressInfo:
     address: int
     text: str
     name: str
+    datapoint_type: str | None
     links: list[int]
 
 
@@ -220,6 +224,27 @@ class ProjectService:
         state.store.append(event)
         assert event.link_id is not None
         return event.link_id
+
+    def set_com_object_flag(
+        self, project_id: str, com_object_id: int, flag: str, value: bool | None
+    ) -> None:
+        """Override a com-object flag (``value`` forces it; ``None`` reverts to the product default).
+
+        ``flag`` is one of :data:`~xknxmono.project.core.events.COM_OBJECT_FLAGS`."""
+        if flag not in COM_OBJECT_FLAGS:
+            raise ValueError(f"Unknown com-object flag {flag!r}")
+        self._state(project_id).store.append(
+            SetComObjectFlag(com_object_id=com_object_id, flag=flag, value=value)
+        )
+
+    def set_group_address_datapoint_type(
+        self, project_id: str, group_address_id: int, datapoint_type: str | None
+    ) -> None:
+        self._state(project_id).store.append(
+            SetGroupAddressDatapointType(
+                group_address_id=group_address_id, datapoint_type=datapoint_type
+            )
+        )
 
     # --- remove / rename / move -------------------------------------------
 
@@ -417,6 +442,7 @@ class ProjectService:
             address=ga.address,
             text=format_ga(ga.address, style),
             name=ga.name,
+            datapoint_type=ga.datapoint_type,
             links=[link.com_object_id for link in ga.links],
         )
 

@@ -455,6 +455,93 @@ class LinkComObject(Event):
         return cls(**data)
 
 
+COM_OBJECT_FLAGS = frozenset(
+    {
+        "read_flag",
+        "write_flag",
+        "communication_flag",
+        "transmit_flag",
+        "update_flag",
+        "read_on_init_flag",
+    }
+)
+
+
+@_register
+@dataclass
+class SetComObjectFlag(Event):
+    """Override a com-object flag (``value`` ``True``/``False`` forces it, ``None`` reverts to
+    inheriting the product default)."""
+
+    event_type: ClassVar[str] = "SetComObjectFlag"
+
+    com_object_id: int
+    flag: str
+    value: bool | None
+    captured: bool = False
+    old: bool | None = None
+
+    def apply(self, session: Session) -> None:
+        com_object = session.get(ComObject, self.com_object_id)
+        if com_object is not None:
+            self.old = getattr(com_object, self.flag)
+            self.captured = True
+            setattr(com_object, self.flag, self.value)
+
+    def revert(self, session: Session) -> None:
+        com_object = session.get(ComObject, self.com_object_id)
+        if com_object is not None and self.captured:
+            setattr(com_object, self.flag, self.old)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "com_object_id": self.com_object_id,
+            "flag": self.flag,
+            "value": self.value,
+            "captured": self.captured,
+            "old": self.old,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SetComObjectFlag:
+        return cls(**data)
+
+
+@_register
+@dataclass
+class SetGroupAddressDatapointType(Event):
+    event_type: ClassVar[str] = "SetGroupAddressDatapointType"
+
+    group_address_id: int
+    datapoint_type: str | None
+    captured: bool = False
+    old: str | None = None
+
+    def apply(self, session: Session) -> None:
+        ga = session.get(GroupAddress, self.group_address_id)
+        if ga is not None:
+            self.old = ga.datapoint_type
+            self.captured = True
+            ga.datapoint_type = self.datapoint_type
+
+    def revert(self, session: Session) -> None:
+        ga = session.get(GroupAddress, self.group_address_id)
+        if ga is not None and self.captured:
+            ga.datapoint_type = self.old
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "group_address_id": self.group_address_id,
+            "datapoint_type": self.datapoint_type,
+            "captured": self.captured,
+            "old": self.old,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SetGroupAddressDatapointType:
+        return cls(**data)
+
+
 # --- reversible deletes (snapshot the subtree, restore it on revert) ----------
 
 
