@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from xknxmono.product import Application, load
+from xknxmono.product import Application, ParamTypeKind, load
 
 _FIXTURE = Path(__file__).parent / "fixtures" / "gira_2gang_button_interface.knxprod"
 _APP_ID = "M-0008_A-7072-21-5CC3-O000A"
@@ -46,10 +46,18 @@ def test_visible_com_objects(app: Application) -> None:
 def test_visible_parameters(app: Application) -> None:
     visible = app.visible_parameters()
     assert len(visible) == 10
-    by_text = {p.text: p.value for p in visible}
+    by_text = {p.text: p for p in visible}
     # both channels are enabled by default
-    assert by_text["_General_A_Channel_Configuration_K1_Enable"] == "1"
-    assert by_text["_General_A_Channel_Configuration_K2_Enable"] == "1"
+    assert by_text["_General_A_Channel_Configuration_K1_Enable"].value == "1"
+    assert by_text["_General_A_Channel_Configuration_K2_Enable"].value == "1"
+
+    # UIHint="CheckBox" number types classify as checkboxes (not number inputs)
+    def kind(text: str) -> ParamTypeKind | None:
+        pt = by_text[text].param_type
+        return pt.kind if pt else None
+
+    assert kind("Logic functions") is ParamTypeKind.CHECKBOX
+    assert kind("_General_A_Channel_Configuration_K1_Enable") is ParamTypeKind.CHECKBOX
 
 
 def test_visible_tree(app: Application) -> None:

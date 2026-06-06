@@ -90,7 +90,8 @@ def _restriction(v: ParameterTypeTypeRestriction) -> ParamType:
 
 
 def _number(v: ParameterTypeTypeNumber) -> ParamType:
-    if v.uihint is not None and "checkbox" in str(v.uihint).lower():
+    # ``uihint`` is an enum; ``str(member)`` is "...Uihint.CHECK_BOX", so match on its value.
+    if v.uihint is not None and "checkbox" in v.uihint.value.lower():
         return ParamType(kind=ParamTypeKind.CHECKBOX)
     return ParamType(
         kind=ParamTypeKind.NUMBER,
