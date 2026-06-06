@@ -8,7 +8,7 @@ the dynamic visibility tree, code, and load procedures.
 from __future__ import annotations
 
 from collections.abc import Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 from xknxmono.models import detect_version
@@ -26,6 +26,7 @@ from .parser import (
 )
 from .parser import dynamic as dy
 from .parser.com_objects import ComObject
+from .parser.modules import fill_name
 from .parser.parameters import Parameter, ParamType
 
 if TYPE_CHECKING:
@@ -116,9 +117,19 @@ class Application:
     def visible_com_objects(
         self, values: dict[str, str] | None = None
     ) -> list[ComObject]:
-        return dy.filter_visible_com_objects(
-            self.com_objects(), self.dynamic_tree(), self._values_or_defaults(values)
+        resolved = self._values_or_defaults(values)
+        visible = dy.filter_visible_com_objects(
+            self.com_objects(), self.dynamic_tree(), resolved
         )
+        return [_named(co, resolved) for co in visible]
+
+
+def _named(co: ComObject, values: dict[str, str]) -> ComObject:
+    """Fill a com-object's name placeholder from its name parameter's current value."""
+    if not co.name_param_ref_id:
+        return co
+    name = fill_name(co.name_template, values.get(co.name_param_ref_id, ""))
+    return replace(co, name=name) if name != co.name else co
 
 
 def _programs(knx: Knx) -> Iterator[ApplicationProgram]:

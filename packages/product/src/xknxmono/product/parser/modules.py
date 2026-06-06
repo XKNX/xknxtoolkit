@@ -124,18 +124,34 @@ def text_args(module: Module, modules: Modules) -> dict[str, str]:
     return out
 
 
+_NAME_PLACEHOLDER = re.compile(r"\{\{0(?::[^}]*)?\}\}")
+
+
+def apply_text_args(text: str, text_args: dict[str, str]) -> str:
+    """Substitute the module ``{{ArgName}}`` / ``{{ArgName:fmt}}`` text-args. The ``{{0}}`` name
+    placeholder (and any other tokens) are left in place for :func:`fill_name` to resolve later,
+    against live parameter values — that's the channel/object name the user types."""
+    for arg_name, arg_value in text_args.items():
+        text = re.sub(
+            r"\{\{" + re.escape(arg_name) + r"(?::[^}]*)?\}\}", arg_value, text
+        )
+    return text
+
+
+def fill_name(template: str, name_value: str) -> str:
+    """Fill the ``{{0}}`` / ``{{0:fmt}}`` name placeholder, drop any remaining ``{{...}}`` tokens,
+    and tidy whitespace. With an empty name this leaves the bare ``()`` ETS shows by default."""
+    text = _NAME_PLACEHOLDER.sub(name_value, template)
+    text = re.sub(r"\{\{[^}]+\}\}", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
 def substitute_template(
     text: str, function_text: object, text_args: dict[str, str]
 ) -> str:
-    """Fill a {{0}} (function text) / {{ArgName}} (module text-arg) template; drop the rest."""
-    result = text
-    if function_text:
-        result = result.replace("{{0}}", str(function_text))
-    for arg_name, arg_value in text_args.items():
-        result = result.replace(f"{{{{{arg_name}}}}}", arg_value)
-    result = re.sub(r"\{\{[^}]+\}\}", "", result)
-    result = re.sub(r"\s+", " ", result)
-    return result.strip()
+    """Fill a ``{{ArgName}}`` template and drop the rest (for static labels with no name value)."""
+    return fill_name(apply_text_args(text, text_args), "")
 
 
 def instances(node: ChoiceContainer, modules: Modules) -> list[ModuleInstance]:

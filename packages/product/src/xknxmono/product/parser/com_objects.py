@@ -33,6 +33,10 @@ class ComObject:
     number: int
     dpt_codes: list[str]
     flags: ComObjectFlags
+    # The name template with module args applied but the ``{{0}}`` placeholder intact, plus the
+    # parameter whose value fills it — so the displayed name tracks the channel name the user types.
+    name_template: str = ""
+    name_param_ref_id: str | None = None
 
 
 def _first(*values: object) -> object | None:
@@ -80,19 +84,21 @@ def _parse(
         or _first(ref.name if ref else None, base.name if base else None)
         or "Unnamed"
     )
-    function_text = _first(
-        ref.function_text if ref else None, base.function_text if base else None
+    name_param_ref_id = _first(
+        ref.text_parameter_ref_id if ref else None,
+        getattr(base, "text_parameter_ref_id", None) if base else None,
     )
-    name = (
-        modules.substitute_template(str(raw_name), function_text, text_args)
-        if text_args
-        else str(raw_name)
-    )
+    # Apply module args now, keep the {{0}} name placeholder; the name itself is filled later from
+    # the value of ``name_param_ref_id`` (so it follows the channel name the user enters).
+    name_template = modules.apply_text_args(str(raw_name), text_args or {})
+    name = modules.fill_name(name_template, "")
 
     rb = ref, base
     return ComObject(
         id=(ref.id if ref else None) or (base.id if base else None) or "",
-        name=str(name),
+        name=name,
+        name_template=name_template,
+        name_param_ref_id=str(name_param_ref_id) if name_param_ref_id else None,
         number=int((base.number if base else None) or 0),
         dpt_codes=_dpt_codes(
             ref.datapoint_type if ref else None,
@@ -126,7 +132,9 @@ def from_static(
     base_by_id = {co.id: co for co in bases if co.id}
 
     refs_container = static.com_object_refs
-    refs: list[ir.ComObjectRef] = refs_container.com_object_ref if refs_container else []
+    refs: list[ir.ComObjectRef] = (
+        refs_container.com_object_ref if refs_container else []
+    )
 
     if refs:
         parsed = [

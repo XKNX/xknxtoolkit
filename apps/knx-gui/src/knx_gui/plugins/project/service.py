@@ -351,7 +351,11 @@ class ProjectService:
         if self._pid is None:
             return
         self._svc.set_parameter(self._pid, device.node_id, param_id, value)
-        self._bump()
+        # Reflect the change on the live device object instead of bumping the cache: a rebuild would
+        # recreate every Device and reset the Configure panel's tree/edit state. A parameter edit
+        # doesn't change device identity or topology, so the in-place update is sufficient (undo/redo
+        # still bump and rebuild). This keeps the param's name-placeholder resolution current too.
+        device.set_param_value(param_id, value)
 
     def set_device_name(self, node_id: int, old_name: str, new_name: str) -> None:
         if self._pid is None or old_name == new_name:

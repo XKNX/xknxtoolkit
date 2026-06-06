@@ -5,13 +5,41 @@ from imgui_bundle import imgui
 
 from knx_gui.plugins.node_editor.strings import S
 from knx_gui.types import Device, Parameter
-from xknxmono.product import ParamTypeKind, VisibleNode
+from xknxmono.product import GridLayout, ParamTypeKind, VisibleNode
 
 
 @dataclass
 class EnumPopupRequest:
     device: Device
     param: Parameter
+
+
+def _render_int_param(
+    widget_id: str,
+    value: str,
+    min_value: int | None,
+    max_value: int | None,
+    on_change: Callable[[str], None],
+) -> None:
+    """Render an integer parameter as a numeric text field. KNX number/time params are exact values
+    (and a 32-bit param can exceed a slider's C int range), so this accepts free typing and clamps
+    to the parameter's ``[min, max]`` once editing finishes."""
+    _, new_text = imgui.input_text(
+        f"##{widget_id}", value, imgui.InputTextFlags_.chars_decimal
+    )
+    # Commit once, when editing finishes — committing per keystroke rebuilds device state mid-edit
+    # (and writes an undo event per character). Clamp the committed value to the parameter's range.
+    if imgui.is_item_deactivated_after_edit():
+        try:
+            clamped = int(new_text)
+        except ValueError:
+            clamped = min_value if min_value is not None else 0
+        if min_value is not None:
+            clamped = max(min_value, clamped)
+        if max_value is not None:
+            clamped = min(max_value, clamped)
+        if str(clamped) != value:
+            on_change(str(clamped))
 
 
 def group_parameters(params: list[Parameter]) -> dict[str, list[Parameter]]:
@@ -33,8 +61,8 @@ def render_param_widget(
 ) -> EnumPopupRequest | None:
     pt = param.param_type
     if pt is None:
-        changed, new_value = imgui.input_text(f"##{widget_id}", param.value)
-        if changed:
+        _, new_value = imgui.input_text(f"##{widget_id}", param.value)
+        if imgui.is_item_deactivated_after_edit():
             on_change(new_value)
         return None
 
@@ -61,35 +89,18 @@ def render_param_widget(
         changed, new_checked = imgui.checkbox(f"##{widget_id}", checked)
         if changed:
             on_change("1" if new_checked else "0")
-    elif pt.kind == ParamTypeKind.NUMBER:
-        try:
-            int_val = int(param.value)
-        except ValueError:
-            int_val = pt.min_value or 0
-        min_v = pt.min_value if pt.min_value is not None else 0
-        max_v = pt.max_value if pt.max_value is not None else 65535
-        changed, new_val = imgui.drag_int(f"##{widget_id}", int_val, 1.0, min_v, max_v)
-        if changed:
-            on_change(str(new_val))
-    elif pt.kind == ParamTypeKind.TIME:
-        try:
-            int_val = int(param.value)
-        except ValueError:
-            int_val = pt.min_value or 0
-        min_v = pt.min_value if pt.min_value is not None else 0
-        max_v = pt.max_value if pt.max_value is not None else 86400
-        changed, new_val = imgui.drag_int(f"##{widget_id}", int_val, 1.0, min_v, max_v)
-        if changed:
-            on_change(str(new_val))
+    elif pt.kind in (ParamTypeKind.NUMBER, ParamTypeKind.TIME):
+        _render_int_param(widget_id, param.value, pt.min_value, pt.max_value, on_change)
     elif pt.kind == ParamTypeKind.TEXT:
-        changed, new_value = imgui.input_text(f"##{widget_id}", param.value)
-        if changed:
+        # Commit on blur/enter, not per keystroke (a mid-edit commit rebuilds device state).
+        _, new_value = imgui.input_text(f"##{widget_id}", param.value)
+        if imgui.is_item_deactivated_after_edit():
             on_change(new_value)
     elif pt.kind == ParamTypeKind.PICTURE:
         imgui.text_disabled(S.NODE_IMAGE_PLACEHOLDER)
     else:
-        changed, new_value = imgui.input_text(f"##{widget_id}", param.value)
-        if changed:
+        _, new_value = imgui.input_text(f"##{widget_id}", param.value)
+        if imgui.is_item_deactivated_after_edit():
             on_change(new_value)
     return None
 
@@ -161,6 +172,13 @@ def _render_node(
     on_change: Callable[[Device, str, str], None],
     deferred_enum: bool,
 ) -> EnumPopupRequest | None:
+    # A plain grid block is pure layout (its "Grid" text is not a page header), so render it inline
+    # without a collapsible tree node. A table keeps its title (e.g. "Channels") as a node.
+    if node.grid is not None and not node.children and not _is_table(node.grid):
+        return _render_grid_content(
+            device, node, params_by_id, on_change, deferred_enum
+        )
+
     popup_request: EnumPopupRequest | None = None
     label = f"{node.display_name}##{device.node_id}_{node.id}"
 
@@ -170,7 +188,13 @@ def _render_node(
     imgui.text_disabled(f"({param_count})")
 
     if is_open:
-        if node.param_ref_ids:
+        if node.grid is not None:
+            req = _render_grid_content(
+                device, node, params_by_id, on_change, deferred_enum
+            )
+            if req is not None:
+                popup_request = req
+        elif node.param_ref_ids:
             req = _render_param_table(
                 device,
                 node.param_ref_ids,
@@ -236,6 +260,127 @@ def _render_param_table(
             if req is not None:
                 popup_request = EnumPopupRequest(device=device, param=req.param)
 
+        imgui.end_table()
+
+    return popup_request
+
+
+def _is_table(grid: GridLayout) -> bool:
+    """A grid with column/row headers is a ``Layout="Table"`` (rendered with a header row and a
+    leading row-label column); without headers it's a plain layout grid."""
+    return bool(grid.column_headers or grid.row_headers)
+
+
+def _render_grid_content(
+    device: Device,
+    node: VisibleNode,
+    params_by_id: dict[str, Parameter],
+    on_change: Callable[[Device, str, str], None],
+    deferred_enum: bool,
+) -> EnumPopupRequest | None:
+    """Render a node's grid/table, plus any of its params the grid did not place into a cell."""
+    assert node.grid is not None
+    popup_request = _render_grid(
+        device, node.grid, params_by_id, on_change, deferred_enum, node.id
+    )
+    grid_param_ids = {
+        c.param_ref_id for c in node.grid.cells if c.param_ref_id is not None
+    }
+    leftover = [p for p in node.param_ref_ids if p not in grid_param_ids]
+    if leftover:
+        req = _render_param_table(
+            device, leftover, params_by_id, on_change, deferred_enum, node.id
+        )
+        if req is not None:
+            popup_request = req
+    return popup_request
+
+
+def _render_grid(
+    device: Device,
+    grid: GridLayout,
+    params_by_id: dict[str, Parameter],
+    on_change: Callable[[Device, str, str], None],
+    deferred_enum: bool,
+    prefix: str,
+) -> EnumPopupRequest | None:
+    """Render a ``Layout="Grid"`` / ``Layout="Table"`` ParameterBlock: cells positioned by
+    (row, column) — parameter widgets and static labels (units like "ms", or help text). A table
+    adds a column-header row and a leading row-label column."""
+    popup_request: EnumPopupRequest | None = None
+    by_pos = {(c.row, c.column): c for c in grid.cells}
+    max_row = max((c.row for c in grid.cells), default=0)
+    max_row = max(max_row, len(grid.row_headers))
+
+    has_row_labels = bool(grid.row_headers)
+    label_offset = 1 if has_row_labels else 0
+    total_columns = grid.columns + label_offset
+
+    # Default `sizing_stretch_prop` weights columns by content, so a long help-text/value column
+    # swallows the width and squeezes the rest. Size each column by what it holds instead.
+    table_flags = (
+        imgui.TableFlags_.no_saved_settings | imgui.TableFlags_.sizing_stretch_prop
+    )
+    if _is_table(grid):
+        table_flags |= imgui.TableFlags_.borders | imgui.TableFlags_.row_bg
+
+    table_id = f"##grid_{device.node_id}_{prefix}"
+    if imgui.begin_table(table_id, total_columns, table_flags):
+        fixed = imgui.TableColumnFlags_.width_fixed
+        stretch = imgui.TableColumnFlags_.width_stretch
+        wrap_columns: set[int] = set()
+        if has_row_labels:
+            imgui.table_setup_column("", fixed)  # row-label column fits the K1/K2 text
+        for col in range(1, grid.columns + 1):
+            header = (
+                grid.column_headers[col - 1]
+                if col - 1 < len(grid.column_headers)
+                else ""
+            )
+            col_cells = [c for c in grid.cells if c.column == col]
+            has_param = any(c.param_ref_id for c in col_cells)
+            longest = max((len(c.label or "") for c in col_cells), default=0)
+            if has_param:
+                imgui.table_setup_column(header, stretch, 1.0)
+            elif longest > 16:  # a wrapping text column (e.g. help text) gets more room
+                imgui.table_setup_column(header, stretch, 2.0)
+                wrap_columns.add(col)
+            else:  # a short unit label ("ms") just fits its content, unwrapped
+                imgui.table_setup_column(header, fixed)
+        if grid.column_headers:
+            imgui.table_headers_row()
+
+        for row in range(1, max_row + 1):
+            imgui.table_next_row()
+            if has_row_labels:
+                imgui.table_set_column_index(0)
+                if row - 1 < len(grid.row_headers):
+                    imgui.text(grid.row_headers[row - 1])
+            for col in range(1, grid.columns + 1):
+                imgui.table_set_column_index(col - 1 + label_offset)
+                cell = by_pos.get((row, col))
+                if cell is None:
+                    continue
+                if cell.param_ref_id is not None:
+                    param = params_by_id.get(cell.param_ref_id)
+                    if param is None:
+                        continue
+                    imgui.set_next_item_width(-1)
+                    widget_id = f"{device.node_id}_{param.id}"
+                    req = render_param_widget(
+                        param,
+                        widget_id,
+                        lambda v, d=device, p=param.id: on_change(d, p, v),
+                        deferred_enum=deferred_enum,
+                    )
+                    if req is not None:
+                        popup_request = EnumPopupRequest(device=device, param=req.param)
+                elif cell.label:
+                    # Wrap only the wide text columns; let short unit labels keep their full width.
+                    if col in wrap_columns:
+                        imgui.text_wrapped(cell.label)
+                    else:
+                        imgui.text(cell.label)
         imgui.end_table()
 
     return popup_request

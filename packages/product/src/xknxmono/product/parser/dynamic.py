@@ -3,14 +3,18 @@ and text templates), then evaluate parameter/com-object visibility over it for g
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
+from typing import Protocol
 
 from xknxmono.models.intermediate import (
     ApplicationProgram,
+    ComObjectParameterBlock,
     ComObjectRefRef,
     Module,
+    ParameterBlockLayout,
     ParameterRefRef,
+    ParameterSeparator,
 )
 
 from . import modules
@@ -21,16 +25,40 @@ from .parameters import Parameter
 
 
 @dataclass
+class GridCell:
+    """A cell in a grid-layout ParameterBlock: a parameter widget or a static label (a separator,
+    e.g. a unit like "ms"). ``row``/``column`` are 1-based, from the IR's ``Cell="r,c"``."""
+
+    row: int
+    column: int
+    param_ref_id: str | None = None
+    label: str | None = None
+
+
+@dataclass
+class GridLayout:
+    """A positioned cell layout for a ``Layout="Grid"`` or ``Layout="Table"`` ParameterBlock. A Table
+    additionally carries column/row header text; when those are empty it's a plain grid."""
+
+    columns: int
+    cells: list[GridCell] = field(default_factory=list["GridCell"])
+    column_headers: list[str] = field(default_factory=list[str])
+    row_headers: list[str] = field(default_factory=list[str])
+
+
+@dataclass
 class DynamicElement:
     id: str | None = None
     name: str | None = None
     text: str | None = None
     number: int | None = None
     header_param_ref_id: str | None = None
+    name_param_ref_id: str | None = None
     param_ref_ids: list[str] = field(default_factory=list[str])
     com_object_ref_ids: list[str] = field(default_factory=list[str])
     children: list[DynamicElement] = field(default_factory=list["DynamicElement"])
     chooses: list[DynamicChoose] = field(default_factory=list["DynamicChoose"])
+    grid: GridLayout | None = None
 
 
 @dataclass
@@ -79,8 +107,16 @@ def _element(
     # Optional header fields are genuinely heterogeneous across choice members — read defensively.
     text = getattr(node, "text", None)
     number = getattr(node, "number", None)
-    if text_args and text:
-        text = modules.substitute_template(text, None, text_args)
+    # Substitute module args but keep the {{0}} name placeholder — it's filled per the channel's
+    # name parameter (text_parameter_ref_id) at evaluation time, against live values.
+    if text and text_args:
+        text = modules.apply_text_args(text, text_args)
+
+    grid = (
+        _block_layout(node, text_args)
+        if isinstance(node, ComObjectParameterBlock)
+        else None
+    )
 
     return DynamicElement(
         id=getattr(node, "id", None),
@@ -88,11 +124,99 @@ def _element(
         text=text,
         number=int(number) if number is not None else None,
         header_param_ref_id=getattr(node, "param_ref_id", None),
+        name_param_ref_id=getattr(node, "text_parameter_ref_id", None),
         param_ref_ids=param_ref_ids,
         com_object_ref_ids=co_ref_ids,
         children=children,
         chooses=chooses,
+        grid=grid,
     )
+
+
+def _parse_cell(cell: str | None) -> tuple[int, int] | None:
+    if not cell:
+        return None
+    parts = cell.split(",")
+    if len(parts) != 2:
+        return None
+    try:
+        return int(parts[0]), int(parts[1])
+    except ValueError:
+        return None
+
+
+def _block_layout(
+    block: ComObjectParameterBlock, text_args: dict[str, str] | None
+) -> GridLayout | None:
+    """The positioned cells of a ``Layout="Grid"`` or ``Layout="Table"`` block, keyed by their
+    ``Cell="r,c"`` position: parameter widgets and separator labels. Cells placed conditionally
+    (inside a ``<choose>``) are gathered from *every* branch — the actual visible branch is selected
+    later by :func:`_visible_grid`. A Table also carries its column/row header text.
+
+    The parsed IR carries the per-version enum (files.v23), a different class object than the
+    ``intermediate`` re-export imported here, so identity/`==` fail — compare on ``.value``."""
+    layout = block.layout.value
+    if layout not in (
+        ParameterBlockLayout.GRID.value,
+        ParameterBlockLayout.TABLE.value,
+    ):
+        return None
+    cells: list[GridCell] = []
+    _collect_grid_cells(block.choice, text_args, cells)
+    if not cells:
+        return None
+    columns = max(c.column for c in cells)
+    column_headers: list[str] = []
+    row_headers: list[str] = []
+    if layout == ParameterBlockLayout.TABLE.value:
+        column_headers = _header_texts(
+            block.columns.column if block.columns else [], text_args
+        )
+        row_headers = _header_texts(block.rows.row if block.rows else [], text_args)
+        columns = max(columns, len(column_headers))
+    return GridLayout(
+        columns=columns,
+        cells=cells,
+        column_headers=column_headers,
+        row_headers=row_headers,
+    )
+
+
+class _Headered(Protocol):
+    @property
+    def text(self) -> str | None: ...
+
+
+def _header_texts(
+    items: Iterable[_Headered], text_args: dict[str, str] | None
+) -> list[str]:
+    out: list[str] = []
+    for it in items:
+        text = it.text or ""
+        if text_args and text:
+            text = modules.substitute_template(text, None, text_args)
+        out.append(text)
+    return out
+
+
+def _collect_grid_cells(
+    items: object, text_args: dict[str, str] | None, cells: list[GridCell]
+) -> None:
+    for item in items:  # type: ignore[attr-defined]
+        if isinstance(item, ParameterRefRef):
+            pos = _parse_cell(item.cell)
+            if pos and item.ref_id:
+                cells.append(GridCell(pos[0], pos[1], param_ref_id=item.ref_id))
+        elif isinstance(item, ParameterSeparator):
+            pos = _parse_cell(item.cell)
+            if pos:
+                label = item.text or ""
+                if text_args:
+                    label = modules.substitute_template(label, None, text_args)
+                cells.append(GridCell(pos[0], pos[1], label=label))
+        elif isinstance(item, modules.CHOOSE_TYPES):
+            for when in item.when:
+                _collect_grid_cells(when.choice, text_args, cells)
 
 
 def _inline_module(
@@ -142,6 +266,30 @@ def _when(
 
 Condition = Callable[[dict[str, str]], bool]
 
+_OPERATORS = (">=", "<=", ">", "<")
+
+
+def _token_matches(value: str, token: str) -> bool:
+    """A ``<when Test=...>`` token: an exact value, or a comparison like ``>0`` / ``<=5``."""
+    for op in _OPERATORS:
+        if token.startswith(op):
+            try:
+                left, right = int(value), int(token[len(op) :])
+            except ValueError:
+                return False
+            if op == ">=":
+                return left >= right
+            if op == "<=":
+                return left <= right
+            if op == ">":
+                return left > right
+            return left < right
+    return value == token
+
+
+def _value_matches(value: str, test_values: list[str]) -> bool:
+    return any(_token_matches(value, t) for t in test_values)
+
 
 def always_visible(_: dict[str, str]) -> bool:
     return True
@@ -156,7 +304,7 @@ def make_condition(
     def check(param_values: dict[str, str]) -> bool:
         if param_ref_id not in param_values:
             return True
-        return param_values[param_ref_id] in test_values
+        return _value_matches(param_values[param_ref_id], test_values)
 
     return check
 
@@ -226,6 +374,7 @@ class VisibleNode:
     param_ref_ids: list[str]
     com_object_ref_ids: list[str]
     children: list[VisibleNode] = field(default_factory=list["VisibleNode"])
+    grid: GridLayout | None = None
 
 
 def evaluate_tree(
@@ -258,9 +407,10 @@ def _evaluate_nodes(
             continue
         param_ids, com_ids = _collect_visible_refs(node.element, param_values)
         visible_children = _evaluate_nodes(node.children, param_values, params_by_id)
+        grid = _visible_grid(node.element.grid, set(param_ids))
         if not param_ids and not com_ids and not visible_children:
             continue
-        display_name = _resolve_name(node, params_by_id)
+        display_name = _resolve_name(node, params_by_id, param_values)
         result.append(
             VisibleNode(
                 id=node.id,
@@ -268,9 +418,45 @@ def _evaluate_nodes(
                 param_ref_ids=param_ids,
                 com_object_ref_ids=com_ids,
                 children=visible_children,
+                grid=grid,
             )
         )
     return result
+
+
+def _visible_grid(
+    grid: GridLayout | None, visible_param_ids: set[str]
+) -> GridLayout | None:
+    """Select the grid for the current values: keep the cells whose parameter is visible, plus the
+    label cells in rows that still have a visible parameter (so a unit like "ms" stays with its
+    field, but the labels of a hidden conditional row don't leak through)."""
+    if grid is None:
+        return None
+    param_cells = [
+        c for c in grid.cells if c.param_ref_id and c.param_ref_id in visible_param_ids
+    ]
+    if not param_cells:
+        return None
+    visible_rows = {c.row for c in param_cells}
+    label_cells = [
+        c for c in grid.cells if c.param_ref_id is None and c.row in visible_rows
+    ]
+    # A position can collect candidate params from several (mutually exclusive) choose branches;
+    # keep the first visible one per cell so widgets never overlap.
+    seen: set[tuple[int, int]] = set()
+    cells: list[GridCell] = []
+    for c in sorted(param_cells + label_cells, key=lambda c: (c.row, c.column)):
+        pos = (c.row, c.column)
+        if pos in seen:
+            continue
+        seen.add(pos)
+        cells.append(c)
+    return GridLayout(
+        columns=grid.columns,
+        cells=cells,
+        column_headers=grid.column_headers,
+        row_headers=grid.row_headers,
+    )
 
 
 def _collect_visible_refs(
@@ -314,7 +500,7 @@ def _find_matching_when(
 ) -> DynamicWhen | None:
     current_value = param_values.get(choose.param_ref_id, "")
     for when in choose.conditions:
-        if current_value in when.test_values:
+        if _value_matches(current_value, when.test_values):
             return when
     for when in choose.conditions:
         if when.is_default:
@@ -322,12 +508,21 @@ def _find_matching_when(
     return None
 
 
-def _resolve_name(node: TreeNode, params_by_id: dict[str, Parameter]) -> str | None:
+def _resolve_name(
+    node: TreeNode, params_by_id: dict[str, Parameter], param_values: dict[str, str]
+) -> str | None:
     if node.header_param_ref_id:
         param = params_by_id.get(node.header_param_ref_id)
         if param and param.text:
             return param.text
-    return node.text or node.name
+    template = node.text or node.name
+    if template is None:
+        return None
+    # Fill the {{0}} placeholder from the channel's name parameter (its value is the typed name).
+    name_value = ""
+    if node.element.name_param_ref_id:
+        name_value = param_values.get(node.element.name_param_ref_id, "")
+    return modules.fill_name(template, name_value)
 
 
 def _flatten_generic(nodes: list[VisibleNode]) -> None:

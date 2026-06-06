@@ -27,15 +27,29 @@ class Registry:
     catalog_sections: dict[str, CatalogSection] = field(
         default_factory=dict[str, CatalogSection]
     )
-    catalog_items: dict[str, CatalogItem] = field(default_factory=dict[str, CatalogItem])
+    catalog_items: dict[str, CatalogItem] = field(
+        default_factory=dict[str, CatalogItem]
+    )
 
     # relationship edges: parent id → [child ids]
-    manufacturer_to_hardware: dict[str, list[str]] = field(default_factory=dict[str, list[str]])
-    manufacturer_to_section: dict[str, list[str]] = field(default_factory=dict[str, list[str]])
-    hardware_to_product: dict[str, list[str]] = field(default_factory=dict[str, list[str]])
-    hardware_to_program: dict[str, list[str]] = field(default_factory=dict[str, list[str]])
-    program_to_application: dict[str, list[str]] = field(default_factory=dict[str, list[str]])
-    section_to_subsection: dict[str, list[str]] = field(default_factory=dict[str, list[str]])
+    manufacturer_to_hardware: dict[str, list[str]] = field(
+        default_factory=dict[str, list[str]]
+    )
+    manufacturer_to_section: dict[str, list[str]] = field(
+        default_factory=dict[str, list[str]]
+    )
+    hardware_to_product: dict[str, list[str]] = field(
+        default_factory=dict[str, list[str]]
+    )
+    hardware_to_program: dict[str, list[str]] = field(
+        default_factory=dict[str, list[str]]
+    )
+    program_to_application: dict[str, list[str]] = field(
+        default_factory=dict[str, list[str]]
+    )
+    section_to_subsection: dict[str, list[str]] = field(
+        default_factory=dict[str, list[str]]
+    )
     section_to_item: dict[str, list[str]] = field(default_factory=dict[str, list[str]])
 
     def update_master(self, master: MasterData) -> None:

@@ -9,7 +9,14 @@ from .hardware import DeviceProgram, Hardware, HardwareDoc, Product, parse_hardw
 from .loader import load
 from .master import MasterData, parse_master_xml
 from .parser.com_objects import ComObject, ComObjectFlags
-from .parser.dynamic import DynamicChoose, DynamicElement, DynamicWhen, VisibleNode
+from .parser.dynamic import (
+    DynamicChoose,
+    DynamicElement,
+    DynamicWhen,
+    GridCell,
+    GridLayout,
+    VisibleNode,
+)
 from .parser.parameters import EnumOption, Parameter, ParamType, ParamTypeKind
 from .registry import Registry
 
@@ -25,6 +32,8 @@ __all__ = [
     "DynamicElement",
     "DynamicWhen",
     "EnumOption",
+    "GridCell",
+    "GridLayout",
     "Hardware",
     "HardwareDoc",
     "MasterData",

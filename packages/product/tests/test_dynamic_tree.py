@@ -573,7 +573,7 @@ class TestResolveName:
             visibility=always_visible,
         )
 
-        result = _resolve_name(node, {"header": param})
+        result = _resolve_name(node, {"header": param}, {})
         assert result == "Header Text"
 
     def test_uses_text_when_no_header_param(self):
@@ -587,7 +587,7 @@ class TestResolveName:
             visibility=always_visible,
         )
 
-        result = _resolve_name(node, {})
+        result = _resolve_name(node, {}, {})
         assert result == "Text"
 
     def test_uses_name_when_no_text(self):
@@ -601,7 +601,7 @@ class TestResolveName:
             visibility=always_visible,
         )
 
-        result = _resolve_name(node, {})
+        result = _resolve_name(node, {}, {})
         assert result == "Name"
 
     def test_returns_none_when_no_name_or_text(self):
@@ -615,7 +615,7 @@ class TestResolveName:
             visibility=always_visible,
         )
 
-        result = _resolve_name(node, {})
+        result = _resolve_name(node, {}, {})
         assert result is None
 
     def test_ignores_header_param_without_text(self):
@@ -630,7 +630,7 @@ class TestResolveName:
             visibility=always_visible,
         )
 
-        result = _resolve_name(node, {"header": param})
+        result = _resolve_name(node, {"header": param}, {})
         assert result == "Text"
 
     def test_ignores_missing_header_param(self):
@@ -644,7 +644,7 @@ class TestResolveName:
             visibility=always_visible,
         )
 
-        result = _resolve_name(node, {})
+        result = _resolve_name(node, {}, {})
         assert result == "Text"
 
 

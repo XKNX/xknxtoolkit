@@ -4,6 +4,10 @@ import pytest
 
 from xknxmono.product import ParamTypeKind, load
 from xknxmono.product.parser.modules import (
+    apply_text_args,
+    fill_name,
+)
+from xknxmono.product.parser.modules import (
     substitute_template as _substitute_template,
 )
 
@@ -60,38 +64,37 @@ class TestRegistry:
 
 
 class TestTemplateSubstitution:
-    def test_substitutes_function_text(self):
-        result = _substitute_template("Channel: {{0}}", "Switch", {})
-        assert result == "Channel: Switch"
-
-    def test_substitutes_text_args(self):
-        result = _substitute_template("Channel {{ChNo}}: Test", None, {"ChNo": "A"})
-        assert result == "Channel A: Test"
-
-    def test_substitutes_both(self):
-        result = _substitute_template(
-            "Channel {{ChNo}}: {{0}}", "Dimming", {"ChNo": "B"}
+    def test_apply_text_args_substitutes_args(self):
+        assert apply_text_args("Channel {{ChNo}}: Test", {"ChNo": "A"}) == (
+            "Channel A: Test"
         )
-        assert result == "Channel B: Dimming"
 
-    def test_removes_unresolved_placeholders(self):
-        result = _substitute_template(
-            "{{Unknown}} Channel {{ChNo}}", None, {"ChNo": "A"}
+    def test_apply_text_args_keeps_name_placeholder(self):
+        # the {{0}} name placeholder is left for fill_name (filled from live param values)
+        assert apply_text_args("K {{ChNo}} ({{0:...}})", {"ChNo": "1"}) == (
+            "K 1 ({{0:...}})"
         )
-        assert result == "Channel A"
 
-    def test_handles_no_placeholders(self):
-        result = _substitute_template("Plain text", "Unused", {"ChNo": "A"})
-        assert result == "Plain text"
+    def test_fill_name_fills_placeholder(self):
+        assert fill_name("Channel ({{0}})", "Hallway") == "Channel (Hallway)"
 
-    def test_handles_empty_text_args(self):
-        result = _substitute_template("Channel {{ChNo}}: {{0}}", "Switch", {})
-        assert result == "Channel : Switch"
+    def test_fill_name_handles_format_spec(self):
+        assert fill_name("K 1 ({{0:...}}) - Output", "Hallway") == (
+            "K 1 (Hallway) - Output"
+        )
 
-    def test_collapses_multiple_spaces(self):
-        result = _substitute_template("A {{X}}  {{Y}} B", None, {})
-        assert result == "A B"
+    def test_fill_name_empty_leaves_bare_parens(self):
+        assert fill_name("K 1 ({{0:...}}) - Output", "") == "K 1 () - Output"
 
-    def test_strips_whitespace(self):
-        result = _substitute_template("  {{0}}  ", "Test", {})
-        assert result == "Test"
+    def test_fill_name_drops_unresolved_and_tidies(self):
+        assert fill_name("  {{Unknown}}  K 1  ", "") == "K 1"
+
+    def test_substitute_template_applies_args_and_drops_rest(self):
+        # the label helper: args in, every remaining token out
+        assert (
+            _substitute_template("{{Unknown}} Channel {{ChNo}}", None, {"ChNo": "A"})
+            == "Channel A"
+        )
+
+    def test_substitute_template_handles_no_placeholders(self):
+        assert _substitute_template("Plain text", None, {"ChNo": "A"}) == "Plain text"

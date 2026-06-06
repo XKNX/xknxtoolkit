@@ -245,10 +245,16 @@ class Device:
     def get_visible_com_objects(self) -> list[ComObject]:
         if not self._cos_dirty:
             return self._cached_visible_cos
-        visible_ids = {co.id for co in self.app.visible_com_objects(self._param_values)}
-        self._cached_visible_cos = [
-            co for co in self.com_objects if co.id in visible_ids
-        ]
+        # The resolved names carry the channel name the user typed (filled {{0}} placeholder).
+        name_by_id = {
+            co.id: co.name for co in self.app.visible_com_objects(self._param_values)
+        }
+        result: list[ComObject] = []
+        for co in self.com_objects:
+            if co.id in name_by_id:
+                co.name = name_by_id[co.id]
+                result.append(co)
+        self._cached_visible_cos = result
         self._cos_dirty = False
         return self._cached_visible_cos
 
