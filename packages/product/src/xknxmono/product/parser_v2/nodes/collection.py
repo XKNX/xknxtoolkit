@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .base import DynamicNode
+from .context import EvalContext
 
 
 class GenericCollectionNode(DynamicNode):
@@ -12,5 +13,5 @@ class GenericCollectionNode(DynamicNode):
     def __init__(self, children: list[DynamicNode | None]):
         self._children = children
 
-    def eval(self, state: dict[str, str]) -> list[DynamicNode]:
+    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
         return [c for c in self._children if c is not None]

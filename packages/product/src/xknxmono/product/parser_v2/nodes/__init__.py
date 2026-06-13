@@ -5,6 +5,7 @@ from .button import ButtonNode
 from .choose import ChooseWhenNode, satisfies
 from .collection import GenericCollectionNode
 from .com_object_ref_ref import ComObjectRefRefNode
+from .context import EvalContext, ModuleScope, RepeatScope
 from .module import ModuleNode
 from .parameter_ref_ref import ParameterRefRefNode
 from .parameter_separator import ParameterSeparatorNode
@@ -18,11 +19,14 @@ __all__ = [
     "ChooseWhenNode",
     "ComObjectRefRefNode",
     "DynamicNode",
+    "EvalContext",
     "GenericCollectionNode",
     "ModuleNode",
+    "ModuleScope",
     "ParameterRefRefNode",
     "ParameterSeparatorNode",
     "RenameNode",
     "RepeatNode",
+    "RepeatScope",
     "satisfies",
 ]

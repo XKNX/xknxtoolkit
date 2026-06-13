@@ -3,6 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate import Button
 
 from .base import DynamicNode
+from .context import EvalContext
 
 
 class ButtonNode(DynamicNode):
@@ -11,8 +12,8 @@ class ButtonNode(DynamicNode):
     def __init__(self, elem: Button):
         self._elem = elem
 
-    def eval(self, state: dict[str, str]) -> list[DynamicNode]:
+    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
         return []
 
-    def ui(self, state: dict[str, str]) -> list:
+    def ui(self, ctx: EvalContext) -> list:
         return [self._elem]

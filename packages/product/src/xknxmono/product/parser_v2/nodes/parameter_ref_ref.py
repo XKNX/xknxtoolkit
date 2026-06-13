@@ -3,6 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate import ParameterRefRef
 
 from .base import DynamicNode
+from .context import EvalContext
 
 
 class ParameterRefRefNode(DynamicNode):
@@ -11,8 +12,8 @@ class ParameterRefRefNode(DynamicNode):
     def __init__(self, elem: ParameterRefRef):
         self._elem = elem
 
-    def eval(self, state: dict[str, str]) -> list[DynamicNode]:
+    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
         return []
 
-    def params(self, state: dict[str, str]) -> list:
-        return [self._elem]
+    def params(self, ctx: EvalContext) -> list:
+        return [ctx.qualify(self._elem.ref_id)] if self._elem.ref_id else []

@@ -3,6 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate import Rename
 
 from .base import DynamicNode
+from .context import EvalContext
 
 
 class RenameNode(DynamicNode):
@@ -11,6 +12,6 @@ class RenameNode(DynamicNode):
     def __init__(self, elem: Rename):
         self._elem = elem
 
-    def eval(self, state: dict[str, str]) -> list[DynamicNode]:
+    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
         # TODO: propagate the rename to the target element
         return []

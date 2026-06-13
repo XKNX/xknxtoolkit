@@ -3,6 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate import Assign
 
 from .base import DynamicNode
+from .context import EvalContext
 
 
 class AssignNode(DynamicNode):
@@ -11,11 +12,12 @@ class AssignNode(DynamicNode):
     def __init__(self, elem: Assign):
         self._elem = elem
 
-    def eval(self, state: dict[str, str]) -> list[DynamicNode]:
+    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
         if self._elem.value is not None:
-            state[self._elem.target_param_ref_ref] = self._elem.value
+            ctx.set(self._elem.target_param_ref_ref, self._elem.value)
         elif self._elem.source_param_ref_ref is not None:
-            state[self._elem.target_param_ref_ref] = state.get(
-                self._elem.source_param_ref_ref, ""
+            ctx.set(
+                self._elem.target_param_ref_ref,
+                ctx.get(self._elem.source_param_ref_ref, ""),
             )
         return []
