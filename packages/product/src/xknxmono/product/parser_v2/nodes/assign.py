@@ -12,5 +12,10 @@ class AssignNode(DynamicNode):
         self._elem = elem
 
     def eval(self, state: dict[str, str]) -> list[DynamicNode]:
-        # TODO: apply the assignment to state before eval propagates further
+        if self._elem.value is not None:
+            state[self._elem.target_param_ref_ref] = self._elem.value
+        elif self._elem.source_param_ref_ref is not None:
+            state[self._elem.target_param_ref_ref] = state.get(
+                self._elem.source_param_ref_ref, ""
+            )
         return []

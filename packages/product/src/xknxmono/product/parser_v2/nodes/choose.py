@@ -10,7 +10,7 @@ def _token_matches(value: str, token: str) -> bool:
     for op in _OPERATORS:
         if token.startswith(op):
             try:
-                left, right = int(value), int(token[len(op):])
+                left, right = int(value), int(token[len(op) :])
             except ValueError:
                 return False
             if op == ">=":
@@ -35,16 +35,22 @@ def satisfies(condition: str | None, value: str) -> bool:
 
 
 class ChooseWhenNode(DynamicNode):
-    def __init__(self, x: str, condition_to_nodes: dict, default_condition: str | None):
-        self._x = x
+    def __init__(
+        self, param_ref_id: str, condition_to_nodes: dict, default_condition: str | None
+    ):
+        self._param_ref_id = param_ref_id
         self._condition_to_nodes = condition_to_nodes
         self._default_condition = default_condition
 
     def eval(self, state: dict[str, str]) -> list[DynamicNode]:
-        value = state.get(self._x, "")
+        value = state.get(self._param_ref_id, "")
         for condition, nodes in self._condition_to_nodes.items():
             if satisfies(condition, value):
                 return [n for n in nodes if n is not None]
         if self._default_condition is not None:
-            return [n for n in self._condition_to_nodes[self._default_condition] if n is not None]
+            return [
+                n
+                for n in self._condition_to_nodes[self._default_condition]
+                if n is not None
+            ]
         return []

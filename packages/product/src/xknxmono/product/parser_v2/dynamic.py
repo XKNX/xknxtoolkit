@@ -57,10 +57,19 @@ __all__ = [
 def create_dynamic_node(elem) -> DynamicNode | None:
     if isinstance(
         elem,
-        (ApplicationProgramDynamic, ChannelIndependentBlock, ApplicationProgramChannel, ComObjectParameterBlock),
+        (
+            ApplicationProgramDynamic,
+            ChannelIndependentBlock,
+            ApplicationProgramChannel,
+            ComObjectParameterBlock,
+        ),
     ):
-        return GenericCollectionNode([create_dynamic_node(child) for child in elem.choice])
-    elif isinstance(elem, (DependentChannelChoose, ChannelChoose, ComObjectParameterChoose)):
+        return GenericCollectionNode(
+            [create_dynamic_node(child) for child in elem.choice]
+        )
+    elif isinstance(
+        elem, (DependentChannelChoose, ChannelChoose, ComObjectParameterChoose)
+    ):
         # A Choose block conditionally shows content based on a parameter value.
         # DependentChannelChoose: switches which channels are shown (root level)
         # ChannelChoose: switches content within a channel
@@ -69,10 +78,16 @@ def create_dynamic_node(elem) -> DynamicNode | None:
         condition_to_nodes: dict = {}
         for when in elem.when:
             if when.default:
-                assert default_condition is None, "default when-condition already exists"
+                assert default_condition is None, (
+                    "default when-condition already exists"
+                )
                 default_condition = when.test
-            assert condition_to_nodes.get(when.test) is None, "when-condition already exists"
-            condition_to_nodes[when.test] = [create_dynamic_node(node) for node in when.choice]
+            assert condition_to_nodes.get(when.test) is None, (
+                "when-condition already exists"
+            )
+            condition_to_nodes[when.test] = [
+                create_dynamic_node(node) for node in when.choice
+            ]
         return ChooseWhenNode(elem.param_ref_id, condition_to_nodes, default_condition)
     elif isinstance(elem, Repeat):
         # TODO: index substitution into ref_ids per repetition not yet implemented
@@ -124,11 +139,11 @@ class DynamicUI:
         assert app.dynamic is not None, "app has no dynamic section"
         self._tree = build_evaluation_tree(app)
 
-    def ui(self):
-        return self._tree.ui()
+    def ui(self, state: dict[str, str] | None = None) -> list:
+        return self._tree.ui(state if state is not None else {})
 
-    def params(self):
-        return self._tree.params()
+    def params(self, state: dict[str, str] | None = None) -> list:
+        return self._tree.params(state if state is not None else {})
 
-    def com_objects(self):
-        return self._tree.com_objects()
+    def com_objects(self, state: dict[str, str] | None = None) -> list:
+        return self._tree.com_objects(state if state is not None else {})
