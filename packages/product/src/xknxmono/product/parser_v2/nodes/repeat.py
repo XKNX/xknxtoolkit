@@ -15,7 +15,8 @@ class RepeatNode(DynamicNode):
     params/com_objects/ui directly so each iteration gets its own repeat_ctx(i),
     which ModuleNode children use to qualify their instance prefix as MI-{i}.
 
-    Index substitution into ref_ids per repetition is not yet implemented.
+    Index substitution for non-Module direct children (ParameterRefRef, etc.) is
+    not yet implemented.
     """
 
     def __init__(self, elem: Repeat, children: list[DynamicNode | None]):

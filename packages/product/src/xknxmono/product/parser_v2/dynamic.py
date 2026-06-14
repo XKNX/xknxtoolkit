@@ -107,7 +107,7 @@ class DynamicTreeBuilder:
                 elem.param_ref_id, condition_to_nodes, default_condition
             )
         elif isinstance(elem, Repeat):
-            # TODO: index substitution into ref_ids per repetition not yet implemented
+            # TODO: index substitution for non-Module children not yet implemented
             return RepeatNode(elem, [self._build(child) for child in elem.choice])
         elif isinstance(elem, Module):
             mod_def = self._module_defs.get(elem.ref_id or "")

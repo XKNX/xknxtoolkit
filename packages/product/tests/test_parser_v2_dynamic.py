@@ -205,6 +205,13 @@ class TestChooseWhenNode:
         node = ChooseWhenNode(_REF_MODE, {"1": [leaf]}, None)
         assert node.params(EvalContext({_REF_MODE: "99"})) == []
 
+    def test_eval_matches_value_in_space_separated_condition(self):
+        leaf = LeafNode()
+        node = ChooseWhenNode(_REF_MODE, {"1 2 130 4 6 134 36 132": [leaf]}, None)
+        assert node.eval(EvalContext({_REF_MODE: "130"})) == [leaf]
+        assert node.eval(EvalContext({_REF_MODE: "36"})) == [leaf]
+        assert node.eval(EvalContext({_REF_MODE: "99"})) == []
+
 
 class TestAssignNode:
     def test_eval_returns_empty_list(self):
