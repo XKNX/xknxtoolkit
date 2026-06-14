@@ -6,6 +6,13 @@ from .application import Application, parse_application_xml
 from .archive import Archive
 from .catalog import CatalogItem, CatalogSection, parse_catalog_xml
 from .hardware import DeviceProgram, Hardware, HardwareDoc, Product, parse_hardware_xml
+from .instance import (
+    ApplicationInstance,
+    ComObjectView,
+    InstanceSnapshot,
+    PersistedComObject,
+    PersistedParam,
+)
 from .loader import load
 from .master import MasterData, parse_master_xml
 from .parser.com_objects import ComObject, ComObjectFlags
@@ -22,11 +29,13 @@ from .registry import Registry
 
 __all__ = [
     "Application",
+    "ApplicationInstance",
     "Archive",
     "CatalogItem",
     "CatalogSection",
     "ComObject",
     "ComObjectFlags",
+    "ComObjectView",
     "DeviceProgram",
     "DynamicChoose",
     "DynamicElement",
@@ -36,10 +45,13 @@ __all__ = [
     "GridLayout",
     "Hardware",
     "HardwareDoc",
+    "InstanceSnapshot",
     "MasterData",
     "ParamType",
     "ParamTypeKind",
     "Parameter",
+    "PersistedComObject",
+    "PersistedParam",
     "Product",
     "Registry",
     "VisibleNode",

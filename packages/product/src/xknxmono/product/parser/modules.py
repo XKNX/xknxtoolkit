@@ -24,7 +24,7 @@ from xknxmono.models.intermediate import (
     Module,
     ModuleDef,
     ModuleDefStatic,
-    ModuleTextArg,
+    ModuleNumericArg,
     Repeat,
 )
 
@@ -108,20 +108,65 @@ def iter_statics(app: ApplicationProgram, modules: Modules) -> list[Static]:
     return statics
 
 
-def text_args(module: Module, modules: Modules) -> dict[str, str]:
-    """Resolve a module reference's text/numeric args to {module-def arg name: value}."""
-    names = modules.arg_names.get(module.ref_id or "", {})
-    out: dict[str, str] = {}
+@dataclass(frozen=True)
+class ModuleArgument:
+    """A resolved argument of a ``<Module>`` instance: the def-side metadata (name, kind,
+    ``allocates`` allocator ref, ``alignment``) joined with the instance's value. The numeric ones
+    (``ObjNumberBase_*`` / ``ParamOffsBase_*`` …) are the per-instance numbering/memory substrate;
+    they are a *construction input* (resolved onto com-objects/params), not parameters."""
+
+    id: str
+    name: str
+    is_numeric: bool
+    value: str
+    allocates: str | None = None
+    alignment: str | None = None
+
+
+def module_arguments(module: Module, modules: Modules) -> list[ModuleArgument]:
+    """Resolve a module reference's arguments, joining each value with its def-side metadata."""
+    mod_def = modules.defs.get(module.ref_id or "")
+    meta = (
+        {a.id: a for a in mod_def.arguments.argument if a.id}
+        if mod_def is not None and mod_def.arguments is not None
+        else {}
+    )
+    out: list[ModuleArgument] = []
     for arg in module.choice:
         ref_id = arg.ref_id or ""
-        value = arg.value
-        if not ref_id or value is None:
-            continue
-        if name := names.get(ref_id):
-            out[name] = str(value)
-        elif isinstance(arg, ModuleTextArg) and "_A-" not in ref_id:
-            out[ref_id] = str(value)
+        d = meta.get(ref_id)
+        out.append(
+            ModuleArgument(
+                id=ref_id,
+                name=d.name if d and d.name else "",
+                is_numeric=isinstance(arg, ModuleNumericArg),
+                value=str(arg.value) if arg.value is not None else "",
+                allocates=str(d.allocates) if d and d.allocates is not None else None,
+                alignment=str(d.alignment.value) if d else None,
+            )
+        )
     return out
+
+
+def text_args_of(arguments: list[ModuleArgument]) -> dict[str, str]:
+    """The ``{{ArgName}}`` substitution map derived from resolved arguments: keyed by the def-side
+    arg name, falling back to the ref id for an un-named text arg (nested-module passthrough).
+    This is what name templates substitute against — derivable from the full argument list, so the
+    module factory takes only ``arguments`` and computes this itself."""
+    out: dict[str, str] = {}
+    for a in arguments:
+        if not a.value:
+            continue
+        if a.name:
+            out[a.name] = a.value
+        elif not a.is_numeric and "_A-" not in a.id:
+            out[a.id] = a.value
+    return out
+
+
+def text_args(module: Module, modules: Modules) -> dict[str, str]:
+    """Resolve a module reference's text/numeric args to {module-def arg name: value}."""
+    return text_args_of(module_arguments(module, modules))
 
 
 _NAME_PLACEHOLDER = re.compile(r"\{\{0(?::[^}]*)?\}\}")

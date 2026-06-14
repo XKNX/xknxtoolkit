@@ -177,7 +177,7 @@ def _iter_bases(
             yield item
 
 
-def _params_from_static(
+def params_from_static(
     static: modules.Static, param_types: dict[str, ParamType]
 ) -> list[Parameter]:
     parameters = static.parameters
@@ -227,11 +227,11 @@ def extract(app: ApplicationProgram) -> list[Parameter]:
     param_types = extract_types(app)
     parameters: list[Parameter] = []
     for static in modules.iter_statics(app, modules.collect(app)):
-        parameters.extend(_params_from_static(static, param_types))
+        parameters.extend(params_from_static(static, param_types))
     return parameters
 
 
-def _values_from_static(static: modules.Static) -> dict[str, str]:
+def values_from_static(static: modules.Static) -> dict[str, str]:
     parameters = static.parameters
     base_by_id = (
         {p.id: p for p in _iter_bases(parameters) if p.id}  # pyright: ignore[reportArgumentType]
@@ -255,5 +255,5 @@ def extract_values(app: ApplicationProgram) -> dict[str, str]:
     params, so this complete map is what should drive the dynamic tree."""
     values: dict[str, str] = {}
     for static in modules.iter_statics(app, modules.collect(app)):
-        values.update(_values_from_static(static))
+        values.update(values_from_static(static))
     return values

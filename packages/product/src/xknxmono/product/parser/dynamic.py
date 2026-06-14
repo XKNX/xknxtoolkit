@@ -59,6 +59,12 @@ class DynamicElement:
     children: list[DynamicElement] = field(default_factory=list["DynamicElement"])
     chooses: list[DynamicChoose] = field(default_factory=list["DynamicChoose"])
     grid: GridLayout | None = None
+    # Set on a spliced module-instance root: the module-def id this subtree came from and the
+    # instance's full arguments (the numbering substrate; text args derive from them). The
+    # instantiation pass uses these to rewrite refs and build the per-instance bundle
+    # (see parser/instantiate.py); both ``None`` on ordinary nodes.
+    module_def_id: str | None = None
+    module_arguments: list[modules.ModuleArgument] | None = None
 
 
 @dataclass
@@ -226,11 +232,14 @@ def _inline_module(
     mod_def = mods.defs.get(module.ref_id or "")
     if mod_def is None or mod_def.dynamic is None:
         return
-    element = _element(mod_def.dynamic, mods, modules.text_args(module, mods))
+    args = modules.text_args(module, mods)
+    element = _element(mod_def.dynamic, mods, args)
     if len(element.children) == 1 and not element.param_ref_ids:
         element = element.children[0]
     element.id = module.id or element.id
     element.name = module.name or element.name
+    element.module_def_id = module.ref_id
+    element.module_arguments = modules.module_arguments(module, mods)
     children.append(element)
 
 
