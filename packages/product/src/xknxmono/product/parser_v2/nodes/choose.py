@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .base import DynamicNode
-from .context import EvalContext
+from ..context import EvalContext
 
 _OPERATORS = (">=", "<=", ">", "<")
 
@@ -44,7 +44,7 @@ class ChooseWhenNode(DynamicNode):
         self._default_condition = default_condition
 
     def eval(self, ctx: EvalContext) -> list[DynamicNode]:
-        value = ctx.get(self._param_ref_id, "")
+        value = ctx.get(self._param_ref_id) or ""
         for condition, nodes in self._condition_to_nodes.items():
             if satisfies(condition, value):
                 return [n for n in nodes if n is not None]

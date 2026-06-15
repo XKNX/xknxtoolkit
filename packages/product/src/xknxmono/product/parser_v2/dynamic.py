@@ -14,6 +14,7 @@ from xknxmono.models.intermediate import (
     ComObjectRefRef,
     DependentChannelChoose,
     Module,
+    ModuleArg,
     ModuleDef,
     ParameterRefRef,
     ParameterSeparator,
@@ -21,6 +22,7 @@ from xknxmono.models.intermediate import (
     Repeat,
 )
 
+from .context import EvalContext, GlobalState
 from .nodes import (
     AssignNode,
     BinaryDataRefNode,
@@ -28,7 +30,6 @@ from .nodes import (
     ChooseWhenNode,
     ComObjectRefRefNode,
     DynamicNode,
-    EvalContext,
     GenericCollectionNode,
     ModuleNode,
     ParameterRefRefNode,
@@ -65,11 +66,17 @@ class DynamicTreeBuilder:
         self._module_defs: dict[str, ModuleDef] = {}
         if app.module_defs is not None:
             for md in app.module_defs.module_def:
-                if md.id:
-                    self._module_defs[md.id] = md
+                self._index_module_def(md)
         node = self._build(app.dynamic)
         assert node is not None, "dynamic section produced no tree"
         self.tree: DynamicNode = node
+
+    def _index_module_def(self, md: ModuleDef) -> None:
+        if md.id:
+            self._module_defs[md.id] = md
+        if md.sub_module_defs is not None:
+            for sub in md.sub_module_defs.module_def:
+                self._index_module_def(sub)
 
     def _build(self, elem: object) -> DynamicNode | None:
         if isinstance(
@@ -114,7 +121,8 @@ class DynamicTreeBuilder:
             if mod_def is None or mod_def.dynamic is None:
                 return None
             children = [self._build(child) for child in mod_def.dynamic.choice]
-            return ModuleNode(elem.id, elem.ref_id, GenericCollectionNode(children))
+            arguments: dict[str, ModuleArg] = {arg.ref_id: arg for arg in elem.choice}
+            return ModuleNode(elem.id, GenericCollectionNode(children), arguments)
         elif isinstance(elem, ParameterRefRef):
             # Leaf: a parameter widget; ref_id points to the ParameterRef in Static
             return ParameterRefRefNode(elem)
@@ -145,11 +153,11 @@ class DynamicUI:
     def __init__(self, app: ApplicationProgram) -> None:
         self._tree = DynamicTreeBuilder(app).tree
 
-    def ui(self, state: dict[str, str] | None = None) -> list:
-        return self._tree.ui(EvalContext(state if state is not None else {}))
+    def ui(self, state: GlobalState | None = None) -> list:
+        return self._tree.ui(EvalContext(state or GlobalState()))
 
-    def params(self, state: dict[str, str] | None = None) -> list:
-        return self._tree.params(EvalContext(state if state is not None else {}))
+    def params(self, state: GlobalState | None = None) -> list:
+        return self._tree.params(EvalContext(state or GlobalState()))
 
-    def com_objects(self, state: dict[str, str] | None = None) -> list:
-        return self._tree.com_objects(EvalContext(state if state is not None else {}))
+    def com_objects(self, state: GlobalState | None = None) -> list:
+        return self._tree.com_objects(EvalContext(state or GlobalState()))

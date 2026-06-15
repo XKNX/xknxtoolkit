@@ -3,7 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate import ParameterRefRef
 
 from .base import DynamicNode
-from .context import EvalContext
+from ..context import EvalContext
 
 
 class ParameterRefRefNode(DynamicNode):

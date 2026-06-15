@@ -3,7 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate import Repeat
 
 from .base import DynamicNode
-from .context import EvalContext
+from ..context import EvalContext
 
 
 class RepeatNode(DynamicNode):
@@ -28,7 +28,7 @@ class RepeatNode(DynamicNode):
             return self._elem.count
         if self._elem.parameter_ref_id:
             try:
-                return int(ctx.get(self._elem.parameter_ref_id, "0"))
+                return int(ctx.get(self._elem.parameter_ref_id) or "0")
             except ValueError:
                 return 0
         return 0

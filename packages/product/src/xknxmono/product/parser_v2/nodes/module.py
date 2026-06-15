@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from xknxmono.models.intermediate import ModuleArg
+
 from .base import DynamicNode
-from .context import EvalContext
+from ..context import EvalContext
 
 
 class ModuleNode(DynamicNode):
@@ -16,16 +18,16 @@ class ModuleNode(DynamicNode):
     repeat_ctx(i) before ModuleNode.params/com_objects/ui is called.
     """
 
-    def __init__(self, module_id: str, def_ref_id: str, subtree: DynamicNode) -> None:
+    def __init__(self, module_id: str, subtree: DynamicNode, arguments: dict[str, ModuleArg] | None = None) -> None:
         self._module_id = module_id
-        self._def_ref_id = def_ref_id
         self._subtree = subtree
+        self._arguments = arguments or {}
 
     def eval(self, ctx: EvalContext) -> list[DynamicNode]:
         return []
 
     def _module_ctx(self, ctx: EvalContext) -> EvalContext:
-        return ctx.module_ctx(self._module_id, self._def_ref_id)
+        return ctx.module_ctx(self._module_id, self._arguments)
 
     def params(self, ctx: EvalContext) -> list:
         return self._subtree.params(self._module_ctx(ctx))

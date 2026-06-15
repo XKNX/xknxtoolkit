@@ -1,0 +1,162 @@
+from __future__ import annotations
+
+from xknxmono.models.intermediate import ModuleArg, ModuleInstance, ParameterInstanceRef
+
+
+class _ParameterState:
+    """Shared base for GlobalState and ModuleState.
+
+    Forms a tree: root → module children → submodule children.
+    Reads walk the parent chain; writes go to the node itself only.
+    """
+
+    __slots__ = ("_children", "_parent", "param_ref_id_to_value")
+
+    def __init__(self, values: dict[str, str] | None = None, parent: _ParameterState | None = None) -> None:
+        self.param_ref_id_to_value: dict[str, str] = dict(values or {})
+        self._parent: _ParameterState | None = parent
+        self._children: dict[str, ModuleState] = {}
+
+    def get(self, ref_id: str) -> str | None:
+        val = self.param_ref_id_to_value.get(ref_id)
+        if val is not None:
+            return val
+        return self._parent.get(ref_id) if self._parent is not None else None
+
+    def set(self, ref_id: str, value: str) -> None:
+        self.param_ref_id_to_value[ref_id] = value
+
+    def module_child(self, module_id: str, repeat_idx: int = 1, arguments: dict[str, ModuleArg] | None = None) -> ModuleState:
+        """Returns (creating if needed) the module instance state and wires it into the tree."""
+        key = f"{module_id}_MI-{repeat_idx}"
+        if key not in self._children:
+            child = ModuleState(key, arguments)
+            child._parent = self
+            self._children[key] = child
+        else:
+            self._children[key]._parent = self
+        return self._children[key]
+
+    def parameter_instance_refs(self) -> dict[str, str]:
+        result = dict(self.param_ref_id_to_value)
+        for child in self._children.values():
+            result.update(child.parameter_instance_refs())
+        return result
+
+    def module_instances(self) -> list[tuple[str, str, dict[str, ModuleArg]]]:
+        result: list[tuple[str, str, dict[str, ModuleArg]]] = []
+        for child in self._children.values():
+            result.extend(child.module_instances())
+        return result
+
+
+class GlobalState(_ParameterState):
+    """Global (root) parameter state; top of the tree from which module children hang."""
+
+    @classmethod
+    def from_project(
+        cls,
+        parameter_instance_refs: list[ParameterInstanceRef] | None = None,
+        module_instances: list[ModuleInstance] | None = None,
+    ) -> GlobalState:
+        """Reconstruct a GlobalState tree from saved project data (parameter refs + module instance list)."""
+        root = cls()
+        mid_to_mdid: dict[str, str] = {}
+        for mi in module_instances or []:
+            if mi.id is None or mi.ref_id is None:
+                continue
+            ms = ModuleState(mi.id)
+            ms._parent = root
+            root._children[mi.id] = ms
+            mid_to_mdid[mi.id] = mi.ref_id
+
+        for pir in parameter_instance_refs or []:
+            if pir.value is None:
+                continue
+            ref_id, value = pir.ref_id, pir.value
+            for mid, ms in root._children.items():
+                p = f"_{ref_id}_".find(f"_{mid}_")
+                if p != -1:
+                    app_prefix = ref_id[:p]
+                    suffix = ref_id[p + len(mid):]
+                    ms.module_instance_id = app_prefix + mid
+                    ms.param_ref_id_to_value[app_prefix + mid_to_mdid[mid] + suffix] = value
+                    break
+            else:
+                root.param_ref_id_to_value[ref_id] = value
+
+        return root
+
+
+class ModuleState(_ParameterState):
+    """Parameter state for one module instance; stores local (def-relative) ref IDs.
+
+    parameter_instance_refs() qualifies each key by splicing module_instance_id in place of the
+    shared prefix with the local ref ID — no def_ref_id needed at eval time.
+    e.g. M-..._MD-1_P-5_R-5  →  M-..._MD-1_M-100_MI-2_P-5_R-5
+    """
+
+    __slots__ = ("arguments", "module_instance_id")
+
+    def __init__(self, module_instance_id: str, arguments: dict[str, ModuleArg] | None = None) -> None:
+        super().__init__()
+        self.module_instance_id = module_instance_id
+        self.arguments: dict[str, ModuleArg] = arguments or {}
+
+    def get_arg(self, ref_id: str) -> ModuleArg | None:
+        return self.arguments.get(ref_id)
+
+    def as_module_instance(self) -> tuple[str, str, dict[str, ModuleArg]]:
+        instance_id = self.module_instance_id
+        ref_id = instance_id.rsplit("_MI-", 1)[0]
+        args = {k[k.find("_MD-") + 1:]: v for k, v in self.arguments.items()}
+        return instance_id, ref_id, args
+
+    def _qualify(self, ref_id: str) -> str:
+        i, n = 0, min(len(self.module_instance_id), len(ref_id))
+        while i < n and self.module_instance_id[i] == ref_id[i]:
+            i += 1
+        return self.module_instance_id + ref_id[i - 1:]
+
+    def parameter_instance_refs(self) -> dict[str, str]:
+        result = {self._qualify(k): v for k, v in self.param_ref_id_to_value.items()}
+        for child in self._children.values():
+            result.update(child.parameter_instance_refs())
+        return result
+
+    def module_instances(self) -> list[tuple[str, str, dict[str, ModuleArg]]]:
+        result: list[tuple[str, str, dict[str, ModuleArg]]] = [self.as_module_instance()]
+        for child in self._children.values():
+            result.extend(child.module_instances())
+        return result
+
+
+class EvalContext:
+    """Scope handle: the active state node plus a pending repeat index for the next module_child call.
+
+    Reads delegate to the active state, which walks its parent chain (submodule → module → global).
+    Writes go to the active state only.
+    """
+
+    __slots__ = ("_repeat_idx", "_scope")
+
+    def __init__(self, scope: _ParameterState, repeat_idx: int = 1) -> None:
+        self._scope = scope
+        self._repeat_idx = repeat_idx
+
+    def get(self, ref_id: str) -> str | None:
+        # Walks the parent chain (submodule → module → global) until found.
+        return self._scope.get(ref_id)
+
+    def set(self, ref_id: str, value: str) -> None:
+        # Writes to the active scope only; mutations are visible to siblings in the same scope.
+        self._scope.set(ref_id, value)
+
+    def repeat_ctx(self, repeat_idx: int) -> EvalContext:
+        # Carries the repeat counter forward so the next module_ctx call lands on _MI-{repeat_idx}.
+        return EvalContext(self._scope, repeat_idx)
+
+    def module_ctx(self, module_id: str, default_arguments: dict[str, ModuleArg] | None = None) -> EvalContext:
+        # Enters a module instance scope; wires the current scope as the new state's parent.
+        ms = self._scope.module_child(module_id, self._repeat_idx, default_arguments)
+        return EvalContext(ms)
