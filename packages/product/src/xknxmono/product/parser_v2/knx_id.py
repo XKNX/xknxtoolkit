@@ -135,7 +135,7 @@ class ParameterValue:
 
 
 @dataclass(frozen=True, slots=True)
-class ParameterRecord:
+class ParameterRename:
     id: int
 
     def to_parts(self) -> list[str]:
@@ -375,7 +375,7 @@ class ModuleDef:
     """MD-N and its contents."""
 
     id: int
-    content: Module | SubModuleDef | Parameter | ParamRef | ParameterBlock | ParameterBlockRef | ParameterBlockCell | ParameterSeparator | ParameterCalc | ArgRef | AllocatorRef | UnionParameter | UnionParameterRef | Channel | ComObject | ComObjectRef | RepeatPath | ParameterValue | Block | ParameterRecord | None = None
+    content: Module | SubModuleDef | Parameter | ParamRef | ParameterBlock | ParameterBlockRef | ParameterBlockCell | ParameterSeparator | ParameterCalc | ArgRef | AllocatorRef | UnionParameter | UnionParameterRef | Channel | ComObject | ComObjectRef | RepeatPath | ParameterValue | Block | ParameterRename | None = None
 
     @property
     def module(self) -> Module | None:
@@ -450,8 +450,8 @@ class ModuleDef:
         return self.content if isinstance(self.content, ParameterValue) else None
 
     @property
-    def parameter_record(self) -> ParameterRecord | None:
-        return self.content if isinstance(self.content, ParameterRecord) else None
+    def parameter_record(self) -> ParameterRename | None:
+        return self.content if isinstance(self.content, ParameterRename) else None
 
     @property
     def block(self) -> Block | None:
@@ -485,7 +485,7 @@ _AppContent = (
     | StatusResponse
     | ResourceSpec
     | ParameterValue
-    | ParameterRecord
+    | ParameterRename
     | Block
     | BitmapDef
     | Channel
@@ -586,8 +586,8 @@ class Application:
         return self.content if isinstance(self.content, ParameterValue) else None
 
     @property
-    def parameter_record(self) -> ParameterRecord | None:
-        return self.content if isinstance(self.content, ParameterRecord) else None
+    def parameter_record(self) -> ParameterRename | None:
+        return self.content if isinstance(self.content, ParameterRename) else None
 
     @property
     def block(self) -> Block | None:
@@ -654,14 +654,14 @@ class KnxId:
              │    ├─ ArgRef | AllocatorRef | RepeatPath
              │    ├─ UnionParameter | UnionParameterRef
              │    ├─ Channel | ComObject | ComObjectRef
-             │    ├─ ParameterValue | ParameterRecord | Block
+             │    ├─ ParameterValue | ParameterRename | Block
              │    └─ (nothing)
              ├─ Parameter | ParamRef | ParameterBlock | ParameterBlockRef
              ├─ ParameterBlockCell | ParameterSeparator | ParameterType
              ├─ UnionParameter | UnionParameterRef | AllocatorRef
              ├─ AddressSpace | Channel | ComObject | ComObjectRef
              ├─ ParameterCalc | BinaryInput | StatusResponse | ResourceSpec
-             ├─ ParameterValue | ParameterRecord | Block | BitmapDef
+             ├─ ParameterValue | ParameterRename | Block | BitmapDef
              ├─ RepeatPath | Module
              └─ (nothing)
       KnxId(manufacturer, content: Baggage?)
@@ -797,7 +797,7 @@ class KnxId:
                 mod_content = parse_param_ref()
             return Module(m_id, instance, mod_content)
 
-        def parse_module_def_content() -> Module | SubModuleDef | Parameter | ParamRef | ParameterBlock | ParameterBlockRef | ParameterBlockCell | ParameterSeparator | ParameterCalc | ArgRef | AllocatorRef | UnionParameter | UnionParameterRef | Channel | ComObject | ComObjectRef | RepeatPath | ParameterValue | Block | ParameterRecord | None:
+        def parse_module_def_content() -> Module | SubModuleDef | Parameter | ParamRef | ParameterBlock | ParameterBlockRef | ParameterBlockCell | ParameterSeparator | ParameterCalc | ArgRef | AllocatorRef | UnionParameter | UnionParameterRef | Channel | ComObject | ComObjectRef | RepeatPath | ParameterValue | Block | ParameterRename | None:
             if peek() == "X":
                 return parse_repeat()
             if peek() == "M":
@@ -849,7 +849,7 @@ class KnxId:
             if peek() == "B":
                 return Block(hx(consume()[1]))
             if peek() == "PR":
-                return ParameterRecord(hx(consume()[1]))
+                return ParameterRename(hx(consume()[1]))
             return None
 
         def parse_app_content() -> _AppContent | None:
@@ -906,7 +906,7 @@ class KnxId:
             if p == "PV":
                 return ParameterValue(hx(consume()[1]))
             if p == "PR":
-                return ParameterRecord(hx(consume()[1]))
+                return ParameterRename(hx(consume()[1]))
             if p == "B":
                 return Block(hx(consume()[1]))
             if p == "BD":
