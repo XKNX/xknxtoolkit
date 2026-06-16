@@ -137,8 +137,9 @@ class DynamicTreeBuilder:
             assert pt.plugin is None, f"ParameterType {param.parameter_type!r} uses unsupported plugin {pt.plugin!r}"
             return ParameterRefRefNode(elem, pr, param, pt)
         elif isinstance(elem, ComObjectRefRef):
-            # Leaf: a communication object entry; ref_id points to the ComObjectRef in Static
-            return ComObjectRefRefNode(elem)
+            cor = self._idx.com_object_refs.get(elem.ref_id)
+            co = self._idx.com_objects.get(cor.ref_id) if cor else None
+            return ComObjectRefRefNode(elem, cor, co)
         elif isinstance(elem, ParameterSeparator):
             # Leaf: a static label or visual divider between parameters
             return ParameterSeparatorNode(elem)

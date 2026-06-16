@@ -1,4 +1,5 @@
 from .button import UiButton
+from .com_object import UiComObject
 from .parameter_block import UiParameterBlock
 from .separator import UiSeparator
 from .tab import UiTab
@@ -22,7 +23,7 @@ from .parameter import (
     Widget,
     resolve_widget,
 )
-UiNode = UiTab | UiParameterBlock | UiParameter | UiSeparator | UiButton
+UiNode = UiTab | UiParameterBlock | UiParameter | UiSeparator | UiButton | UiComObject
 
 __all__ = [
     "CheckBoxWidget",
@@ -41,6 +42,7 @@ __all__ = [
     "TextWidget",
     "TimeWidget",
     "UiButton",
+    "UiComObject",
     "UiNode",
     "UiParameter",
     "UiParameterBlock",

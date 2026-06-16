@@ -7,6 +7,8 @@ from xknxmono.models.intermediate import (
     ModuleDefStaticParametersUnion,
     ParameterType,
 )
+from xknxmono.models.intermediate.com_object_ref_t import ComObjectRef
+from xknxmono.models.intermediate.com_object_t import ComObject
 from xknxmono.models.intermediate.parameter_base_t import ParameterBase
 from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 
@@ -14,13 +16,15 @@ from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 class ApplicationIndexer:
     """Pre-built lookup tables for static IR sections (parameters, parameter refs, parameter types, module defs)."""
 
-    __slots__ = ("module_defs", "parameter_refs", "parameters", "parameter_types")
+    __slots__ = ("com_object_refs", "com_objects", "module_defs", "parameter_refs", "parameters", "parameter_types")
 
     def __init__(self, app: ApplicationProgram) -> None:
         self.module_defs: dict[str, ModuleDef] = {}
         self.parameter_refs: dict[str, ParameterRef] = {}
         self.parameters: dict[str, ParameterBase] = {}
         self.parameter_types: dict[str, ParameterType] = {}
+        self.com_objects: dict[str, ComObject] = {}
+        self.com_object_refs: dict[str, ComObjectRef] = {}
         self._index_app(app)
         if app.module_defs is not None:
             for md in app.module_defs.module_def:
@@ -41,6 +45,12 @@ class ApplicationIndexer:
         if s.parameter_refs is not None:
             for pr in s.parameter_refs.parameter_ref:
                 self.parameter_refs[pr.id] = pr
+        if s.com_object_table is not None:
+            for co in s.com_object_table.com_object:
+                self.com_objects[co.id] = co
+        if s.com_object_refs is not None:
+            for cor in s.com_object_refs.com_object_ref:
+                self.com_object_refs[cor.id] = cor
 
     def _index_module_def(self, md: ModuleDef) -> None:
         if md.id:
@@ -55,6 +65,12 @@ class ApplicationIndexer:
         if md.static.parameter_refs is not None:
             for pr in md.static.parameter_refs.parameter_ref:
                 self.parameter_refs[pr.id] = pr
+        if md.static.com_objects is not None:
+            for co in md.static.com_objects.com_object:
+                self.com_objects[co.id] = co
+        if md.static.com_object_refs is not None:
+            for cor in md.static.com_object_refs.com_object_ref:
+                self.com_object_refs[cor.id] = cor
         if md.sub_module_defs is not None:
             for sub in md.sub_module_defs.module_def:
                 self._index_module_def(sub)
