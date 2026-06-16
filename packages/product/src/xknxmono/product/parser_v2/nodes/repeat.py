@@ -8,16 +8,10 @@ from ..ui import UiNode
 
 
 class RepeatNode(DynamicNode):
-    """
-    Container: repeats its children N times, where N comes from count or from a
-    parameter value at eval time (when count=0 and parameter_ref_id is set).
+    """Container: repeats its children N times, each under its own repeat context.
 
-    Bypasses the base-class eval flatmap — returns [] from eval() and overrides
-    params/com_objects/ui directly so each iteration gets its own repeat_ctx(i),
-    which ModuleNode children use to qualify their instance prefix as MI-{i}.
-
-    Index substitution for non-Module direct children (ParameterRefRef, etc.) is
-    not yet implemented.
+    N comes from count, or from a parameter value when count=0 and parameter_ref_id is set.
+    Index substitution for non-Module direct children is not yet implemented.
     """
 
     def __init__(self, elem: Repeat, children: list[DynamicNode | None]):
@@ -37,29 +31,10 @@ class RepeatNode(DynamicNode):
     def _active(self) -> list[DynamicNode]:
         return [c for c in self._children if c is not None]
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
-        return []
-
-    def params(self, ctx: EvalContext) -> list[str]:
-        result: list[str] = []
-        for i in range(1, self._count(ctx) + 1):
-            repeat_ctx = ctx.repeat_ctx(i)
-            for c in self._active():
-                result.extend(c.params(repeat_ctx))
-        return result
-
-    def com_objects(self, ctx: EvalContext) -> list[str]:
-        result: list[str] = []
-        for i in range(1, self._count(ctx) + 1):
-            repeat_ctx = ctx.repeat_ctx(i)
-            for c in self._active():
-                result.extend(c.com_objects(repeat_ctx))
-        return result
-
-    def ui(self, ctx: EvalContext) -> list[UiNode]:
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
         result: list[UiNode] = []
         for i in range(1, self._count(ctx) + 1):
-            repeat_ctx = ctx.repeat_ctx(i)
+            rctx = ctx.repeat_ctx(i)
             for c in self._active():
-                result.extend(c.ui(repeat_ctx))
+                result.extend(c.eval(rctx))
         return result

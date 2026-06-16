@@ -7,28 +7,13 @@ from ..ui import UiNode
 
 
 class DynamicNode(ABC):
-    """
-    DynamicNode is the base class for all nodes in the dynamic tree.
+    """Base class for all nodes in the dynamic evaluation tree.
 
-    eval(ctx) returns the node's active direct children given the current parameter
-    state. Containers return their (conditionally active) children; leaves return [].
-
-    params() and com_objects() recurse through eval() via a flatmap, so the base
-    class implementation is correct for all container nodes. Leaf nodes that contribute
-    to one of these domains override the relevant method to return their own element.
-
-    RepeatNode and ModuleNode bypass the base-class flatmap entirely — they return []
-    from eval() and override params/com_objects/ui to manage their own context.
+    eval(ctx) is the single method: it fires side effects (mark_active_param,
+    mark_active_com_object, set_text, set) and returns the UI nodes produced by
+    this node and its active children. Containers flatmap their children's results;
+    leaves return [] (side-effect only) or [UiNode] (visible element).
     """
 
     @abstractmethod
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]: ...
-
-    def params(self, ctx: EvalContext) -> list[str]:
-        return [p for node in self.eval(ctx) for p in node.params(ctx)]
-
-    def com_objects(self, ctx: EvalContext) -> list[str]:
-        return [co for node in self.eval(ctx) for co in node.com_objects(ctx)]
-
-    def ui(self, ctx: EvalContext) -> list[UiNode]:
-        return [u for node in self.eval(ctx) for u in node.ui(ctx)]
+    def eval(self, ctx: EvalContext) -> list[UiNode]: ...

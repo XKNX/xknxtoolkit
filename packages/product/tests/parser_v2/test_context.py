@@ -1,20 +1,18 @@
 from xknxmono.models.intermediate import ModuleInstance, ModuleNumericArg, ParameterInstanceRef
 from xknxmono.product.parser_v2.nodes import ChooseWhenNode, DynamicNode, EvalContext, GlobalState, ModuleState
+from xknxmono.product.parser_v2.ui import UiNode
 
 
-class _MarkingLeaf(DynamicNode):
-    """Stub leaf: marks itself active in eval and returns its ref_id from params."""
+class _ParamLeaf(DynamicNode):
+    """Stub leaf: marks a param ref active as a side effect."""
 
     def __init__(self, ref_id: str) -> None:
         self._ref_id = ref_id
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
-        ctx.mark_active(self._ref_id)
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
+        ctx.mark_active_param(self._ref_id)
         return []
 
-    def params(self, ctx: EvalContext) -> list:
-        self.eval(ctx)
-        return [self._ref_id]
 
 _BASE = "M-0008_A-7072-21-5CC3-O000A"
 
@@ -126,35 +124,34 @@ class TestEvalContext:
 
 class TestTrimToActive:
     def test_hidden_param_is_evicted_after_trim(self):
-        # X is in state but its branch is inactive (Y != 1), so it should be trimmed.
         state = GlobalState({_REF_MODE: "2", _REF_TARGET: "5"})
-        y_leaf = _MarkingLeaf(_REF_MODE)
-        x_leaf = _MarkingLeaf(_REF_TARGET)
+        y_leaf = _ParamLeaf(_REF_MODE)
+        x_leaf = _ParamLeaf(_REF_TARGET)
         choose = ChooseWhenNode(_REF_MODE, {"1": [x_leaf]}, None)
 
         ctx = EvalContext(state)
-        y_leaf.params(ctx)     # Y always visible
-        choose.params(ctx)     # X only visible when Y=1; Y=2 so X is hidden
-
-        state.trim_to_active()
-
-        assert _REF_MODE in state.param_ref_id_to_value    # Y remains
-        assert _REF_TARGET not in state.param_ref_id_to_value  # X evicted
-
-    def test_active_param_is_kept_after_trim(self):
-        state = GlobalState({_REF_MODE: "1", _REF_TARGET: "5"})
-        y_leaf = _MarkingLeaf(_REF_MODE)
-        x_leaf = _MarkingLeaf(_REF_TARGET)
-        choose = ChooseWhenNode(_REF_MODE, {"1": [x_leaf]}, None)
-
-        ctx = EvalContext(state)
-        y_leaf.params(ctx)
-        choose.params(ctx)     # Y=1, so X is active
+        y_leaf.eval(ctx)
+        choose.eval(ctx)
 
         state.trim_to_active()
 
         assert _REF_MODE in state.param_ref_id_to_value
-        assert _REF_TARGET in state.param_ref_id_to_value  # X kept
+        assert _REF_TARGET not in state.param_ref_id_to_value
+
+    def test_active_param_is_kept_after_trim(self):
+        state = GlobalState({_REF_MODE: "1", _REF_TARGET: "5"})
+        y_leaf = _ParamLeaf(_REF_MODE)
+        x_leaf = _ParamLeaf(_REF_TARGET)
+        choose = ChooseWhenNode(_REF_MODE, {"1": [x_leaf]}, None)
+
+        ctx = EvalContext(state)
+        y_leaf.eval(ctx)
+        choose.eval(ctx)
+
+        state.trim_to_active()
+
+        assert _REF_MODE in state.param_ref_id_to_value
+        assert _REF_TARGET in state.param_ref_id_to_value
 
     def test_stale_rename_text_is_cleared_after_trim(self):
         state = GlobalState()
@@ -163,23 +160,89 @@ class TestTrimToActive:
         assert state.get_text("some-block-id") is None
 
     def test_trim_is_clean_for_next_cycle(self):
-        # After trim, a second traversal with different state produces fresh marks.
         state = GlobalState({_REF_MODE: "1", _REF_TARGET: "5"})
-        y_leaf = _MarkingLeaf(_REF_MODE)
-        x_leaf = _MarkingLeaf(_REF_TARGET)
+        y_leaf = _ParamLeaf(_REF_MODE)
+        x_leaf = _ParamLeaf(_REF_TARGET)
         choose = ChooseWhenNode(_REF_MODE, {"1": [x_leaf]}, None)
 
-        # First cycle: both active
+        state.reset_active()
         ctx = EvalContext(state)
-        y_leaf.params(ctx)
-        choose.params(ctx)
+        y_leaf.eval(ctx)
+        choose.eval(ctx)
         state.trim_to_active()
         assert _REF_TARGET in state.param_ref_id_to_value
 
-        # Second cycle: X hidden
         state.set(_REF_MODE, "2")
+        state.reset_active()
         ctx = EvalContext(state)
-        y_leaf.params(ctx)
-        choose.params(ctx)
+        y_leaf.eval(ctx)
+        choose.eval(ctx)
         state.trim_to_active()
         assert _REF_TARGET not in state.param_ref_id_to_value
+
+    def test_active_param_refs_returns_marked_refs(self):
+        state = GlobalState({_REF_MODE: "1", _REF_TARGET: "5"})
+        y_leaf = _ParamLeaf(_REF_MODE)
+        x_leaf = _ParamLeaf(_REF_TARGET)
+        choose = ChooseWhenNode(_REF_MODE, {"1": [x_leaf]}, None)
+
+        state.reset_active()
+        ctx = EvalContext(state)
+        y_leaf.eval(ctx)
+        choose.eval(ctx)
+        state.trim_to_active()
+
+        assert state.active_param_refs() == {_REF_MODE, _REF_TARGET}
+
+    def test_active_param_refs_excludes_hidden(self):
+        state = GlobalState({_REF_MODE: "2", _REF_TARGET: "5"})
+        y_leaf = _ParamLeaf(_REF_MODE)
+        x_leaf = _ParamLeaf(_REF_TARGET)
+        choose = ChooseWhenNode(_REF_MODE, {"1": [x_leaf]}, None)
+
+        state.reset_active()
+        ctx = EvalContext(state)
+        y_leaf.eval(ctx)
+        choose.eval(ctx)
+        state.trim_to_active()
+
+        assert state.active_param_refs() == {_REF_MODE}
+
+    def test_active_param_refs_qualified_in_module_scope(self):
+        state = GlobalState()
+        ms = state.module_child(_MODULE_ID)
+        ms.mark_active_param(_LOCAL_REF)
+
+        assert state.active_param_refs() == {_QUALIFIED_REF}
+
+
+class TestSetInstanceRef:
+    def test_global_ref_written_to_root(self):
+        state = GlobalState()
+        state.set_instance_ref(_REF_TARGET, "42")
+        assert state.param_ref_id_to_value[_REF_TARGET] == "42"
+
+    def test_qualified_module_ref_written_to_module_scope(self):
+        state = GlobalState()
+        _ = state.module_child(_MODULE_ID)  # create scope
+        state.set_instance_ref(_QUALIFIED_REF, "7")
+        ms = state._children[_MODULE_INSTANCE_ID]
+        assert ms.param_ref_id_to_value[_LOCAL_REF] == "7"
+
+    def test_qualified_ref_visible_via_parameter_instance_refs(self):
+        state = GlobalState()
+        _ = state.module_child(_MODULE_ID)
+        state.set_instance_ref(_QUALIFIED_REF, "9")
+        assert state.parameter_instance_refs()[_QUALIFIED_REF] == "9"
+
+    def test_unknown_ref_written_to_root(self):
+        state = GlobalState()
+        unknown = f"{_BASE}_P-99_R-99"
+        state.set_instance_ref(unknown, "1")
+        assert state.param_ref_id_to_value[unknown] == "1"
+
+    def test_no_module_scope_writes_to_root(self):
+        # No module_child() called; qualified ref has nowhere to route, lands at root.
+        state = GlobalState()
+        state.set_instance_ref(_QUALIFIED_REF, "5")
+        assert state.param_ref_id_to_value[_QUALIFIED_REF] == "5"

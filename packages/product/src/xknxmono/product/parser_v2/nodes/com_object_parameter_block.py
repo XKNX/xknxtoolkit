@@ -17,11 +17,8 @@ class ComObjectParameterBlockNode(DynamicNode):
         self._elem = elem
         self._children = children
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
-        return [child for child in self._children if child is not None]
-
-    def ui(self, ctx: EvalContext) -> list[UiNode]:
-        items = [item for child in self._children if child for item in child.ui(ctx)]
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
+        items = [u for c in self._children if c for u in c.eval(ctx)]
         text_ref = self._elem.text_parameter_ref_id
         text = (
             ctx.get_text(self._elem.id)

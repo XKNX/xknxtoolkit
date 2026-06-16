@@ -14,8 +14,5 @@ class ButtonNode(DynamicNode):
     def __init__(self, elem: Button):
         self._elem = elem
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
-        return []
-
-    def ui(self, ctx: EvalContext) -> list[UiNode]:
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
         return [UiButton(id=self._elem.id, text=self._elem.text)]

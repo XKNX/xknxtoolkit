@@ -1,15 +1,23 @@
 from __future__ import annotations
 
-from .base import DynamicNode
 from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.tab import UiTab
+from .base import DynamicNode
 
 
 class ChannelNode(DynamicNode):
-    """A tab in the ETS UI — either a named Channel or a ChannelIndependentBlock."""
+    """A tab in the UI — either a named Channel or a ChannelIndependentBlock."""
 
-    __slots__ = ("_id", "_name", "_text", "_number", "_icon", "_text_param_ref_id", "_children")
+    __slots__ = (
+        "_id",
+        "_name",
+        "_text",
+        "_number",
+        "_icon",
+        "_text_param_ref_id",
+        "_children",
+    )
 
     def __init__(
         self,
@@ -29,17 +37,18 @@ class ChannelNode(DynamicNode):
         self._text_param_ref_id = text_parameter_ref_id
         self._children = children
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
-        return [child for child in self._children if child is not None]
-
-    def ui(self, ctx: EvalContext) -> list[UiNode]:
-        items = [item for child in self._children if child for item in child.ui(ctx)]
-        text = (ctx.get(self._text_param_ref_id) if self._text_param_ref_id else None) or self._text
-        return [UiTab(
-            children=tuple(items),
-            id=self._id,
-            name=self._name,
-            text=text,
-            number=self._number,
-            icon=self._icon,
-        )]
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
+        items = [u for c in self._children if c for u in c.eval(ctx)]
+        text = (
+            ctx.get(self._text_param_ref_id) if self._text_param_ref_id else None
+        ) or self._text
+        return [
+            UiTab(
+                children=tuple(items),
+                id=self._id,
+                name=self._name,
+                text=text,
+                number=self._number,
+                icon=self._icon,
+            )
+        ]

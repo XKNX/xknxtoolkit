@@ -1,14 +1,16 @@
 from xknxmono.product.parser_v2.nodes import DynamicNode, EvalContext, GenericCollectionNode, GlobalState
+from xknxmono.product.parser_v2.ui import UiNode
+from xknxmono.product.parser_v2.ui.separator import UiSeparator
 
 
-class LeafNode(DynamicNode):
-    """Test stub: a leaf that returns [] from eval and itself from params."""
+class UiLeaf(DynamicNode):
+    """Stub leaf that produces one UiSeparator so we can verify it was included."""
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
-        return []
+    def __init__(self, id: str) -> None:
+        self._id = id
 
-    def params(self, ctx: EvalContext) -> list:
-        return [self]
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
+        return [UiSeparator(id=self._id, text=None)]
 
 
 class TestGenericCollectionNode:
@@ -16,25 +18,20 @@ class TestGenericCollectionNode:
         node = GenericCollectionNode([])
         assert node.eval(EvalContext(GlobalState())) == []
 
-    def test_eval_returns_direct_children(self):
-        a = LeafNode()
-        b = LeafNode()
-        node = GenericCollectionNode([a, b])
-        assert node.eval(EvalContext(GlobalState())) == [a, b]
+    def test_eval_flatmaps_children(self):
+        a = UiLeaf("a")
+        b = UiLeaf("b")
+        result = GenericCollectionNode([a, b]).eval(EvalContext(GlobalState()))
+        assert result == [UiSeparator(id="a", text=None), UiSeparator(id="b", text=None)]
 
     def test_eval_filters_none_children(self):
-        a = LeafNode()
-        node = GenericCollectionNode([a, None])
-        assert node.eval(EvalContext(GlobalState())) == [a]
+        a = UiLeaf("a")
+        result = GenericCollectionNode([a, None]).eval(EvalContext(GlobalState()))
+        assert result == [UiSeparator(id="a", text=None)]
 
-    def test_params_flatmaps_through_children(self):
-        a = LeafNode()
-        b = LeafNode()
-        node = GenericCollectionNode([a, b])
-        assert node.params(EvalContext(GlobalState())) == [a, b]
-
-    def test_params_recurses_into_nested_collection(self):
-        leaf = LeafNode()
+    def test_eval_recurses_into_nested_collection(self):
+        leaf = UiLeaf("x")
         inner = GenericCollectionNode([leaf])
         outer = GenericCollectionNode([inner])
-        assert outer.params(EvalContext(GlobalState())) == [leaf]
+        result = outer.eval(EvalContext(GlobalState()))
+        assert result == [UiSeparator(id="x", text=None)]

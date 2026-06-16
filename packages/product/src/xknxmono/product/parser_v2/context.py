@@ -9,16 +9,28 @@ class _ParameterState:
     Forms a tree: root → module children → submodule children.
     Reads walk the parent chain; writes go to the node itself only.
     Text overrides (from Rename nodes) are scope-local only — no parent walk.
+
+    Active ref sets persist after trim_to_active() and are cleared by reset_active()
+    at the start of each traversal, so callers can read active_param_refs() /
+    active_com_object_refs() after ui() or evaluate() returns.
     """
 
-    __slots__ = ("_active_refs", "_children", "_parent", "_text", "param_ref_id_to_value")
+    __slots__ = (
+        "_active_com_object_refs",
+        "_active_param_refs",
+        "_children",
+        "_parent",
+        "_text",
+        "param_ref_id_to_value",
+    )
 
     def __init__(self, values: dict[str, str] | None = None, parent: _ParameterState | None = None) -> None:
         self.param_ref_id_to_value: dict[str, str] = dict(values or {})
         self._parent: _ParameterState | None = parent
         self._children: dict[str, ModuleState] = {}
         self._text: dict[str, str] = {}
-        self._active_refs: set[str] = set()
+        self._active_param_refs: set[str] = set()
+        self._active_com_object_refs: set[str] = set()
 
     def get(self, ref_id: str) -> str | None:
         val = self.param_ref_id_to_value.get(ref_id)
@@ -35,25 +47,61 @@ class _ParameterState:
     def get_text(self, ref_id: str) -> str | None:
         return self._text.get(ref_id)
 
-    def mark_active(self, ref_id: str) -> None:
-        self._active_refs.add(ref_id)
+    def mark_active_param(self, ref_id: str) -> None:
+        self._active_param_refs.add(ref_id)
+
+    def mark_active_com_object(self, ref_id: str) -> None:
+        self._active_com_object_refs.add(ref_id)
+
+    def reset_active(self) -> None:
+        """Clear active ref sets before a new traversal."""
+        self._active_param_refs.clear()
+        self._active_com_object_refs.clear()
+        for child in self._children.values():
+            child.reset_active()
 
     def trim_to_active(self) -> None:
-        """Remove values for refs not marked active, then recurse into module children.
+        """Remove values for param refs not marked active, then recurse into module children.
 
-        Call after a full ui() traversal to evict stale values for hidden parameters.
-        Active marks and rename overrides are cleared so the next traversal starts clean.
+        Active ref sets are NOT cleared here — they persist so callers can read
+        active_param_refs() / active_com_object_refs() after the traversal.
         """
-        inactive = self.param_ref_id_to_value.keys() - self._active_refs
+        inactive = self.param_ref_id_to_value.keys() - self._active_param_refs
         for key in inactive:
             del self.param_ref_id_to_value[key]
-        self._active_refs.clear()
         self._text.clear()
         for child in self._children.values():
             child.trim_to_active()
 
+    def active_param_refs(self) -> set[str]:
+        result = set(self._active_param_refs)
+        for child in self._children.values():
+            result.update(child.active_param_refs())
+        return result
+
+    def active_com_object_refs(self) -> set[str]:
+        result = set(self._active_com_object_refs)
+        for child in self._children.values():
+            result.update(child.active_com_object_refs())
+        return result
+
     def qualify(self, ref_id: str) -> str:
         return ref_id
+
+    def find_scope_for_qualified(self, ref_id: str) -> tuple[_ParameterState, str] | None:
+        for child in self._children.values():
+            result = child.find_scope_for_qualified(ref_id)
+            if result is not None:
+                return result
+        return None
+
+    def set_instance_ref(self, ref_id: str, value: str) -> None:
+        found = self.find_scope_for_qualified(ref_id)
+        if found is not None:
+            scope, local = found
+            scope.set(local, value)
+        else:
+            self.set(ref_id, value)
 
     def module_child(self, module_id: str, repeat_idx: int = 1, arguments: dict[str, ModuleArg] | None = None) -> ModuleState:
         """Returns (creating if needed) the module instance state and wires it into the tree."""
@@ -144,11 +192,35 @@ class ModuleState(_ParameterState):
     def qualify(self, ref_id: str) -> str:
         return self._qualify(ref_id)
 
+    def find_scope_for_qualified(self, ref_id: str) -> tuple[_ParameterState, str] | None:
+        mid = self.module_instance_id
+        if not ref_id.startswith(mid + "_"):
+            return None
+        for child in self._children.values():
+            result = child.find_scope_for_qualified(ref_id)
+            if result is not None:
+                return result
+        suffix = ref_id[len(mid):]
+        common_prefix = mid.rsplit("_MI-", 1)[0].rsplit("_", 1)[0]
+        return (self, common_prefix + suffix)
+
     def _qualify(self, ref_id: str) -> str:
         i, n = 0, min(len(self.module_instance_id), len(ref_id))
         while i < n and self.module_instance_id[i] == ref_id[i]:
             i += 1
         return self.module_instance_id + ref_id[i - 1:]
+
+    def active_param_refs(self) -> set[str]:
+        result = {self.qualify(ref) for ref in self._active_param_refs}
+        for child in self._children.values():
+            result.update(child.active_param_refs())
+        return result
+
+    def active_com_object_refs(self) -> set[str]:
+        result = {self.qualify(ref) for ref in self._active_com_object_refs}
+        for child in self._children.values():
+            result.update(child.active_com_object_refs())
+        return result
 
     def parameter_instance_refs(self) -> dict[str, str]:
         result = {self._qualify(k): v for k, v in self.param_ref_id_to_value.items()}
@@ -193,8 +265,11 @@ class EvalContext:
     def get_text(self, ref_id: str) -> str | None:
         return self._scope.get_text(ref_id)
 
-    def mark_active(self, ref_id: str) -> None:
-        self._scope.mark_active(ref_id)
+    def mark_active_param(self, ref_id: str) -> None:
+        self._scope.mark_active_param(ref_id)
+
+    def mark_active_com_object(self, ref_id: str) -> None:
+        self._scope.mark_active_com_object(ref_id)
 
     def repeat_ctx(self, repeat_idx: int) -> EvalContext:
         # Carries the repeat counter forward so the next module_ctx call lands on _MI-{repeat_idx}.

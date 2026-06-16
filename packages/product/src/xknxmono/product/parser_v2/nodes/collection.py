@@ -2,16 +2,14 @@ from __future__ import annotations
 
 from .base import DynamicNode
 from ..context import EvalContext
+from ..ui import UiNode
 
 
 class GenericCollectionNode(DynamicNode):
-    """
-    GenericCollectionNode is a node that is just a collection of
-    children to be evaluate, e.g Dynamic section in itself.
-    """
+    """Transparent container: flatmaps children's eval results with no wrapping."""
 
     def __init__(self, children: list[DynamicNode | None]):
         self._children = children
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
-        return [c for c in self._children if c is not None]
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
+        return [u for c in self._children if c for u in c.eval(ctx)]

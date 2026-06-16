@@ -7,6 +7,8 @@ from xknxmono.product.parser_v2.nodes import (
     GenericCollectionNode,
     GlobalState,
 )
+from xknxmono.product.parser_v2.ui import UiNode
+from xknxmono.product.parser_v2.ui.separator import UiSeparator
 
 _BASE = "M-0008_A-7072-21-5CC3-O000A"
 _REF_MODE    = f"{_BASE}_P-1_R-1"
@@ -16,14 +18,11 @@ _REF_OTHER   = f"{_BASE}_P-4_R-4"
 _REF_MISSING = f"{_BASE}_P-5_R-5"
 
 
-class LeafNode(DynamicNode):
-    """Test stub: a leaf that returns [] from eval and itself from params."""
+class UiLeaf(DynamicNode):
+    """Stub leaf that returns a UiSeparator so we can verify it was included."""
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
-        return []
-
-    def params(self, ctx: EvalContext) -> list:
-        return [self]
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
+        return [UiSeparator(id="leaf", text=None)]
 
 
 class TestAssignNode:
@@ -66,11 +65,13 @@ class TestAssignNode:
         assert state.parameter_instance_refs()[_REF_TARGET] == "literal"
 
     def test_assign_mutation_visible_to_subsequent_sibling_in_collection(self):
+        # Assign fires before choose in eval order, so the leaf is reachable.
         assign = AssignNode(Assign(target_param_ref_ref=_REF_MODE, value="1"))
-        leaf = LeafNode()
+        leaf = UiLeaf()
         choose = ChooseWhenNode(_REF_MODE, {"1": [leaf]}, None)
         collection = GenericCollectionNode([assign, choose])
-        assert collection.params(EvalContext(GlobalState())) == [leaf]
+        result = collection.eval(EvalContext(GlobalState()))
+        assert result == [UiSeparator(id="leaf", text=None)]
 
     def test_assign_no_op_when_both_value_and_source_are_none(self):
         node = AssignNode(Assign(target_param_ref_ref=_REF_TARGET))

@@ -4,6 +4,7 @@ from xknxmono.models.intermediate import BinaryDataRef
 
 from .base import DynamicNode
 from ..context import EvalContext
+from ..ui import UiNode
 
 
 class BinaryDataRefNode(DynamicNode):
@@ -12,5 +13,5 @@ class BinaryDataRefNode(DynamicNode):
     def __init__(self, elem: BinaryDataRef):
         self._elem = elem
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
         return []

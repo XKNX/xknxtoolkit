@@ -4,6 +4,7 @@ from xknxmono.models.intermediate import ComObjectRefRef
 
 from .base import DynamicNode
 from ..context import EvalContext
+from ..ui import UiNode
 
 
 class ComObjectRefRefNode(DynamicNode):
@@ -12,10 +13,6 @@ class ComObjectRefRefNode(DynamicNode):
     def __init__(self, elem: ComObjectRefRef):
         self._elem = elem
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
-        ctx.mark_active(self._elem.ref_id)
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
+        ctx.mark_active_com_object(self._elem.ref_id)
         return []
-
-    def com_objects(self, ctx: EvalContext) -> list[str]:
-        self.eval(ctx)
-        return [ctx.qualify(self._elem.ref_id)]

@@ -1,18 +1,23 @@
 from xknxmono.product.parser_v2.nodes import ChooseWhenNode, DynamicNode, EvalContext, GlobalState
 from xknxmono.product.parser_v2.nodes.choose import _token_matches, _value_matches, satisfies
+from xknxmono.product.parser_v2.ui import UiNode
+from xknxmono.product.parser_v2.ui.separator import UiSeparator
 
 _BASE = "M-0008_A-7072-21-5CC3-O000A"
 _REF_MODE = f"{_BASE}_P-1_R-1"
 
+_UI_A = UiSeparator(id="a", text=None)
+_UI_B = UiSeparator(id="b", text=None)
 
-class LeafNode(DynamicNode):
-    """Test stub: a leaf that returns [] from eval and itself from params."""
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
-        return []
+class UiLeaf(DynamicNode):
+    """Stub leaf that returns a fixed UiSeparator so we can assert which branch was taken."""
 
-    def params(self, ctx: EvalContext) -> list:
-        return [self]
+    def __init__(self, marker: UiSeparator) -> None:
+        self._marker = marker
+
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
+        return [self._marker]
 
 
 class TestTokenMatches:
@@ -68,44 +73,27 @@ class TestChooseWhenNode:
         assert node.eval(EvalContext(GlobalState({_REF_MODE: "1"}))) == []
 
     def test_eval_returns_matching_branch(self):
-        leaf = LeafNode()
-        node = ChooseWhenNode(_REF_MODE, {"1": [leaf]}, None)
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "1"}))) == [leaf]
+        node = ChooseWhenNode(_REF_MODE, {"1": [UiLeaf(_UI_A)]}, None)
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "1"}))) == [_UI_A]
 
     def test_eval_falls_through_to_default(self):
-        leaf = LeafNode()
-        default_leaf = LeafNode()
-        node = ChooseWhenNode(_REF_MODE, {"1": [leaf]}, [default_leaf])
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}))) == [default_leaf]
+        node = ChooseWhenNode(_REF_MODE, {"1": [UiLeaf(_UI_A)]}, [UiLeaf(_UI_B)])
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}))) == [_UI_B]
 
     def test_eval_default_branch_without_test_condition(self):
-        # <when default="true"> with no Test attribute — default_nodes directly, no condition key
-        default_leaf = LeafNode()
-        node = ChooseWhenNode(_REF_MODE, {}, [default_leaf])
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "anything"}))) == [default_leaf]
+        node = ChooseWhenNode(_REF_MODE, {}, [UiLeaf(_UI_B)])
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "anything"}))) == [_UI_B]
 
     def test_eval_returns_empty_when_no_match_and_no_default(self):
-        leaf = LeafNode()
-        node = ChooseWhenNode(_REF_MODE, {"1": [leaf]}, None)
+        node = ChooseWhenNode(_REF_MODE, {"1": [UiLeaf(_UI_A)]}, None)
         assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}))) == []
 
     def test_eval_uses_empty_string_for_missing_param(self):
-        node = ChooseWhenNode(_REF_MODE, {"1": [LeafNode()]}, None)
+        node = ChooseWhenNode(_REF_MODE, {"1": [UiLeaf(_UI_A)]}, None)
         assert node.eval(EvalContext(GlobalState())) == []
 
-    def test_params_flatmaps_through_active_branch(self):
-        leaf = LeafNode()
-        node = ChooseWhenNode(_REF_MODE, {"1": [leaf]}, None)
-        assert node.params(EvalContext(GlobalState({_REF_MODE: "1"}))) == [leaf]
-
-    def test_params_returns_empty_for_inactive_branch(self):
-        leaf = LeafNode()
-        node = ChooseWhenNode(_REF_MODE, {"1": [leaf]}, None)
-        assert node.params(EvalContext(GlobalState({_REF_MODE: "99"}))) == []
-
     def test_eval_matches_value_in_space_separated_condition(self):
-        leaf = LeafNode()
-        node = ChooseWhenNode(_REF_MODE, {"1 2 130 4 6 134 36 132": [leaf]}, None)
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "130"}))) == [leaf]
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "36"}))) == [leaf]
+        node = ChooseWhenNode(_REF_MODE, {"1 2 130 4 6 134 36 132": [UiLeaf(_UI_A)]}, None)
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "130"}))) == [_UI_A]
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "36"}))) == [_UI_A]
         assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}))) == []

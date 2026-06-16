@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .base import DynamicNode
 from ..context import EvalContext
+from ..ui import UiNode
 
 _OPERATORS = (">=", "<=", ">", "<")
 
@@ -11,7 +12,7 @@ def _token_matches(value: str, token: str) -> bool:
     for op in _OPERATORS:
         if token.startswith(op):
             try:
-                left, right = int(value), int(token[len(op) :])
+                left, right = int(value), int(token[len(op):])
             except ValueError:
                 return False
             if op == ">=":
@@ -46,11 +47,11 @@ class ChooseWhenNode(DynamicNode):
         self._condition_to_nodes = condition_to_nodes
         self._default_nodes = default_nodes
 
-    def eval(self, ctx: EvalContext) -> list[DynamicNode]:
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
         value = ctx.get(self._param_ref_id) or ""
         for condition, nodes in self._condition_to_nodes.items():
             if satisfies(condition, value):
-                return [n for n in nodes if n is not None]
+                return [u for n in nodes if n for u in n.eval(ctx)]
         if self._default_nodes is not None:
-            return [n for n in self._default_nodes if n is not None]
+            return [u for n in self._default_nodes if n for u in n.eval(ctx)]
         return []

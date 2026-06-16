@@ -68,6 +68,7 @@ class DynamicTreeBuilder:
     def __init__(self, app: ApplicationProgram) -> None:
         assert app.dynamic is not None, "app has no dynamic section"
         self._idx = ApplicationIndexer(app)
+        self._app_id = app.id
         node = self._build(app.dynamic)
         assert node is not None, "dynamic section produced no tree"
         self.tree: DynamicNode = node
@@ -76,7 +77,11 @@ class DynamicTreeBuilder:
         if isinstance(elem, ApplicationProgramDynamic):
             return GenericCollectionNode([self._build(child) for child in elem.choice])
         elif isinstance(elem, ChannelIndependentBlock):
-            return ChannelNode([self._build(child) for child in elem.choice])
+            return ChannelNode(
+                [self._build(child) for child in elem.choice],
+                id=f"{self._app_id}_general",
+                name="General",
+            )
         elif isinstance(elem, ApplicationProgramChannel):
             return ChannelNode(
                 [self._build(child) for child in elem.choice],
@@ -153,19 +158,23 @@ class DynamicTreeBuilder:
 
 
 class DynamicUI:
-    __slots__ = ("_tree",)
+    __slots__ = ("_state", "_tree", "_ui")
 
-    def __init__(self, app: ApplicationProgram) -> None:
+    def __init__(self, app: ApplicationProgram, state: GlobalState | None = None) -> None:
         self._tree = DynamicTreeBuilder(app).tree
+        self._state = state or GlobalState()
+        self._ui: list[UiNode] | None = None
 
-    def ui(self, state: GlobalState | None = None) -> list[UiNode]:
-        s = state or GlobalState()
-        result = self._tree.ui(EvalContext(s))
-        s.trim_to_active()
-        return result
+    def ui(self) -> list[UiNode]:
+        if self._ui is None:
+            self._state.reset_active()
+            self._ui = self._tree.eval(EvalContext(self._state))
+            self._state.trim_to_active()
+        return self._ui
 
-    def params(self, state: GlobalState | None = None) -> list[str]:
-        return self._tree.params(EvalContext(state or GlobalState()))
-
-    def com_objects(self, state: GlobalState | None = None) -> list[str]:
-        return self._tree.com_objects(EvalContext(state or GlobalState()))
+    def set_parameter_ref(self, ref_id: str, value: str) -> None:
+        active = self._state.active_param_refs()
+        if active and ref_id not in active:
+            raise ValueError(f"parameter ref {ref_id!r} is not active in the current UI state")
+        self._state.set_instance_ref(ref_id, value)
+        self._ui = None
