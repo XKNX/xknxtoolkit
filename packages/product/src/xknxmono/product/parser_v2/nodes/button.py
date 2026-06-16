@@ -4,6 +4,8 @@ from xknxmono.models.intermediate import Button
 
 from .base import DynamicNode
 from ..context import EvalContext
+from ..ui import UiNode
+from ..ui.button import UiButton
 
 
 class ButtonNode(DynamicNode):
@@ -15,5 +17,5 @@ class ButtonNode(DynamicNode):
     def eval(self, ctx: EvalContext) -> list[DynamicNode]:
         return []
 
-    def ui(self, ctx: EvalContext) -> list:
-        return [self._elem]
+    def ui(self, ctx: EvalContext) -> list[UiNode]:
+        return [UiButton(id=self._elem.id, text=self._elem.text)]

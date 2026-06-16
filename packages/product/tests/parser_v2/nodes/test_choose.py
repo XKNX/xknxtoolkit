@@ -75,10 +75,14 @@ class TestChooseWhenNode:
     def test_eval_falls_through_to_default(self):
         leaf = LeafNode()
         default_leaf = LeafNode()
-        node = ChooseWhenNode(
-            _REF_MODE, {"1": [leaf], "default": [default_leaf]}, "default"
-        )
+        node = ChooseWhenNode(_REF_MODE, {"1": [leaf]}, [default_leaf])
         assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}))) == [default_leaf]
+
+    def test_eval_default_branch_without_test_condition(self):
+        # <when default="true"> with no Test attribute — default_nodes directly, no condition key
+        default_leaf = LeafNode()
+        node = ChooseWhenNode(_REF_MODE, {}, [default_leaf])
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "anything"}))) == [default_leaf]
 
     def test_eval_returns_empty_when_no_match_and_no_default(self):
         leaf = LeafNode()

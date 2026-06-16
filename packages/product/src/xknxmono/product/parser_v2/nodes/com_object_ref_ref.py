@@ -13,7 +13,9 @@ class ComObjectRefRefNode(DynamicNode):
         self._elem = elem
 
     def eval(self, ctx: EvalContext) -> list[DynamicNode]:
+        ctx.mark_active(self._elem.ref_id)
         return []
 
-    def com_objects(self, ctx: EvalContext) -> list:
-        return [ctx.qualify(self._elem.ref_id)] if self._elem.ref_id else []
+    def com_objects(self, ctx: EvalContext) -> list[str]:
+        self.eval(ctx)
+        return [ctx.qualify(self._elem.ref_id)]

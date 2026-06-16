@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from ..context import EvalContext
+from ..ui import UiNode
 
 
 class DynamicNode(ABC):
@@ -23,11 +24,11 @@ class DynamicNode(ABC):
     @abstractmethod
     def eval(self, ctx: EvalContext) -> list[DynamicNode]: ...
 
-    def params(self, ctx: EvalContext) -> list:
+    def params(self, ctx: EvalContext) -> list[str]:
         return [p for node in self.eval(ctx) for p in node.params(ctx)]
 
-    def com_objects(self, ctx: EvalContext) -> list:
+    def com_objects(self, ctx: EvalContext) -> list[str]:
         return [co for node in self.eval(ctx) for co in node.com_objects(ctx)]
 
-    def ui(self, ctx: EvalContext) -> list:
+    def ui(self, ctx: EvalContext) -> list[UiNode]:
         return [u for node in self.eval(ctx) for u in node.ui(ctx)]

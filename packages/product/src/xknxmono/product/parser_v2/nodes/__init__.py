@@ -2,8 +2,10 @@ from .assign import AssignNode
 from .base import DynamicNode
 from .binary_data_ref import BinaryDataRefNode
 from .button import ButtonNode
+from .channel import ChannelNode
 from .choose import ChooseWhenNode, satisfies
 from .collection import GenericCollectionNode
+from .com_object_parameter_block import ComObjectParameterBlockNode
 from .com_object_ref_ref import ComObjectRefRefNode
 from ..context import EvalContext, GlobalState, ModuleState
 from .module import ModuleNode
@@ -16,7 +18,9 @@ __all__ = [
     "AssignNode",
     "BinaryDataRefNode",
     "ButtonNode",
+    "ChannelNode",
     "ChooseWhenNode",
+    "ComObjectParameterBlockNode",
     "ComObjectRefRefNode",
     "DynamicNode",
     "EvalContext",

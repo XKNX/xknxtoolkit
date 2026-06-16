@@ -37,21 +37,20 @@ def satisfies(condition: str | None, value: str) -> bool:
 
 class ChooseWhenNode(DynamicNode):
     def __init__(
-        self, param_ref_id: str, condition_to_nodes: dict, default_condition: str | None
+        self,
+        param_ref_id: str,
+        condition_to_nodes: dict[str, list[DynamicNode | None]],
+        default_nodes: list[DynamicNode | None] | None,
     ):
         self._param_ref_id = param_ref_id
         self._condition_to_nodes = condition_to_nodes
-        self._default_condition = default_condition
+        self._default_nodes = default_nodes
 
     def eval(self, ctx: EvalContext) -> list[DynamicNode]:
         value = ctx.get(self._param_ref_id) or ""
         for condition, nodes in self._condition_to_nodes.items():
             if satisfies(condition, value):
                 return [n for n in nodes if n is not None]
-        if self._default_condition is not None:
-            return [
-                n
-                for n in self._condition_to_nodes[self._default_condition]
-                if n is not None
-            ]
+        if self._default_nodes is not None:
+            return [n for n in self._default_nodes if n is not None]
         return []

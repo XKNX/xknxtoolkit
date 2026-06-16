@@ -15,19 +15,23 @@ from xknxmono.models.intermediate import (
     DependentChannelChoose,
     Module,
     ModuleArg,
-    ModuleDef,
     ParameterRefRef,
     ParameterSeparator,
     Rename,
     Repeat,
 )
 
+from .application_indexer import ApplicationIndexer
+
 from .context import EvalContext, GlobalState
+from .ui import UiNode
 from .nodes import (
     AssignNode,
     BinaryDataRefNode,
     ButtonNode,
+    ChannelNode,
     ChooseWhenNode,
+    ComObjectParameterBlockNode,
     ComObjectRefRefNode,
     DynamicNode,
     GenericCollectionNode,
@@ -63,32 +67,28 @@ class DynamicTreeBuilder:
 
     def __init__(self, app: ApplicationProgram) -> None:
         assert app.dynamic is not None, "app has no dynamic section"
-        self._module_defs: dict[str, ModuleDef] = {}
-        if app.module_defs is not None:
-            for md in app.module_defs.module_def:
-                self._index_module_def(md)
+        self._idx = ApplicationIndexer(app)
         node = self._build(app.dynamic)
         assert node is not None, "dynamic section produced no tree"
         self.tree: DynamicNode = node
 
-    def _index_module_def(self, md: ModuleDef) -> None:
-        if md.id:
-            self._module_defs[md.id] = md
-        if md.sub_module_defs is not None:
-            for sub in md.sub_module_defs.module_def:
-                self._index_module_def(sub)
-
     def _build(self, elem: object) -> DynamicNode | None:
-        if isinstance(
-            elem,
-            (
-                ApplicationProgramDynamic,
-                ChannelIndependentBlock,
-                ApplicationProgramChannel,
-                ComObjectParameterBlock,
-            ),
-        ):
+        if isinstance(elem, ApplicationProgramDynamic):
             return GenericCollectionNode([self._build(child) for child in elem.choice])
+        elif isinstance(elem, ChannelIndependentBlock):
+            return ChannelNode([self._build(child) for child in elem.choice])
+        elif isinstance(elem, ApplicationProgramChannel):
+            return ChannelNode(
+                [self._build(child) for child in elem.choice],
+                id=elem.id,
+                name=elem.name,
+                text=elem.text,
+                number=elem.number,
+                icon=elem.icon,
+                text_parameter_ref_id=elem.text_parameter_ref_id,
+            )
+        elif isinstance(elem, ComObjectParameterBlock):
+            return ComObjectParameterBlockNode(elem, [self._build(child) for child in elem.choice])
         elif isinstance(
             elem, (DependentChannelChoose, ChannelChoose, ComObjectParameterChoose)
         ):
@@ -96,36 +96,41 @@ class DynamicTreeBuilder:
             # DependentChannelChoose: switches which channels are shown (root level)
             # ChannelChoose: switches content within a channel
             # ComObjectParameterChoose: switches content within a parameter block
-            default_condition: str | None = None
-            condition_to_nodes: dict = {}
+            default_nodes: list[DynamicNode | None] | None = None
+            condition_to_nodes: dict[str, list[DynamicNode | None]] = {}
             for when in elem.when:
+                built = [self._build(node) for node in when.choice]
                 if when.default:
-                    assert default_condition is None, (
-                        "default when-condition already exists"
+                    assert default_nodes is None, "duplicate default when-branch"
+                    default_nodes = built
+                if when.test is not None:
+                    assert condition_to_nodes.get(when.test) is None, (
+                        "when-condition already exists"
                     )
-                    default_condition = when.test
-                assert condition_to_nodes.get(when.test) is None, (
-                    "when-condition already exists"
-                )
-                condition_to_nodes[when.test] = [
-                    self._build(node) for node in when.choice
-                ]
+                    condition_to_nodes[when.test] = built
             return ChooseWhenNode(
-                elem.param_ref_id, condition_to_nodes, default_condition
+                elem.param_ref_id, condition_to_nodes, default_nodes
             )
         elif isinstance(elem, Repeat):
             # TODO: index substitution for non-Module children not yet implemented
             return RepeatNode(elem, [self._build(child) for child in elem.choice])
         elif isinstance(elem, Module):
-            mod_def = self._module_defs.get(elem.ref_id or "")
+            mod_def = self._idx.module_defs.get(elem.ref_id or "")
             if mod_def is None or mod_def.dynamic is None:
                 return None
             children = [self._build(child) for child in mod_def.dynamic.choice]
             arguments: dict[str, ModuleArg] = {arg.ref_id: arg for arg in elem.choice}
             return ModuleNode(elem.id, GenericCollectionNode(children), arguments)
         elif isinstance(elem, ParameterRefRef):
-            # Leaf: a parameter widget; ref_id points to the ParameterRef in Static
-            return ParameterRefRefNode(elem)
+            # Leaf: a parameter widget; resolve ParameterRef → Parameter → ParameterType at build time
+            pr = self._idx.parameter_refs.get(elem.ref_id)
+            assert pr is not None, f"ParameterRef {elem.ref_id!r} not found in static"
+            param = self._idx.parameters.get(pr.ref_id)
+            assert param is not None, f"Parameter {pr.ref_id!r} not found in static"
+            pt = self._idx.parameter_types.get(param.parameter_type)
+            assert pt is not None, f"ParameterType {param.parameter_type!r} not found in static"
+            assert pt.plugin is None, f"ParameterType {param.parameter_type!r} uses unsupported plugin {pt.plugin!r}"
+            return ParameterRefRefNode(elem, pr, param, pt)
         elif isinstance(elem, ComObjectRefRef):
             # Leaf: a communication object entry; ref_id points to the ComObjectRef in Static
             return ComObjectRefRefNode(elem)
@@ -153,11 +158,14 @@ class DynamicUI:
     def __init__(self, app: ApplicationProgram) -> None:
         self._tree = DynamicTreeBuilder(app).tree
 
-    def ui(self, state: GlobalState | None = None) -> list:
-        return self._tree.ui(EvalContext(state or GlobalState()))
+    def ui(self, state: GlobalState | None = None) -> list[UiNode]:
+        s = state or GlobalState()
+        result = self._tree.ui(EvalContext(s))
+        s.trim_to_active()
+        return result
 
-    def params(self, state: GlobalState | None = None) -> list:
+    def params(self, state: GlobalState | None = None) -> list[str]:
         return self._tree.params(EvalContext(state or GlobalState()))
 
-    def com_objects(self, state: GlobalState | None = None) -> list:
+    def com_objects(self, state: GlobalState | None = None) -> list[str]:
         return self._tree.com_objects(EvalContext(state or GlobalState()))

@@ -4,6 +4,7 @@ from xknxmono.models.intermediate import Repeat
 
 from .base import DynamicNode
 from ..context import EvalContext
+from ..ui import UiNode
 
 
 class RepeatNode(DynamicNode):
@@ -39,24 +40,24 @@ class RepeatNode(DynamicNode):
     def eval(self, ctx: EvalContext) -> list[DynamicNode]:
         return []
 
-    def params(self, ctx: EvalContext) -> list:
-        result = []
+    def params(self, ctx: EvalContext) -> list[str]:
+        result: list[str] = []
         for i in range(1, self._count(ctx) + 1):
             repeat_ctx = ctx.repeat_ctx(i)
             for c in self._active():
                 result.extend(c.params(repeat_ctx))
         return result
 
-    def com_objects(self, ctx: EvalContext) -> list:
-        result = []
+    def com_objects(self, ctx: EvalContext) -> list[str]:
+        result: list[str] = []
         for i in range(1, self._count(ctx) + 1):
             repeat_ctx = ctx.repeat_ctx(i)
             for c in self._active():
                 result.extend(c.com_objects(repeat_ctx))
         return result
 
-    def ui(self, ctx: EvalContext) -> list:
-        result = []
+    def ui(self, ctx: EvalContext) -> list[UiNode]:
+        result: list[UiNode] = []
         for i in range(1, self._count(ctx) + 1):
             repeat_ctx = ctx.repeat_ctx(i)
             for c in self._active():

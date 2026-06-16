@@ -4,6 +4,7 @@ from xknxmono.models.intermediate import ModuleArg
 
 from .base import DynamicNode
 from ..context import EvalContext
+from ..ui import UiNode
 
 
 class ModuleNode(DynamicNode):
@@ -29,11 +30,11 @@ class ModuleNode(DynamicNode):
     def _module_ctx(self, ctx: EvalContext) -> EvalContext:
         return ctx.module_ctx(self._module_id, self._arguments)
 
-    def params(self, ctx: EvalContext) -> list:
+    def params(self, ctx: EvalContext) -> list[str]:
         return self._subtree.params(self._module_ctx(ctx))
 
-    def com_objects(self, ctx: EvalContext) -> list:
+    def com_objects(self, ctx: EvalContext) -> list[str]:
         return self._subtree.com_objects(self._module_ctx(ctx))
 
-    def ui(self, ctx: EvalContext) -> list:
+    def ui(self, ctx: EvalContext) -> list[UiNode]:
         return self._subtree.ui(self._module_ctx(ctx))

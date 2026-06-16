@@ -4,6 +4,8 @@ from xknxmono.models.intermediate import ParameterSeparator
 
 from .base import DynamicNode
 from ..context import EvalContext
+from ..ui import UiNode
+from ..ui.separator import UiSeparator
 
 
 class ParameterSeparatorNode(DynamicNode):
@@ -15,5 +17,5 @@ class ParameterSeparatorNode(DynamicNode):
     def eval(self, ctx: EvalContext) -> list[DynamicNode]:
         return []
 
-    def ui(self, ctx: EvalContext) -> list:
-        return [self._elem]
+    def ui(self, ctx: EvalContext) -> list[UiNode]:
+        return [UiSeparator(id=self._elem.id, text=self._elem.text)]

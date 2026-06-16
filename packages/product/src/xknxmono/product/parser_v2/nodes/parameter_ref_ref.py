@@ -1,19 +1,61 @@
 from __future__ import annotations
 
-from xknxmono.models.intermediate import ParameterRefRef
+from xknxmono.models.intermediate import ParameterRefRef, ParameterType
+from xknxmono.models.intermediate.access_t import Access
+from xknxmono.models.intermediate.parameter_base_t import ParameterBase
+from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 
 from .base import DynamicNode
 from ..context import EvalContext
+from ..ui import UiNode
+from ..ui.parameter import UiParameter, resolve_widget
 
 
 class ParameterRefRefNode(DynamicNode):
     """Leaf: a direct reference to a parameter widget shown in the UI."""
 
-    def __init__(self, elem: ParameterRefRef):
+    def __init__(
+        self,
+        elem: ParameterRefRef,
+        param_ref: ParameterRef,
+        param: ParameterBase,
+        param_type: ParameterType,
+    ) -> None:
         self._elem = elem
+        self._param_ref = param_ref
+        self._param = param
+        self._param_type = param_type
 
     def eval(self, ctx: EvalContext) -> list[DynamicNode]:
+        ctx.mark_active(self._elem.ref_id)
         return []
 
-    def params(self, ctx: EvalContext) -> list:
-        return [ctx.qualify(self._elem.ref_id)] if self._elem.ref_id else []
+    def params(self, ctx: EvalContext) -> list[str]:
+        self.eval(ctx)
+        return [ctx.qualify(self._elem.ref_id)]
+
+    def ui(self, ctx: EvalContext) -> list[UiNode]:
+        self.eval(ctx)
+        access = self._param_ref.access if self._param_ref.access is not None else self._param.access
+        if access is Access.NONE:
+            return []
+        local_ref_id = self._elem.ref_id
+        static_label = self._param_ref.text or self._param.text or ""
+        text_ref = self._param_ref.text_parameter_ref_id
+        label = (ctx.get(text_ref) if text_ref else None) or static_label
+        suffix = self._param_ref.suffix_text or self._param.suffix_text
+        value = ctx.get(local_ref_id) or self._param_ref.value or self._param.value
+        return [
+            UiParameter(
+                ref_id=ctx.qualify(local_ref_id),
+                label=label,
+                value=value,
+                widget=resolve_widget(self._param_type),
+                indent_level=self._elem.indent_level,
+                suffix=suffix,
+                access=access,
+                icon=self._elem.icon,
+                cell=self._elem.cell,
+                text_alignment=self._param_type.text_alignment,
+            )
+        ]
