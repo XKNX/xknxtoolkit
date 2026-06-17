@@ -348,7 +348,7 @@ def _render_separator(sep: UiSeparator) -> None:
     if sep.text:
         imgui.separator_text(sep.text)
     else:
-        imgui.separator()
+        imgui.spacing()
 
 
 class EnumPopup:

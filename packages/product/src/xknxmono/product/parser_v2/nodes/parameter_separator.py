@@ -3,7 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate import ParameterSeparator
 
 from .base import DynamicNode
-from .._name import apply_text_args
+from .._name import apply_text_args, fill_name
 from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.separator import UiSeparator
@@ -16,7 +16,11 @@ class ParameterSeparatorNode(DynamicNode):
         self._elem = elem
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
-        text = self._elem.text
-        if text:
-            text = apply_text_args(text, ctx.get_arg_defaults()) or None
+        raw = self._elem.text
+        if raw:
+            template = apply_text_args(raw, ctx.get_arg_defaults())
+            name_value = ctx.get(self._elem.text_parameter_ref_id) if self._elem.text_parameter_ref_id else None
+            text: str | None = fill_name(template, name_value or "") or None
+        else:
+            text = None
         return [UiSeparator(id=self._elem.id, text=text, cell=self._elem.cell)]
