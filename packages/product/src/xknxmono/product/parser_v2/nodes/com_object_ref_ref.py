@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-
 from xknxmono.models.intermediate import ComObjectRefRef
 from xknxmono.models.intermediate.com_object_ref_t import ComObjectRef as IrComObjectRef
 from xknxmono.models.intermediate.com_object_t import ComObject as IrComObject
@@ -11,8 +9,7 @@ from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.com_object import UiComObject
 from .base import DynamicNode
-
-_NAME_PLACEHOLDER = re.compile(r"\{\{0(?::[^}]*)?\}\}")
+from .._name import apply_text_args, fill_name
 
 
 def _flag(ref_val: Enable | None, base_val: Enable | None) -> bool:
@@ -34,12 +31,6 @@ def _dpt_codes(ref_dpts: list[str], base_dpts: list[str]) -> tuple[str, ...]:
             continue
         codes.append(f"{major}.{minor}")
     return tuple(codes)
-
-
-def _fill_name(template: str, value: str) -> str:
-    text = _NAME_PLACEHOLDER.sub(value, template)
-    text = re.sub(r"\{\{[^}]+\}\}", "", text)
-    return re.sub(r"\s+", " ", text).strip()
 
 
 class ComObjectRefRefNode(DynamicNode):
@@ -107,7 +98,7 @@ class ComObjectRefRefNode(DynamicNode):
         ctx.mark_active_com_object(self._local_ref_id)
         qualified_ref_id = ctx.qualify(self._local_ref_id)
         name_value = ctx.get(self._text_param_ref_id) if self._text_param_ref_id else None
-        name = _fill_name(self._name_template, name_value or "")
+        name = fill_name(apply_text_args(self._name_template, ctx.get_arg_defaults()), name_value or "")
         return [
             UiComObject(
                 ref_id=qualified_ref_id,

@@ -22,9 +22,7 @@ from xknxmono.models.intermediate import (
 )
 
 from .application_indexer import ApplicationIndexer
-
-from .context import EvalContext, GlobalState, compute_defaults
-from .ui import UiNode
+from .context import EvalContext, GlobalState, compute_param_ref_defaults, compute_arg_defaults
 from .nodes import (
     AssignNode,
     BinaryDataRefNode,
@@ -41,6 +39,7 @@ from .nodes import (
     RenameNode,
     RepeatNode,
 )
+from .ui import UiNode
 
 __all__ = [
     "AssignNode",
@@ -61,6 +60,18 @@ __all__ = [
 ]
 
 
+class _AppNode(DynamicNode):
+    """Root wrapper: seeds global param-ref defaults into the context before evaluating the app tree."""
+
+    def __init__(self, subtree: DynamicNode, param_ref_defaults: dict[str, str]) -> None:
+        self._subtree = subtree
+        self._param_ref_defaults = param_ref_defaults
+
+    def eval(self, ctx: EvalContext) -> list[UiNode]:
+        ctx.seed_param_ref_defaults(self._param_ref_defaults)
+        return self._subtree.eval(ctx)
+
+
 class DynamicTreeBuilder:
     """Builds the evaluation tree for an ApplicationProgram, resolving Module references
     into pre-built subtrees so the eval path never touches the IR again."""
@@ -71,8 +82,8 @@ class DynamicTreeBuilder:
         self._app_id = app.id
         node = self._build(app.dynamic)
         assert node is not None, "dynamic section produced no tree"
-        self.tree: DynamicNode = node
-        self.global_defaults: dict[str, str] = compute_defaults(app.static.parameter_refs, self._idx)
+        global_param_ref_defaults = compute_param_ref_defaults(app.static.parameter_refs, self._idx)
+        self.tree: DynamicNode = _AppNode(node, global_param_ref_defaults)
 
     def _build(self, elem: object) -> DynamicNode | None:
         if isinstance(elem, ApplicationProgramDynamic):
@@ -126,8 +137,9 @@ class DynamicTreeBuilder:
                 return None
             children = [self._build(child) for child in mod_def.dynamic.choice]
             arguments: dict[str, ModuleArg] = {arg.ref_id: arg for arg in elem.choice}
-            def_defaults = compute_defaults(mod_def.static.parameter_refs if mod_def.static else None, self._idx)
-            return ModuleNode(elem.id, GenericCollectionNode(children), arguments, def_defaults)
+            param_ref_defaults = compute_param_ref_defaults(mod_def.static.parameter_refs if mod_def.static else None, self._idx)
+            arg_defaults = compute_arg_defaults(mod_def.arguments, list(elem.choice))
+            return ModuleNode(elem.id, GenericCollectionNode(children), arguments, param_ref_defaults, arg_defaults)
         elif isinstance(elem, ParameterRefRef):
             # Leaf: a parameter widget; resolve ParameterRef → Parameter → ParameterType at build time
             pr = self._idx.parameter_refs.get(elem.ref_id)
@@ -167,7 +179,6 @@ class DynamicUI:
         builder = DynamicTreeBuilder(app)
         self._tree = builder.tree
         self._state = state or GlobalState()
-        self._state._defaults = builder.global_defaults
         self._ui: list[UiNode] | None = None
 
     def ui(self) -> list[UiNode]:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate import Rename
 
 from .base import DynamicNode
+from .._name import apply_text_args
 from ..context import EvalContext
 from ..ui import UiNode
 
@@ -16,5 +17,6 @@ class RenameNode(DynamicNode):
         self._elem = elem
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
-        ctx.set_text(self._elem.ref_id, self._elem.text)
+        text = apply_text_args(self._elem.text, ctx.get_arg_defaults())
+        ctx.set_text(self._elem.ref_id, text)
         return []

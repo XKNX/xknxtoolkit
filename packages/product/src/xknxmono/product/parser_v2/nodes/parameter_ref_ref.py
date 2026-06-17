@@ -6,6 +6,7 @@ from xknxmono.models.intermediate.parameter_base_t import ParameterBase
 from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 
 from .base import DynamicNode
+from .._name import apply_text_args
 from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.parameter import UiParameter, resolve_widget
@@ -32,10 +33,12 @@ class ParameterRefRefNode(DynamicNode):
         if access is Access.NONE:
             return []
         local_ref_id = self._elem.ref_id
-        static_label = self._param_ref.text or self._param.text or ""
+        arg_defaults = ctx.get_arg_defaults()
+        static_label = apply_text_args(self._param_ref.text or self._param.text or "", arg_defaults)
         text_ref = self._param_ref.text_parameter_ref_id
         label = (ctx.get(text_ref) if text_ref else None) or static_label
-        suffix = self._param_ref.suffix_text or self._param.suffix_text
+        raw_suffix = self._param_ref.suffix_text or self._param.suffix_text
+        suffix = apply_text_args(raw_suffix, arg_defaults) if raw_suffix else raw_suffix
         value = ctx.get(local_ref_id) or self._param_ref.value or self._param.value
         return [
             UiParameter(

@@ -4,6 +4,7 @@ from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.tab import UiTab
 from .base import DynamicNode
+from .._name import apply_text_args, fill_name
 
 
 class ChannelNode(DynamicNode):
@@ -39,13 +40,13 @@ class ChannelNode(DynamicNode):
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
         items = [u for c in self._children if c for u in c.eval(ctx)]
-        text = (
-            ctx.get(self._text_param_ref_id) if self._text_param_ref_id else None
-        ) or self._text
+        template = apply_text_args(self._text or self._name or "", ctx.get_arg_defaults())
+        name_value = ctx.get(self._text_param_ref_id) if self._text_param_ref_id else None
+        text = fill_name(template, name_value or "") or None
         return [
             UiTab(
                 children=tuple(items),
-                id=self._id,
+                id=ctx.qualify(self._id or ""),
                 name=self._name,
                 text=text,
                 number=self._number,

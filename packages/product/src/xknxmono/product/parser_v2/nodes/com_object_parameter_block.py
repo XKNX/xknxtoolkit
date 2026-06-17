@@ -3,6 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate.application_program_channel_t import ComObjectParameterBlock
 
 from .base import DynamicNode
+from .._name import apply_text_args, fill_name
 from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.parameter_block import UiParameterBlock
@@ -19,16 +20,15 @@ class ComObjectParameterBlockNode(DynamicNode):
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
         items = [u for c in self._children if c for u in c.eval(ctx)]
+        arg_defaults = ctx.get_arg_defaults()
         text_ref = self._elem.text_parameter_ref_id
-        text = (
-            ctx.get_text(self._elem.id)
-            or (ctx.get(text_ref) if text_ref else None)
-            or self._elem.text
-        )
+        name_value = ctx.get(text_ref) if text_ref else None
+        template = ctx.get_text(self._elem.id) or self._elem.text or self._elem.name
+        text = fill_name(apply_text_args(template or "", arg_defaults), name_value or "") or None
         rows = self._elem.rows
         cols = self._elem.columns
-        row_labels = tuple(r.text or r.name or "" for r in rows.row) if rows else ()
-        column_headers = tuple(c.text or c.name or "" for c in cols.column) if cols else ()
+        row_labels = tuple(apply_text_args(r.text or r.name or "", arg_defaults) for r in rows.row) if rows else ()
+        column_headers = tuple(apply_text_args(c.text or c.name or "", arg_defaults) for c in cols.column) if cols else ()
         return [UiParameterBlock(
             id=self._elem.id,
             name=self._elem.name,
