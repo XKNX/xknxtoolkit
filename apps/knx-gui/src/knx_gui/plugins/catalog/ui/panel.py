@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from imgui_bundle import imgui
 
-from xknxmono.catalog import ProductSummary
+if TYPE_CHECKING:
+    from xknxmono.catalog import ProductSummary
 
 
 def _label(product: ProductSummary) -> str:

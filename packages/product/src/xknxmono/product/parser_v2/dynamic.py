@@ -23,7 +23,7 @@ from xknxmono.models.intermediate import (
 
 from .application_indexer import ApplicationIndexer
 
-from .context import EvalContext, GlobalState
+from .context import EvalContext, GlobalState, compute_defaults
 from .ui import UiNode
 from .nodes import (
     AssignNode,
@@ -72,6 +72,7 @@ class DynamicTreeBuilder:
         node = self._build(app.dynamic)
         assert node is not None, "dynamic section produced no tree"
         self.tree: DynamicNode = node
+        self.global_defaults: dict[str, str] = compute_defaults(app.static.parameter_refs, self._idx)
 
     def _build(self, elem: object) -> DynamicNode | None:
         if isinstance(elem, ApplicationProgramDynamic):
@@ -125,7 +126,8 @@ class DynamicTreeBuilder:
                 return None
             children = [self._build(child) for child in mod_def.dynamic.choice]
             arguments: dict[str, ModuleArg] = {arg.ref_id: arg for arg in elem.choice}
-            return ModuleNode(elem.id, GenericCollectionNode(children), arguments)
+            def_defaults = compute_defaults(mod_def.static.parameter_refs if mod_def.static else None, self._idx)
+            return ModuleNode(elem.id, GenericCollectionNode(children), arguments, def_defaults)
         elif isinstance(elem, ParameterRefRef):
             # Leaf: a parameter widget; resolve ParameterRef → Parameter → ParameterType at build time
             pr = self._idx.parameter_refs.get(elem.ref_id)
@@ -162,8 +164,10 @@ class DynamicUI:
     __slots__ = ("_state", "_tree", "_ui")
 
     def __init__(self, app: ApplicationProgram, state: GlobalState | None = None) -> None:
-        self._tree = DynamicTreeBuilder(app).tree
+        builder = DynamicTreeBuilder(app)
+        self._tree = builder.tree
         self._state = state or GlobalState()
+        self._state._defaults = builder.global_defaults
         self._ui: list[UiNode] | None = None
 
     def ui(self) -> list[UiNode]:

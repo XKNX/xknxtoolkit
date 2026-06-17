@@ -21,6 +21,7 @@ import types
 import typing
 from collections.abc import Callable
 from dataclasses import dataclass, field, fields, is_dataclass
+from enum import Enum
 from typing import TYPE_CHECKING, Any, get_args, get_origin
 
 if TYPE_CHECKING:
@@ -200,6 +201,18 @@ def convert(ctx: Context, src: Any, target_cls: type) -> Any:
                 if is_list
                 else convert(ctx, src_val, base)
             )
+        elif isinstance(base, type) and issubclass(base, Enum):
+            if is_list:
+                kwargs[f.name] = [
+                    base(v.value) if isinstance(v, Enum) and type(v) is not base else v
+                    for v in src_val
+                ]
+            else:
+                kwargs[f.name] = (
+                    base(src_val.value)
+                    if isinstance(src_val, Enum) and type(src_val) is not base
+                    else src_val
+                )
         else:
             kwargs[f.name] = src_val
 

@@ -3,7 +3,7 @@ from enum import Enum
 from functools import lru_cache
 
 from imgui_bundle import imgui
-from xknx.dpt import DPTBase
+from xknx.dpt.dpt import DPTBase
 
 
 @dataclass(frozen=True)
@@ -36,8 +36,8 @@ def lookup_or_make_dpt(code: str | None) -> DPT:
 
     xknx_dpt = DPTBase.parse_transcoder(code)
     if xknx_dpt is not None:
-        name = xknx_dpt.value_type.replace("_", " ").title()
-        label = xknx_dpt.unit if xknx_dpt.unit else xknx_dpt.value_type
+        name = (xknx_dpt.value_type or "").replace("_", " ").title()
+        label = xknx_dpt.unit or xknx_dpt.value_type or code
         return DPT(major, minor, name, label)
 
     return DPT(major, minor, f"DPT {major}.{minor:03d}", code)

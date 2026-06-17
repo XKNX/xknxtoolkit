@@ -6,8 +6,8 @@ from knx_gui.plugins.project.strings import S
 from knx_gui.types import Device
 from knx_gui.widgets import (
     ComFlagsTable,
-    render_parameters_grouped,
-    render_parameters_tree,
+    count_parameters,
+    render_ui_tree,
 )
 
 
@@ -47,7 +47,7 @@ class ConfigurePanel:
             self._set_selected_device(device)
 
         current_idx = 0
-        labels = []
+        labels: list[str] = []
         for i, d in enumerate(devices):
             label = (
                 f"{d.name} ({d.individual_address})" if d.individual_address else d.name
@@ -109,16 +109,13 @@ class ConfigurePanel:
             )
             self._render_label_value(S.CONFIGURE_APPLICATION, device.app.id)
 
-        params = device.get_visible_parameters()
-        if params and imgui.collapsing_header(
-            S.CONFIGURE_PARAMETERS.format(count=len(params)),
+        ui_nodes = device.get_ui()
+        param_count = count_parameters(ui_nodes)
+        if ui_nodes and imgui.collapsing_header(
+            S.CONFIGURE_PARAMETERS.format(count=param_count),
             imgui.TreeNodeFlags_.default_open,
         ):
-            tree = device.get_visible_tree()
-            if tree:
-                render_parameters_tree(device, tree, self._on_param_change)
-            else:
-                render_parameters_grouped(device, params, self._on_param_change)
+            render_ui_tree(device, ui_nodes, self._on_param_change)
 
         visible_cos = device.get_visible_com_objects()
         if imgui.collapsing_header(

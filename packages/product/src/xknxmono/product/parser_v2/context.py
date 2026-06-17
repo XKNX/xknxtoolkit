@@ -2,6 +2,28 @@ from __future__ import annotations
 
 from xknxmono.models.intermediate import ModuleArg, ModuleInstance, ParameterInstanceRef
 
+from .application_indexer import ApplicationIndexer
+
+
+def compute_defaults(refs_container: object, idx: ApplicationIndexer) -> dict[str, str]:
+    """Return {pr.id: effective_value} for all ParameterRefs in a static section.
+
+    Tries pr.value first; falls back to the base Parameter's value via idx.
+    """
+    result: dict[str, str] = {}
+    refs = getattr(refs_container, "parameter_ref", None) if refs_container is not None else None
+    if not refs:
+        return result
+    for pr in refs:
+        value = pr.value
+        if value is None:
+            base = idx.parameters.get(pr.ref_id)
+            if base is not None:
+                value = base.value
+        if value is not None:
+            result[pr.id] = value
+    return result
+
 
 class _ParameterState:
     """Shared base for GlobalState and ModuleState.
@@ -19,24 +41,30 @@ class _ParameterState:
         "_active_com_object_refs",
         "_active_param_refs",
         "_children",
+        "_defaults",
         "_parent",
         "_text",
         "param_ref_id_to_value",
     )
 
-    def __init__(self, values: dict[str, str] | None = None, parent: _ParameterState | None = None) -> None:
+    def __init__(self, values: dict[str, str] | None = None, parent: _ParameterState | None = None, defaults: dict[str, str] | None = None) -> None:
         self.param_ref_id_to_value: dict[str, str] = dict(values or {})
         self._parent: _ParameterState | None = parent
         self._children: dict[str, ModuleState] = {}
         self._text: dict[str, str] = {}
         self._active_param_refs: set[str] = set()
         self._active_com_object_refs: set[str] = set()
+        self._defaults: dict[str, str] = defaults or {}
 
     def get(self, ref_id: str) -> str | None:
         val = self.param_ref_id_to_value.get(ref_id)
         if val is not None:
             return val
-        return self._parent.get(ref_id) if self._parent is not None else None
+        if self._parent is not None:
+            parent_val = self._parent.get(ref_id)
+            if parent_val is not None:
+                return parent_val
+        return self._defaults.get(ref_id)
 
     def set(self, ref_id: str, value: str) -> None:
         self.param_ref_id_to_value[ref_id] = value
@@ -103,15 +131,18 @@ class _ParameterState:
         else:
             self.set(ref_id, value)
 
-    def module_child(self, module_id: str, repeat_idx: int = 1, arguments: dict[str, ModuleArg] | None = None) -> ModuleState:
+    def module_child(self, module_id: str, repeat_idx: int = 1, arguments: dict[str, ModuleArg] | None = None, defaults: dict[str, str] | None = None) -> ModuleState:
         """Returns (creating if needed) the module instance state and wires it into the tree."""
         key = f"{module_id}_MI-{repeat_idx}"
         if key not in self._children:
-            child = ModuleState(key, arguments)
+            child = ModuleState(key, arguments, defaults=defaults)
             child._parent = self
             self._children[key] = child
         else:
-            self._children[key]._parent = self
+            child = self._children[key]
+            child._parent = self
+            if defaults is not None:
+                child._defaults = defaults
         return self._children[key]
 
     def parameter_instance_refs(self) -> dict[str, str]:
@@ -175,8 +206,8 @@ class ModuleState(_ParameterState):
 
     __slots__ = ("arguments", "module_instance_id")
 
-    def __init__(self, module_instance_id: str, arguments: dict[str, ModuleArg] | None = None) -> None:
-        super().__init__()
+    def __init__(self, module_instance_id: str, arguments: dict[str, ModuleArg] | None = None, defaults: dict[str, str] | None = None) -> None:
+        super().__init__(defaults=defaults)
         self.module_instance_id = module_instance_id
         self.arguments: dict[str, ModuleArg] = arguments or {}
 
@@ -249,14 +280,12 @@ class EvalContext:
         self._repeat_idx = repeat_idx
 
     def get(self, ref_id: str) -> str | None:
-        # Walks the parent chain (submodule → module → global) until found.
         return self._scope.get(ref_id)
 
     def qualify(self, ref_id: str) -> str:
         return self._scope.qualify(ref_id)
 
     def set(self, ref_id: str, value: str) -> None:
-        # Writes to the active scope only; mutations are visible to siblings in the same scope.
         self._scope.set(ref_id, value)
 
     def set_text(self, ref_id: str, text: str) -> None:
@@ -272,10 +301,9 @@ class EvalContext:
         self._scope.mark_active_com_object(ref_id)
 
     def repeat_ctx(self, repeat_idx: int) -> EvalContext:
-        # Carries the repeat counter forward so the next module_ctx call lands on _MI-{repeat_idx}.
         return EvalContext(self._scope, repeat_idx)
 
-    def module_ctx(self, module_id: str, default_arguments: dict[str, ModuleArg] | None = None) -> EvalContext:
+    def module_ctx(self, module_id: str, default_arguments: dict[str, ModuleArg] | None = None, defaults: dict[str, str] | None = None) -> EvalContext:
         # Enters a module instance scope; wires the current scope as the new state's parent.
-        ms = self._scope.module_child(module_id, self._repeat_idx, default_arguments)
+        ms = self._scope.module_child(module_id, self._repeat_idx, default_arguments, defaults=defaults)
         return EvalContext(ms)

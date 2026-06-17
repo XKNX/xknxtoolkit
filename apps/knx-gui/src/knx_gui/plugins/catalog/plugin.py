@@ -1,7 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.catalog.strings import S
 from knx_gui.plugins.catalog.ui import CatalogPanel
-from xknxmono.catalog import ProductSummary
+
+if TYPE_CHECKING:
+    from xknxmono.catalog import ProductSummary
 
 
 class CatalogPlugin:

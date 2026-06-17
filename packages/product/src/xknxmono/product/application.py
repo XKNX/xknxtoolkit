@@ -12,30 +12,22 @@ from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 from xknxmono.models import detect_version
-from xknxmono.models.intermediate.application_program_t import ApplicationProgram
-from xknxmono.models.intermediate.knx import Knx
-from xknxmono.models.intermediate.load_procedure_style_t import LoadProcedureStyle
 
 from .data import to_ir
-from .parser import (
-    build_app_dynamic_tree,
-    extract_app_com_objects,
-    extract_app_param_types,
-    extract_app_param_values,
-    extract_app_parameters,
-)
-from .parser import dynamic as dy
-from .parser.com_objects import ComObject
-from .parser.modules import fill_name
-from .parser.parameters import Parameter, ParamType
 
 if TYPE_CHECKING:
     from xknxmono.models.intermediate.application_program_static_t_code import (
         ApplicationProgramStaticCode,
     )
+    from xknxmono.models.intermediate.application_program_t import ApplicationProgram
+    from xknxmono.models.intermediate.knx import Knx
+    from xknxmono.models.intermediate.load_procedure_style_t import LoadProcedureStyle
     from xknxmono.models.intermediate.load_procedures_t import LoadProcedures
 
+    from .parser.com_objects import ComObject
     from .parser.dynamic import DynamicElement, VisibleNode
+    from .parser.parameters import Parameter, ParamType
+    from .parser_v2.dynamic import DynamicUI
 
 
 @dataclass(slots=True)
@@ -61,19 +53,23 @@ class Application:
 
     # --- resolved views ------------------------------------------------------
     def param_types(self) -> dict[str, ParamType]:
-        return extract_app_param_types(self.program)
+        from .parser.parameters import extract_types as _extract_types
+        return _extract_types(self.program)
 
     def parameters(self) -> list[Parameter]:
         if self._params is None:
-            self._params = extract_app_parameters(self.program)
+            from .parser.parameters import extract as _extract_params
+            self._params = _extract_params(self.program)
         return self._params
 
     def com_objects(self) -> list[ComObject]:
-        return extract_app_com_objects(self.program)
+        from .parser.com_objects import extract as _extract_com_objects
+        return _extract_com_objects(self.program)
 
     def dynamic_tree(self) -> DynamicElement | None:
         if not self._tree_built:
-            self._tree = build_app_dynamic_tree(self.program)
+            from .parser.dynamic import build_app_dynamic_tree as _build_tree
+            self._tree = _build_tree(self.program)
             self._tree_built = True
         return self._tree
 
@@ -89,11 +85,20 @@ class Application:
     def load_procedure_style(self) -> LoadProcedureStyle | None:
         return self.program.load_procedure_style
 
+    def dynamic_ui(self) -> DynamicUI | None:
+        """Create a fresh DynamicUI for this application. Returns None if the application has no
+        dynamic section. The caller owns the returned instance and its embedded GlobalState."""
+        if self.program.dynamic is None:
+            return None
+        from .parser_v2.dynamic import DynamicUI as _DynamicUI
+        return _DynamicUI(self.program)
+
     def default_values(self) -> dict[str, str]:
         """Every parameter's default value (incl. non-displayable params), keyed by ParameterRef id.
         This is the complete map the dynamic visibility tree must be evaluated against."""
         if self._values is None:
-            self._values = extract_app_param_values(self.program)
+            from .parser.parameters import extract_values as _extract_values
+            self._values = _extract_values(self.program)
         return self._values
 
     # --- dynamic visibility --------------------------------------------------
@@ -103,7 +108,8 @@ class Application:
         return self.default_values()
 
     def visible_tree(self, values: dict[str, str] | None = None) -> list[VisibleNode]:
-        return dy.evaluate_tree(
+        from .parser import dynamic as _dy
+        return _dy.evaluate_tree(
             self.dynamic_tree(),
             self._values_or_defaults(values),
             {p.id: p for p in self.parameters()},
@@ -112,13 +118,15 @@ class Application:
     def visible_parameters(
         self, values: dict[str, str] | None = None
     ) -> list[Parameter]:
-        return dy.visible_parameters(self.parameters(), self.dynamic_tree(), values)
+        from .parser import dynamic as _dy
+        return _dy.visible_parameters(self.parameters(), self.dynamic_tree(), values)
 
     def visible_com_objects(
         self, values: dict[str, str] | None = None
     ) -> list[ComObject]:
+        from .parser import dynamic as _dy
         resolved = self._values_or_defaults(values)
-        visible = dy.filter_visible_com_objects(
+        visible = _dy.filter_visible_com_objects(
             self.com_objects(), self.dynamic_tree(), resolved
         )
         return [_named(co, resolved) for co in visible]
@@ -128,7 +136,8 @@ def _named(co: ComObject, values: dict[str, str]) -> ComObject:
     """Fill a com-object's name placeholder from its name parameter's current value."""
     if not co.name_param_ref_id:
         return co
-    name = fill_name(co.name_template, values.get(co.name_param_ref_id, ""))
+    from .parser.modules import fill_name as _fill_name
+    name = _fill_name(co.name_template, values.get(co.name_param_ref_id, ""))
     return replace(co, name=name) if name != co.name else co
 
 

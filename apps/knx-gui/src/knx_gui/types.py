@@ -3,12 +3,19 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from imgui_bundle import imgui
 from xknx.telegram import Telegram as XknxTelegram
 
+from typing import TYPE_CHECKING
+
 from knx_gui.dpt import DPT
-from xknxmono.product import Application, ParamType, VisibleNode
+from xknxmono.product import Application
+
+if TYPE_CHECKING:
+    from xknxmono.product.parser_v2.dynamic import DynamicUI
+    from xknxmono.product.parser_v2.ui import UiComObject, UiNode
 
 
 class PinDir(Enum):
@@ -55,7 +62,7 @@ class ComObject:
     name: str
     dpt: DPT
     flags: ComObjectFlags
-    supported_dpts: list[DPT] = field(default_factory=list)
+    supported_dpts: list[DPT] = field(default_factory=list[DPT])
     db_id: int | None = None
 
 
@@ -121,7 +128,7 @@ def flag_diff_letters(
     flags: ComObjectFlags, direction: PinDir
 ) -> list[tuple[str, bool]]:
     default = default_flags_for(direction)
-    diffs = []
+    diffs: list[tuple[str, bool]] = []
     for attr, letter, _ in FLAG_LABELS:
         if getattr(flags, attr) != getattr(default, attr):
             diffs.append((letter, getattr(flags, attr)))
@@ -169,13 +176,18 @@ def generate_rows(com_objects: list[ComObject]) -> list[PinRow]:
     return rows
 
 
-@dataclass
-class Parameter:
-    id: str
-    name: str
-    text: str
-    value: str
-    param_type: ParamType | None = None
+def _collect_ui_com_objects(nodes: list[UiNode] | tuple[UiNode, ...]) -> list[UiComObject]:
+    from xknxmono.product.parser_v2.ui import UiComObject as _UiComObject
+    from xknxmono.product.parser_v2.ui import UiParameterBlock as _UiParameterBlock
+    from xknxmono.product.parser_v2.ui import UiTab as _UiTab
+
+    result: list[UiComObject] = []
+    for node in nodes:
+        if isinstance(node, _UiComObject):
+            result.append(node)
+        elif isinstance(node, (_UiTab, _UiParameterBlock)):
+            result.extend(_collect_ui_com_objects(node.children))
+    return result
 
 
 @dataclass
@@ -184,20 +196,15 @@ class Device:
     name: str
     app: Application
     individual_address: str
-    com_objects: list[ComObject] = field(default_factory=list)
-    _param_values: dict[str, str] = field(default_factory=dict)
-    _cached_visible_params: list[Parameter] = field(default_factory=list)
-    _cached_visible_tree: list[VisibleNode] = field(default_factory=list)
-    _params_dirty: bool = True
-    _tree_dirty: bool = True
-    _cached_visible_cos: list[ComObject] = field(default_factory=list)
-    _cos_dirty: bool = True
+    com_objects: list[ComObject] = field(default_factory=list[ComObject])
+    _dynamic_ui: DynamicUI | None = field(default=None, repr=False, compare=False, init=False)
 
     def __post_init__(self) -> None:
         if not self.com_objects:
             self.com_objects = self._create_com_objects_from_app()
-        # the complete default map (incl. non-displayable params) so visibility conditions resolve
-        self._param_values.update(self.app.default_values())
+        if self.app.program.dynamic is not None:
+            from xknxmono.product.parser_v2.dynamic import DynamicUI as _DynamicUI
+            self._dynamic_ui = _DynamicUI(self.app.program)
 
     def _create_com_objects_from_app(self) -> list[ComObject]:
         from knx_gui.dpt import DPT_UNKNOWN, lookup_or_make_dpt
@@ -219,7 +226,7 @@ class Device:
             )
             supported = [lookup_or_make_dpt(code) for code in co.dpt_codes]
             seen: set[tuple[int, int]] = set()
-            unique_supported: list = []
+            unique_supported: list[DPT] = []
             for dpt in supported:
                 key = (dpt.major, dpt.minor)
                 if key in seen:
@@ -242,69 +249,35 @@ class Device:
     def rows(self) -> list[PinRow]:
         return generate_rows(self.get_visible_com_objects())
 
+    def get_ui(self) -> list[UiNode]:
+        if self._dynamic_ui is None:
+            return []
+        return self._dynamic_ui.ui()
+
     def get_visible_com_objects(self) -> list[ComObject]:
-        if not self._cos_dirty:
-            return self._cached_visible_cos
-        # The resolved names carry the channel name the user typed (filled {{0}} placeholder).
-        name_by_id = {
-            co.id: co.name for co in self.app.visible_com_objects(self._param_values)
-        }
+        if self._dynamic_ui is None:
+            return list(self.com_objects)
+        ui_cos = _collect_ui_com_objects(self._dynamic_ui.ui())
+        active_ids = {co.ref_id for co in ui_cos}
+        name_by_id = {co.ref_id: co.name for co in ui_cos}
         result: list[ComObject] = []
         for co in self.com_objects:
-            if co.id in name_by_id:
-                co.name = name_by_id[co.id]
+            if co.id in active_ids:
+                resolved = name_by_id.get(co.id)
+                if resolved:
+                    co.name = resolved
                 result.append(co)
-        self._cached_visible_cos = result
-        self._cos_dirty = False
-        return self._cached_visible_cos
+        return result
 
-    def get_visible_parameters(self) -> list[Parameter]:
-        if not self._params_dirty:
-            return self._cached_visible_params
-        visible_knx = self.app.visible_parameters(self._param_values)
-        self._cached_visible_params = [
-            Parameter(
-                id=p.id,
-                name=p.name,
-                text=p.text,
-                value=self._param_values.get(p.id, p.value),
-                param_type=p.param_type,
-            )
-            for p in visible_knx
-        ]
-        self._params_dirty = False
-        return self._cached_visible_params
-
-    def would_hide_com_objects(self, param_id: str, value: str) -> list[ComObject]:
-        test_values = dict(self._param_values)
-        test_values[param_id] = value
-        new_visible_ids = {co.id for co in self.app.visible_com_objects(test_values)}
-        current_visible = self.get_visible_com_objects()
-        return [co for co in current_visible if co.id not in new_visible_ids]
-
-    def set_param_value(self, param_id: str, value: str) -> None:
-        if self._param_values.get(param_id) != value:
-            self._param_values[param_id] = value
-            self._params_dirty = True
-            self._tree_dirty = True
-            self._cos_dirty = True
-            for p in self._cached_visible_params:
-                if p.id == param_id:
-                    p.value = value
-                    break
+    def set_param_value(self, ref_id: str, value: str) -> None:
+        if self._dynamic_ui is not None:
+            self._dynamic_ui.set_parameter_ref(ref_id, value)
 
     def find_com_object(self, co_id: str) -> ComObject | None:
         for co in self.com_objects:
             if co.id == co_id:
                 return co
         return None
-
-    def get_visible_tree(self) -> list[VisibleNode]:
-        if not self._tree_dirty and self._cached_visible_tree:
-            return self._cached_visible_tree
-        self._cached_visible_tree = self.app.visible_tree(self._param_values)
-        self._tree_dirty = False
-        return self._cached_visible_tree
 
 
 @dataclass
@@ -328,9 +301,10 @@ class TelegramRecord:
 
     @property
     def tpci(self) -> str:
-        if self.telegram.tpci is None:
+        tpci = self.telegram.tpci
+        if not tpci:
             return ""
-        return type(self.telegram.tpci).__name__
+        return type(tpci).__name__
 
     @property
     def dpt(self) -> str:
@@ -347,7 +321,7 @@ class TelegramRecord:
             return ""
         return self._format_payload_value(payload)
 
-    def _format_payload_value(self, payload) -> str:
+    def _format_payload_value(self, payload: Any) -> str:
         name = type(payload).__name__
 
         if name == "DeviceDescriptorRead":

@@ -256,6 +256,7 @@ def main() -> None:
     runner_params.app_window_params.window_title = S.APP_TITLE
     runner_params.app_window_params.window_geometry.size = (1280, 720)
     runner_params.app_window_params.restore_previous_geometry = True
+    runner_params.fps_idling.enable_idling = False
 
     runner_params.imgui_window_params.default_imgui_window_type = (
         hello_imgui.DefaultImGuiWindowType.provide_full_screen_dock_space

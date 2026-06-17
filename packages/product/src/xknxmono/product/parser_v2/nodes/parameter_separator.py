@@ -15,4 +15,4 @@ class ParameterSeparatorNode(DynamicNode):
         self._elem = elem
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
-        return [UiSeparator(id=self._elem.id, text=self._elem.text)]
+        return [UiSeparator(id=self._elem.id, text=self._elem.text, cell=self._elem.cell)]

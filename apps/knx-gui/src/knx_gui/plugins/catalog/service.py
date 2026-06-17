@@ -5,15 +5,19 @@ and all catalog logic. This wrapper adds the bits the GUI needs on top: an entri
 re-reads them every frame), path-based import, and reporting which applications were newly added.
 """
 
-from pathlib import Path
+from __future__ import annotations
 
-from xknxmono.catalog import CatalogService as _CatalogService
-from xknxmono.catalog import ProductSummary
-from xknxmono.product import Application
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from xknxmono.catalog import ProductSummary
+    from xknxmono.product import Application
 
 
 class CatalogService:
     def __init__(self, catalog_path: Path) -> None:
+        from xknxmono.catalog import CatalogService as _CatalogService
         self._service = _CatalogService(catalog_path)
         self._products: list[ProductSummary] | None = None
 

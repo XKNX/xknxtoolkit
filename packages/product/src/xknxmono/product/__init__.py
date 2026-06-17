@@ -1,31 +1,45 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 __version__ = "0.1.0"
 
-from .application import Application, parse_application_xml
-from .archive import Archive
-from .catalog import CatalogItem, CatalogSection, parse_catalog_xml
-from .hardware import DeviceProgram, Hardware, HardwareDoc, Product, parse_hardware_xml
-from .instance import (
-    ApplicationInstance,
-    ComObjectView,
-    InstanceSnapshot,
-    PersistedComObject,
-    PersistedParam,
-)
-from .loader import load
-from .master import MasterData, parse_master_xml
-from .parser.com_objects import ComObject, ComObjectFlags
-from .parser.dynamic import (
-    DynamicChoose,
-    DynamicElement,
-    DynamicWhen,
-    GridCell,
-    GridLayout,
-    VisibleNode,
-)
-from .parser.parameters import EnumOption, Parameter, ParamType, ParamTypeKind
-from .registry import Registry
+# All public names are re-exported lazily via __getattr__ (PEP 562).
+# Callers can use `from xknxmono.product import X` or `xknxmono.product.X` as before.
+_LAZY: dict[str, tuple[str, str]] = {
+    "Application": (".application", "Application"),
+    "parse_application_xml": (".application", "parse_application_xml"),
+    "Archive": (".archive", "Archive"),
+    "CatalogItem": (".catalog", "CatalogItem"),
+    "CatalogSection": (".catalog", "CatalogSection"),
+    "parse_catalog_xml": (".catalog", "parse_catalog_xml"),
+    "DeviceProgram": (".hardware", "DeviceProgram"),
+    "Hardware": (".hardware", "Hardware"),
+    "HardwareDoc": (".hardware", "HardwareDoc"),
+    "Product": (".hardware", "Product"),
+    "parse_hardware_xml": (".hardware", "parse_hardware_xml"),
+    "ApplicationInstance": (".instance", "ApplicationInstance"),
+    "ComObjectView": (".instance", "ComObjectView"),
+    "InstanceSnapshot": (".instance", "InstanceSnapshot"),
+    "PersistedComObject": (".instance", "PersistedComObject"),
+    "PersistedParam": (".instance", "PersistedParam"),
+    "load": (".loader", "load"),
+    "MasterData": (".master", "MasterData"),
+    "parse_master_xml": (".master", "parse_master_xml"),
+    "ComObject": (".parser.com_objects", "ComObject"),
+    "ComObjectFlags": (".parser.com_objects", "ComObjectFlags"),
+    "DynamicChoose": (".parser.dynamic", "DynamicChoose"),
+    "DynamicElement": (".parser.dynamic", "DynamicElement"),
+    "DynamicWhen": (".parser.dynamic", "DynamicWhen"),
+    "GridCell": (".parser.dynamic", "GridCell"),
+    "GridLayout": (".parser.dynamic", "GridLayout"),
+    "VisibleNode": (".parser.dynamic", "VisibleNode"),
+    "EnumOption": (".parser.parameters", "EnumOption"),
+    "Parameter": (".parser.parameters", "Parameter"),
+    "ParamType": (".parser.parameters", "ParamType"),
+    "ParamTypeKind": (".parser.parameters", "ParamTypeKind"),
+    "Registry": (".registry", "Registry"),
+}
 
 __all__ = [
     "Application",
@@ -61,3 +75,41 @@ __all__ = [
     "parse_hardware_xml",
     "parse_master_xml",
 ]
+
+if TYPE_CHECKING:
+    from .application import Application, parse_application_xml
+    from .archive import Archive
+    from .catalog import CatalogItem, CatalogSection, parse_catalog_xml
+    from .hardware import DeviceProgram, Hardware, HardwareDoc, Product, parse_hardware_xml
+    from .instance import (
+        ApplicationInstance,
+        ComObjectView,
+        InstanceSnapshot,
+        PersistedComObject,
+        PersistedParam,
+    )
+    from .loader import load
+    from .master import MasterData, parse_master_xml
+    from .parser.com_objects import ComObject, ComObjectFlags
+    from .parser.dynamic import (
+        DynamicChoose,
+        DynamicElement,
+        DynamicWhen,
+        GridCell,
+        GridLayout,
+        VisibleNode,
+    )
+    from .parser.parameters import EnumOption, Parameter, ParamType, ParamTypeKind
+    from .registry import Registry
+
+
+def __getattr__(name: str) -> object:
+    if name in _LAZY:
+        import importlib
+        module_path, attr = _LAZY[name]
+        mod = importlib.import_module(module_path, __package__)
+        value = getattr(mod, attr)
+        # Cache on the module so repeated access is O(1)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

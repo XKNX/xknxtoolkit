@@ -25,6 +25,10 @@ class ComObjectParameterBlockNode(DynamicNode):
             or (ctx.get(text_ref) if text_ref else None)
             or self._elem.text
         )
+        rows = self._elem.rows
+        cols = self._elem.columns
+        row_labels = tuple(r.text or r.name or "" for r in rows.row) if rows else ()
+        column_headers = tuple(c.text or c.name or "" for c in cols.column) if cols else ()
         return [UiParameterBlock(
             id=self._elem.id,
             name=self._elem.name,
@@ -32,4 +36,6 @@ class ComObjectParameterBlockNode(DynamicNode):
             inline=self._elem.inline,
             layout=self._elem.layout,
             children=tuple(items),
+            row_labels=row_labels,
+            column_headers=column_headers,
         )]

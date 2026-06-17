@@ -22,11 +22,11 @@ class DemoDevice:
 
 
 DEMO_DEVICES = [
-    DemoDevice("M-0083_A-0009-21-FB5C", "Switch Actuator 4x", "1.1.1"),
-    DemoDevice("M-0083_A-013F-31-1DDA", "Dimming Actuator 2x", "1.1.2"),
-    DemoDevice("M-0083_A-0020-15-7F81", "Push Button 2-fold", "1.1.3"),
-    DemoDevice("M-0083_A-004D-13-2B44", "Weather Station", "1.1.4"),
-    DemoDevice("M-0083_A-0112-10-2897", "Energy Meter", "1.1.5"),
+    DemoDevice("M-0001_A-9082-02-0908", "Shutter Actuator 4x", "1.1.1"),
+    DemoDevice("M-0001_A-9801-83-D585", "Roller Shutter Switch 4x", "1.1.2"),
+    DemoDevice("M-0001_A-980D-03-EF67", "Binary Input 2x", "1.1.3"),
+    DemoDevice("M-0008_A-7072-21-5CC3-O000A", "Button Interface 2-gang", "1.1.4"),
+    DemoDevice("M-0001_A-0003-32-73C9", "Line Coupler", "1.1.5"),
 ]
 
 

@@ -6,4 +6,5 @@ from dataclasses import dataclass
 @dataclass(frozen=True, slots=True)
 class UiSeparator:
     id: str
-    text: str
+    text: str | None
+    cell: str | None = None

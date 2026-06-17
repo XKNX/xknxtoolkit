@@ -6,7 +6,10 @@ These helpers provide that: list every application with the manufacturer that sh
 the application XML / parsed detail from a hardware-program id or straight from an application id.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -17,9 +20,9 @@ from xknxmono.catalog.models import (
     HardwareProgram,
     Manufacturer,
 )
-from xknxmono.product import Application as ProductApplication
-from xknxmono.product import parse_application_xml
-from xknxmono.product.archive import Archive
+
+if TYPE_CHECKING:
+    from xknxmono.product import Application as ProductApplication
 
 
 @dataclass(frozen=True)
@@ -78,6 +81,8 @@ def get_application_xml(db: Session, program_id: str) -> tuple[bytes, str] | Non
     if not program or not program.application_id:
         return None
 
+    from xknxmono.product.archive import Archive
+
     manufacturer_id = program.hardware.manufacturer_id
     archive = Archive(program.knxprod_path)
     with archive:
@@ -115,6 +120,9 @@ def get_application_detail(db: Session, program_id: str) -> ProductApplication |
     ).first()
     if not program or not program.application_id:
         return None
+
+    from xknxmono.product import parse_application_xml
+    from xknxmono.product.archive import Archive
 
     manufacturer_id = program.hardware.manufacturer_id
     archive = Archive(program.knxprod_path)
