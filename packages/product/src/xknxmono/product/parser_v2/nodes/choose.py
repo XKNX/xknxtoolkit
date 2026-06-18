@@ -49,9 +49,12 @@ class ChooseWhenNode(DynamicNode):
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
         value = ctx.get(self._param_ref_id) or ""
+        result: list[UiNode] = []
+        matched = False
         for condition, nodes in self._condition_to_nodes.items():
             if satisfies(condition, value):
-                return [u for n in nodes if n for u in n.eval(ctx)]
-        if self._default_nodes is not None:
-            return [u for n in self._default_nodes if n for u in n.eval(ctx)]
-        return []
+                matched = True
+                result.extend(u for n in nodes if n for u in n.eval(ctx))
+        if not matched and self._default_nodes is not None:
+            result.extend(u for n in self._default_nodes if n for u in n.eval(ctx))
+        return result
