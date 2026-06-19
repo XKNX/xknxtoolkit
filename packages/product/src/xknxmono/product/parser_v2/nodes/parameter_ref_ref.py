@@ -5,11 +5,11 @@ from xknxmono.models.intermediate.access_t import Access
 from xknxmono.models.intermediate.parameter_base_t import ParameterBase
 from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 
-from .base import DynamicNode
 from .._name import apply_text_args
 from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.parameter import UiParameter, resolve_widget
+from .base import DynamicNode
 
 
 class ParameterRefRefNode(DynamicNode):

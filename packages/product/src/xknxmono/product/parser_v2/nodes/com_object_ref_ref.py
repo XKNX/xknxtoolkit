@@ -5,11 +5,11 @@ from xknxmono.models.intermediate.com_object_ref_t import ComObjectRef as IrComO
 from xknxmono.models.intermediate.com_object_t import ComObject as IrComObject
 from xknxmono.models.intermediate.enable_t import Enable
 
+from .._name import apply_text_args, fill_name
 from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.com_object import UiComObject
 from .base import DynamicNode
-from .._name import apply_text_args, fill_name
 
 
 def _flag(ref_val: Enable | None, base_val: Enable | None) -> bool:

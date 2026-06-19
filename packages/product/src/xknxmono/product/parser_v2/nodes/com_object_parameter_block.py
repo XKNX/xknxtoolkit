@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from xknxmono.models.intermediate.application_program_channel_t import ComObjectParameterBlock
+from xknxmono.models.intermediate.application_program_channel_t import (
+    ComObjectParameterBlock,
+)
 
-from .base import DynamicNode
 from .._name import apply_text_args, fill_name
 from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.parameter_block import UiParameterBlock
+from .base import DynamicNode
 
 
 class ComObjectParameterBlockNode(DynamicNode):

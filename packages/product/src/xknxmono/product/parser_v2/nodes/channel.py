@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from .._name import apply_text_args, fill_name
 from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.tab import UiTab
 from .base import DynamicNode
-from .._name import apply_text_args, fill_name
 
 
 class ChannelNode(DynamicNode):

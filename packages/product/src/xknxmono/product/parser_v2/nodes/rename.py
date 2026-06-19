@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from xknxmono.models.intermediate import Rename
 
-from .base import DynamicNode
 from .._name import apply_text_args
 from ..context import EvalContext
 from ..ui import UiNode
+from .base import DynamicNode
 
 
 class RenameNode(DynamicNode):

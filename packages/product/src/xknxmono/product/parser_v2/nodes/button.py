@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from xknxmono.models.intermediate import Button
 
-from .base import DynamicNode
 from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.button import UiButton
+from .base import DynamicNode
 
 
 class ButtonNode(DynamicNode):

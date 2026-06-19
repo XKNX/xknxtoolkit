@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from .base import DynamicNode
 from ..context import EvalContext
 from ..ui import UiNode
+from .base import DynamicNode
 
 _OPERATORS = (">=", "<=", ">", "<")
 

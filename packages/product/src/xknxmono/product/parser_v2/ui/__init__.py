@@ -1,8 +1,5 @@
 from .button import UiButton
 from .com_object import UiComObject
-from .parameter_block import UiParameterBlock
-from .separator import UiSeparator
-from .tab import UiTab
 from .parameter import (
     CheckBoxWidget,
     ColorWidget,
@@ -23,6 +20,10 @@ from .parameter import (
     Widget,
     resolve_widget,
 )
+from .parameter_block import UiParameterBlock
+from .separator import UiSeparator
+from .tab import UiTab
+
 UiNode = UiTab | UiParameterBlock | UiParameter | UiSeparator | UiButton | UiComObject
 
 __all__ = [

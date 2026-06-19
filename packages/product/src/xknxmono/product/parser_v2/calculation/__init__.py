@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from xknxmono.models.intermediate.parameter_calculation_t import ParameterCalculation
-from xknxmono.models.intermediate.parameter_calculation_t_language import ParameterCalculationLanguage
+from xknxmono.models.intermediate.parameter_calculation_t_language import (
+    ParameterCalculationLanguage,
+)
 
 from ._js import eval_inline, eval_named_func
 
