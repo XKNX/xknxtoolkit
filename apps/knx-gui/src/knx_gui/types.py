@@ -198,6 +198,8 @@ class Device:
     individual_address: str
     com_objects: list[ComObject] = field(default_factory=list[ComObject])
     _dynamic_ui: DynamicUI | None = field(default=None, repr=False, compare=False, init=False)
+    _cached_visible_cos: list[ComObject] | None = field(default=None, repr=False, compare=False, init=False)
+    _cached_rows: list[PinRow] | None = field(default=None, repr=False, compare=False, init=False)
 
     def __post_init__(self) -> None:
         if not self.com_objects:
@@ -247,7 +249,9 @@ class Device:
 
     @property
     def rows(self) -> list[PinRow]:
-        return generate_rows(self.get_visible_com_objects())
+        if self._cached_rows is None:
+            self._cached_rows = generate_rows(self.get_visible_com_objects())
+        return self._cached_rows
 
     def get_ui(self) -> list[UiNode]:
         if self._dynamic_ui is None:
@@ -255,6 +259,8 @@ class Device:
         return self._dynamic_ui.ui()
 
     def get_visible_com_objects(self) -> list[ComObject]:
+        if self._cached_visible_cos is not None:
+            return self._cached_visible_cos
         if self._dynamic_ui is None:
             return list(self.com_objects)
         ui_cos = _collect_ui_com_objects(self._dynamic_ui.ui())
@@ -267,11 +273,14 @@ class Device:
                 if resolved:
                     co.name = resolved
                 result.append(co)
+        self._cached_visible_cos = result
         return result
 
     def set_param_value(self, ref_id: str, value: str) -> None:
         if self._dynamic_ui is not None:
             self._dynamic_ui.set_parameter_ref(ref_id, value)
+            self._cached_visible_cos = None
+            self._cached_rows = None
 
     def find_com_object(self, co_id: str) -> ComObject | None:
         for co in self.com_objects:

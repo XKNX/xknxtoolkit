@@ -115,6 +115,9 @@ class ProjectService:
         self._app_cache: dict[str, Application] = {}
         self._program_to_app: dict[str, str] | None = None
         self._devices_cache: list[Device] | None = None
+        self._areas_cache: list[_Area] | None = None
+        self._lines_cache: dict[int, list[_Line]] | None = None
+        self._ga_cache: list[_GroupAddress] | None = None
         self._cache_version: int = -1
         self._version: int = 0
         self._selected_node_id: int | None = None
@@ -170,6 +173,9 @@ class ProjectService:
 
     def _reset(self) -> None:
         self._devices_cache = None
+        self._areas_cache = None
+        self._lines_cache = None
+        self._ga_cache = None
         self._cache_version = -1
         self._version = 0
         self._selected_node_id = None
@@ -262,29 +268,38 @@ class ProjectService:
         assert self._pid is not None
         return self._svc.topology(self._pid, _INSTALLATION)
 
+    def _ensure_topology_cache(self) -> None:
+        if self._areas_cache is not None and self._cache_version == self._version:
+            return
+        if self._pid is None:
+            self._areas_cache = []
+            self._lines_cache = {}
+            return
+        installation = self._svc.topology(self._pid, _INSTALLATION)
+        self._areas_cache = [
+            _Area(id=a.id, area_number=a.address, name=a.name)
+            for a in installation.areas
+        ]
+        self._lines_cache = {
+            a.id: [
+                _Line(id=ln.id, area_id=ln.area_id, line_number=ln.address, name=ln.name)
+                for ln in a.lines
+            ]
+            for a in installation.areas
+        }
+        self._cache_version = self._version
+
     def get_areas(self) -> list[_Area]:
         if self._pid is None:
             return []
-        return [
-            _Area(id=a.id, area_number=a.address, name=a.name)
-            for a in self._installation().areas
-        ]
+        self._ensure_topology_cache()
+        return self._areas_cache or []
 
     def get_lines(self, area_id: int) -> list[_Line]:
         if self._pid is None:
             return []
-        for area in self._installation().areas:
-            if area.id == area_id:
-                return [
-                    _Line(
-                        id=ln.id,
-                        area_id=ln.area_id,
-                        line_number=ln.address,
-                        name=ln.name,
-                    )
-                    for ln in area.lines
-                ]
-        return []
+        self._ensure_topology_cache()
+        return (self._lines_cache or {}).get(area_id, [])
 
     # --- group address reads ----------------------------------------------
 
@@ -292,10 +307,14 @@ class ProjectService:
     def group_addresses(self) -> list[_GroupAddress]:
         if self._pid is None:
             return []
-        return [
+        if self._ga_cache is not None and self._cache_version == self._version:
+            return self._ga_cache
+        self._ga_cache = [
             _GroupAddress(id=g.id, address=g.text, name=g.name)
             for g in self._svc.group_addresses(self._pid)
         ]
+        self._cache_version = self._version
+        return self._ga_cache
 
     def get_group_address(self, ga_id: int) -> _GroupAddress | None:
         if self._pid is None:
