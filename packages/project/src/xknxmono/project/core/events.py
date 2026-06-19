@@ -27,6 +27,7 @@ from xknxmono.project.models import (
     GroupRange,
     Installation,
     Line,
+    ModuleInstance,
     Parameter,
     Segment,
 )
@@ -257,9 +258,12 @@ class AddDevice(Event):
     parameters: list[list[str]] = field(default_factory=list[list[str]])
     # each entry is [ref_id, channel_id] (channel_id may be None)
     com_objects: list[list[str | None]] = field(default_factory=list[list[str | None]])
+    # each entry is [instance_id, ref_id] e.g. ["M-100_MI-1", "M-100"]
+    module_instances: list[list[str]] = field(default_factory=list[list[str]])
     device_id: int | None = None
     parameter_ids: list[int] = field(default_factory=list[int])
     com_object_ids: list[int] = field(default_factory=list[int])
+    module_instance_ids: list[int] = field(default_factory=list[int])
 
     def apply(self, session: Session) -> None:
         device = Device(
@@ -271,6 +275,11 @@ class AddDevice(Event):
         )
         if self.device_id is not None:
             device.id = self.device_id
+        for i, (instance_id, ref_id) in enumerate(self.module_instances):
+            mi = ModuleInstance(instance_id=instance_id, ref_id=ref_id)
+            if i < len(self.module_instance_ids):
+                mi.id = self.module_instance_ids[i]
+            device.module_instances.append(mi)
         for i, (ref_id, value) in enumerate(self.parameters):
             param = Parameter(ref_id=ref_id, value=value)
             if i < len(self.parameter_ids):
@@ -285,6 +294,7 @@ class AddDevice(Event):
         session.add(device)
         session.flush()
         self.device_id = device.id
+        self.module_instance_ids = [mi.id for mi in device.module_instances]
         self.parameter_ids = [p.id for p in device.parameters]
         self.com_object_ids = [c.id for c in device.com_objects]
 
@@ -302,9 +312,11 @@ class AddDevice(Event):
             "hardware2program_ref_id": self.hardware2program_ref_id,
             "parameters": self.parameters,
             "com_objects": self.com_objects,
+            "module_instances": self.module_instances,
             "device_id": self.device_id,
             "parameter_ids": self.parameter_ids,
             "com_object_ids": self.com_object_ids,
+            "module_instance_ids": self.module_instance_ids,
         }
 
     @classmethod
@@ -851,6 +863,7 @@ _MODELS: dict[str, type[Base]] = {
         Line,
         Segment,
         Device,
+        ModuleInstance,
         Parameter,
         ComObject,
         GroupRange,

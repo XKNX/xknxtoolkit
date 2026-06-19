@@ -234,18 +234,22 @@ class ProjectService:
             )
             return None
         assert self._pid is not None
+        from xknxmono.models.intermediate import ParameterInstanceRef as _PIR
+        from xknxmono.models.intermediate.module_instance_t import ModuleInstance as _MI
+        pirs = [_PIR(ref_id=p.ref_id, value=p.value) for p in row.parameters]
+        mis = [_MI(id=mi.instance_id, ref_id=mi.ref_id) for mi in row.module_instances]
+        coirs = [coir for co_row in row.com_objects if (coir := _co_instance_ref_from_row(co_row)) is not None]
         ia = self._svc.individual_address(self._pid, row.id) or ""
-        device = Device(node_id=row.id, name=row.name, app=app, individual_address=ia)
-        for param in row.parameters:
-            device.set_param_value(param.ref_id, param.value)
+        device = Device(
+            node_id=row.id, name=row.name, app=app, individual_address=ia,
+            parameter_instance_refs=pirs,
+            module_instances=mis,
+            com_object_instance_refs=coirs,
+        )
         for co_row in row.com_objects:
             co = device.find_com_object(co_row.ref_id)
-            if co is None:
-                continue
-            co.db_id = co_row.id
-            coir = _co_instance_ref_from_row(co_row)
-            if coir is not None:
-                device.set_com_obj_instance_ref(co_row.ref_id, coir)
+            if co is not None:
+                co.db_id = co_row.id
         return device
 
     @property
@@ -368,16 +372,17 @@ class ProjectService:
         if self._pid is None:
             return None
         segment_id = self._installation().areas[0].lines[0].segments[0].id
-        params = [(p.id, p.value) for p in app.parameters()]
-        com_objects = [(co.id, None) for co in app.com_objects()]
+        init_device = Device(node_id=0, name=name, app=app, individual_address="")
+        com_objects: list[tuple[str, str | None]] = [(co.id, None) for co in init_device.com_objects]
+        module_instances = init_device.get_module_instances()
         device_id = self._svc.add_device(
             self._pid,
             segment_id,
             product_ref_id,
             name=name,
             hardware2program_ref_id=hardware2program_ref_id,
-            parameters=params,
             com_objects=com_objects,
+            module_instances=module_instances if module_instances else None,
         )
         if hardware2program_ref_id is not None:
             self._app_cache[hardware2program_ref_id] = app

@@ -3,18 +3,22 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from imgui_bundle import imgui
 from xknx.telegram import Telegram as XknxTelegram
-
-from typing import TYPE_CHECKING
 
 from knx_gui.dpt import DPT
 from xknxmono.product import Application
 
 if TYPE_CHECKING:
-    from xknxmono.models.intermediate.com_object_instance_ref_t import ComObjectInstanceRef
+    from xknxmono.models.intermediate.com_object_instance_ref_t import (
+        ComObjectInstanceRef,
+    )
+    from xknxmono.models.intermediate.module_instance_t import ModuleInstance
+    from xknxmono.models.intermediate.parameter_instance_ref_t import (
+        ParameterInstanceRef,
+    )
     from xknxmono.product.parser_v2.dynamic import DynamicUI
     from xknxmono.product.parser_v2.ui import UiComObject, UiNode
 
@@ -198,51 +202,60 @@ class Device:
     app: Application
     individual_address: str
     com_objects: list[ComObject] = field(default_factory=list[ComObject])
+    parameter_instance_refs: list[ParameterInstanceRef] = field(default_factory=list, repr=False, compare=False)
+    module_instances: list[ModuleInstance] = field(default_factory=list, repr=False, compare=False)
+    com_object_instance_refs: list[ComObjectInstanceRef] = field(default_factory=list, repr=False, compare=False)
     _dynamic_ui: DynamicUI | None = field(default=None, repr=False, compare=False, init=False)
     _cached_visible_cos: list[ComObject] | None = field(default=None, repr=False, compare=False, init=False)
     _cached_rows: list[PinRow] | None = field(default=None, repr=False, compare=False, init=False)
 
     def __post_init__(self) -> None:
-        if not self.com_objects:
-            self.com_objects = self._create_com_objects_from_app()
         if self.app.program.dynamic is not None:
             from xknxmono.product.parser_v2.dynamic import DynamicUI as _DynamicUI
-            self._dynamic_ui = _DynamicUI(self.app.program)
+            self._dynamic_ui = _DynamicUI(
+                self.app.program,
+                parameter_instance_refs=self.parameter_instance_refs or None,
+                module_instances=self.module_instances or None,
+                com_object_instance_refs=self.com_object_instance_refs or None,
+            )
+        if not self.com_objects:
+            self.com_objects = self._create_com_objects_from_app()
 
     def _create_com_objects_from_app(self) -> list[ComObject]:
+        if self._dynamic_ui is None:
+            return []
         from knx_gui.dpt import DPT_UNKNOWN, lookup_or_make_dpt
 
+        ui_cos = _collect_ui_com_objects(self._dynamic_ui.ui())
         result: list[ComObject] = []
-        for co in self.app.com_objects():
-            flags = ComObjectFlags(
-                communication=co.flags.communication,
-                read=co.flags.read,
-                write=co.flags.write,
-                transmit=co.flags.transmit,
-                update=co.flags.update,
-                read_on_init=co.flags.read_on_init,
-                read_locked=co.flags.read_locked,
-                write_locked=co.flags.write_locked,
-                transmit_locked=co.flags.transmit_locked,
-                update_locked=co.flags.update_locked,
-                read_on_init_locked=co.flags.read_on_init_locked,
-            )
-            supported = [lookup_or_make_dpt(code) for code in co.dpt_codes]
+        for ui_co in ui_cos:
+            supported = [lookup_or_make_dpt(code) for code in ui_co.dpt_codes]
             seen: set[tuple[int, int]] = set()
             unique_supported: list[DPT] = []
             for dpt in supported:
                 key = (dpt.major, dpt.minor)
-                if key in seen:
-                    continue
-                seen.add(key)
-                unique_supported.append(dpt)
+                if key not in seen:
+                    seen.add(key)
+                    unique_supported.append(dpt)
             primary = unique_supported[0] if unique_supported else DPT_UNKNOWN
             result.append(
                 ComObject(
-                    id=co.id,
-                    name=co.name,
+                    id=ui_co.ref_id,
+                    name=ui_co.name,
                     dpt=primary,
-                    flags=flags,
+                    flags=ComObjectFlags(
+                        communication=ui_co.communication,
+                        read=ui_co.read,
+                        write=ui_co.write,
+                        transmit=ui_co.transmit,
+                        update=ui_co.update,
+                        read_on_init=ui_co.read_on_init,
+                        read_locked=ui_co.read_locked,
+                        write_locked=ui_co.write_locked,
+                        transmit_locked=ui_co.transmit_locked,
+                        update_locked=ui_co.update_locked,
+                        read_on_init_locked=ui_co.read_on_init_locked,
+                    ),
                     supported_dpts=unique_supported,
                 )
             )
@@ -293,6 +306,12 @@ class Device:
             self._dynamic_ui.set_parameter_ref(ref_id, value)
             self._cached_visible_cos = None
             self._cached_rows = None
+
+    def get_module_instances(self) -> list[tuple[str, str]]:
+        """Return ``(instance_id, ref_id)`` for every top-level module instance."""
+        if self._dynamic_ui is None:
+            return []
+        return self._dynamic_ui.get_module_instances()
 
     def find_com_object(self, co_id: str) -> ComObject | None:
         for co in self.com_objects:

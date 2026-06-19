@@ -125,12 +125,31 @@ class Device(Base):
     hardware2program_ref_id: Mapped[str | None] = mapped_column(String)
 
     segment: Mapped["Segment"] = relationship(back_populates="devices")
+    module_instances: Mapped[list["ModuleInstance"]] = relationship(
+        back_populates="device", cascade="all, delete-orphan"
+    )
     parameters: Mapped[list["Parameter"]] = relationship(
         back_populates="device", cascade="all, delete-orphan"
     )
     com_objects: Mapped[list["ComObject"]] = relationship(
         back_populates="device", cascade="all, delete-orphan"
     )
+
+
+class ModuleInstance(Base):
+    """A module instance: ``instance_id`` is the key used during eval (e.g. ``M-100_MI-1``);
+    ``ref_id`` is the module definition ref (e.g. ``M-100``). Only top-level instances are stored."""
+
+    __tablename__ = "module_instances"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    device_id: Mapped[int] = mapped_column(
+        ForeignKey("devices.id"), nullable=False, index=True
+    )
+    instance_id: Mapped[str] = mapped_column(String, nullable=False)
+    ref_id: Mapped[str] = mapped_column(String, nullable=False)
+
+    device: Mapped["Device"] = relationship(back_populates="module_instances")
 
 
 class Parameter(Base):

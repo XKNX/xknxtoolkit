@@ -16,6 +16,8 @@ from xknxmono.models.intermediate import (
     DependentChannelChoose,
     Module,
     ModuleArg,
+    ModuleInstance,
+    ParameterInstanceRef,
     ParameterRefRef,
     ParameterSeparator,
     Rename,
@@ -25,7 +27,6 @@ from xknxmono.models.intermediate import (
 from .application_indexer import ApplicationIndexer
 from .calculation import evaluate_lr, evaluate_rl
 from .context import EvalContext
-from .state import GlobalState, compute_param_ref_defaults, compute_arg_defaults
 from .nodes import (
     AssignNode,
     BinaryDataRefNode,
@@ -42,6 +43,7 @@ from .nodes import (
     RenameNode,
     RepeatNode,
 )
+from .state import GlobalState, compute_arg_defaults, compute_param_ref_defaults
 from .ui import UiNode
 
 __all__ = [
@@ -178,11 +180,21 @@ class DynamicTreeBuilder:
 class DynamicUI:
     __slots__ = ("_idx", "_state", "_tree", "_ui")
 
-    def __init__(self, app: ApplicationProgram, state: GlobalState | None = None) -> None:
+    def __init__(
+        self,
+        app: ApplicationProgram,
+        parameter_instance_refs: list[ParameterInstanceRef] | None = None,
+        module_instances: list[ModuleInstance] | None = None,
+        com_object_instance_refs: list[ComObjectInstanceRef] | None = None,
+    ) -> None:
         builder = DynamicTreeBuilder(app)
         self._tree = builder.tree
         self._idx = builder.idx
-        self._state = state or GlobalState()
+        self._state = GlobalState.from_project(
+            parameter_instance_refs=parameter_instance_refs,
+            module_instances=module_instances,
+            com_object_instance_refs=com_object_instance_refs,
+        )
         self._ui: list[UiNode] | None = None
 
     def ui(self) -> list[UiNode]:
@@ -191,6 +203,11 @@ class DynamicUI:
             self._ui = self._tree.eval(EvalContext(self._state))
             self._state.trim_to_active()
         return self._ui
+
+    def get_module_instances(self) -> list[tuple[str, str]]:
+        """Return ``(instance_id, ref_id)`` for every top-level module instance after eval."""
+        self.ui()
+        return [(iid, rid) for iid, rid, _ in self._state.module_instances()]
 
     def set_com_obj_instance_ref(self, ref_id: str, coir: ComObjectInstanceRef) -> None:
         self._state.set_com_obj_instance_ref(ref_id, coir)
