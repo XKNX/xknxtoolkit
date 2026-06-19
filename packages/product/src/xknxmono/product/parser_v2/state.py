@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from xknxmono.models.intermediate import (
+    ComObjectInstanceRef,
     ModuleArg,
     ModuleInstance,
     ModuleTextArg,
@@ -60,6 +61,7 @@ class ParameterState:
         "_active_com_object_refs",
         "_active_param_refs",
         "_children",
+        "_com_obj_instance_refs",
         "_param_ref_defaults",
         "_parent",
         "_text",
@@ -74,6 +76,7 @@ class ParameterState:
         self._active_param_refs: set[str] = set()
         self._active_com_object_refs: set[str] = set()
         self._param_ref_defaults: dict[str, str] = param_ref_defaults or {}
+        self._com_obj_instance_refs: dict[str, ComObjectInstanceRef] = {}
 
     def get(self, ref_id: str) -> str | None:
         val = self.param_ref_id_to_value.get(ref_id)
@@ -105,6 +108,17 @@ class ParameterState:
 
     def mark_active_com_object(self, ref_id: str) -> None:
         self._active_com_object_refs.add(ref_id)
+
+    def set_com_obj_instance_ref(self, ref_id: str, coir: ComObjectInstanceRef) -> None:
+        self._com_obj_instance_refs[ref_id] = coir
+
+    def get_com_obj_instance_ref(self, ref_id: str) -> ComObjectInstanceRef | None:
+        result = self._com_obj_instance_refs.get(ref_id)
+        if result is not None:
+            return result
+        if self._parent is not None:
+            return self._parent.get_com_obj_instance_ref(ref_id)
+        return None
 
     def reset_active(self) -> None:
         """Clear active ref sets before a new traversal."""
@@ -193,6 +207,7 @@ class GlobalState(ParameterState):
         cls,
         parameter_instance_refs: list[ParameterInstanceRef] | None = None,
         module_instances: list[ModuleInstance] | None = None,
+        com_object_instance_refs: list[ComObjectInstanceRef] | None = None,
     ) -> GlobalState:
         """Reconstruct a GlobalState tree from saved project data (parameter refs + module instance list)."""
         root = cls()
@@ -219,6 +234,9 @@ class GlobalState(ParameterState):
                     break
             else:
                 root.param_ref_id_to_value[ref_id] = value
+
+        for coir in com_object_instance_refs or []:
+            root._com_obj_instance_refs[coir.ref_id] = coir
 
         return root
 

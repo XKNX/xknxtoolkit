@@ -14,6 +14,7 @@ from knx_gui.dpt import DPT
 from xknxmono.product import Application
 
 if TYPE_CHECKING:
+    from xknxmono.models.intermediate.com_object_instance_ref_t import ComObjectInstanceRef
     from xknxmono.product.parser_v2.dynamic import DynamicUI
     from xknxmono.product.parser_v2.ui import UiComObject, UiNode
 
@@ -264,17 +265,28 @@ class Device:
         if self._dynamic_ui is None:
             return list(self.com_objects)
         ui_cos = _collect_ui_com_objects(self._dynamic_ui.ui())
-        active_ids = {co.ref_id for co in ui_cos}
-        name_by_id = {co.ref_id: co.name for co in ui_cos}
+        ui_by_id = {co.ref_id: co for co in ui_cos}
         result: list[ComObject] = []
         for co in self.com_objects:
-            if co.id in active_ids:
-                resolved = name_by_id.get(co.id)
-                if resolved:
-                    co.name = resolved
-                result.append(co)
+            ui_co = ui_by_id.get(co.id)
+            if ui_co is None:
+                continue
+            co.name = ui_co.name
+            co.flags.communication = ui_co.communication
+            co.flags.read = ui_co.read
+            co.flags.write = ui_co.write
+            co.flags.transmit = ui_co.transmit
+            co.flags.update = ui_co.update
+            co.flags.read_on_init = ui_co.read_on_init
+            result.append(co)
         self._cached_visible_cos = result
         return result
+
+    def set_com_obj_instance_ref(self, ref_id: str, coir: ComObjectInstanceRef) -> None:
+        if self._dynamic_ui is not None:
+            self._dynamic_ui.set_com_obj_instance_ref(ref_id, coir)
+            self._cached_visible_cos = None
+            self._cached_rows = None
 
     def set_param_value(self, ref_id: str, value: str) -> None:
         if self._dynamic_ui is not None:

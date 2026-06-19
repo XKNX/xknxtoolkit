@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from xknxmono.models.intermediate import ModuleArg
+from xknxmono.models.intermediate.com_object_instance_ref_t import ComObjectInstanceRef
 
 if TYPE_CHECKING:
     from .state import ParameterState
@@ -41,6 +42,9 @@ class EvalContext:
 
     def mark_active_com_object(self, ref_id: str) -> None:
         self._scope.mark_active_com_object(ref_id)
+
+    def get_com_obj_instance_ref(self, ref_id: str) -> ComObjectInstanceRef | None:
+        return self._scope.get_com_obj_instance_ref(ref_id)
 
     def repeat_ctx(self, repeat_idx: int) -> EvalContext:
         return EvalContext(self._scope, repeat_idx)

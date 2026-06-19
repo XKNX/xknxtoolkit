@@ -9,6 +9,7 @@ from xknxmono.models.intermediate import (
     Button,
     ChannelChoose,
     ChannelIndependentBlock,
+    ComObjectInstanceRef,
     ComObjectParameterBlock,
     ComObjectParameterChoose,
     ComObjectRefRef,
@@ -190,6 +191,10 @@ class DynamicUI:
             self._ui = self._tree.eval(EvalContext(self._state))
             self._state.trim_to_active()
         return self._ui
+
+    def set_com_obj_instance_ref(self, ref_id: str, coir: ComObjectInstanceRef) -> None:
+        self._state.set_com_obj_instance_ref(ref_id, coir)
+        self._ui = None
 
     def set_parameter_ref(self, ref_id: str, value: str) -> None:
         active = self._state.active_param_refs()

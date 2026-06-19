@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING, Any
 
 from knx_gui.plugins.project.ui.history import HistoryEntry
 from knx_gui.types import Device
+from xknxmono.models.intermediate import ComObjectInstanceRef
+from xknxmono.models.intermediate.enable_t import Enable
 from xknxmono.product import Application
 from xknxmono.project import ProjectService as _ProjectService
 
@@ -33,6 +35,23 @@ _FLAG_COLUMNS: dict[str, str] = {
     "update": "update_flag",
     "read_on_init": "read_on_init_flag",
 }
+
+
+def _co_instance_ref_from_row(row: Any) -> ComObjectInstanceRef | None:
+    def _e(v: bool | None) -> Enable | None:
+        return None if v is None else (Enable.ENABLED if v else Enable.DISABLED)
+
+    if all(getattr(row, col) is None for col in ("communication_flag", "read_flag", "write_flag", "transmit_flag", "update_flag", "read_on_init_flag")):
+        return None
+    return ComObjectInstanceRef(
+        ref_id=row.ref_id,
+        communication_flag=_e(row.communication_flag),
+        read_flag=_e(row.read_flag),
+        write_flag=_e(row.write_flag),
+        transmit_flag=_e(row.transmit_flag),
+        update_flag=_e(row.update_flag),
+        read_on_init_flag=_e(row.read_on_init_flag),
+    )
 
 
 def _history_label(event_type: str, data: dict[str, Any]) -> str:
@@ -224,10 +243,9 @@ class ProjectService:
             if co is None:
                 continue
             co.db_id = co_row.id
-            for attr, column in _FLAG_COLUMNS.items():
-                value = getattr(co_row, column)
-                if value is not None:
-                    setattr(co.flags, attr, value)
+            coir = _co_instance_ref_from_row(co_row)
+            if coir is not None:
+                device.set_com_obj_instance_ref(co_row.ref_id, coir)
         return device
 
     @property

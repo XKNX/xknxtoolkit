@@ -99,18 +99,19 @@ class ComObjectRefRefNode(DynamicNode):
         qualified_ref_id = ctx.qualify(self._local_ref_id)
         name_value = ctx.get(self._text_param_ref_id) if self._text_param_ref_id else None
         name = fill_name(apply_text_args(self._name_template, ctx.get_arg_defaults()), name_value or "")
+        ov = ctx.get_com_obj_instance_ref(qualified_ref_id)
         return [
             UiComObject(
                 ref_id=qualified_ref_id,
                 name=name,
                 number=self._number,
                 dpt_codes=self._dpt_codes,
-                communication=self._communication,
-                read=self._read,
-                write=self._write,
-                transmit=self._transmit,
-                update=self._update,
-                read_on_init=self._read_on_init,
+                communication=_flag(ov.communication_flag if ov else None, Enable.ENABLED if self._communication else Enable.DISABLED),
+                read=_flag(ov.read_flag if ov else None, Enable.ENABLED if self._read else Enable.DISABLED),
+                write=_flag(ov.write_flag if ov else None, Enable.ENABLED if self._write else Enable.DISABLED),
+                transmit=_flag(ov.transmit_flag if ov else None, Enable.ENABLED if self._transmit else Enable.DISABLED),
+                update=_flag(ov.update_flag if ov else None, Enable.ENABLED if self._update else Enable.DISABLED),
+                read_on_init=_flag(ov.read_on_init_flag if ov else None, Enable.ENABLED if self._read_on_init else Enable.DISABLED),
                 read_locked=self._read_locked,
                 write_locked=self._write_locked,
                 transmit_locked=self._transmit_locked,
