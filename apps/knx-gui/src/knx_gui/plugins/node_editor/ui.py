@@ -93,7 +93,7 @@ class NodeEditorPanel:
         self._ga_nodes_positioned: set[int] = set()
         self._ga_position_offsets: dict[tuple[int, ...], int] = {}
 
-        self._co_indices_cache: dict[int, dict[int, int]] = {}
+        self._co_indices_cache: dict[int, dict[str, int]] = {}
         self._node_layout_cache: dict[int, NodeLayout] = {}
         self._node_layout_rows_id: dict[int, int] = {}
 
@@ -386,10 +386,10 @@ class NodeEditorPanel:
             self._node_layout_rows_id[device.node_id] = rows_id
         return self._node_layout_cache[device.node_id]
 
-    def _get_co_indices(self, device: Device) -> dict[int, int]:
+    def _get_co_indices(self, device: Device) -> dict[str, int]:
         cached = self._co_indices_cache.get(device.node_id)
         if cached is None:
-            cached = {id(co): idx for idx, co in enumerate(device.com_objects)}
+            cached = {co.id: idx for idx, co in enumerate(device.com_objects)}
             self._co_indices_cache[device.node_id] = cached
         return cached
 
@@ -501,7 +501,7 @@ class NodeEditorPanel:
         for row in device.rows:
             if row.left and com_object_has_input(row.left):
                 pin_id = self._get_pin_id(
-                    device.node_id, co_indices[id(row.left)], "in", row.left.db_id
+                    device.node_id, co_indices[row.left.id], "in", row.left.db_id
                 )
                 self._render_input_pin(pin_id, row.left, layout)
             else:
@@ -509,7 +509,7 @@ class NodeEditorPanel:
             imgui.same_line(spacing=layout.mid_spacing)
             if row.right and com_object_has_output(row.right):
                 pin_id = self._get_pin_id(
-                    device.node_id, co_indices[id(row.right)], "out", row.right.db_id
+                    device.node_id, co_indices[row.right.id], "out", row.right.db_id
                 )
                 self._render_output_pin(pin_id, row.right, layout)
             else:
