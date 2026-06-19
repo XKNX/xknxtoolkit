@@ -4,7 +4,7 @@ from xknxmono.models.intermediate import Rename
 
 from .base import DynamicNode
 from .._name import apply_text_args
-from ..state import EvalContext
+from ..context import EvalContext
 from ..ui import UiNode
 
 

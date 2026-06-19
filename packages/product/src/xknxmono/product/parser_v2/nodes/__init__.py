@@ -7,7 +7,8 @@ from .choose import ChooseWhenNode, satisfies
 from .collection import GenericCollectionNode
 from .com_object_parameter_block import ComObjectParameterBlockNode
 from .com_object_ref_ref import ComObjectRefRefNode
-from ..state import EvalContext, GlobalState, ModuleState
+from ..context import EvalContext
+from ..state import GlobalState, ModuleState
 from .module import ModuleNode
 from .parameter_ref_ref import ParameterRefRefNode
 from .parameter_separator import ParameterSeparatorNode

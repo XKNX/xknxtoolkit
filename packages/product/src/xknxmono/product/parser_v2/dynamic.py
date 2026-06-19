@@ -23,7 +23,8 @@ from xknxmono.models.intermediate import (
 
 from .application_indexer import ApplicationIndexer
 from .calculation import evaluate_lr, evaluate_rl
-from .state import EvalContext, GlobalState, compute_param_ref_defaults, compute_arg_defaults
+from .context import EvalContext
+from .state import GlobalState, compute_param_ref_defaults, compute_arg_defaults
 from .nodes import (
     AssignNode,
     BinaryDataRefNode,

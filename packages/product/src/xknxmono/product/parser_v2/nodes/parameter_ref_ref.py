@@ -7,7 +7,7 @@ from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 
 from .base import DynamicNode
 from .._name import apply_text_args
-from ..state import EvalContext
+from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.parameter import UiParameter, resolve_widget
 

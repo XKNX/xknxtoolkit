@@ -44,7 +44,7 @@ def compute_param_ref_defaults(refs_container: object, idx: ApplicationIndexer) 
     return result
 
 
-class _ParameterState:
+class ParameterState:
     """Shared base for GlobalState and ModuleState.
 
     Forms a tree: root → module children → submodule children.
@@ -66,9 +66,9 @@ class _ParameterState:
         "param_ref_id_to_value",
     )
 
-    def __init__(self, values: dict[str, str] | None = None, parent: _ParameterState | None = None, param_ref_defaults: dict[str, str] | None = None) -> None:
+    def __init__(self, values: dict[str, str] | None = None, parent: ParameterState | None = None, param_ref_defaults: dict[str, str] | None = None) -> None:
         self.param_ref_id_to_value: dict[str, str] = dict(values or {})
-        self._parent: _ParameterState | None = parent
+        self._parent: ParameterState | None = parent
         self._children: dict[str, ModuleState] = {}
         self._text: dict[str, str] = {}
         self._active_param_refs: set[str] = set()
@@ -141,7 +141,7 @@ class _ParameterState:
     def qualify(self, ref_id: str) -> str:
         return ref_id
 
-    def find_scope_for_qualified(self, ref_id: str) -> tuple[_ParameterState, str] | None:
+    def find_scope_for_qualified(self, ref_id: str) -> tuple[ParameterState, str] | None:
         for child in self._children.values():
             result = child.find_scope_for_qualified(ref_id)
             if result is not None:
@@ -185,7 +185,7 @@ class _ParameterState:
         return result
 
 
-class GlobalState(_ParameterState):
+class GlobalState(ParameterState):
     """Global (root) parameter state; top of the tree from which module children hang."""
 
     @classmethod
@@ -223,7 +223,7 @@ class GlobalState(_ParameterState):
         return root
 
 
-class ModuleState(_ParameterState):
+class ModuleState(ParameterState):
     """Parameter state for one module instance; stores local (def-relative) ref IDs.
 
     parameter_instance_refs() qualifies each key by splicing module_instance_id in place of the
@@ -257,7 +257,7 @@ class ModuleState(_ParameterState):
     def qualify(self, ref_id: str) -> str:
         return self._qualify(ref_id)
 
-    def find_scope_for_qualified(self, ref_id: str) -> tuple[_ParameterState, str] | None:
+    def find_scope_for_qualified(self, ref_id: str) -> tuple[ParameterState, str] | None:
         mid = self.module_instance_id
         if not ref_id.startswith(mid + "_"):
             return None
@@ -300,50 +300,4 @@ class ModuleState(_ParameterState):
         return result
 
 
-class EvalContext:
-    """Scope handle: the active state node plus a pending repeat index for the next module_child call.
-
-    Reads delegate to the active state, which walks its parent chain (submodule → module → global).
-    Writes go to the active state only.
-    """
-
-    __slots__ = ("_repeat_idx", "_scope")
-
-    def __init__(self, scope: _ParameterState, repeat_idx: int = 1) -> None:
-        self._scope = scope
-        self._repeat_idx = repeat_idx
-
-    def get(self, ref_id: str) -> str | None:
-        return self._scope.get(ref_id)
-
-    def qualify(self, ref_id: str) -> str:
-        return self._scope.qualify(ref_id)
-
-    def set(self, ref_id: str, value: str) -> None:
-        self._scope.set(ref_id, value)
-
-    def set_text(self, ref_id: str, text: str) -> None:
-        self._scope.set_text(ref_id, text)
-
-    def get_text(self, ref_id: str) -> str | None:
-        return self._scope.get_text(ref_id)
-
-    def mark_active_param(self, ref_id: str) -> None:
-        self._scope.mark_active_param(ref_id)
-
-    def mark_active_com_object(self, ref_id: str) -> None:
-        self._scope.mark_active_com_object(ref_id)
-
-    def repeat_ctx(self, repeat_idx: int) -> EvalContext:
-        return EvalContext(self._scope, repeat_idx)
-
-    def get_arg_defaults(self) -> dict[str, str]:
-        return self._scope.get_arg_defaults()
-
-    def seed_param_ref_defaults(self, param_ref_defaults: dict[str, str]) -> None:
-        self._scope.set_param_ref_defaults(param_ref_defaults)
-
-    def module_ctx(self, module_id: str, default_arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None) -> EvalContext:
-        # Enters a module instance scope; wires the current scope as the new state's parent.
-        ms = self._scope.module_child(module_id, self._repeat_idx, default_arguments, param_ref_defaults=param_ref_defaults, arg_defaults=arg_defaults)
-        return EvalContext(ms)
+__all__ = ["GlobalState", "ModuleState", "compute_arg_defaults", "compute_param_ref_defaults"]

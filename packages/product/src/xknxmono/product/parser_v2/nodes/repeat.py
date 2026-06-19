@@ -3,7 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate import Repeat
 
 from .base import DynamicNode
-from ..state import EvalContext
+from ..context import EvalContext
 from ..ui import UiNode
 
 

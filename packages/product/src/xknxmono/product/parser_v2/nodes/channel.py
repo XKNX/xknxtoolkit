@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..state import EvalContext
+from ..context import EvalContext
 from ..ui import UiNode
 from ..ui.tab import UiTab
 from .base import DynamicNode
