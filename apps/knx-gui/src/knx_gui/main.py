@@ -1,6 +1,9 @@
 from pathlib import Path
 from typing import Any
 
+import imgui_bundle._patch_runners_add_save_screenshot_param as _screenshot_patch
+_screenshot_patch._get_caller_filename = lambda depth: ""  # type: ignore[assignment]
+
 from imgui_bundle import hello_imgui, imgui
 from imgui_bundle import portable_file_dialogs as pfd
 
@@ -243,6 +246,26 @@ def _detect_locale() -> str:
 
 
 def main() -> None:
+    import sys
+    if "--profile" in sys.argv:
+        import cProfile
+        import pstats
+        import io
+        pr = cProfile.Profile()
+        pr.enable()
+        try:
+            _main()
+        finally:
+            pr.disable()
+            s = io.StringIO()
+            ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
+            ps.print_stats(80)
+            print(s.getvalue())
+        return
+    _main()
+
+
+def _main() -> None:
     set_locale(_detect_locale())
 
     catalog_path = Path(__file__).parent.parent.parent / "demo.xknxcatalog"

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from imgui_bundle import imgui
 from imgui_bundle import imgui_node_editor as ed
@@ -45,6 +45,10 @@ class NodeLayout:
     in_name_w: float
     out_dpt_w: float
     out_name_w: float
+    in_name_pad: dict[int, float] = field(default_factory=dict[int, float])
+    in_dpt_pad: dict[int, float] = field(default_factory=dict[int, float])
+    out_name_pad: dict[int, float] = field(default_factory=dict[int, float])
+    out_dpt_pad: dict[int, float] = field(default_factory=dict[int, float])
 
 
 @dataclass
@@ -88,6 +92,10 @@ class NodeEditorPanel:
         self._ga_pins: dict[int, tuple[int, int]] = {}
         self._ga_nodes_positioned: set[int] = set()
         self._ga_position_offsets: dict[tuple[int, ...], int] = {}
+
+        self._co_indices_cache: dict[int, dict[int, int]] = {}
+        self._node_layout_cache: dict[int, NodeLayout] = {}
+        self._node_layout_rows_id: dict[int, int] = {}
 
     def setup(self) -> None:
         config = ed.Config()
@@ -305,17 +313,36 @@ class NodeEditorPanel:
 
     def _calc_node_layout(self, device: Device) -> NodeLayout:
         in_dpt_w = in_name_w = out_dpt_w = out_name_w = 0.0
+        in_name_pad: dict[int, float] = {}
+        in_dpt_pad: dict[int, float] = {}
+        out_name_pad: dict[int, float] = {}
+        out_dpt_pad: dict[int, float] = {}
+
+        row_widths: list[tuple[float, float, float, float, int, int]] = []
         for row in device.rows:
+            lnw = ldw = rnw = rdw = 0.0
+            lkey = rkey = 0
             if row.left and com_object_has_input(row.left):
-                in_dpt_w = max(
-                    in_dpt_w, imgui.calc_text_size(f"[{row.left.dpt.label}]").x
-                )
-                in_name_w = max(in_name_w, imgui.calc_text_size(row.left.name).x)
+                lnw = imgui.calc_text_size(row.left.name).x
+                ldw = imgui.calc_text_size(f"[{row.left.dpt.label}]").x
+                in_name_w = max(in_name_w, lnw)
+                in_dpt_w = max(in_dpt_w, ldw)
+                lkey = id(row.left)
             if row.right and com_object_has_output(row.right):
-                out_dpt_w = max(
-                    out_dpt_w, imgui.calc_text_size(f"[{row.right.dpt.label}]").x
-                )
-                out_name_w = max(out_name_w, imgui.calc_text_size(row.right.name).x)
+                rnw = imgui.calc_text_size(row.right.name).x
+                rdw = imgui.calc_text_size(f"[{row.right.dpt.label}]").x
+                out_name_w = max(out_name_w, rnw)
+                out_dpt_w = max(out_dpt_w, rdw)
+                rkey = id(row.right)
+            row_widths.append((lnw, ldw, rnw, rdw, lkey, rkey))
+
+        for lnw, ldw, rnw, rdw, lkey, rkey in row_widths:
+            if lkey:
+                in_name_pad[lkey] = in_name_w - lnw
+                in_dpt_pad[lkey] = in_dpt_w - ldw
+            if rkey:
+                out_name_pad[rkey] = out_name_w - rnw
+                out_dpt_pad[rkey] = out_dpt_w - rdw
 
         spacing = imgui.get_style().item_spacing.x
         in_total_w = (
@@ -344,7 +371,27 @@ class NodeEditorPanel:
             in_name_w=in_name_w,
             out_dpt_w=out_dpt_w,
             out_name_w=out_name_w,
+            in_name_pad=in_name_pad,
+            in_dpt_pad=in_dpt_pad,
+            out_name_pad=out_name_pad,
+            out_dpt_pad=out_dpt_pad,
         )
+
+    def _get_layout(self, device: Device) -> NodeLayout:
+        rows = device.rows
+        rows_id = id(rows)
+        if self._node_layout_rows_id.get(device.node_id) != rows_id:
+            layout = self._calc_node_layout(device)
+            self._node_layout_cache[device.node_id] = layout
+            self._node_layout_rows_id[device.node_id] = rows_id
+        return self._node_layout_cache[device.node_id]
+
+    def _get_co_indices(self, device: Device) -> dict[int, int]:
+        cached = self._co_indices_cache.get(device.node_id)
+        if cached is None:
+            cached = {id(co): idx for idx, co in enumerate(device.com_objects)}
+            self._co_indices_cache[device.node_id] = cached
+        return cached
 
     def _render_dpt_label(self, pin: ComObject, pin_id: int) -> None:
         label = f"[{pin.dpt.label}]"
@@ -403,17 +450,12 @@ class NodeEditorPanel:
         else:
             imgui.text_disabled(pin.name)
         imgui.same_line()
-        imgui.dummy(
-            imgui.ImVec2(layout.in_name_w - imgui.calc_text_size(pin.name).x, 1)
-        )
+        imgui.dummy(imgui.ImVec2(layout.in_name_pad.get(id(pin), 0.0), 1))
         ed.end_pin()
         imgui.same_line()
         self._render_dpt_label(pin, pin_id)
         imgui.same_line()
-        dpt_label = f"[{pin.dpt.label}]"
-        imgui.dummy(
-            imgui.ImVec2(layout.in_dpt_w - imgui.calc_text_size(dpt_label).x, 1)
-        )
+        imgui.dummy(imgui.ImVec2(layout.in_dpt_pad.get(id(pin), 0.0), 1))
 
     def _render_output_pin(
         self, pin_id: int, pin: ComObject, layout: NodeLayout
@@ -424,12 +466,9 @@ class NodeEditorPanel:
         if not pin.flags.communication:
             alpha *= 0.4
             glow = False
-        dpt_label = f"[{pin.dpt.label}]"
         self._render_dpt_label(pin, pin_id)
         imgui.same_line()
-        imgui.dummy(
-            imgui.ImVec2(layout.out_dpt_w - imgui.calc_text_size(dpt_label).x, 1)
-        )
+        imgui.dummy(imgui.ImVec2(layout.out_dpt_pad.get(id(pin), 0.0), 1))
         imgui.same_line()
         ed.begin_pin(ed.PinId(pin_id), ed.PinKind.output)
         ed.pin_pivot_alignment(imgui.ImVec2(1.0, 0.5))
@@ -438,9 +477,7 @@ class NodeEditorPanel:
         else:
             imgui.text_disabled(pin.name)
         imgui.same_line()
-        imgui.dummy(
-            imgui.ImVec2(layout.out_name_w - imgui.calc_text_size(pin.name).x, 1)
-        )
+        imgui.dummy(imgui.ImVec2(layout.out_name_pad.get(id(pin), 0.0), 1))
         imgui.same_line()
         self._draw_pin_icon(pin.dpt, alpha, glow)
         ed.end_pin()
@@ -460,7 +497,7 @@ class NodeEditorPanel:
         return Rect(rect_min.x, rect_min.y, rect_max.x, rect_max.y)
 
     def _render_node_pins(self, device: Device, layout: NodeLayout) -> None:
-        co_indices = {id(co): idx for idx, co in enumerate(device.com_objects)}
+        co_indices = self._get_co_indices(device)
         for row in device.rows:
             if row.left and com_object_has_input(row.left):
                 pin_id = self._get_pin_id(
@@ -503,7 +540,7 @@ class NodeEditorPanel:
     def _render_device_node(self, device: Device) -> None:
         ed.begin_node(ed.NodeId(device.node_id))
 
-        layout = self._calc_node_layout(device)
+        layout = self._get_layout(device)
         header = self._render_node_header(device, layout.node_width)
         imgui.spacing()
 
