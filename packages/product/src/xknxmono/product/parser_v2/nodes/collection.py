@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .base import DynamicNode
-from ..context import EvalContext
+from ..state import EvalContext
 from ..ui import UiNode
 
 

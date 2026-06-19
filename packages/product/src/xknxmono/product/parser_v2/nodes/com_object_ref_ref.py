@@ -5,7 +5,7 @@ from xknxmono.models.intermediate.com_object_ref_t import ComObjectRef as IrComO
 from xknxmono.models.intermediate.com_object_t import ComObject as IrComObject
 from xknxmono.models.intermediate.enable_t import Enable
 
-from ..context import EvalContext
+from ..state import EvalContext
 from ..ui import UiNode
 from ..ui.com_object import UiComObject
 from .base import DynamicNode

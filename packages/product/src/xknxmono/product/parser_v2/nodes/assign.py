@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from xknxmono.models.intermediate import Assign
 
-from ..context import EvalContext
+from ..state import EvalContext
 from ..ui import UiNode
 from .base import DynamicNode
 

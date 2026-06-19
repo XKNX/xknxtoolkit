@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from ..context import EvalContext
+from ..state import EvalContext
 from ..ui import UiNode
 
 

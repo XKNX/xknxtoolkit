@@ -3,7 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate import ModuleArg
 
 from .base import DynamicNode
-from ..context import EvalContext
+from ..state import EvalContext
 from ..ui import UiNode
 
 
