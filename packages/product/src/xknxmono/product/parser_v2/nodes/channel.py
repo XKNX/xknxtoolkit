@@ -11,13 +11,13 @@ class ChannelNode(DynamicNode):
     """A tab in the UI — either a named Channel or a ChannelIndependentBlock."""
 
     __slots__ = (
+        "_children",
+        "_icon",
         "_id",
         "_name",
-        "_text",
         "_number",
-        "_icon",
+        "_text",
         "_text_param_ref_id",
-        "_children",
     )
 
     def __init__(

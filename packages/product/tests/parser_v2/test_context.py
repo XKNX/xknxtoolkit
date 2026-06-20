@@ -1,5 +1,15 @@
-from xknxmono.models.intermediate import ModuleInstance, ModuleNumericArg, ParameterInstanceRef
-from xknxmono.product.parser_v2.nodes import ChooseWhenNode, DynamicNode, EvalContext, GlobalState, ModuleState
+from xknxmono.models.intermediate import (
+    ModuleInstance,
+    ModuleNumericArg,
+    ParameterInstanceRef,
+)
+from xknxmono.product.parser_v2.nodes import (
+    ChooseWhenNode,
+    DynamicNode,
+    EvalContext,
+    GlobalState,
+    ModuleState,
+)
 from xknxmono.product.parser_v2.ui import UiNode
 
 

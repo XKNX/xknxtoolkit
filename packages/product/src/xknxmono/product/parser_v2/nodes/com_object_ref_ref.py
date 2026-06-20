@@ -37,22 +37,22 @@ class ComObjectRefRefNode(DynamicNode):
     """Leaf: a communication object; resolved at build time, name filled at eval time."""
 
     __slots__ = (
+        "_communication",
+        "_dpt_codes",
         "_local_ref_id",
         "_name_template",
-        "_text_param_ref_id",
         "_number",
-        "_dpt_codes",
-        "_communication",
         "_read",
-        "_write",
-        "_transmit",
-        "_update",
-        "_read_on_init",
         "_read_locked",
-        "_write_locked",
-        "_transmit_locked",
-        "_update_locked",
+        "_read_on_init",
         "_read_on_init_locked",
+        "_text_param_ref_id",
+        "_transmit",
+        "_transmit_locked",
+        "_update",
+        "_update_locked",
+        "_write",
+        "_write_locked",
     )
 
     def __init__(

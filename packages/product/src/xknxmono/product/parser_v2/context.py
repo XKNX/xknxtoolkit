@@ -55,7 +55,7 @@ class EvalContext:
     def seed_param_ref_defaults(self, param_ref_defaults: dict[str, str]) -> None:
         self._scope.set_param_ref_defaults(param_ref_defaults)
 
-    def module_ctx(self, module_id: str, default_arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None) -> EvalContext:
+    def module_ctx(self, module_id: str, default_arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None, def_id: str | None = None) -> EvalContext:
         # Enters a module instance scope; wires the current scope as the new state's parent.
-        ms = self._scope.module_child(module_id, self._repeat_idx, default_arguments, param_ref_defaults=param_ref_defaults, arg_defaults=arg_defaults)
+        ms = self._scope.module_child(module_id, self._repeat_idx, default_arguments, param_ref_defaults=param_ref_defaults, arg_defaults=arg_defaults, def_id=def_id)
         return EvalContext(ms)

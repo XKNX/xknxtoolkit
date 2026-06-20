@@ -26,7 +26,6 @@ __all__ = [
     "DynamicNode",
     "EvalContext",
     "GenericCollectionNode",
-    "ModuleNode",
     "GlobalState",
     "ModuleNode",
     "ModuleState",

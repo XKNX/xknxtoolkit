@@ -170,11 +170,11 @@ class ParameterState:
         else:
             self.set(ref_id, value)
 
-    def module_child(self, module_id: str, repeat_idx: int = 1, arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None) -> ModuleState:
+    def module_child(self, module_id: str, repeat_idx: int = 1, arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None, def_id: str | None = None) -> ModuleState:
         """Returns (creating if needed) the module instance state and wires it into the tree."""
         key = f"{module_id}_MI-{repeat_idx}"
         if key not in self._children:
-            child = ModuleState(key, arguments, param_ref_defaults=param_ref_defaults, arg_defaults=arg_defaults)
+            child = ModuleState(key, arguments, param_ref_defaults=param_ref_defaults, arg_defaults=arg_defaults, def_id=def_id)
             child._parent = self
             self._children[key] = child
         else:
@@ -190,6 +190,20 @@ class ParameterState:
         result = dict(self.param_ref_id_to_value)
         for child in self._children.values():
             result.update(child.parameter_instance_refs())
+        return result
+
+    def module_children(self) -> list[ModuleState]:
+        return list(self._children.values())
+
+    def relative_param_values(self) -> list[tuple[str, str]]:
+        """Return (def-relative_ref_id, value) pairs for all scopes.
+
+        Unlike parameter_instance_refs(), these keys are never qualified, so they can
+        be looked up directly in ApplicationIndexer.parameter_refs regardless of module nesting.
+        """
+        result = list(self.param_ref_id_to_value.items())
+        for child in self._children.values():
+            result.extend(child.relative_param_values())
         return result
 
     def module_instances(self) -> list[tuple[str, str, dict[str, ModuleArg]]]:
@@ -215,7 +229,7 @@ class GlobalState(ParameterState):
         for mi in module_instances or []:
             if mi.id is None or mi.ref_id is None:
                 continue
-            ms = ModuleState(mi.id)
+            ms = ModuleState(mi.id, def_id=mi.ref_id)
             ms._parent = root
             root._children[mi.id] = ms
             mid_to_mdid[mi.id] = mi.ref_id
@@ -249,11 +263,12 @@ class ModuleState(ParameterState):
     e.g. M-..._MD-1_P-5_R-5  →  M-..._MD-1_M-100_MI-2_P-5_R-5
     """
 
-    __slots__ = ("_arg_defaults", "arguments", "module_instance_id")
+    __slots__ = ("_arg_defaults", "arguments", "def_id", "module_instance_id")
 
-    def __init__(self, module_instance_id: str, arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None) -> None:
+    def __init__(self, module_instance_id: str, arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None, def_id: str | None = None) -> None:
         super().__init__(param_ref_defaults=param_ref_defaults)
         self.module_instance_id = module_instance_id
+        self.def_id: str | None = def_id
         self.arguments: dict[str, ModuleArg] = arguments or {}
         self._arg_defaults: dict[str, str] = arg_defaults or {}
 

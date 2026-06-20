@@ -1,4 +1,9 @@
-from xknxmono.product.parser_v2.nodes import DynamicNode, EvalContext, GenericCollectionNode, GlobalState
+from xknxmono.product.parser_v2.nodes import (
+    DynamicNode,
+    EvalContext,
+    GenericCollectionNode,
+    GlobalState,
+)
 from xknxmono.product.parser_v2.ui import UiNode
 from xknxmono.product.parser_v2.ui.separator import UiSeparator
 

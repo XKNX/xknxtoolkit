@@ -1,5 +1,14 @@
-from xknxmono.product.parser_v2.nodes import ChooseWhenNode, DynamicNode, EvalContext, GlobalState
-from xknxmono.product.parser_v2.nodes.choose import _token_matches, _value_matches, satisfies
+from xknxmono.product.parser_v2.nodes import (
+    ChooseWhenNode,
+    DynamicNode,
+    EvalContext,
+    GlobalState,
+)
+from xknxmono.product.parser_v2.nodes.choose import (
+    _token_matches,
+    _value_matches,
+    satisfies,
+)
 from xknxmono.product.parser_v2.ui import UiNode
 from xknxmono.product.parser_v2.ui.separator import UiSeparator
 

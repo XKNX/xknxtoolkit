@@ -14,7 +14,7 @@ from .base import DynamicNode
 class ComObjectParameterBlockNode(DynamicNode):
     """A parameter group box (ParameterBlock element in the dynamic XML)."""
 
-    __slots__ = ("_elem", "_children")
+    __slots__ = ("_children", "_elem")
 
     def __init__(self, elem: ComObjectParameterBlock, children: list[DynamicNode | None]) -> None:
         self._elem = elem
