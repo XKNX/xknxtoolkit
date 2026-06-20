@@ -295,6 +295,12 @@ class Device:
         self._cached_visible_cos = result
         return result
 
+    def encode_to_memory(self) -> dict[str, bytes]:
+        """Encode current parameter state into {segment_id: bytes} for programming."""
+        if self._dynamic_ui is None:
+            return {}
+        return self._dynamic_ui.encode_to_memory()
+
     def set_com_obj_instance_ref(self, ref_id: str, coir: ComObjectInstanceRef) -> None:
         if self._dynamic_ui is not None:
             self._dynamic_ui.set_com_obj_instance_ref(ref_id, coir)

@@ -66,6 +66,14 @@ class ProjectStrings:
         return _("Load Procedures ({count})")
 
     @property
+    def BTN_PREVIEW_MEMORY(self) -> str:
+        return _("Preview Memory")
+
+    @property
+    def CONFIGURE_MEMORY_PREVIEW(self) -> str:
+        return _("Memory Preview")
+
+    @property
     def DEVICE_AREA(self) -> str:
         return _("Area {area}")
 
