@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import imgui_bundle._patch_runners_add_save_screenshot_param as _screenshot_patch
+
 _screenshot_patch._get_caller_filename = lambda depth: ""  # type: ignore[assignment]
 
 from imgui_bundle import hello_imgui, imgui
@@ -249,8 +250,8 @@ def main() -> None:
     import sys
     if "--profile" in sys.argv:
         import cProfile
-        import pstats
         import io
+        import pstats
         pr = cProfile.Profile()
         pr.enable()
         try:
