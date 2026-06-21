@@ -82,7 +82,12 @@ if TYPE_CHECKING:
         collect_section_ids,
         list_catalog_sections,
     )
-    from .hardware import HardwareFilters, get_hardware, get_hardware_program, list_hardware
+    from .hardware import (
+        HardwareFilters,
+        get_hardware,
+        get_hardware_program,
+        list_hardware,
+    )
     from .manufacturers import get_manufacturer, list_manufacturers
     from .products import ProductSummary, list_products
     from .service import CatalogService

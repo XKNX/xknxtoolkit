@@ -235,6 +235,9 @@ class DynamicUI:
         self._state.set_com_obj_instance_ref(ref_id, coir)
         self._ui = None
 
+    def segment_base_addrs(self) -> dict[str, int]:
+        return {sid: self._idx.segment_base_addr(sid) for sid in self._idx.code_segments}
+
     def encode_to_memory(self) -> dict[str, bytes]:
         """Encode current parameter state into code segment byte buffers."""
         self.ui()  # ensure state is current

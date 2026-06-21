@@ -80,7 +80,13 @@ if TYPE_CHECKING:
     from .application import Application, parse_application_xml
     from .archive import Archive
     from .catalog import CatalogItem, CatalogSection, parse_catalog_xml
-    from .hardware import DeviceProgram, Hardware, HardwareDoc, Product, parse_hardware_xml
+    from .hardware import (
+        DeviceProgram,
+        Hardware,
+        HardwareDoc,
+        Product,
+        parse_hardware_xml,
+    )
     from .instance import (
         ApplicationInstance,
         ComObjectView,

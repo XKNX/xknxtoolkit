@@ -7,14 +7,12 @@ from xknxmono.models.intermediate import (
     ModuleDefStaticParametersUnion,
     ParameterType,
 )
-from xknxmono.models.intermediate.application_program_static_t_code_absolute_segment import (
-    ApplicationProgramStaticCodeAbsoluteSegment,
-)
 from xknxmono.models.intermediate.com_object_ref_t import ComObjectRef
 from xknxmono.models.intermediate.com_object_t import ComObject
 from xknxmono.models.intermediate.parameter_base_t import ParameterBase
 from xknxmono.models.intermediate.parameter_calculation_t import ParameterCalculation
 from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
+from xknxmono.models.intermediate.segment_base_t import SegmentBase
 
 
 class ApplicationIndexer:
@@ -29,7 +27,7 @@ class ApplicationIndexer:
         self.parameter_types: dict[str, ParameterType] = {}
         self.com_objects: dict[str, ComObject] = {}
         self.com_object_refs: dict[str, ComObjectRef] = {}
-        self.code_segments: dict[str, ApplicationProgramStaticCodeAbsoluteSegment] = {}
+        self.code_segments: dict[str, SegmentBase] = {}
         self._calculations: dict[str, dict[str, list[ParameterCalculation]]] = {}
         self.script: str | None = None
         self._index_app(app)
@@ -43,6 +41,8 @@ class ApplicationIndexer:
             self.script = s.script.value or None
         if s.code is not None:
             for seg in s.code.absolute_segment:
+                self.code_segments[seg.id] = seg
+            for seg in s.code.relative_segment:
                 self.code_segments[seg.id] = seg
         if s.parameter_types is not None:
             for pt in s.parameter_types.parameter_type:
@@ -65,6 +65,12 @@ class ApplicationIndexer:
                 self.com_object_refs[cor.id] = cor
         if s.parameter_calculations is not None:
             self._index_calculations(s.parameter_calculations.parameter_calculation)
+
+    def segment_base_addr(self, seg_id: str) -> int:
+        seg = self.code_segments.get(seg_id)
+        if seg is None:
+            return 0
+        return int(getattr(seg, "address", getattr(seg, "offset", 0)))
 
     def calculations_for_l(self, ref_id: str) -> list[ParameterCalculation]:
         return self._calculations.get(ref_id, {}).get("l", [])

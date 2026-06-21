@@ -1,5 +1,5 @@
 from knx_gui.widgets.com_flags_widgets import ComFlagsTable
-from knx_gui.widgets.hex_view import draw_hex_contents
+from knx_gui.widgets.hex_view import HexView
 from knx_gui.widgets.parameter_widgets import (
     EnumPopup,
     EnumPopupRequest,
@@ -12,8 +12,8 @@ __all__ = [
     "ComFlagsTable",
     "EnumPopup",
     "EnumPopupRequest",
+    "HexView",
     "count_parameters",
-    "draw_hex_contents",
     "render_param_widget",
     "render_ui_tree",
 ]

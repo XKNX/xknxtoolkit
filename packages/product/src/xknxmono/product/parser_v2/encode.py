@@ -233,7 +233,8 @@ def encode_to_memory(
     # seg_id, abs_offset, abs_bit_offset) tuples in the indexer so encode_to_memory just
     # iterates a single pre-built structure rather than re-walking the static model each call.
     bufs: dict[str, bytearray] = {
-        seg_id: bytearray(seg.size) for seg_id, seg in idx.code_segments.items()
+        seg_id: bytearray(seg.data) if seg.data else bytearray(seg.size)
+        for seg_id, seg in idx.code_segments.items()
     }
 
     s = app.static

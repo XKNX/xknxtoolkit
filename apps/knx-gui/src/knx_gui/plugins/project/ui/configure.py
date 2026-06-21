@@ -6,8 +6,8 @@ from knx_gui.plugins.project.strings import S
 from knx_gui.types import Device
 from knx_gui.widgets import (
     ComFlagsTable,
+    HexView,
     count_parameters,
-    draw_hex_contents,
     render_ui_tree,
 )
 
@@ -37,6 +37,8 @@ class ConfigurePanel:
         self._buffer_device_id: int | None = None
         self._show_memory_preview: bool = False
         self._memory_segments: dict[str, bytes] = {}
+        self._memory_base_addrs: dict[str, int] = {}
+        self._hex_views: dict[str, HexView] = {}
         self._memory_preview_device_id: int | None = None
 
     def render(self) -> None:
@@ -108,6 +110,7 @@ class ConfigurePanel:
 
         if imgui.button(S.BTN_PREVIEW_MEMORY):
             self._memory_segments = device.encode_to_memory()
+            self._memory_base_addrs = device.get_segment_base_addrs()
             self._memory_preview_device_id = device.node_id
             self._show_memory_preview = True
 
@@ -179,7 +182,7 @@ class ConfigurePanel:
     def _render_memory_preview(self) -> None:
         if not self._show_memory_preview:
             return
-        imgui.set_next_window_size(imgui.ImVec2(700, 500), imgui.Cond_.first_use_ever)
+        imgui.set_next_window_size(imgui.ImVec2(760, 540), imgui.Cond_.first_use_ever)
         opened, p_open = imgui.begin(S.CONFIGURE_MEMORY_PREVIEW, self._show_memory_preview)
         if p_open is not None:
             self._show_memory_preview = p_open
@@ -191,17 +194,15 @@ class ConfigurePanel:
                 seg_id, data = segments[0]
                 imgui.text_disabled(f"{seg_id}  ({len(data)} bytes)")
                 imgui.separator()
-                imgui.begin_child("##hex0", imgui.ImVec2(0, 0), imgui.ChildFlags_.none)
-                draw_hex_contents(data)
-                imgui.end_child()
+                view = self._hex_views.setdefault(seg_id, HexView())
+                view.draw(data, self._memory_base_addrs.get(seg_id, 0))
             else:
                 if imgui.begin_tab_bar("##segs"):
                     for i, (seg_id, data) in enumerate(segments):
                         label = f"{seg_id} ({len(data)}B)##seg{i}"
                         if imgui.begin_tab_item(label)[0]:
-                            imgui.begin_child(f"##hex{i}", imgui.ImVec2(0, 0), imgui.ChildFlags_.none)
-                            draw_hex_contents(data)
-                            imgui.end_child()
+                            view = self._hex_views.setdefault(seg_id, HexView())
+                            view.draw(data, self._memory_base_addrs.get(seg_id, 0))
                             imgui.end_tab_item()
                     imgui.end_tab_bar()
         imgui.end()

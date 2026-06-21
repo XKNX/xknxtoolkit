@@ -295,6 +295,11 @@ class Device:
         self._cached_visible_cos = result
         return result
 
+    def get_segment_base_addrs(self) -> dict[str, int]:
+        if self._dynamic_ui is None:
+            return {}
+        return self._dynamic_ui.segment_base_addrs()
+
     def encode_to_memory(self) -> dict[str, bytes]:
         """Encode current parameter state into {segment_id: bytes} for programming."""
         if self._dynamic_ui is None:
