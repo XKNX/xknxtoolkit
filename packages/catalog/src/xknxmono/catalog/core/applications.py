@@ -96,8 +96,7 @@ def get_application_xml(db: Session, program_id: str) -> tuple[bytes, str] | Non
 def get_application_detail(db: Session, program_id: str) -> ProductApplication | None:
     """Return the parsed application detail for a hardware program.
 
-    Opens the ``.knxprod`` archive and parses the application XML via
-    :func:`xknxmono.product.parser.parse_application_xml`. Returns ``None`` if
+    Opens the ``.knxprod`` archive and parses the application XML. Returns ``None`` if
     the program does not exist, has no linked application, or the application is
     not present in the archive.
 

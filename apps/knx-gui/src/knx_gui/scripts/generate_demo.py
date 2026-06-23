@@ -69,7 +69,10 @@ def generate_demo(output_path: Path, catalog_path: Path) -> None:
             address=octet,
             name=demo.name,
             hardware2program_ref_id=product.hardware2program_ref_id,
-            com_objects=[(co.id, None) for co in app.com_objects()],
+            com_objects=[
+                (co.id, None)
+                for co in (app.program.static.com_object_table.com_object if app.program.static.com_object_table else [])
+            ],
             module_instances=module_instances if module_instances else None,
         )
         print(f"Added: {demo.name} ({demo.individual_address})")

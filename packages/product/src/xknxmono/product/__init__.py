@@ -26,18 +26,7 @@ _LAZY: dict[str, tuple[str, str]] = {
     "load": (".loader", "load"),
     "MasterData": (".master", "MasterData"),
     "parse_master_xml": (".master", "parse_master_xml"),
-    "ComObject": (".parser.com_objects", "ComObject"),
-    "ComObjectFlags": (".parser.com_objects", "ComObjectFlags"),
-    "DynamicChoose": (".parser.dynamic", "DynamicChoose"),
-    "DynamicElement": (".parser.dynamic", "DynamicElement"),
-    "DynamicWhen": (".parser.dynamic", "DynamicWhen"),
-    "GridCell": (".parser.dynamic", "GridCell"),
-    "GridLayout": (".parser.dynamic", "GridLayout"),
-    "VisibleNode": (".parser.dynamic", "VisibleNode"),
-    "EnumOption": (".parser.parameters", "EnumOption"),
-    "Parameter": (".parser.parameters", "Parameter"),
-    "ParamType": (".parser.parameters", "ParamType"),
-    "ParamTypeKind": (".parser.parameters", "ParamTypeKind"),
+    "ParamTypeKind": (".types", "ParamTypeKind"),
     "Registry": (".registry", "Registry"),
 }
 
@@ -47,28 +36,17 @@ __all__ = [
     "Archive",
     "CatalogItem",
     "CatalogSection",
-    "ComObject",
-    "ComObjectFlags",
     "ComObjectView",
     "DeviceProgram",
-    "DynamicChoose",
-    "DynamicElement",
-    "DynamicWhen",
-    "EnumOption",
-    "GridCell",
-    "GridLayout",
     "Hardware",
     "HardwareDoc",
     "InstanceSnapshot",
     "MasterData",
-    "ParamType",
     "ParamTypeKind",
-    "Parameter",
     "PersistedComObject",
     "PersistedParam",
     "Product",
     "Registry",
-    "VisibleNode",
     "load",
     "parse_application_xml",
     "parse_catalog_xml",
@@ -96,17 +74,8 @@ if TYPE_CHECKING:
     )
     from .loader import load
     from .master import MasterData, parse_master_xml
-    from .parser.com_objects import ComObject, ComObjectFlags
-    from .parser.dynamic import (
-        DynamicChoose,
-        DynamicElement,
-        DynamicWhen,
-        GridCell,
-        GridLayout,
-        VisibleNode,
-    )
-    from .parser.parameters import EnumOption, Parameter, ParamType, ParamTypeKind
     from .registry import Registry
+    from .types import ParamTypeKind
 
 
 def __getattr__(name: str) -> object:

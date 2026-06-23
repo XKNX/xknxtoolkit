@@ -62,15 +62,35 @@ def get_program_application(
     if app is None:
         raise HTTPException(404, "Application not found in archive")
 
-    return ApplicationDetailResponse.model_validate(
-        {
-            "application_id": app.id,
-            "name": app.name,
-            "manufacturer_id": app.manufacturer_id,
-            "com_objects": app.com_objects(),
-            "parameters": app.parameters(),
-            "code": app.code,
-        }
+    from xknxmono.models.intermediate.enable_t import Enable
+
+    com_objects: list[ApplicationDetailResponse.ComObject] = []
+    tbl = app.program.static.com_object_table
+    if tbl is not None:
+        for co in tbl.com_object:
+            com_objects.append(
+                ApplicationDetailResponse.ComObject(
+                    id=co.id,
+                    name=co.name,
+                    number=co.number,
+                    dpt_codes=co.datapoint_type,
+                    flags=ApplicationDetailResponse.ComObjectFlags(
+                        communication=co.communication_flag == Enable.ENABLED,
+                        read=co.read_flag == Enable.ENABLED,
+                        write=co.write_flag == Enable.ENABLED,
+                        transmit=co.transmit_flag == Enable.ENABLED,
+                        update=co.update_flag == Enable.ENABLED,
+                        read_on_init=co.read_on_init_flag == Enable.ENABLED,
+                    ),
+                )
+            )
+    return ApplicationDetailResponse(
+        application_id=app.id,
+        name=app.name,
+        manufacturer_id=app.manufacturer_id,
+        com_objects=com_objects,
+        parameters=[],
+        code=ApplicationDetailResponse.Code.model_validate(app.code) if app.code else None,
     )
 
 
