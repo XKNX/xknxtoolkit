@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import struct
+from collections.abc import Generator
 
 from xknxmono.models.intermediate import ApplicationProgram
 from xknxmono.models.intermediate.application_program_static_t_parameters_parameter import (
@@ -39,6 +40,9 @@ from xknxmono.models.intermediate.parameter_type_t_type_text import (
 
 from .application_indexer import ApplicationIndexer
 from .state import GlobalState, ModuleState
+
+# (seg_id, byte_offset, bit_offset, param_id, parameter_type, value)
+_ParamWrite = tuple[str, int, int, str, str, str]
 
 
 def _write_bits(buf: bytearray, offset: int, bit_offset: int, size_in_bit: int, value: int) -> None:
@@ -143,10 +147,9 @@ def _resolve_base_offset(base_offset_id: str | None, ms: ModuleState) -> int | N
     return arg.value
 
 
-def _encode_module_params(ms: ModuleState, idx: ApplicationIndexer, bufs: dict[str, bytearray]) -> None:
-    """Encode parameters for one module instance and recurse into sub-module children."""
-    if ms.def_id is not None:
-        md = idx.module_defs.get(ms.def_id)
+def _iter_module_writes(ms: ModuleState, idx: ApplicationIndexer) -> Generator[_ParamWrite, None, None]:
+    if ms.ref_id is not None:
+        md = idx.module_defs.get(ms.ref_id)
         if md is not None and md.static.parameters is not None:
             instance_overrides: dict[str, str] = {}
             for pr_id, value in ms.param_ref_id_to_value.items():
@@ -161,25 +164,21 @@ def _encode_module_params(ms: ModuleState, idx: ApplicationIndexer, bufs: dict[s
                     mem = item.choice
                     if not isinstance(mem, ModuleDefStaticParametersParameterMemory):
                         continue
-                    buf = bufs.get(mem.code_segment)
-                    if buf is None:
-                        continue
                     base = _resolve_base_offset(mem.base_offset, ms)
                     if base is None:
                         continue
-                    _write_param(
-                        item.id, item.parameter_type,
-                        base + mem.offset, mem.bit_offset,
+                    yield (
+                        mem.code_segment,
+                        base + mem.offset,
+                        mem.bit_offset,
+                        item.id,
+                        item.parameter_type,
                         instance_overrides.get(item.id) or item.value,
-                        idx, buf,
                     )
                 else:
                     assert isinstance(item, ModuleDefStaticParametersUnion)
                     mem = item.choice
                     if not isinstance(mem, ModuleDefStaticParametersUnionMemory):
-                        continue
-                    buf = bufs.get(mem.code_segment)
-                    if buf is None:
                         continue
                     base = _resolve_base_offset(mem.base_offset, ms)
                     if base is None:
@@ -187,28 +186,99 @@ def _encode_module_params(ms: ModuleState, idx: ApplicationIndexer, bufs: dict[s
 
                     active = [up for up in item.parameter if up.id in instance_overrides]
                     assert len(active) <= 1, (
-                        f"module union at {mem.code_segment}+{base + mem.offset} has {len(active)} active alternatives: "
+                        f"module union at {mem.code_segment}+{base + mem.offset} has "
+                        f"{len(active)} active alternatives: "
                         + ", ".join(up.id for up in active)
                     )
 
                     if active:
                         up = active[0]
-                        _write_param(
-                            up.id, up.parameter_type,
-                            base + mem.offset + up.offset, mem.bit_offset + up.bit_offset,
-                            instance_overrides[up.id], idx, buf,
+                        yield (
+                            mem.code_segment,
+                            base + mem.offset + up.offset,
+                            mem.bit_offset + up.bit_offset,
+                            up.id,
+                            up.parameter_type,
+                            instance_overrides[up.id],
                         )
                     else:
-                        default_up = next((up for up in item.parameter if up.default_union_parameter), None)
+                        default_up = next(
+                            (up for up in item.parameter if up.default_union_parameter), None
+                        )
                         if default_up is not None:
-                            _write_param(
-                                default_up.id, default_up.parameter_type,
-                                base + mem.offset + default_up.offset, mem.bit_offset + default_up.bit_offset,
-                                default_up.value, idx, buf,
+                            yield (
+                                mem.code_segment,
+                                base + mem.offset + default_up.offset,
+                                mem.bit_offset + default_up.bit_offset,
+                                default_up.id,
+                                default_up.parameter_type,
+                                default_up.value,
                             )
 
     for child in ms.module_children():
-        _encode_module_params(child, idx, bufs)
+        yield from _iter_module_writes(child, idx)
+
+
+def _iter_param_writes(
+    app: ApplicationProgram,
+    idx: ApplicationIndexer,
+    overrides: dict[str, str],
+    state: GlobalState | None = None,
+) -> Generator[_ParamWrite, None, None]:
+    """Yield (seg_id, offset, bit_offset, param_id, parameter_type, value) for every parameter."""
+    s = app.static
+    if s.parameters is not None:
+        for item in s.parameters.choice:
+            if isinstance(item, ApplicationProgramStaticParametersParameter):
+                mem = item.choice
+                if not isinstance(mem, MemoryParameter):
+                    continue
+                yield (
+                    mem.code_segment,
+                    mem.offset,
+                    mem.bit_offset,
+                    item.id,
+                    item.parameter_type,
+                    overrides.get(item.id) or item.value,
+                )
+            else:
+                mem = item.choice
+                if not isinstance(mem, MemoryUnion):
+                    continue
+
+                active = [up for up in item.parameter if up.id in overrides]
+                assert len(active) <= 1, (
+                    f"union at {mem.code_segment}+{mem.offset} has {len(active)} active alternatives: "
+                    + ", ".join(up.id for up in active)
+                )
+
+                if active:
+                    up = active[0]
+                    yield (
+                        mem.code_segment,
+                        mem.offset + up.offset,
+                        mem.bit_offset + up.bit_offset,
+                        up.id,
+                        up.parameter_type,
+                        overrides[up.id],
+                    )
+                else:
+                    default_up = next(
+                        (up for up in item.parameter if up.default_union_parameter), None
+                    )
+                    if default_up is not None:
+                        yield (
+                            mem.code_segment,
+                            mem.offset + default_up.offset,
+                            mem.bit_offset + default_up.bit_offset,
+                            default_up.id,
+                            default_up.parameter_type,
+                            default_up.value,
+                        )
+
+    if state is not None:
+        for ms in state.module_children():
+            yield from _iter_module_writes(ms, idx)
 
 
 def encode_to_memory(
@@ -219,7 +289,7 @@ def encode_to_memory(
 ) -> dict[str, bytes]:
     """Encode parameter values into code segment byte buffers by iterating the static parameter model.
 
-    Returns {segment_id: bytes} for every AbsoluteSegment, starting from zeros.
+    Returns {segment_id: bytes} for every code segment, seeded from seg.data if present.
     Pass state to also encode module instance parameters (base_offset resolved via NumericArg).
 
     Notes:
@@ -228,7 +298,7 @@ def encode_to_memory(
     - Union parameters: asserts at most one alternative has an override; falls back to
       the DefaultUnionParameter's param.value when none does.
     """
-    # TODO: the iteration over app.static.parameters below repeats work that ApplicationIndexer
+    # TODO: the iteration over app.static.parameters repeats work that ApplicationIndexer
     # already does at build time. Consider pre-computing a flat list of (param_id, type_id,
     # seg_id, abs_offset, abs_bit_offset) tuples in the indexer so encode_to_memory just
     # iterates a single pre-built structure rather than re-walking the static model each call.
@@ -236,53 +306,33 @@ def encode_to_memory(
         seg_id: bytearray(seg.data) if seg.data else bytearray(seg.size)
         for seg_id, seg in idx.code_segments.items()
     }
-
-    s = app.static
-    if s.parameters is None:
-        return {seg_id: bytes(buf) for seg_id, buf in bufs.items()}
-
-    for item in s.parameters.choice:
-        if isinstance(item, ApplicationProgramStaticParametersParameter):
-            mem = item.choice
-            if not isinstance(mem, MemoryParameter):
-                continue
-            buf = bufs.get(mem.code_segment)
-            if buf is None:
-                continue
-            _write_param(item.id, item.parameter_type, mem.offset, mem.bit_offset, overrides.get(item.id) or item.value, idx, buf)
-
-        else:
-            mem = item.choice
-            if not isinstance(mem, MemoryUnion):
-                continue
-            buf = bufs.get(mem.code_segment)
-            if buf is None:
-                continue
-
-            active = [up for up in item.parameter if up.id in overrides]
-            assert len(active) <= 1, (
-                f"union at {mem.code_segment}+{mem.offset} has {len(active)} active alternatives: "
-                + ", ".join(up.id for up in active)
-            )
-
-            if active:
-                up = active[0]
-                _write_param(
-                    up.id, up.parameter_type,
-                    mem.offset + up.offset, mem.bit_offset + up.bit_offset,
-                    overrides[up.id], idx, buf,
-                )
-            else:
-                default_up = next((up for up in item.parameter if up.default_union_parameter), None)
-                if default_up is not None:
-                    _write_param(
-                        default_up.id, default_up.parameter_type,
-                        mem.offset + default_up.offset, mem.bit_offset + default_up.bit_offset,
-                        default_up.value, idx, buf,
-                    )
-
-    if state is not None:
-        for ms in state.module_children():
-            _encode_module_params(ms, idx, bufs)
-
+    for seg_id, offset, bit_offset, param_id, parameter_type, value in _iter_param_writes(app, idx, overrides, state):
+        buf = bufs.get(seg_id)
+        if buf is not None:
+            _write_param(param_id, parameter_type, offset, bit_offset, value, idx, buf)
     return {seg_id: bytes(buf) for seg_id, buf in bufs.items()}
+
+
+def build_memory_param_map(
+    app: ApplicationProgram,
+    idx: ApplicationIndexer,
+    overrides: dict[str, str],
+    state: GlobalState | None = None,
+) -> dict[str, dict[int, tuple[str, str]]]:
+    """Build {seg_id: {byte_offset: (param_id, value)}} for hex viewer hover lookups."""
+    maps: dict[str, dict[int, tuple[str, str]]] = {seg_id: {} for seg_id in idx.code_segments}
+    for seg_id, offset, bit_offset, param_id, parameter_type, value in _iter_param_writes(app, idx, overrides, state):
+        seg_map = maps.get(seg_id)
+        if seg_map is None:
+            continue
+        pt = idx.parameter_types.get(parameter_type)
+        if pt is None:
+            continue
+        size = getattr(pt.choice, "size_in_bit", None)
+        if not size:
+            continue
+        start_bit = offset * 8 + bit_offset
+        end_bit = start_bit + size - 1
+        for b in range(start_bit // 8, end_bit // 8 + 1):
+            seg_map[b] = (param_id, value)
+    return maps

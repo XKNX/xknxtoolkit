@@ -27,7 +27,7 @@ from xknxmono.models.intermediate import (
 from .application_indexer import ApplicationIndexer
 from .calculation import evaluate_lr, evaluate_rl
 from .context import EvalContext
-from .encode import encode_to_memory, resolve_param_values
+from .encode import build_memory_param_map, encode_to_memory, resolve_param_values
 from .nodes import (
     AssignNode,
     BinaryDataRefNode,
@@ -63,6 +63,7 @@ __all__ = [
     "ParameterSeparatorNode",
     "RenameNode",
     "RepeatNode",
+    "build_memory_param_map",
     "encode_to_memory",
     "resolve_param_values",
 ]
@@ -144,8 +145,8 @@ class DynamicTreeBuilder:
             # TODO: index substitution for non-Module children not yet implemented
             return RepeatNode(elem, [self._build(child) for child in elem.choice])
         elif isinstance(elem, Module):
-            def_id = elem.ref_id
-            mod_def = self.idx.module_defs.get(def_id)
+            ref_id = elem.ref_id
+            mod_def = self.idx.module_defs.get(ref_id)
             if mod_def is None or mod_def.dynamic is None:
                 return None
             children = [self._build(child) for child in mod_def.dynamic.choice]
@@ -160,7 +161,7 @@ class DynamicTreeBuilder:
                 arguments,
                 param_ref_defaults,
                 arg_defaults,
-                def_id,
+                ref_id,
             )
         elif isinstance(elem, ParameterRefRef):
             # Leaf: a parameter widget; resolve ParameterRef → Parameter → ParameterType at build time
@@ -248,6 +249,16 @@ class DynamicUI:
             self._state,
         )
 
+    def memory_param_map(self) -> dict[str, dict[int, tuple[str, str]]]:
+        """Return {seg_id: {byte_offset: (param_id, value)}} for hex viewer hover lookups."""
+        self.ui()
+        return build_memory_param_map(
+            self._app,
+            self._idx,
+            resolve_param_values(self._idx, self._state),
+            self._state,
+        )
+
     def set_parameter_ref(self, ref_id: str, value: str) -> None:
         active = self._state.active_param_refs()
         if active and ref_id not in active:
@@ -270,6 +281,8 @@ class DynamicUI:
                 v = r_values.get(pr.alias_name or pr.ref_id)
                 if v is not None:
                     self._state.set_instance_ref(pr.ref_id, v)
+                else:
+                    self._state.clear_instance_ref(pr.ref_id)
         for calc in self._idx.calculations_for_r(ref_id):
             r_values = {
                 pr.alias_name or pr.ref_id: self._state.get(pr.ref_id) or ""
@@ -283,3 +296,5 @@ class DynamicUI:
                 v = l_values.get(pr.alias_name or pr.ref_id)
                 if v is not None:
                     self._state.set_instance_ref(pr.ref_id, v)
+                else:
+                    self._state.clear_instance_ref(pr.ref_id)

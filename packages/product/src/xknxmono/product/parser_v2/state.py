@@ -59,6 +59,7 @@ class ParameterState:
 
     __slots__ = (
         "_active_com_object_refs",
+        "_active_module_keys",
         "_active_param_refs",
         "_children",
         "_com_obj_instance_refs",
@@ -74,6 +75,7 @@ class ParameterState:
         self._children: dict[str, ModuleState] = {}
         self._text: dict[str, str] = {}
         self._active_param_refs: set[str] = set()
+        self._active_module_keys: set[str] = set()
         self._active_com_object_refs: set[str] = set()
         self._param_ref_defaults: dict[str, str] = param_ref_defaults or {}
         self._com_obj_instance_refs: dict[str, ComObjectInstanceRef] = {}
@@ -123,12 +125,16 @@ class ParameterState:
     def reset_active(self) -> None:
         """Clear active ref sets before a new traversal."""
         self._active_param_refs.clear()
+        self._active_module_keys.clear()
         self._active_com_object_refs.clear()
         for child in self._children.values():
             child.reset_active()
 
     def trim_to_active(self) -> None:
         """Remove values for param refs not marked active, then recurse into module children.
+
+        Module children not visited during the last traversal are removed entirely so
+        their parameters are not encoded when the module is inactive.
 
         Active ref sets are NOT cleared here — they persist so callers can read
         active_param_refs() / active_com_object_refs() after the traversal.
@@ -137,6 +143,9 @@ class ParameterState:
         for key in inactive:
             del self.param_ref_id_to_value[key]
         self._text.clear()
+        inactive_modules = self._children.keys() - self._active_module_keys
+        for key in inactive_modules:
+            del self._children[key]
         for child in self._children.values():
             child.trim_to_active()
 
@@ -170,16 +179,29 @@ class ParameterState:
         else:
             self.set(ref_id, value)
 
-    def module_child(self, module_id: str, repeat_idx: int = 1, arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None, def_id: str | None = None) -> ModuleState:
+    def clear_instance_ref(self, ref_id: str) -> None:
+        found = self.find_scope_for_qualified(ref_id)
+        if found is not None:
+            scope, local = found
+            scope.param_ref_id_to_value.pop(local, None)
+        else:
+            self.param_ref_id_to_value.pop(ref_id, None)
+
+    def module_child(self, module_id: str, repeat_idx: int = 1, arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None, ref_id: str | None = None) -> ModuleState:
         """Returns (creating if needed) the module instance state and wires it into the tree."""
         key = f"{module_id}_MI-{repeat_idx}"
+        self._active_module_keys.add(key)
         if key not in self._children:
-            child = ModuleState(key, arguments, param_ref_defaults=param_ref_defaults, arg_defaults=arg_defaults, def_id=def_id)
+            child = ModuleState(key, arguments, param_ref_defaults=param_ref_defaults, arg_defaults=arg_defaults, ref_id=ref_id)
             child._parent = self
             self._children[key] = child
         else:
             child = self._children[key]
             child._parent = self
+            if ref_id is not None:
+                child.ref_id = ref_id
+            if arguments is not None:
+                child.arguments = arguments
             if param_ref_defaults is not None:
                 child.set_param_ref_defaults(param_ref_defaults)
             if arg_defaults is not None:
@@ -229,11 +251,10 @@ class GlobalState(ParameterState):
         for mi in module_instances or []:
             if mi.id is None or mi.ref_id is None:
                 continue
-            ms = ModuleState(mi.id, def_id=mi.ref_id)
+            ms = ModuleState(mi.id, ref_id=mi.ref_id)
             ms._parent = root
             root._children[mi.id] = ms
             mid_to_mdid[mi.id] = mi.ref_id
-
         for pir in parameter_instance_refs or []:
             if pir.value is None:
                 continue
@@ -263,12 +284,12 @@ class ModuleState(ParameterState):
     e.g. M-..._MD-1_P-5_R-5  →  M-..._MD-1_M-100_MI-2_P-5_R-5
     """
 
-    __slots__ = ("_arg_defaults", "arguments", "def_id", "module_instance_id")
+    __slots__ = ("_arg_defaults", "arguments", "module_instance_id", "ref_id")
 
-    def __init__(self, module_instance_id: str, arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None, def_id: str | None = None) -> None:
+    def __init__(self, module_instance_id: str, arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None, ref_id: str | None = None) -> None:
         super().__init__(param_ref_defaults=param_ref_defaults)
         self.module_instance_id = module_instance_id
-        self.def_id: str | None = def_id
+        self.ref_id: str | None = ref_id
         self.arguments: dict[str, ModuleArg] = arguments or {}
         self._arg_defaults: dict[str, str] = arg_defaults or {}
 
@@ -283,7 +304,7 @@ class ModuleState(ParameterState):
 
     def as_module_instance(self) -> tuple[str, str, dict[str, ModuleArg]]:
         instance_id = self.module_instance_id
-        ref_id = instance_id.rsplit("_MI-", 1)[0]
+        ref_id = self.ref_id if self.ref_id is not None else instance_id.rsplit("_MI-", 1)[0]
         args = {k[k.find("_MD-") + 1:]: v for k, v in self.arguments.items()}
         return instance_id, ref_id, args
 
@@ -299,8 +320,9 @@ class ModuleState(ParameterState):
             if result is not None:
                 return result
         suffix = ref_id[len(mid):]
-        common_prefix = mid.rsplit("_MI-", 1)[0].rsplit("_", 1)[0]
-        return (self, common_prefix + suffix)
+        if self.ref_id is None:
+            return None
+        return (self, self.ref_id + suffix)
 
     def _qualify(self, ref_id: str) -> str:
         i, n = 0, min(len(self.module_instance_id), len(ref_id))

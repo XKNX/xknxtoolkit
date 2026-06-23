@@ -234,14 +234,14 @@ class TestSetInstanceRef:
 
     def test_qualified_module_ref_written_to_module_scope(self):
         state = GlobalState()
-        _ = state.module_child(_MODULE_ID)  # create scope
+        _ = state.module_child(_MODULE_ID, ref_id=_DEF_PREFIX)
         state.set_instance_ref(_QUALIFIED_REF, "7")
         ms = state._children[_MODULE_INSTANCE_ID]
         assert ms.param_ref_id_to_value[_LOCAL_REF] == "7"
 
     def test_qualified_ref_visible_via_parameter_instance_refs(self):
         state = GlobalState()
-        _ = state.module_child(_MODULE_ID)
+        _ = state.module_child(_MODULE_ID, ref_id=_DEF_PREFIX)
         state.set_instance_ref(_QUALIFIED_REF, "9")
         assert state.parameter_instance_refs()[_QUALIFIED_REF] == "9"
 
