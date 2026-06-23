@@ -6,7 +6,6 @@ from knx_gui.plugins.project.strings import S
 from knx_gui.types import Device
 from knx_gui.widgets import (
     ComFlagsTable,
-    HexView,
     count_parameters,
     render_ui_tree,
 )
@@ -23,6 +22,7 @@ class ConfigurePanel:
         on_name_change: Callable[[Device, str], None],
         set_flag: Callable[[Device, str, str, bool], None],
         on_program_device: Callable[[Device], None] | None = None,
+        open_memory_preview: Callable[[Device], None] | None = None,
     ) -> None:
         self._get_devices = get_devices
         self._get_selected_device = get_selected_device
@@ -31,15 +31,11 @@ class ConfigurePanel:
         self._on_individual_address_change = on_individual_address_change
         self._on_name_change = on_name_change
         self._on_program_device = on_program_device
+        self._open_memory_preview = open_memory_preview
         self._com_flags_table = ComFlagsTable(set_flag)
         self._name_buffer: str = ""
         self._address_buffer: str = ""
         self._buffer_device_id: int | None = None
-        self._show_memory_preview: bool = False
-        self._memory_segments: dict[str, bytes] = {}
-        self._memory_base_addrs: dict[str, int] = {}
-        self._hex_views: dict[str, HexView] = {}
-        self._memory_preview_device_id: int | None = None
 
     def render(self) -> None:
         devices = self._get_devices()
@@ -108,11 +104,8 @@ class ConfigurePanel:
             imgui.end_disabled()
             imgui.same_line()
 
-        if imgui.button(S.BTN_PREVIEW_MEMORY):
-            self._memory_segments = device.encode_to_memory()
-            self._memory_base_addrs = device.get_segment_base_addrs()
-            self._memory_preview_device_id = device.node_id
-            self._show_memory_preview = True
+        if self._open_memory_preview is not None and imgui.button(S.BTN_PREVIEW_MEMORY):
+            self._open_memory_preview(device)
 
         if imgui.collapsing_header(
             S.CONFIGURE_MANUFACTURER, imgui.TreeNodeFlags_.default_open
@@ -176,36 +169,6 @@ class ConfigurePanel:
                                 imgui.text_disabled(step.details)
                             imgui.end_table()
                         imgui.tree_pop()
-
-        self._render_memory_preview()
-
-    def _render_memory_preview(self) -> None:
-        if not self._show_memory_preview:
-            return
-        imgui.set_next_window_size(imgui.ImVec2(760, 540), imgui.Cond_.first_use_ever)
-        opened, p_open = imgui.begin(S.CONFIGURE_MEMORY_PREVIEW, self._show_memory_preview)
-        if p_open is not None:
-            self._show_memory_preview = p_open
-        if opened:
-            segments = list(self._memory_segments.items())
-            if not segments:
-                imgui.text_disabled("No memory segments.")
-            elif len(segments) == 1:
-                seg_id, data = segments[0]
-                imgui.text_disabled(f"{seg_id}  ({len(data)} bytes)")
-                imgui.separator()
-                view = self._hex_views.setdefault(seg_id, HexView())
-                view.draw(data, self._memory_base_addrs.get(seg_id, 0))
-            else:
-                if imgui.begin_tab_bar("##segs"):
-                    for i, (seg_id, data) in enumerate(segments):
-                        label = f"{seg_id} ({len(data)}B)##seg{i}"
-                        if imgui.begin_tab_item(label)[0]:
-                            view = self._hex_views.setdefault(seg_id, HexView())
-                            view.draw(data, self._memory_base_addrs.get(seg_id, 0))
-                            imgui.end_tab_item()
-                    imgui.end_tab_bar()
-        imgui.end()
 
     def _render_label_value(self, label: str, value: str) -> None:
         imgui.text_disabled(label)

@@ -5,6 +5,7 @@ from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.project.strings import S
 from knx_gui.plugins.project.ui import ConfigurePanel, DevicesPanel, HistoryPanel
 from knx_gui.plugins.project.ui.devices import Area, Line
+from knx_gui.plugins.project.ui.memory_preview import MemoryPreviewWindow
 
 if TYPE_CHECKING:
     from knx_gui.types import Device
@@ -21,6 +22,8 @@ class ProjectPlugin:
         self._api = api
         self._get_selected_node_ids = get_selected_node_ids
         api.project.set_logger(Logger(api.log, "project"))
+
+        self._memory_preview = MemoryPreviewWindow(get_devices=lambda: api.project.devices)
 
         self._devices_panel = DevicesPanel(
             get_devices=lambda: api.project.devices,
@@ -45,6 +48,7 @@ class ProjectPlugin:
             on_name_change=self._handle_name_change,
             set_flag=self._handle_flag_change,
             on_program_device=api.connection.assign_individual_address_for_device,
+            open_memory_preview=self._memory_preview.open,
         )
 
         self._history_panel = HistoryPanel(
@@ -192,6 +196,9 @@ class ProjectPlugin:
     @property
     def panels(self) -> list[PanelDefinition]:
         return self._panels
+
+    def render_overlays(self) -> None:
+        self._memory_preview.render()
 
     def on_load(self) -> None:
         pass

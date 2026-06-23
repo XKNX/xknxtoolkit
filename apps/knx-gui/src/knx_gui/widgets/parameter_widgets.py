@@ -126,8 +126,7 @@ def render_ui_tree(
                 label = tab.text or tab.name or tab.id or "Tab"
                 if imgui.begin_tab_item(f"{label}##{device.node_id}_{tab.id}")[0]:
                     req = _render_children(
-                        device, tab.children, on_change, deferred_enum,
-                        f"{device.node_id}_{tab.id}",
+                        device, tab.children, on_change, deferred_enum, f"{device.node_id}_{tab.id}",
                     )
                     if req is not None:
                         popup_request = req
@@ -135,7 +134,7 @@ def render_ui_tree(
             imgui.end_tab_bar()
     else:
         req = _render_children(
-            device, tuple(nodes), on_change, deferred_enum, str(device.node_id)
+            device, tuple(nodes), on_change, deferred_enum, str(device.node_id),
         )
         if req is not None:
             popup_request = req
@@ -323,10 +322,8 @@ def _render_param_table(
             indent = param.indent_level * 12.0
             if indent > 0:
                 imgui.indent(indent)
-            imgui.text(param.label)
-            if param.suffix:
-                imgui.same_line()
-                imgui.text_disabled(param.suffix)
+            label = param.label + (f"  {param.suffix}" if param.suffix else "")
+            imgui.text(label)
             if indent > 0:
                 imgui.unindent(indent)
             imgui.table_set_column_index(1)

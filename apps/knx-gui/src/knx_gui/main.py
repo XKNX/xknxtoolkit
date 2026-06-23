@@ -192,6 +192,10 @@ class KnxGuiApp:
         self._poll_dialogs()
         self._handle_shortcuts()
 
+    def render_overlays(self) -> None:
+        self._cat_plugin.render()
+        self._project_plugin.render_overlays()
+
     def get_all_panels(self) -> list[PanelDefinition]:
         panels: list[PanelDefinition] = []
         for plugin in self._plugins:
@@ -301,7 +305,7 @@ def _main() -> None:
 
     runner_params.callbacks.post_init = app.setup
     runner_params.callbacks.before_exit = app.shutdown
-    runner_params.callbacks.post_render_dockable_windows = app._cat_plugin.render
+    runner_params.callbacks.post_render_dockable_windows = app.render_overlays
 
     hello_imgui.run(runner_params)
 

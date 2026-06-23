@@ -8,6 +8,7 @@ catalog product, and the device stores that product's refs.
 from dataclasses import dataclass
 from pathlib import Path
 
+from knx_gui.types import Device as _Device
 from xknxmono.catalog import CatalogService
 from xknxmono.project import ProjectService
 
@@ -59,6 +60,8 @@ def generate_demo(output_path: Path, catalog_path: Path) -> None:
             print(f"Warning: {demo.application_id} not in catalog, skipping")
             continue
         octet = int(demo.individual_address.split(".")[2])
+        init_device = _Device(node_id=0, name=demo.name, app=app, individual_address="")
+        module_instances = init_device.get_module_instances()
         svc.add_device(
             pid,
             segment_id,
@@ -66,8 +69,8 @@ def generate_demo(output_path: Path, catalog_path: Path) -> None:
             address=octet,
             name=demo.name,
             hardware2program_ref_id=product.hardware2program_ref_id,
-            parameters=[(p.id, p.value) for p in app.parameters()],
             com_objects=[(co.id, None) for co in app.com_objects()],
+            module_instances=module_instances if module_instances else None,
         )
         print(f"Added: {demo.name} ({demo.individual_address})")
 

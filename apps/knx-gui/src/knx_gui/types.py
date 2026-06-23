@@ -306,6 +306,12 @@ class Device:
             return {}
         return self._dynamic_ui.encode_to_memory()
 
+    def get_memory_param_map(self) -> dict[str, dict[int, tuple[str, str]]]:
+        """Return {seg_id: {byte_offset: (param_id, value)}} for hex viewer hover lookups."""
+        if self._dynamic_ui is None:
+            return {}
+        return self._dynamic_ui.memory_param_map()
+
     def set_com_obj_instance_ref(self, ref_id: str, coir: ComObjectInstanceRef) -> None:
         if self._dynamic_ui is not None:
             self._dynamic_ui.set_com_obj_instance_ref(ref_id, coir)
