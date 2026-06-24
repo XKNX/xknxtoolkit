@@ -27,7 +27,18 @@ from xknxmono.models.intermediate import (
 from .application_indexer import ApplicationIndexer
 from .calculation import evaluate_lr, evaluate_rl
 from .context import EvalContext
-from .encode import build_memory_param_map, encode_to_memory, resolve_param_values
+from .encode import (
+    MemWrite,
+    PropertyKey,
+    PropWrite,
+    Writes,
+    build_memory_param_map,
+    build_property_param_map,
+    collect_writes,
+    encode_to_memory,
+    encode_to_properties,
+    resolve_param_values,
+)
 from .nodes import (
     AssignNode,
     BinaryDataRefNode,
@@ -58,13 +69,20 @@ __all__ = [
     "DynamicUI",
     "EvalContext",
     "GenericCollectionNode",
+    "MemWrite",
     "ModuleNode",
     "ParameterRefRefNode",
     "ParameterSeparatorNode",
+    "PropWrite",
+    "PropertyKey",
     "RenameNode",
     "RepeatNode",
+    "Writes",
     "build_memory_param_map",
+    "build_property_param_map",
+    "collect_writes",
     "encode_to_memory",
+    "encode_to_properties",
     "resolve_param_values",
 ]
 
@@ -253,6 +271,26 @@ class DynamicUI:
         """Return {seg_id: {byte_offset: (param_id, value)}} for hex viewer hover lookups."""
         self.ui()
         return build_memory_param_map(
+            self._app,
+            self._idx,
+            resolve_param_values(self._idx, self._state),
+            self._state,
+        )
+
+    def encode_to_properties(self) -> dict[PropertyKey, bytes]:
+        """Encode PropertyParameter-backed parameters into interface object property data."""
+        self.ui()
+        return encode_to_properties(
+            self._app,
+            self._idx,
+            resolve_param_values(self._idx, self._state),
+            self._state,
+        )
+
+    def property_param_map(self) -> dict[PropertyKey, dict[int, tuple[str, str]]]:
+        """Return {(object_index, property_id, occurrence): {byte_offset: (param_id, value)}}."""
+        self.ui()
+        return build_property_param_map(
             self._app,
             self._idx,
             resolve_param_values(self._idx, self._state),

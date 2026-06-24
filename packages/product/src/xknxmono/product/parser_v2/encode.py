@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import struct
-from collections.abc import Generator
+from typing import NamedTuple
 
 from xknxmono.models.intermediate import ApplicationProgram
 from xknxmono.models.intermediate.application_program_static_t_parameters_parameter import (
     ApplicationProgramStaticParametersParameter,
+)
+from xknxmono.models.intermediate.application_program_static_t_parameters_union import (
+    ApplicationProgramStaticParametersUnion,
 )
 from xknxmono.models.intermediate.memory_parameter_t import MemoryParameter
 from xknxmono.models.intermediate.memory_union_t import MemoryUnion
@@ -15,11 +18,17 @@ from xknxmono.models.intermediate.module_def_static_t_parameters_parameter impor
 from xknxmono.models.intermediate.module_def_static_t_parameters_parameter_memory import (
     ModuleDefStaticParametersParameterMemory,
 )
+from xknxmono.models.intermediate.module_def_static_t_parameters_parameter_property import (
+    ModuleDefStaticParametersParameterProperty,
+)
 from xknxmono.models.intermediate.module_def_static_t_parameters_union import (
     ModuleDefStaticParametersUnion,
 )
 from xknxmono.models.intermediate.module_def_static_t_parameters_union_memory import (
     ModuleDefStaticParametersUnionMemory,
+)
+from xknxmono.models.intermediate.module_def_static_t_parameters_union_property import (
+    ModuleDefStaticParametersUnionProperty,
 )
 from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
 from xknxmono.models.intermediate.parameter_type_t_type_float import (
@@ -37,12 +46,43 @@ from xknxmono.models.intermediate.parameter_type_t_type_restriction import (
 from xknxmono.models.intermediate.parameter_type_t_type_text import (
     ParameterTypeTypeText,
 )
+from xknxmono.models.intermediate.property_parameter_t import PropertyParameter
+from xknxmono.models.intermediate.property_union_t import PropertyUnion
+from xknxmono.models.intermediate.union_parameter_t import UnionParameter
 
 from .application_indexer import ApplicationIndexer
 from .state import GlobalState, ModuleState
 
-# (seg_id, byte_offset, bit_offset, param_id, parameter_type, value)
-_ParamWrite = tuple[str, int, int, str, str, str]
+
+class MemWrite(NamedTuple):
+    seg_id: str
+    offset: int
+    bit_offset: int
+    param_id: str
+    parameter_type: str
+    value: str
+
+
+class PropWrite(NamedTuple):
+    object_index: int | None
+    property_id: int
+    occurrence: int
+    offset: int
+    bit_offset: int
+    param_id: str
+    parameter_type: str
+    value: str
+
+
+class Writes:
+    __slots__ = ("mem", "prop")
+
+    def __init__(self) -> None:
+        self.mem: list[MemWrite] = []
+        self.prop: list[PropWrite] = []
+
+
+PropertyKey = tuple[int | None, int, int]  # (object_index, property_id, occurrence)
 
 
 def _write_bits(buf: bytearray, offset: int, bit_offset: int, size_in_bit: int, value: int) -> None:
@@ -101,7 +141,7 @@ def _encode_value(str_value: str, size_in_bit: int, tc: object) -> int | None:
 def resolve_param_values(idx: ApplicationIndexer, state: GlobalState) -> dict[str, str]:
     """Build {param_id: state_value} for parameters with an explicit user override in state.
 
-    Does not include static defaults — encode_to_memory reads those directly from the
+    Does not include static defaults — collect_writes reads those directly from the
     parameter objects as it iterates the static model.
     """
     state_values = dict(state.relative_param_values())
@@ -116,169 +156,150 @@ def resolve_param_values(idx: ApplicationIndexer, state: GlobalState) -> dict[st
     return overrides
 
 
-def _write_param(
-    param_id: str,
-    parameter_type: str,
-    offset: int,
-    bit_offset: int,
-    value_str: str,
-    idx: ApplicationIndexer,
-    buf: bytearray,
-) -> None:
-    pt = idx.parameter_types.get(parameter_type)
-    if pt is None:
-        return
-    tc = pt.choice
-    size_in_bit = getattr(tc, "size_in_bit", None)
-    if size_in_bit is None:
-        return
-    value = _encode_value(value_str, size_in_bit, tc)
-    if value is None:
-        return
-    _write_bits(buf, offset, bit_offset, size_in_bit, value)
-
-
-def _resolve_base_offset(base_offset_id: str | None, ms: ModuleState) -> int | None:
-    if base_offset_id is None:
+def _resolve_base(base_id: str | None, ms: ModuleState) -> int | None:
+    if base_id is None:
         return 0
-    arg = ms.arguments.get(base_offset_id)
+    arg = ms.arguments.get(base_id)
     if not isinstance(arg, ModuleNumericArg) or arg.value is None:
         return None
     return arg.value
 
 
-def _iter_module_writes(ms: ModuleState, idx: ApplicationIndexer) -> Generator[_ParamWrite, None, None]:
+def _build_instance_overrides(ms: ModuleState, idx: ApplicationIndexer) -> dict[str, str]:
+    overrides: dict[str, str] = {}
+    for pr_id, value in ms.param_ref_id_to_value.items():
+        pr = idx.parameter_refs.get(pr_id)
+        if pr is not None:
+            param = idx.parameters.get(pr.ref_id)
+            if param is not None:
+                overrides[param.id] = value
+    return overrides
+
+
+def _pick_union_param(
+    parameters: list[UnionParameter],
+    overrides: dict[str, str],
+    location: str,
+) -> tuple[UnionParameter, str] | None:
+    active = [up for up in parameters if up.id in overrides]
+    assert len(active) <= 1, (
+        f"union at {location} has {len(active)} active alternatives: "
+        + ", ".join(up.id for up in active)
+    )
+    if active:
+        return active[0], overrides[active[0].id]
+    default_up = next((up for up in parameters if up.default_union_parameter), None)
+    if default_up is not None:
+        return default_up, default_up.value
+    return None
+
+
+def _collect_param(
+    item: ApplicationProgramStaticParametersParameter | ModuleDefStaticParametersParameter,
+    overrides: dict[str, str],
+    ms: ModuleState | None,
+    out: Writes,
+) -> None:
+    choice = item.choice
+    value = overrides.get(item.id) or item.value
+    # Check subclasses before parents (module types extend their top-level counterparts)
+    if isinstance(choice, ModuleDefStaticParametersParameterMemory):
+        assert ms is not None
+        base = _resolve_base(choice.base_offset, ms)
+        if base is not None:
+            out.mem.append(MemWrite(choice.code_segment, base + choice.offset, choice.bit_offset, item.id, item.parameter_type, value))
+    elif isinstance(choice, MemoryParameter):
+        out.mem.append(MemWrite(choice.code_segment, choice.offset, choice.bit_offset, item.id, item.parameter_type, value))
+    elif isinstance(choice, ModuleDefStaticParametersParameterProperty):
+        assert ms is not None
+        bo = _resolve_base(choice.base_offset, ms)
+        bi = _resolve_base(choice.base_index, ms)
+        boc = _resolve_base(choice.base_occurrence, ms)
+        if bo is not None and bi is not None and boc is not None:
+            obj_idx = (choice.object_index or 0) + bi if bi else choice.object_index
+            out.prop.append(PropWrite(obj_idx, choice.property_id, choice.occurrence + boc, bo + choice.offset, choice.bit_offset, item.id, item.parameter_type, value))
+    elif isinstance(choice, PropertyParameter):
+        out.prop.append(PropWrite(choice.object_index, choice.property_id, choice.occurrence, choice.offset, choice.bit_offset, item.id, item.parameter_type, value))
+    # IoPointParameter and None: skip
+
+
+def _collect_union(
+    item: ApplicationProgramStaticParametersUnion | ModuleDefStaticParametersUnion,
+    overrides: dict[str, str],
+    ms: ModuleState | None,
+    out: Writes,
+) -> None:
+    choice = item.choice
+    if choice is None:
+        return
+    # Check subclasses before parents (module types extend their top-level counterparts)
+    if isinstance(choice, ModuleDefStaticParametersUnionMemory):
+        assert ms is not None
+        base = _resolve_base(choice.base_offset, ms)
+        if base is not None:
+            picked = _pick_union_param(item.parameter, overrides, f"{choice.code_segment}+{base + choice.offset}")
+            if picked is not None:
+                up, value = picked
+                out.mem.append(MemWrite(choice.code_segment, base + choice.offset + up.offset, choice.bit_offset + up.bit_offset, up.id, up.parameter_type, value))
+    elif isinstance(choice, MemoryUnion):
+        picked = _pick_union_param(item.parameter, overrides, f"{choice.code_segment}+{choice.offset}")
+        if picked is not None:
+            up, value = picked
+            out.mem.append(MemWrite(choice.code_segment, choice.offset + up.offset, choice.bit_offset + up.bit_offset, up.id, up.parameter_type, value))
+    elif isinstance(choice, ModuleDefStaticParametersUnionProperty):
+        assert ms is not None
+        bo = _resolve_base(choice.base_offset, ms)
+        bi = _resolve_base(choice.base_index, ms)
+        boc = _resolve_base(choice.base_occurrence, ms)
+        if bo is not None and bi is not None and boc is not None:
+            obj_idx = (choice.object_index or 0) + bi if bi else choice.object_index
+            picked = _pick_union_param(item.parameter, overrides, f"prop_id={choice.property_id}+{bo + choice.offset}")
+            if picked is not None:
+                up, value = picked
+                out.prop.append(PropWrite(obj_idx, choice.property_id, choice.occurrence + boc, bo + choice.offset + up.offset, choice.bit_offset + up.bit_offset, up.id, up.parameter_type, value))
+    else:
+        assert isinstance(choice, PropertyUnion)
+        picked = _pick_union_param(item.parameter, overrides, f"prop_id={choice.property_id}+{choice.offset}")
+        if picked is not None:
+            up, value = picked
+            out.prop.append(PropWrite(choice.object_index, choice.property_id, choice.occurrence, choice.offset + up.offset, choice.bit_offset + up.bit_offset, up.id, up.parameter_type, value))
+
+
+def _collect_module_writes(ms: ModuleState, idx: ApplicationIndexer, out: Writes) -> None:
     if ms.ref_id is not None:
         md = idx.module_defs.get(ms.ref_id)
         if md is not None and md.static.parameters is not None:
-            instance_overrides: dict[str, str] = {}
-            for pr_id, value in ms.param_ref_id_to_value.items():
-                pr = idx.parameter_refs.get(pr_id)
-                if pr is not None:
-                    param = idx.parameters.get(pr.ref_id)
-                    if param is not None:
-                        instance_overrides[param.id] = value
-
+            instance_overrides = _build_instance_overrides(ms, idx)
             for item in md.static.parameters.choice:
                 if isinstance(item, ModuleDefStaticParametersParameter):
-                    mem = item.choice
-                    if not isinstance(mem, ModuleDefStaticParametersParameterMemory):
-                        continue
-                    base = _resolve_base_offset(mem.base_offset, ms)
-                    if base is None:
-                        continue
-                    yield (
-                        mem.code_segment,
-                        base + mem.offset,
-                        mem.bit_offset,
-                        item.id,
-                        item.parameter_type,
-                        instance_overrides.get(item.id) or item.value,
-                    )
+                    _collect_param(item, instance_overrides, ms, out)
                 else:
                     assert isinstance(item, ModuleDefStaticParametersUnion)
-                    mem = item.choice
-                    if not isinstance(mem, ModuleDefStaticParametersUnionMemory):
-                        continue
-                    base = _resolve_base_offset(mem.base_offset, ms)
-                    if base is None:
-                        continue
-
-                    active = [up for up in item.parameter if up.id in instance_overrides]
-                    assert len(active) <= 1, (
-                        f"module union at {mem.code_segment}+{base + mem.offset} has "
-                        f"{len(active)} active alternatives: "
-                        + ", ".join(up.id for up in active)
-                    )
-
-                    if active:
-                        up = active[0]
-                        yield (
-                            mem.code_segment,
-                            base + mem.offset + up.offset,
-                            mem.bit_offset + up.bit_offset,
-                            up.id,
-                            up.parameter_type,
-                            instance_overrides[up.id],
-                        )
-                    else:
-                        default_up = next(
-                            (up for up in item.parameter if up.default_union_parameter), None
-                        )
-                        if default_up is not None:
-                            yield (
-                                mem.code_segment,
-                                base + mem.offset + default_up.offset,
-                                mem.bit_offset + default_up.bit_offset,
-                                default_up.id,
-                                default_up.parameter_type,
-                                default_up.value,
-                            )
-
+                    _collect_union(item, instance_overrides, ms, out)
     for child in ms.module_children():
-        yield from _iter_module_writes(child, idx)
+        _collect_module_writes(child, idx, out)
 
 
-def _iter_param_writes(
+def collect_writes(
     app: ApplicationProgram,
     idx: ApplicationIndexer,
     overrides: dict[str, str],
     state: GlobalState | None = None,
-) -> Generator[_ParamWrite, None, None]:
-    """Yield (seg_id, offset, bit_offset, param_id, parameter_type, value) for every parameter."""
+) -> Writes:
+    """Collect all parameter writes into a Writes container (mem + prop), separated by destination type."""
+    out = Writes()
     s = app.static
     if s.parameters is not None:
         for item in s.parameters.choice:
             if isinstance(item, ApplicationProgramStaticParametersParameter):
-                mem = item.choice
-                if not isinstance(mem, MemoryParameter):
-                    continue
-                yield (
-                    mem.code_segment,
-                    mem.offset,
-                    mem.bit_offset,
-                    item.id,
-                    item.parameter_type,
-                    overrides.get(item.id) or item.value,
-                )
+                _collect_param(item, overrides, None, out)
             else:
-                mem = item.choice
-                if not isinstance(mem, MemoryUnion):
-                    continue
-
-                active = [up for up in item.parameter if up.id in overrides]
-                assert len(active) <= 1, (
-                    f"union at {mem.code_segment}+{mem.offset} has {len(active)} active alternatives: "
-                    + ", ".join(up.id for up in active)
-                )
-
-                if active:
-                    up = active[0]
-                    yield (
-                        mem.code_segment,
-                        mem.offset + up.offset,
-                        mem.bit_offset + up.bit_offset,
-                        up.id,
-                        up.parameter_type,
-                        overrides[up.id],
-                    )
-                else:
-                    default_up = next(
-                        (up for up in item.parameter if up.default_union_parameter), None
-                    )
-                    if default_up is not None:
-                        yield (
-                            mem.code_segment,
-                            mem.offset + default_up.offset,
-                            mem.bit_offset + default_up.bit_offset,
-                            default_up.id,
-                            default_up.parameter_type,
-                            default_up.value,
-                        )
-
+                assert isinstance(item, ApplicationProgramStaticParametersUnion)
+                _collect_union(item, overrides, None, out)
     if state is not None:
         for ms in state.module_children():
-            yield from _iter_module_writes(ms, idx)
+            _collect_module_writes(ms, idx, out)
+    return out
 
 
 def encode_to_memory(
@@ -287,29 +308,31 @@ def encode_to_memory(
     overrides: dict[str, str],
     state: GlobalState | None = None,
 ) -> dict[str, bytes]:
-    """Encode parameter values into code segment byte buffers by iterating the static parameter model.
+    """Encode parameter values into code segment byte buffers.
 
     Returns {segment_id: bytes} for every code segment, seeded from seg.data if present.
-    Pass state to also encode module instance parameters (base_offset resolved via NumericArg).
-
-    Notes:
-    - Bit layout: bit_offset=0 is the MSB of each byte; values stored big-endian.
-    - Standalone parameters: state override takes priority over param.value.
-    - Union parameters: asserts at most one alternative has an override; falls back to
-      the DefaultUnionParameter's param.value when none does.
+    Bit layout: bit_offset=0 is the MSB of each byte; values stored big-endian.
     """
-    # TODO: the iteration over app.static.parameters repeats work that ApplicationIndexer
-    # already does at build time. Consider pre-computing a flat list of (param_id, type_id,
-    # seg_id, abs_offset, abs_bit_offset) tuples in the indexer so encode_to_memory just
-    # iterates a single pre-built structure rather than re-walking the static model each call.
+    writes = collect_writes(app, idx, overrides, state)
     bufs: dict[str, bytearray] = {
         seg_id: bytearray(seg.data) if seg.data else bytearray(seg.size)
         for seg_id, seg in idx.code_segments.items()
     }
-    for seg_id, offset, bit_offset, param_id, parameter_type, value in _iter_param_writes(app, idx, overrides, state):
-        buf = bufs.get(seg_id)
-        if buf is not None:
-            _write_param(param_id, parameter_type, offset, bit_offset, value, idx, buf)
+    for w in writes.mem:
+        buf = bufs.get(w.seg_id)
+        if buf is None:
+            continue
+        pt = idx.parameter_types.get(w.parameter_type)
+        if pt is None:
+            continue
+        tc = pt.choice
+        size_in_bit = getattr(tc, "size_in_bit", None)
+        if size_in_bit is None:
+            continue
+        encoded = _encode_value(w.value, size_in_bit, tc)
+        if encoded is None:
+            continue
+        _write_bits(buf, w.offset, w.bit_offset, size_in_bit, encoded)
     return {seg_id: bytes(buf) for seg_id, buf in bufs.items()}
 
 
@@ -320,19 +343,81 @@ def build_memory_param_map(
     state: GlobalState | None = None,
 ) -> dict[str, dict[int, tuple[str, str]]]:
     """Build {seg_id: {byte_offset: (param_id, value)}} for hex viewer hover lookups."""
+    writes = collect_writes(app, idx, overrides, state)
     maps: dict[str, dict[int, tuple[str, str]]] = {seg_id: {} for seg_id in idx.code_segments}
-    for seg_id, offset, bit_offset, param_id, parameter_type, value in _iter_param_writes(app, idx, overrides, state):
-        seg_map = maps.get(seg_id)
+    for w in writes.mem:
+        seg_map = maps.get(w.seg_id)
         if seg_map is None:
             continue
-        pt = idx.parameter_types.get(parameter_type)
+        pt = idx.parameter_types.get(w.parameter_type)
         if pt is None:
             continue
         size = getattr(pt.choice, "size_in_bit", None)
         if not size:
             continue
-        start_bit = offset * 8 + bit_offset
+        start_bit = w.offset * 8 + w.bit_offset
         end_bit = start_bit + size - 1
         for b in range(start_bit // 8, end_bit // 8 + 1):
-            seg_map[b] = (param_id, value)
+            seg_map[b] = (w.param_id, w.value)
+    return maps
+
+
+def encode_to_properties(
+    app: ApplicationProgram,
+    idx: ApplicationIndexer,
+    overrides: dict[str, str],
+    state: GlobalState | None = None,
+) -> dict[PropertyKey, bytes]:
+    """Encode PropertyParameter-backed parameters into interface object property data.
+
+    Returns {(object_index, property_id, occurrence): bytes}.
+    Bit layout: bit_offset=0 is the MSB of each byte; values stored big-endian.
+    Buffers are sized dynamically to fit all writes.
+    """
+    writes = collect_writes(app, idx, overrides, state)
+    bufs: dict[PropertyKey, bytearray] = {}
+    for w in writes.prop:
+        pt = idx.parameter_types.get(w.parameter_type)
+        if pt is None:
+            continue
+        tc = pt.choice
+        size_in_bit = getattr(tc, "size_in_bit", None)
+        if not size_in_bit:
+            continue
+        encoded = _encode_value(w.value, size_in_bit, tc)
+        if encoded is None:
+            continue
+        key: PropertyKey = (w.object_index, w.property_id, w.occurrence)
+        needed = w.offset + (w.bit_offset + size_in_bit + 7) // 8
+        buf = bufs.get(key)
+        if buf is None:
+            bufs[key] = buf = bytearray(needed)
+        elif len(buf) < needed:
+            buf.extend(bytearray(needed - len(buf)))
+        _write_bits(buf, w.offset, w.bit_offset, size_in_bit, encoded)
+    return {key: bytes(buf) for key, buf in bufs.items()}
+
+
+def build_property_param_map(
+    app: ApplicationProgram,
+    idx: ApplicationIndexer,
+    overrides: dict[str, str],
+    state: GlobalState | None = None,
+) -> dict[PropertyKey, dict[int, tuple[str, str]]]:
+    """Build {(object_index, property_id, occurrence): {byte_offset: (param_id, value)}} for lookups."""
+    writes = collect_writes(app, idx, overrides, state)
+    maps: dict[PropertyKey, dict[int, tuple[str, str]]] = {}
+    for w in writes.prop:
+        pt = idx.parameter_types.get(w.parameter_type)
+        if pt is None:
+            continue
+        size = getattr(pt.choice, "size_in_bit", None)
+        if not size:
+            continue
+        key: PropertyKey = (w.object_index, w.property_id, w.occurrence)
+        byte_map = maps.setdefault(key, {})
+        start_bit = w.offset * 8 + w.bit_offset
+        end_bit = start_bit + size - 1
+        for b in range(start_bit // 8, end_bit // 8 + 1):
+            byte_map[b] = (w.param_id, w.value)
     return maps

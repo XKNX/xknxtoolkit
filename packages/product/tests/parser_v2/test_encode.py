@@ -83,9 +83,6 @@ def test_multiple_param_changes(dui: DynamicUI) -> None:
 
 
 def test_param_map_value_matches_encoded_byte(dui: DynamicUI) -> None:
-    from xknxmono.product.parser_v2.dynamic import build_memory_param_map
-    from xknxmono.product.parser_v2.encode import resolve_param_values
-
     dui.set_parameter_ref(_DELAY_REF_ID, "4")
 
     mem = dui.encode_to_memory()
