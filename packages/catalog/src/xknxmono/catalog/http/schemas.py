@@ -2,25 +2,15 @@
 
 All schemas that map to ORM models use ``model_config = {"from_attributes": True}``
 so FastAPI can call ``model_validate`` automatically when a ``response_model`` is set.
-Schemas that map to the ``xknxmono.product.application`` dataclasses do the same —
-``from_attributes`` works for any Python object with the matching attribute names.
-
-:class:`ApplicationDetailResponse` nests all its sub-schemas as inner classes so
-they are namespaced under the parent and not exported individually.  ``from __future__
-import annotations`` is required so that forward references like
-``ApplicationDetailResponse.ComObject`` inside the class body resolve lazily, after
-the outer class is fully defined.
 """
 
 from __future__ import annotations
 
-import base64
 import datetime
 
-from pydantic import BaseModel, field_serializer, field_validator
+from pydantic import BaseModel, field_validator
 
 from xknxmono.catalog.models import HardwareProgramMediumType
-from xknxmono.product import ParamTypeKind
 
 
 class ManufacturerResponse(BaseModel):
@@ -99,116 +89,3 @@ class CatalogSectionResponse(BaseModel):
     children: list[CatalogSectionResponse] = []
 
 
-class ApplicationDetailResponse(BaseModel):
-    """Full on-demand detail for an application program, parsed live from the .knxprod archive.
-
-    Sub-schemas are defined as inner classes so they are namespaced under this
-    model and not exported individually from the module.
-    """
-
-    model_config = {"from_attributes": True}
-
-    class ComObjectFlags(BaseModel):
-        """Communication flags for a KNX group object."""
-
-        model_config = {"from_attributes": True}
-        communication: bool
-        read: bool
-        write: bool
-        transmit: bool
-        update: bool
-        read_on_init: bool
-
-    class ComObject(BaseModel):
-        """A KNX group object (communication object)."""
-
-        model_config = {"from_attributes": True}
-        id: str
-        name: str
-        number: int
-        dpt_codes: list[str]
-        flags: ApplicationDetailResponse.ComObjectFlags
-
-    class EnumOption(BaseModel):
-        """A single option in an enumeration parameter type."""
-
-        model_config = {"from_attributes": True}
-        value: str
-        text: str
-
-    class ParamType(BaseModel):
-        """The type descriptor for an application parameter (enumeration, integer, etc.)."""
-
-        model_config = {"from_attributes": True}
-        kind: str
-        options: list[ApplicationDetailResponse.EnumOption] = []
-        min_value: int | None
-        max_value: int | None
-        size_bits: int | None
-
-        @field_validator("kind", mode="before")
-        @classmethod
-        def _extract_enum_value(cls, v: ParamTypeKind) -> str:
-            """Return the string value of the ``ParamTypeKind`` enum."""
-            return v.value
-
-    class Parameter(BaseModel):
-        """An application parameter with its current value and type."""
-
-        model_config = {"from_attributes": True}
-        id: str
-        ref_id: str
-        name: str
-        text: str
-        value: str
-        param_type: ApplicationDetailResponse.ParamType | None
-
-    class AbsoluteSegment(BaseModel):
-        """An absolute memory segment from the application code, with binary data encoded as base64."""
-
-        model_config = {"from_attributes": True}
-        id: str
-        address: int
-        size: int
-        data: bytes | None
-        mask: bytes | None
-        name: str | None
-        user_memory: bool
-
-        @field_serializer("data", "mask")
-        def _encode(self, v: bytes | None) -> str | None:
-            """Serialize binary data and mask fields as base64 strings."""
-            return base64.b64encode(v).decode() if v is not None else None
-
-    class RelativeSegment(BaseModel):
-        """A relative memory segment from the application code, with binary data encoded as base64."""
-
-        model_config = {"from_attributes": True}
-        id: str
-        offset: int
-        size: int
-        data: bytes | None
-        mask: bytes | None
-        name: str | None
-
-        @field_serializer("data", "mask")
-        def _encode(self, v: bytes | None) -> str | None:
-            """Serialize binary data and mask fields as base64 strings."""
-            return base64.b64encode(v).decode() if v is not None else None
-
-    class Code(BaseModel):
-        """The complete loadable code for an application program, split into absolute and relative segments."""
-
-        model_config = {"from_attributes": True}
-        absolute_segment: list[ApplicationDetailResponse.AbsoluteSegment]
-        relative_segment: list[ApplicationDetailResponse.RelativeSegment]
-
-    application_id: str
-    name: str
-    manufacturer_id: str
-    com_objects: list[ApplicationDetailResponse.ComObject]
-    parameters: list[ApplicationDetailResponse.Parameter]
-    code: ApplicationDetailResponse.Code | None
-
-
-ApplicationDetailResponse.model_rebuild()

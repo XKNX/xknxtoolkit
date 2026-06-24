@@ -289,7 +289,7 @@ function CatalogContentInner() {
                 key={row.id}
                 className={`cursor-pointer hover:bg-fd-accent transition-colors ${i > 0 ? "border-t border-fd-border" : ""}`}
                 onClick={() =>
-                  router.push(`/docs/catalog/hardware/${encodeURIComponent(row.original.id)}`)
+                  router.push(`/handbook/catalog/hardware/${encodeURIComponent(row.original.id)}`)
                 }
               >
                 {row.getVisibleCells().map((cell) => (

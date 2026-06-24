@@ -8,7 +8,7 @@ from fastapi.responses import Response
 from xknxmono.catalog.core.hardware import HardwareFilters
 from xknxmono.catalog.core.service import CatalogService
 from xknxmono.catalog.http.deps import get_service
-from xknxmono.catalog.http.schemas import ApplicationDetailResponse, HardwareResponse
+from xknxmono.catalog.http.schemas import HardwareResponse
 from xknxmono.product.errors import ArchiveError
 
 router = APIRouter(prefix="/hardware", tags=["Hardware"])
@@ -31,19 +31,20 @@ def get_program_application(
     program_id: str,
     service: ServiceDep,
     accept: Annotated[str, Header()] = "application/json",
-):
-    """Return full application detail for a hardware program, parsed from the source .knxprod archive.
+) -> Response:
+    """Return the raw IR for a hardware program's application, serialised directly from the .knxprod archive.
 
-    Accepts ``application/xml`` to return the raw XML instead of the parsed JSON response.
+    The JSON response is the xsdata-serialised ``ApplicationProgram`` IR — PascalCase keys, enums as
+    strings, bytes as base64. It includes the full static section (parameters, com objects, parameter
+    types, code segments) plus dynamic and module definitions.
+
+    Accepts ``application/xml`` to return the original XML bytes instead.
     """
-    # Validate ownership: the program must belong to this hardware item.
     program = service.get_hardware_program(hardware_id, program_id)
     if not program:
         raise HTTPException(404, "Hardware program not found")
     if not program.application_id:
-        raise HTTPException(
-            404, "No application program associated with this hardware program"
-        )
+        raise HTTPException(404, "No application program associated with this hardware program")
 
     if "application/xml" in accept:
         try:
@@ -62,35 +63,13 @@ def get_program_application(
     if app is None:
         raise HTTPException(404, "Application not found in archive")
 
-    from xknxmono.models.intermediate.enable_t import Enable
+    from xsdata.formats.dataclass.serializers import JsonSerializer
+    from xsdata.formats.dataclass.serializers.config import SerializerConfig
 
-    com_objects: list[ApplicationDetailResponse.ComObject] = []
-    tbl = app.program.static.com_object_table
-    if tbl is not None:
-        for co in tbl.com_object:
-            com_objects.append(
-                ApplicationDetailResponse.ComObject(
-                    id=co.id,
-                    name=co.name,
-                    number=co.number,
-                    dpt_codes=co.datapoint_type,
-                    flags=ApplicationDetailResponse.ComObjectFlags(
-                        communication=co.communication_flag == Enable.ENABLED,
-                        read=co.read_flag == Enable.ENABLED,
-                        write=co.write_flag == Enable.ENABLED,
-                        transmit=co.transmit_flag == Enable.ENABLED,
-                        update=co.update_flag == Enable.ENABLED,
-                        read_on_init=co.read_on_init_flag == Enable.ENABLED,
-                    ),
-                )
-            )
-    return ApplicationDetailResponse(
-        application_id=app.id,
-        name=app.name,
-        manufacturer_id=app.manufacturer_id,
-        com_objects=com_objects,
-        parameters=[],
-        code=ApplicationDetailResponse.Code.model_validate(app.code) if app.code else None,
+    serializer = JsonSerializer(config=SerializerConfig(pretty_print=False))
+    return Response(
+        content=serializer.render(app.program),
+        media_type="application/json",
     )
 
 

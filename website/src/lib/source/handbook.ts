@@ -2,7 +2,6 @@ import { handbook } from "collections/server";
 import { loader } from "fumadocs-core/source";
 import { lucideIconsPlugin } from "fumadocs-core/source/lucide-icons";
 import { handbookContentRoute, handbookImageRoute, handbookRoute } from "../shared";
-import { openapi } from "../openapi";
 
 export const source = loader(
   {

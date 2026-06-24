@@ -18,11 +18,6 @@ _LAZY: dict[str, tuple[str, str]] = {
     "HardwareDoc": (".hardware", "HardwareDoc"),
     "Product": (".hardware", "Product"),
     "parse_hardware_xml": (".hardware", "parse_hardware_xml"),
-    "ApplicationInstance": (".instance", "ApplicationInstance"),
-    "ComObjectView": (".instance", "ComObjectView"),
-    "InstanceSnapshot": (".instance", "InstanceSnapshot"),
-    "PersistedComObject": (".instance", "PersistedComObject"),
-    "PersistedParam": (".instance", "PersistedParam"),
     "load": (".loader", "load"),
     "MasterData": (".master", "MasterData"),
     "parse_master_xml": (".master", "parse_master_xml"),
@@ -32,19 +27,14 @@ _LAZY: dict[str, tuple[str, str]] = {
 
 __all__ = [
     "Application",
-    "ApplicationInstance",
     "Archive",
     "CatalogItem",
     "CatalogSection",
-    "ComObjectView",
     "DeviceProgram",
     "Hardware",
     "HardwareDoc",
-    "InstanceSnapshot",
     "MasterData",
     "ParamTypeKind",
-    "PersistedComObject",
-    "PersistedParam",
     "Product",
     "Registry",
     "load",
@@ -64,13 +54,6 @@ if TYPE_CHECKING:
         HardwareDoc,
         Product,
         parse_hardware_xml,
-    )
-    from .instance import (
-        ApplicationInstance,
-        ComObjectView,
-        InstanceSnapshot,
-        PersistedComObject,
-        PersistedParam,
     )
     from .loader import load
     from .master import MasterData, parse_master_xml

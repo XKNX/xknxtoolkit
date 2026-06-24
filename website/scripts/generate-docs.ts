@@ -18,7 +18,7 @@ import { convert } from "./generate-docs-from-python-api.ts";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "../..");
 const websiteRoot = join(__dirname, "..");
-const websiteContent = join(__dirname, "../content");
+const _websiteContent = join(__dirname, "../content");
 
 // Custom write function that strips 2 path segments (namespace + module name)
 // instead of fumadocs-python's write() which strips only 1.
