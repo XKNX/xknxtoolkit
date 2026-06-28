@@ -176,10 +176,10 @@ class DynamicTreeBuilder:
             return ModuleNode(
                 elem.id,
                 GenericCollectionNode(children),
+                ref_id,
                 arguments,
                 param_ref_defaults,
                 arg_defaults,
-                ref_id,
             )
         elif isinstance(elem, ParameterRefRef):
             # Leaf: a parameter widget; resolve ParameterRef → Parameter → ParameterType at build time
@@ -241,7 +241,7 @@ class DynamicUI:
     def ui(self) -> list[UiNode]:
         if self._ui is None:
             self._state.reset_active()
-            self._ui = self._tree.eval(EvalContext(self._state))
+            self._ui = self._tree.eval(EvalContext(self._state, idx=self._idx))
             self._state.trim_to_active()
         return self._ui
 

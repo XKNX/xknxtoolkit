@@ -17,10 +17,11 @@ class ComFlagsTable:
     def render(self, device: Device, com_objects: list[ComObject]) -> None:
         flags = imgui.TableFlags_.borders_inner | imgui.TableFlags_.sizing_fixed_fit
         if not imgui.begin_table(
-            f"##com_objs_{device.node_id}", 1 + len(FLAG_LABELS), flags
+            f"##com_objs_{device.node_id}", 2 + len(FLAG_LABELS), flags
         ):
             return
 
+        imgui.table_setup_column("#", imgui.TableColumnFlags_.width_fixed, 32.0)
         imgui.table_setup_column("Name")
         for _attr, letter, _name in FLAG_LABELS:
             imgui.table_setup_column(letter)
@@ -34,9 +35,11 @@ class ComFlagsTable:
     def _render_row(self, device: Device, com_object: ComObject, row_id: str) -> None:
         imgui.table_next_row()
         imgui.table_set_column_index(0)
+        imgui.text_disabled(str(com_object.number))
+        imgui.table_set_column_index(1)
         imgui.text(com_object.name)
 
-        for col, (attr, _letter, full_name) in enumerate(FLAG_LABELS, start=1):
+        for col, (attr, _letter, full_name) in enumerate(FLAG_LABELS, start=2):
             imgui.table_set_column_index(col)
             current = getattr(com_object.flags, attr)
             locked_attr = f"{attr}_locked"

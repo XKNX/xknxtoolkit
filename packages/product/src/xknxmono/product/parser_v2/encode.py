@@ -202,6 +202,11 @@ def _collect_param(
 ) -> None:
     choice = item.choice
     value = overrides.get(item.id) or item.value
+    # base_value on a module parameter shifts the encoded value by an arg-resolved offset.
+    if isinstance(item, ModuleDefStaticParametersParameter) and item.base_value is not None and ms is not None:
+        bv = _resolve_base(item.base_value, ms)
+        if bv is not None and bv != 0:
+            value = str(int(value) + bv)
     # Check subclasses before parents (module types extend their top-level counterparts)
     if isinstance(choice, ModuleDefStaticParametersParameterMemory):
         assert ms is not None

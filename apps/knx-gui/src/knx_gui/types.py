@@ -67,6 +67,7 @@ class ComObject:
     name: str
     dpt: DPT
     flags: ComObjectFlags
+    number: int = 0
     supported_dpts: list[DPT] = field(default_factory=list[DPT])
     db_id: int | None = None
 
@@ -243,6 +244,7 @@ class Device:
                     id=ui_co.ref_id,
                     name=ui_co.name,
                     dpt=primary,
+                    number=ui_co.number,
                     flags=ComObjectFlags(
                         communication=ui_co.communication,
                         read=ui_co.read,
@@ -285,6 +287,7 @@ class Device:
             if ui_co is None:
                 continue
             co.name = ui_co.name
+            co.number = ui_co.number
             co.flags.communication = ui_co.communication
             co.flags.read = ui_co.read
             co.flags.write = ui_co.write

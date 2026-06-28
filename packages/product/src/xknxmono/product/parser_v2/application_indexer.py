@@ -14,11 +14,13 @@ from xknxmono.models.intermediate.parameter_calculation_t import ParameterCalcul
 from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 from xknxmono.models.intermediate.segment_base_t import SegmentBase
 
+from .allocator import Allocator
+
 
 class ApplicationIndexer:
     """Pre-built lookup tables for static IR sections (parameters, parameter refs, parameter types, module defs)."""
 
-    __slots__ = ("_calculations", "code_segments", "com_object_refs", "com_objects", "module_defs", "parameter_refs", "parameter_types", "parameters", "script")
+    __slots__ = ("_calculations", "allocators", "arg_alloc", "code_segments", "com_object_refs", "com_objects", "module_defs", "parameter_refs", "parameter_types", "parameters", "script")
 
     def __init__(self, app: ApplicationProgram) -> None:
         self.module_defs: dict[str, ModuleDef] = {}
@@ -30,6 +32,8 @@ class ApplicationIndexer:
         self.code_segments: dict[str, SegmentBase] = {}
         self._calculations: dict[str, dict[str, list[ParameterCalculation]]] = {}
         self.script: str | None = None
+        self.allocators: dict[str, dict[str, Allocator]] = {}
+        self.arg_alloc: dict[str, dict[str, tuple[int, int]]] = {}
         self._index_app(app)
         if app.module_defs is not None:
             for md in app.module_defs.module_def:
@@ -106,6 +110,13 @@ class ApplicationIndexer:
                 self.com_object_refs[cor.id] = cor
         if md.static.parameter_calculations is not None:
             self._index_calculations(md.static.parameter_calculations.parameter_calculation)
+        if md.static.allocators is not None:
+            self.allocators[md.id] = {a.id: Allocator(id=a.id, start=a.start, max_inclusive=a.max_inclusive) for a in md.static.allocators.allocator}
+        if md.arguments is not None:
+            self.arg_alloc[md.id] = {
+                a.id: (a.allocates if a.allocates is not None else 1, a.alignment.value)
+                for a in md.arguments.argument
+            }
         if md.sub_module_defs is not None:
             for sub in md.sub_module_defs.module_def:
                 self._index_module_def(sub)

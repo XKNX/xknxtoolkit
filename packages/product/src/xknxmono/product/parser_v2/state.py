@@ -7,6 +7,7 @@ from xknxmono.models.intermediate import (
     ModuleTextArg,
     ParameterInstanceRef,
 )
+from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
 
 from .application_indexer import ApplicationIndexer
 
@@ -61,6 +62,7 @@ class ParameterState:
         "_active_com_object_refs",
         "_active_module_keys",
         "_active_param_refs",
+        "_alloc_positions",
         "_children",
         "_com_obj_instance_refs",
         "_param_ref_defaults",
@@ -77,6 +79,7 @@ class ParameterState:
         self._active_param_refs: set[str] = set()
         self._active_module_keys: set[str] = set()
         self._active_com_object_refs: set[str] = set()
+        self._alloc_positions: dict[str, int] = {}
         self._param_ref_defaults: dict[str, str] = param_ref_defaults or {}
         self._com_obj_instance_refs: dict[str, ComObjectInstanceRef] = {}
 
@@ -92,6 +95,9 @@ class ParameterState:
 
     def set_param_ref_defaults(self, param_ref_defaults: dict[str, str]) -> None:
         self._param_ref_defaults = param_ref_defaults
+
+    def get_arg(self, ref_id: str) -> ModuleNumericArg | None:
+        return None
 
     def get_arg_defaults(self) -> dict[str, str]:
         return {}
@@ -122,11 +128,18 @@ class ParameterState:
             return self._parent.get_com_obj_instance_ref(ref_id)
         return None
 
+    def alloc_position(self, alloc_id: str, default: int) -> int:
+        return self._alloc_positions.get(alloc_id, default)
+
+    def set_alloc_position(self, alloc_id: str, position: int) -> None:
+        self._alloc_positions[alloc_id] = position
+
     def reset_active(self) -> None:
         """Clear active ref sets before a new traversal."""
         self._active_param_refs.clear()
         self._active_module_keys.clear()
         self._active_com_object_refs.clear()
+        self._alloc_positions.clear()
         for child in self._children.values():
             child.reset_active()
 
@@ -299,8 +312,9 @@ class ModuleState(ParameterState):
     def set_arg_defaults(self, arg_defaults: dict[str, str]) -> None:
         self._arg_defaults = arg_defaults
 
-    def get_arg(self, ref_id: str) -> ModuleArg | None:
-        return self.arguments.get(ref_id)
+    def get_arg(self, ref_id: str) -> ModuleNumericArg | None:
+        arg = self.arguments.get(ref_id)
+        return arg if isinstance(arg, ModuleNumericArg) else None
 
     def as_module_instance(self) -> tuple[str, str, dict[str, ModuleArg]]:
         instance_id = self.module_instance_id

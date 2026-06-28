@@ -4,6 +4,9 @@ from xknxmono.models.intermediate import ComObjectRefRef
 from xknxmono.models.intermediate.com_object_ref_t import ComObjectRef as IrComObjectRef
 from xknxmono.models.intermediate.com_object_t import ComObject as IrComObject
 from xknxmono.models.intermediate.enable_t import Enable
+from xknxmono.models.intermediate.module_def_static_t_com_objects_com_object import (
+    ModuleDefStaticComObjectsComObject,
+)
 
 from .._name import apply_text_args, fill_name
 from ..context import EvalContext
@@ -37,6 +40,7 @@ class ComObjectRefRefNode(DynamicNode):
     """Leaf: a communication object; resolved at build time, name filled at eval time."""
 
     __slots__ = (
+        "_base_number_ref",
         "_communication",
         "_dpt_codes",
         "_local_ref_id",
@@ -71,6 +75,9 @@ class ComObjectRefRefNode(DynamicNode):
         )
         self._text_param_ref_id: str | None = cor.text_parameter_ref_id if cor else None
         self._number: int = co.number if co else 0
+        self._base_number_ref: str | None = (
+            co.base_number if isinstance(co, ModuleDefStaticComObjectsComObject) else None
+        )
         self._dpt_codes: tuple[str, ...] = _dpt_codes(
             cor.datapoint_type if cor else [],
             co.datapoint_type if co else [],
@@ -100,11 +107,12 @@ class ComObjectRefRefNode(DynamicNode):
         name_value = ctx.get(self._text_param_ref_id) if self._text_param_ref_id else None
         name = fill_name(apply_text_args(self._name_template, ctx.get_arg_defaults()), name_value or "")
         ov = ctx.get_com_obj_instance_ref(qualified_ref_id)
+        base = ctx.get_arg_value(self._base_number_ref) if self._base_number_ref is not None else 0
         return [
             UiComObject(
                 ref_id=qualified_ref_id,
                 name=name,
-                number=self._number,
+                number=self._number + base,
                 dpt_codes=self._dpt_codes,
                 communication=_flag(ov.communication_flag if ov else None, Enable.ENABLED if self._communication else Enable.DISABLED),
                 read=_flag(ov.read_flag if ov else None, Enable.ENABLED if self._read else Enable.DISABLED),
