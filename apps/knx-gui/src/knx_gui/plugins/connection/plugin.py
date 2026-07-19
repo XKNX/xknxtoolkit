@@ -13,7 +13,12 @@ from xknx.io.self_description import request_description
 
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.connection.interface import ObservableKNXIPInterfaceThreaded
+from knx_gui.plugins.connection.proxy import ProxyState, RoutingProxy
 from knx_gui.plugins.connection.strings import S
+from knx_gui.plugins.connection.virtual_gateway import (
+    VirtualGateway,
+    VirtualGatewayState,
+)
 from knx_gui.types import color_u32
 
 
@@ -45,6 +50,20 @@ class ConnectionPlugin:
 
         self._gateways: list[GatewayDescriptor] = []
         self._scanning = False
+
+        self._proxy_log = Logger(api.log, "proxy")
+        self._vgw_log = Logger(api.log, "virtual-gw")
+
+        self._proxy = RoutingProxy(
+            on_cemi=self._api.connection.dispatch_proxy_cemi,
+            forward_cemi=None,
+            logger=self._proxy_log,
+        )
+        self._proxy_forward = False
+        self._proxy_multicast_group = RoutingProxy.DEFAULT_MCAST_GROUP
+        self._proxy_multicast_port_str = str(RoutingProxy.DEFAULT_MCAST_PORT)
+
+        self._virtual_gateway = VirtualGateway(logger=self._vgw_log)
 
     @property
     def state(self) -> ConnectionState:
@@ -154,6 +173,9 @@ class ConnectionPlugin:
             self._api.connection.set_connection(None, None)
             self._log.info("disconnected")
 
+    def _forward_cemi(self, raw: bytes) -> None:
+        self._api.connection.send_cemi(raw)
+
     def scan(self) -> None:
         if self._scanning:
             return
@@ -173,6 +195,8 @@ class ConnectionPlugin:
             self._scanning = False
 
     def shutdown(self) -> None:
+        self._proxy.stop()
+        self._virtual_gateway.stop()
         if self._interface is not None:
             self._run_async(self._disconnect_async())
         if self._async_loop is not None:
@@ -259,6 +283,8 @@ class ConnectionPlugin:
                 self._render_gateway_picker(retry_label="Retry")
             else:
                 self._render_gateway_picker(retry_label=S.MENU_CONNECT)
+            imgui.separator()
+            self._render_proxy_section()
             imgui.end_menu()
 
     def _render_gateway_picker(self, retry_label: str) -> None:
@@ -288,6 +314,73 @@ class ConnectionPlugin:
         _, self._controller_ip = imgui.input_text("IP##manual", self._controller_ip)
         if imgui.menu_item(retry_label, "", False)[0]:
             self.connect()
+
+    def _render_proxy_section(self) -> None:
+        state = self._proxy.state
+        vgw_state = self._virtual_gateway.state
+        if state == ProxyState.RUNNING:
+            imgui.text_colored(imgui.ImVec4(0.4, 0.8, 0.4, 1.0), "Routing proxy: running")
+        elif state == ProxyState.STARTING:
+            imgui.text_disabled("Routing proxy: starting...")
+        elif state == ProxyState.ERROR:
+            imgui.text_colored(imgui.ImVec4(0.8, 0.2, 0.2, 1.0), "Routing proxy: error")
+            if self._proxy.error:
+                imgui.text_wrapped(self._proxy.error)
+        else:
+            imgui.text_disabled("Routing proxy: stopped")
+
+        if vgw_state == VirtualGatewayState.ERROR:
+            imgui.text_colored(imgui.ImVec4(0.8, 0.4, 0.1, 1.0), "Virtual gateway: error")
+            if self._virtual_gateway.error:
+                imgui.text_wrapped(self._virtual_gateway.error)
+        elif vgw_state == VirtualGatewayState.RUNNING:
+            imgui.text_colored(imgui.ImVec4(0.4, 0.8, 0.4, 1.0), "Virtual gateway: running")
+
+        is_running = state in (ProxyState.RUNNING, ProxyState.STARTING)
+        if is_running:
+            imgui.begin_disabled()
+        imgui.set_next_item_width(180)
+        _, self._proxy_multicast_group = imgui.input_text(
+            "##mcast", self._proxy_multicast_group
+        )
+        imgui.same_line()
+        imgui.text_disabled("Multicast")
+
+        imgui.set_next_item_width(60)
+        _, self._proxy_multicast_port_str = imgui.input_text(
+            "##port", self._proxy_multicast_port_str
+        )
+        imgui.same_line()
+        imgui.text_disabled("Port")
+        if is_running:
+            imgui.end_disabled()
+
+        changed, self._proxy_forward = imgui.checkbox("Forward to connection", self._proxy_forward)
+        if changed:
+            self._proxy.set_forward(
+                self._forward_cemi if self._proxy_forward else None
+            )
+
+        if state in (ProxyState.STOPPED, ProxyState.ERROR):
+            if imgui.menu_item("Start proxy", "", False)[0]:
+                try:
+                    port = int(self._proxy_multicast_port_str)
+                except ValueError:
+                    port = 3671
+                self._proxy = RoutingProxy(
+                    on_cemi=self._api.connection.dispatch_proxy_cemi,
+                    forward_cemi=self._forward_cemi if self._proxy_forward else None,
+                    multicast_group=self._proxy_multicast_group,
+                    multicast_port=port,
+                    logger=self._proxy_log,
+                )
+                self._proxy.start()
+                self._virtual_gateway = VirtualGateway(port=port, logger=self._vgw_log)
+                self._virtual_gateway.start()
+        else:
+            if imgui.menu_item("Stop proxy", "", False)[0]:
+                self._proxy.stop()
+                self._virtual_gateway.stop()
 
     @property
     def panels(self) -> list[PanelDefinition]:
