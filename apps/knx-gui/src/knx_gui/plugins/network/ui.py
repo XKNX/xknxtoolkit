@@ -5,7 +5,7 @@ from enum import Enum
 from imgui_bundle import imgui
 
 from knx_gui.plugins.network.strings import S
-from knx_gui.types import TelegramRecord, color_u32
+from knx_gui.types import CemiRecord, TelegramRecord, TelegramSource, color_u32
 
 
 class CaptureState(Enum):
@@ -28,12 +28,14 @@ TPCI_ABBREV = {
     "TNak": "Nak",
 }
 DEFAULT_SERVICE_COLOR = (0.5, 0.5, 0.5)
+PROXY_COLOR = (0.7, 0.5, 0.9)  # violet tint for proxy traffic
 
 
 class NetworkPanel:
     def __init__(
         self,
         get_telegrams: Callable[[], list[TelegramRecord]],
+        get_cemi_records: Callable[[], list[CemiRecord]],
         get_capture_state: Callable[[], CaptureState],
         on_start: Callable[[], None],
         on_stop: Callable[[], None],
@@ -41,6 +43,7 @@ class NetworkPanel:
         on_focus_source: Callable[[str], None],
     ) -> None:
         self._get_telegrams = get_telegrams
+        self._get_cemi_records = get_cemi_records
         self._get_capture_state = get_capture_state
         self._on_start = on_start
         self._on_stop = on_stop
@@ -51,10 +54,14 @@ class NetworkPanel:
         self._auto_scroll = True
         self._filter_text = ""
         self._last_count = 0
+        self._show_cemi = False
 
     def render(self) -> None:
         self._render_toolbar()
-        self._render_table()
+        if self._show_cemi:
+            self._render_cemi_table()
+        else:
+            self._render_table()
 
     def _render_record_button(self, state: CaptureState) -> None:
         draw_list = imgui.get_window_draw_list()
@@ -125,8 +132,8 @@ class NetworkPanel:
         )
 
         imgui.same_line()
-        telegrams = self._get_telegrams()
-        count = len(telegrams)
+        records = self._get_cemi_records() if self._show_cemi else self._get_telegrams()
+        count = len(records)
         selected_count = len(self._selected)
         if selected_count > 0:
             imgui.text(f"{selected_count}/{count}")
@@ -139,6 +146,19 @@ class NetworkPanel:
         imgui.same_line()
         if imgui.button(S.BTN_CLEAR):
             self._clear_telegrams()
+
+        imgui.same_line()
+        imgui.text_disabled("|")
+        imgui.same_line()
+        if imgui.radio_button("Telegrams", not self._show_cemi):
+            self._show_cemi = False
+            self._selected.clear()
+            self._last_count = 0
+        imgui.same_line()
+        if imgui.radio_button("CEMI", self._show_cemi):
+            self._show_cemi = True
+            self._selected.clear()
+            self._last_count = 0
 
     def _render_table(self) -> None:
         telegrams = self._get_telegrams()
@@ -160,13 +180,14 @@ class NetworkPanel:
             | imgui.TableFlags_.borders_inner_h
         )
         if not imgui.begin_table(
-            "##telegrams", 7, flags, imgui.ImVec2(avail.x, avail.y)
+            "##telegrams", 8, flags, imgui.ImVec2(avail.x, avail.y)
         ):
             return
 
         imgui.table_setup_scroll_freeze(0, 1)
         imgui.table_setup_column("Time", imgui.TableColumnFlags_.width_fixed, 70)
-        imgui.table_setup_column("", imgui.TableColumnFlags_.width_fixed, 12)
+        imgui.table_setup_column("", imgui.TableColumnFlags_.width_fixed, 12)  # service dot
+        imgui.table_setup_column("Via", imgui.TableColumnFlags_.width_fixed, 12)   # source indicator
         imgui.table_setup_column("Source", imgui.TableColumnFlags_.width_fixed, 60)
         imgui.table_setup_column("Dest", imgui.TableColumnFlags_.width_fixed, 60)
         imgui.table_setup_column("TPCI", imgui.TableColumnFlags_.width_fixed, 50)
@@ -190,15 +211,14 @@ class NetworkPanel:
 
         color = SERVICE_COLORS.get(telegram.service, DEFAULT_SERVICE_COLOR)
         selected = index in self._selected
+        is_proxy = telegram.source_type == TelegramSource.PROXY
 
         imgui.table_set_column_index(0)
         flags = (
             imgui.SelectableFlags_.span_all_columns
             | imgui.SelectableFlags_.allow_overlap
         )
-        if imgui.selectable(f"{telegram.timestamp_str}##row{index}", selected, flags)[
-            0
-        ]:
+        if imgui.selectable(f"{telegram.timestamp_str}##row{index}", selected, flags)[0]:
             self._handle_click(index, telegram)
 
         imgui.table_set_column_index(1)
@@ -212,28 +232,136 @@ class NetworkPanel:
         )
         imgui.dummy(imgui.ImVec2(8, 0))
 
+        # Via column: square = proxy, nothing = connection
         imgui.table_set_column_index(2)
-        imgui.text_disabled(telegram.source)
+        if is_proxy:
+            cursor2 = imgui.get_cursor_screen_pos()
+            half = imgui.get_text_line_height() / 2
+            cx = cursor2.x + 3
+            cy = cursor2.y + half
+            draw_list.add_rect_filled(
+                imgui.ImVec2(cx - 3, cy - 3),
+                imgui.ImVec2(cx + 3, cy + 3),
+                color_u32(*PROXY_COLOR),
+            )
+        imgui.dummy(imgui.ImVec2(8, 0))
 
         imgui.table_set_column_index(3)
-        imgui.text(telegram.destination)
+        if is_proxy:
+            imgui.push_style_color(imgui.Col_.text, imgui.ImVec4(*PROXY_COLOR, 1.0))
+            imgui.text_disabled(telegram.source)
+            imgui.pop_style_color()
+        else:
+            imgui.text_disabled(telegram.source)
 
         imgui.table_set_column_index(4)
+        imgui.text(telegram.destination)
+
+        imgui.table_set_column_index(5)
         tpci_abbrev = TPCI_ABBREV.get(
             telegram.tpci, telegram.tpci[:5] if telegram.tpci else ""
         )
         imgui.text_disabled(tpci_abbrev)
 
-        imgui.table_set_column_index(5)
+        imgui.table_set_column_index(6)
         imgui.push_style_color(imgui.Col_.text, imgui.ImVec4(*color, 1.0))
         imgui.text(telegram.service)
         imgui.pop_style_color()
 
-        imgui.table_set_column_index(6)
+        imgui.table_set_column_index(7)
         if telegram.dpt:
             imgui.text_disabled(f"[{telegram.dpt}]")
             imgui.same_line(0, 4)
         imgui.text(telegram.value if telegram.value else "-")
+
+    def _render_cemi_table(self) -> None:
+        records = self._get_cemi_records()
+        if self._filter_text:
+            filter_lower = self._filter_text.lower()
+            records = [
+                r for r in records
+                if filter_lower in r.src_addr.lower()
+                or filter_lower in r.dst_addr.lower()
+                or filter_lower in r.msg_code.lower()
+            ]
+
+        avail = imgui.get_content_region_avail()
+        flags = (
+            imgui.TableFlags_.row_bg
+            | imgui.TableFlags_.scroll_y
+            | imgui.TableFlags_.borders_inner_h
+        )
+        if not imgui.begin_table(
+            "##cemi", 8, flags, imgui.ImVec2(avail.x, avail.y)
+        ):
+            return
+
+        imgui.table_setup_scroll_freeze(0, 1)
+        imgui.table_setup_column("Time", imgui.TableColumnFlags_.width_fixed, 70)
+        imgui.table_setup_column("Via", imgui.TableColumnFlags_.width_fixed, 12)
+        imgui.table_setup_column("Code", imgui.TableColumnFlags_.width_fixed, 90)
+        imgui.table_setup_column("From", imgui.TableColumnFlags_.width_fixed, 55)
+        imgui.table_setup_column("To", imgui.TableColumnFlags_.width_fixed, 60)
+        imgui.table_setup_column("Flg", imgui.TableColumnFlags_.width_fixed, 50)
+        imgui.table_setup_column("Hops", imgui.TableColumnFlags_.width_fixed, 35)
+        imgui.table_setup_column("Raw", imgui.TableColumnFlags_.width_stretch)
+        imgui.table_headers_row()
+
+        for i, rec in enumerate(records):
+            self._render_cemi_row(i, rec)
+
+        current_count = len(records)
+        if self._auto_scroll and current_count > self._last_count:
+            imgui.set_scroll_here_y(1.0)
+        self._last_count = current_count
+
+        imgui.end_table()
+
+    def _render_cemi_row(self, index: int, rec: CemiRecord) -> None:
+        imgui.table_next_row()
+        is_proxy = rec.source_type == TelegramSource.PROXY
+
+        imgui.table_set_column_index(0)
+        imgui.text_disabled(rec.timestamp_str)
+
+        # Via: square for proxy
+        imgui.table_set_column_index(1)
+        draw_list = imgui.get_window_draw_list()
+        cursor = imgui.get_cursor_screen_pos()
+        if is_proxy:
+            half = imgui.get_text_line_height() / 2
+            cx = cursor.x + 3
+            cy = cursor.y + half
+            draw_list.add_rect_filled(
+                imgui.ImVec2(cx - 3, cy - 3),
+                imgui.ImVec2(cx + 3, cy + 3),
+                color_u32(*PROXY_COLOR),
+            )
+        imgui.dummy(imgui.ImVec2(8, 0))
+
+        imgui.table_set_column_index(2)
+        imgui.text_disabled(rec.msg_code)
+
+        imgui.table_set_column_index(3)
+        imgui.text_disabled(rec.src_addr)
+
+        imgui.table_set_column_index(4)
+        imgui.text(rec.dst_addr)
+
+        imgui.table_set_column_index(5)
+        if rec.flags is not None:
+            imgui.text_disabled(f"{rec.flags:04x}")
+        else:
+            imgui.text_disabled("-")
+
+        imgui.table_set_column_index(6)
+        if rec.hops is not None:
+            imgui.text_disabled(str(rec.hops))
+        else:
+            imgui.text_disabled("-")
+
+        imgui.table_set_column_index(7)
+        imgui.text_disabled(rec.raw_hex)
 
     def _handle_click(self, index: int, telegram: TelegramRecord) -> None:
         io = imgui.get_io()
@@ -280,14 +408,15 @@ class NetworkPanel:
         if not indices:
             return
 
-        header = "Time\tSource\tDestination\tTPCI\tAPCI\tDPT\tValue"
+        header = "Time\tVia\tSource\tDestination\tTPCI\tAPCI\tDPT\tValue"
         rows = [
             self._telegram_to_row(telegrams[i]) for i in indices if i < len(telegrams)
         ]
         imgui.set_clipboard_text("\n".join([header, *rows]))
 
     def _telegram_to_row(self, t: TelegramRecord) -> str:
-        return f"{t.timestamp_str}\t{t.source}\t{t.destination}\t{t.tpci}\t{t.service}\t{t.dpt}\t{t.value}"
+        via = "proxy" if t.source_type == TelegramSource.PROXY else "conn"
+        return f"{t.timestamp_str}\t{via}\t{t.source}\t{t.destination}\t{t.tpci}\t{t.service}\t{t.dpt}\t{t.value}"
 
     def _clear_telegrams(self) -> None:
         self._selected.clear()

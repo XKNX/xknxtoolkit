@@ -16,6 +16,7 @@ class NetworkPlugin:
         api.connection.add_connected_listener(self._service.start)
         self._panel = NetworkPanel(
             get_telegrams=lambda: self._service.telegrams,
+            get_cemi_records=lambda: self._service.cemi_records,
             get_capture_state=lambda: UICaptureState(self._service.state.value),
             on_start=self._service.start,
             on_stop=self._service.stop,

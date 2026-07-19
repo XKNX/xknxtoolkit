@@ -11,6 +11,11 @@ from xknx.telegram import Telegram as XknxTelegram
 from knx_gui.dpt import DPT
 from xknxmono.product import Application
 
+
+class TelegramSource(Enum):
+    CONNECTION = "connection"
+    PROXY = "proxy"
+
 if TYPE_CHECKING:
     from xknxmono.models.intermediate.com_object_instance_ref_t import (
         ComObjectInstanceRef,
@@ -341,9 +346,32 @@ class Device:
 
 
 @dataclass
+class CemiRecord:
+    """Raw CEMI frame captured from the network, including frames that can't be decoded as telegrams."""
+
+    raw: bytes
+    timestamp: datetime
+    source_type: TelegramSource
+    msg_code: str
+    src_addr: str
+    dst_addr: str
+    flags: int | None
+    hops: int | None
+
+    @property
+    def timestamp_str(self) -> str:
+        return self.timestamp.strftime("%H:%M:%S")
+
+    @property
+    def raw_hex(self) -> str:
+        return self.raw.hex(" ")
+
+
+@dataclass
 class TelegramRecord:
     telegram: XknxTelegram
     timestamp: datetime
+    source_type: TelegramSource = TelegramSource.CONNECTION
 
     @property
     def source(self) -> str:

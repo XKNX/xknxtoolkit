@@ -3,10 +3,10 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from xknx.cemi import CEMIFrame
+from xknx.cemi import CEMIFrame, CEMILData, CEMIMessageCode
 from xknx.telegram import Telegram
 
-from knx_gui.types import TelegramRecord
+from knx_gui.types import CemiRecord, TelegramRecord, TelegramSource
 
 if TYPE_CHECKING:
     from knx_gui.plugins.base import Logger
@@ -20,6 +20,7 @@ class CaptureState(Enum):
 class NetworkService:
     def __init__(self) -> None:
         self._telegrams: list[TelegramRecord] = []
+        self._cemi_records: list[CemiRecord] = []
         self._state = CaptureState.STOPPED
         self._listeners: dict[str, list[Callable[..., Any]]] = {}
         self._log: Logger
@@ -35,10 +36,15 @@ class NetworkService:
     def telegrams(self) -> list[TelegramRecord]:
         return self._telegrams
 
+    @property
+    def cemi_records(self) -> list[CemiRecord]:
+        return self._cemi_records
+
     def start(self) -> None:
         if self._state == CaptureState.CAPTURING:
             return
         self._telegrams.clear()
+        self._cemi_records.clear()
         self._state = CaptureState.CAPTURING
         self._emit("capture_state_changed", self._state)
 
@@ -48,24 +54,27 @@ class NetworkService:
         self._state = CaptureState.STOPPED
         self._emit("capture_state_changed", self._state)
 
-    def add_raw(self, cemi_bytes: bytes) -> TelegramRecord | None:
-        return self.add_raw_with_timestamp(cemi_bytes, datetime.now(UTC))
+    def add_raw(self, cemi_bytes: bytes, source: TelegramSource) -> TelegramRecord | None:
+        return self.add_raw_with_timestamp(cemi_bytes, source, datetime.now(UTC))
 
     def add_raw_with_timestamp(
-        self, cemi_bytes: bytes, timestamp: datetime
+        self, cemi_bytes: bytes, source: TelegramSource, timestamp: datetime
     ) -> TelegramRecord | None:
         if self._state != CaptureState.CAPTURING:
             return None
-        telegram = self._parse_cemi(cemi_bytes)
-        if telegram is None:
-            return None
-        record = TelegramRecord(telegram=telegram, timestamp=timestamp)
-        self._telegrams.append(record)
-        self._emit("telegram_added", record)
-        return record
+        cemi_rec = self._parse_cemi_record(cemi_bytes, source, timestamp)
+        if cemi_rec is not None:
+            self._cemi_records.append(cemi_rec)
+            self._emit("cemi_added", cemi_rec)
+        telegram = self._parse_telegram(cemi_bytes, source, timestamp)
+        if telegram is not None:
+            self._telegrams.append(telegram)
+            self._emit("telegram_added", telegram)
+        return telegram
 
     def clear(self) -> None:
         self._telegrams.clear()
+        self._cemi_records.clear()
         self._emit("cleared")
 
     def subscribe(self, event: str, handler: Callable[..., Any]) -> Callable[[], None]:
@@ -78,18 +87,72 @@ class NetworkService:
         for handler in self._listeners.get(event, []):
             handler(*args)
 
-    def _parse_cemi(self, cemi_bytes: bytes) -> Telegram | None:
+    def _parse_cemi_record(
+        self, cemi_bytes: bytes, source: TelegramSource, timestamp: datetime
+    ) -> CemiRecord | None:
+        if not cemi_bytes:
+            return None
+        try:
+            code_byte = cemi_bytes[0]
+            try:
+                code = CEMIMessageCode(code_byte)
+                msg_code = code.name
+            except ValueError:
+                msg_code = f"0x{code_byte:02x}"
+
+            src_addr = ""
+            dst_addr = ""
+            flags: int | None = None
+            hops: int | None = None
+
+            frame = CEMIFrame.from_knx(cemi_bytes)
+            if isinstance(frame.data, CEMILData):
+                data = frame.data
+                src_addr = str(data.src_addr)
+                dst_addr = str(data.dst_addr)
+                flags = data.flags
+                hops = (data.flags & 0x0070) >> 4
+
+            return CemiRecord(
+                raw=cemi_bytes,
+                timestamp=timestamp,
+                source_type=source,
+                msg_code=msg_code,
+                src_addr=src_addr,
+                dst_addr=dst_addr,
+                flags=flags,
+                hops=hops,
+            )
+        except Exception as e:
+            self._log.error("failed to parse CEMI record", error=str(e))
+            # Still store a minimal record with the raw bytes
+            code_byte = cemi_bytes[0] if cemi_bytes else 0
+            return CemiRecord(
+                raw=cemi_bytes,
+                timestamp=timestamp,
+                source_type=source,
+                msg_code=f"0x{code_byte:02x}",
+                src_addr="",
+                dst_addr="",
+                flags=None,
+                hops=None,
+            )
+
+    def _parse_telegram(
+        self, cemi_bytes: bytes, source: TelegramSource, timestamp: datetime
+    ) -> TelegramRecord | None:
         try:
             frame = CEMIFrame.from_knx(cemi_bytes)
             data = frame.data
-            if data is None:
+            if not isinstance(data, CEMILData):
                 return None
-            return Telegram(
+            telegram = Telegram(
                 source_address=data.src_addr,
                 destination_address=data.dst_addr,
                 payload=data.payload,
                 tpci=data.tpci,
             )
+            return TelegramRecord(telegram=telegram, timestamp=timestamp, source_type=source)
         except Exception as e:
             self._log.error("failed to parse CEMI frame", error=str(e))
             return None

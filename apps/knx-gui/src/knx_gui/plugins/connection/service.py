@@ -16,13 +16,13 @@ if TYPE_CHECKING:
     from xknx import XKNX
 
     from knx_gui.plugins.base import Logger
-    from knx_gui.types import Device
+    from knx_gui.types import Device, TelegramSource
 
 
 class ConnectionService:
     def __init__(self) -> None:
         self._log: Logger
-        self._raw_cemi_listeners: list[Callable[[bytes], None]] = []
+        self._raw_cemi_listeners: list[Callable[[bytes, TelegramSource], None]] = []
         self._connected_listeners: list[Callable[[], None]] = []
         self._xknx: XKNX | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -30,15 +30,23 @@ class ConnectionService:
     def set_logger(self, log: Logger) -> None:
         self._log = log
 
-    def add_raw_cemi_listener(self, callback: Callable[[bytes], None]) -> None:
+    def add_raw_cemi_listener(self, callback: Callable[[bytes, TelegramSource], None]) -> None:
         self._raw_cemi_listeners.append(callback)
 
     def add_connected_listener(self, callback: Callable[[], None]) -> None:
         self._connected_listeners.append(callback)
 
     def dispatch_raw_cemi(self, raw_cemi: bytes) -> None:
+        from knx_gui.types import TelegramSource
+        self._dispatch_cemi(raw_cemi, TelegramSource.CONNECTION)
+
+    def dispatch_proxy_cemi(self, raw_cemi: bytes) -> None:
+        from knx_gui.types import TelegramSource
+        self._dispatch_cemi(raw_cemi, TelegramSource.PROXY)
+
+    def _dispatch_cemi(self, raw_cemi: bytes, source: TelegramSource) -> None:
         for cb in self._raw_cemi_listeners:
-            cb(raw_cemi)
+            cb(raw_cemi, source)
 
     def dispatch_connected(self) -> None:
         for cb in self._connected_listeners:
