@@ -8,7 +8,7 @@ from typing import Any
 from imgui_bundle import imgui
 from xknx import XKNX
 from xknx.io.connection import ConnectionConfig, ConnectionType
-from xknx.io.gateway_scanner import GatewayDescriptor
+from xknx.io.gateway_scanner import GatewayDescriptor, GatewayScanner
 from xknx.io.self_description import request_description
 
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
@@ -42,6 +42,9 @@ class ConnectionPlugin:
         self._gateway_info: GatewayDescriptor | None = None
         self._async_loop: asyncio.AbstractEventLoop | None = None
         self._async_thread: threading.Thread | None = None
+
+        self._gateways: list[GatewayDescriptor] = []
+        self._scanning = False
 
     @property
     def state(self) -> ConnectionState:
@@ -151,6 +154,24 @@ class ConnectionPlugin:
             self._api.connection.set_connection(None, None)
             self._log.info("disconnected")
 
+    def scan(self) -> None:
+        if self._scanning:
+            return
+        self._scanning = True
+        self._gateways = []
+        self._run_async(self._scan_async())
+
+    async def _scan_async(self) -> None:
+        try:
+            xknx = XKNX()
+            scanner = GatewayScanner(xknx, timeout_in_seconds=3.0)
+            self._gateways = await scanner.scan()
+        except Exception as e:
+            self._log.error("gateway scan failed", error=str(e))
+            self._gateways = []
+        finally:
+            self._scanning = False
+
     def shutdown(self) -> None:
         if self._interface is not None:
             self._run_async(self._disconnect_async())
@@ -235,16 +256,38 @@ class ConnectionPlugin:
                 if self._error_message:
                     imgui.text_wrapped(self._error_message)
                 imgui.separator()
-                imgui.set_next_item_width(180)
-                _, self._controller_ip = imgui.input_text("IP", self._controller_ip)
-                if imgui.menu_item("Retry", "", False)[0]:
-                    self.connect()
+                self._render_gateway_picker(retry_label="Retry")
             else:
-                imgui.set_next_item_width(180)
-                _, self._controller_ip = imgui.input_text("IP", self._controller_ip)
-                if imgui.menu_item(S.MENU_CONNECT, "", False)[0]:
-                    self.connect()
+                self._render_gateway_picker(retry_label=S.MENU_CONNECT)
             imgui.end_menu()
+
+    def _render_gateway_picker(self, retry_label: str) -> None:
+        if self._scanning:
+            imgui.text_disabled("Scanning...")
+        else:
+            if imgui.menu_item("Scan for gateways", "", False)[0]:
+                self.scan()
+            if self._gateways:
+                imgui.separator()
+                for gw in self._gateways:
+                    tags: list[str] = []
+                    if gw.supports_tunnelling:
+                        tags.append("T")
+                    if gw.supports_routing:
+                        tags.append("R")
+                    if gw.supports_secure:
+                        tags.append("S")
+                    tag_str = "/".join(tags)
+                    label = f"{gw.name}  ({gw.ip_addr})" + (f"  [{tag_str}]" if tag_str else "")
+                    if imgui.menu_item(label, "", self._controller_ip == gw.ip_addr)[0]:
+                        self._controller_ip = gw.ip_addr
+                        self.connect()
+                imgui.separator()
+
+        imgui.set_next_item_width(180)
+        _, self._controller_ip = imgui.input_text("IP##manual", self._controller_ip)
+        if imgui.menu_item(retry_label, "", False)[0]:
+            self.connect()
 
     @property
     def panels(self) -> list[PanelDefinition]:
