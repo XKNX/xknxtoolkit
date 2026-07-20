@@ -275,7 +275,10 @@ class ConnectionPlugin:
                 self._render_gateway_picker(retry_label="Retry")
             else:
                 self._render_gateway_picker(retry_label=S.MENU_CONNECT)
-            imgui.separator()
+            imgui.end_menu()
+
+    def render_proxy_menu(self) -> None:
+        if imgui.begin_menu(S.MENU_PROXY):
             self._render_proxy_section()
             imgui.end_menu()
 

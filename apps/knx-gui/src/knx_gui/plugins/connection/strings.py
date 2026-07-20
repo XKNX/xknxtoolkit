@@ -14,6 +14,10 @@ class ConnectionStrings:
         return _("Connection")
 
     @property
+    def MENU_PROXY(self) -> str:
+        return _("Proxy")
+
+    @property
     def MENU_CONNECT(self) -> str:
         return _("Connect")
 

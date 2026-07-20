@@ -192,6 +192,7 @@ class KnxGuiApp:
         hello_imgui.show_view_menu(hello_imgui.get_runner_params())
 
         self._connection_plugin.render_menu()
+        self._connection_plugin.render_proxy_menu()
 
         self._poll_dialogs()
         self._handle_shortcuts()
