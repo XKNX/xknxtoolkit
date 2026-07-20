@@ -17,6 +17,7 @@ from knx_gui.plugins.logger import LoggerPlugin, LogService
 from knx_gui.plugins.network import NetworkPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
+from knx_gui.plugins.virtual import VirtualPlugin
 from knx_gui.strings import S, set_locale
 from xknxmono.product.errors import ArchiveError
 
@@ -45,6 +46,7 @@ class KnxGuiApp:
         self._catalog_plugin = CatalogPlugin(self._plugin_api)
         self._connection_plugin = ConnectionPlugin(self._plugin_api)
         self._network_plugin = NetworkPlugin(self._plugin_api)
+        self._virtual_plugin = VirtualPlugin(self._plugin_api)
         self._node_editor_plugin = NodeEditorPlugin(self._plugin_api)
         self._project_plugin = ProjectPlugin(
             self._plugin_api,
@@ -59,6 +61,7 @@ class KnxGuiApp:
             self._catalog_plugin,
             self._connection_plugin,
             self._network_plugin,
+            self._virtual_plugin,
             self._node_editor_plugin,
             self._project_plugin,
             self._logger_plugin,
@@ -70,6 +73,7 @@ class KnxGuiApp:
 
     def shutdown(self) -> None:
         self._connection_plugin.shutdown()
+        self._virtual_plugin.shutdown()
         self._node_editor_plugin.shutdown()
         if self._project_service.is_open:
             self._project_service.close()
