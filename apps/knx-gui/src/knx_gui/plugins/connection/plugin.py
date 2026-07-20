@@ -5,7 +5,7 @@ from collections.abc import Coroutine
 from enum import Enum
 from typing import Any
 
-from imgui_bundle import imgui
+from imgui_bundle import imgui, imspinner
 from xknx import XKNX
 from xknx.io.connection import ConnectionConfig, ConnectionType
 from xknx.io.gateway_scanner import GatewayDescriptor, GatewayScanner
@@ -173,7 +173,6 @@ class ConnectionPlugin:
         if self._scanning:
             return
         self._scanning = True
-        self._gateways = []
         self._run_async(self._scan_async())
 
     async def _scan_async(self) -> None:
@@ -183,7 +182,6 @@ class ConnectionPlugin:
             self._gateways = await scanner.scan()
         except Exception as e:
             self._log.error("gateway scan failed", error=str(e))
-            self._gateways = []
         finally:
             self._scanning = False
 
@@ -283,28 +281,43 @@ class ConnectionPlugin:
             imgui.end_menu()
 
     def _render_gateway_picker(self, retry_label: str) -> None:
-        if self._scanning:
-            imgui.text_disabled("Scanning...")
-        else:
-            if imgui.menu_item("Scan for gateways", "", False)[0]:
-                self.scan()
-            if self._gateways:
-                imgui.separator()
-                for gw in self._gateways:
-                    tags: list[str] = []
-                    if gw.supports_tunnelling:
-                        tags.append("T")
-                    if gw.supports_routing:
-                        tags.append("R")
-                    if gw.supports_secure:
-                        tags.append("S")
-                    tag_str = "/".join(tags)
-                    label = f"{gw.name}  ({gw.ip_addr})" + (f"  [{tag_str}]" if tag_str else "")
-                    if imgui.menu_item(label, "", self._controller_ip == gw.ip_addr)[0]:
-                        self._controller_ip = gw.ip_addr
-                        self.connect()
-                imgui.separator()
+        if imgui.is_window_appearing() and not self._scanning:
+            self.scan()
 
+        imgui.text_disabled(S.SECTION_DISCOVERED)
+        if self._scanning:
+            imgui.same_line()
+            imspinner.spinner_ang(
+                "##scan-spinner",
+                6,
+                2,
+                color=imgui.ImColor(
+                    imgui.get_style_color_vec4(imgui.Col_.tab_selected)
+                ),
+            )
+        if self._gateways:
+            for gw in self._gateways:
+                tags: list[str] = []
+                if gw.supports_tunnelling:
+                    tags.append("T")
+                if gw.supports_routing:
+                    tags.append("R")
+                if gw.supports_secure:
+                    tags.append("S")
+                tag_str = "/".join(tags)
+                label = f"{gw.name}  ({gw.ip_addr})" + (f"  [{tag_str}]" if tag_str else "")
+                is_connected_to = (
+                    self._state == ConnectionState.CONNECTED
+                    and self._controller_ip == gw.ip_addr
+                )
+                if imgui.menu_item(label, "", is_connected_to)[0]:
+                    self._controller_ip = gw.ip_addr
+                    self.connect()
+        elif not self._scanning:
+            imgui.text_disabled(S.NO_GATEWAYS_FOUND)
+
+        imgui.separator()
+        imgui.text_disabled(S.SECTION_MANUAL)
         imgui.set_next_item_width(180)
         _, self._controller_ip = imgui.input_text("IP##manual", self._controller_ip)
         if imgui.menu_item(retry_label, "", False)[0]:

@@ -26,6 +26,18 @@ class ConnectionStrings:
         return _("Disconnect")
 
     @property
+    def SECTION_DISCOVERED(self) -> str:
+        return _("Discovered gateways")
+
+    @property
+    def NO_GATEWAYS_FOUND(self) -> str:
+        return _("No gateways found")
+
+    @property
+    def SECTION_MANUAL(self) -> str:
+        return _("Manual connection")
+
+    @property
     def STATUS_CONNECTED(self) -> str:
         return _("Connected: {ip}")
 
