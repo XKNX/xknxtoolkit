@@ -52,24 +52,24 @@ class _KNXIPResponder(asyncio.DatagramProtocol):
         if service_type == _SEARCH_REQUEST_SERVICE_TYPE:
             resp = self._build_search_response()
             if self._logger:
-                self._logger.info("← search request", from_addr=f"{addr[0]}:{addr[1]}")
+                self._logger.info("search request", from_addr=f"{addr[0]}:{addr[1]}")
             self._send(resp, addr)
             if self._logger:
-                self._logger.info("→ search response", to_addr=f"{addr[0]}:{addr[1]}", length=len(resp))
+                self._logger.info("search response", to_addr=f"{addr[0]}:{addr[1]}", length=len(resp))
         elif service_type == _SEARCH_REQUEST_EXTENDED_SERVICE_TYPE:
             resp = self._build_search_response_extended()
             if self._logger:
-                self._logger.info("← search request extended", from_addr=f"{addr[0]}:{addr[1]}")
+                self._logger.info("search request extended", from_addr=f"{addr[0]}:{addr[1]}")
             self._send(resp, addr)
             if self._logger:
-                self._logger.info("→ search response extended", to_addr=f"{addr[0]}:{addr[1]}", length=len(resp))
+                self._logger.info("search response extended", to_addr=f"{addr[0]}:{addr[1]}", length=len(resp))
         elif service_type == _DESCRIPTION_REQUEST_SERVICE_TYPE:
             resp = self._build_description_response()
             if self._logger:
-                self._logger.info("← description request", from_addr=f"{addr[0]}:{addr[1]}")
+                self._logger.info("description request", from_addr=f"{addr[0]}:{addr[1]}")
             self._send(resp, addr)
             if self._logger:
-                self._logger.info("→ description response", to_addr=f"{addr[0]}:{addr[1]}", length=len(resp))
+                self._logger.info("description response", to_addr=f"{addr[0]}:{addr[1]}", length=len(resp))
 
     def _send(self, data: bytes, addr: tuple[str, int]) -> None:
         if self._transport is not None:
@@ -126,7 +126,7 @@ class VirtualGateway:
 
     DEFAULT_PORT = 3671
 
-    def __init__(self, name: str = "xknxtoolkit", port: int = DEFAULT_PORT, logger: Any = None) -> None:
+    def __init__(self, name: str = "xknxtoolkit virtual gateway", port: int = DEFAULT_PORT, logger: Any = None) -> None:
         self._name = name
         self._port = port
         self._logger = logger
