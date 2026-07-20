@@ -30,6 +30,10 @@ class VirtualStrings(BaseStrings):
         return _("Port")
 
     @property
+    def LABEL_MULTICAST_GROUP(self) -> str:
+        return _("Multicast")
+
+    @property
     def BTN_START(self) -> str:
         return _("Start")
 

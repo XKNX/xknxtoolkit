@@ -20,7 +20,6 @@ from xknx.knxip import (
 from xknx.knxip.knxip_enum import DIBServiceFamily, KNXIPServiceType
 from xknx.telegram.address import IndividualAddress
 
-_MCAST_GROUP = "224.0.23.12"
 _SEARCH_REQUEST_SERVICE_TYPE = 0x0201
 _SEARCH_REQUEST_EXTENDED_SERVICE_TYPE = 0x020B
 _DESCRIPTION_REQUEST_SERVICE_TYPE = 0x0203
@@ -35,10 +34,18 @@ class VirtualGatewayState(Enum):
 
 
 class _KNXIPResponder(asyncio.DatagramProtocol):
-    def __init__(self, local_ip: str, port: int, name: str, logger: Any = None) -> None:
+    def __init__(
+        self,
+        local_ip: str,
+        port: int,
+        name: str,
+        multicast_group: str,
+        logger: Any = None,
+    ) -> None:
         self._local_ip = local_ip
         self._port = port
         self._name = name
+        self._multicast_group = multicast_group
         self._logger = logger
         self._transport: asyncio.DatagramTransport | None = None
 
@@ -81,7 +88,7 @@ class _KNXIPResponder(asyncio.DatagramProtocol):
     def _dibs(self) -> list[DIBDeviceInformation | DIBSuppSVCFamilies]:
         dib_dev = DIBDeviceInformation()
         dib_dev.name = self._name
-        dib_dev.multicast_address = _MCAST_GROUP
+        dib_dev.multicast_address = self._multicast_group
         dib_dev.individual_address = IndividualAddress("1.1.0")
         dib_dev.serial_number = "00:00:00:00:00:01"
         dib_dev.mac_address = "00:00:00:00:00:01"
@@ -125,10 +132,18 @@ class VirtualGateway:
     """Minimal KNX/IP virtual gateway: responds to SEARCH_REQUEST and DESCRIPTION_REQUEST."""
 
     DEFAULT_PORT = 3671
+    DEFAULT_MCAST_GROUP = "224.0.23.12"
 
-    def __init__(self, name: str = "xknxtoolkit virtual gateway", port: int = DEFAULT_PORT, logger: Any = None) -> None:
+    def __init__(
+        self,
+        name: str = "xknxtoolkit virtual gateway",
+        port: int = DEFAULT_PORT,
+        multicast_group: str = DEFAULT_MCAST_GROUP,
+        logger: Any = None,
+    ) -> None:
         self._name = name
         self._port = port
+        self._multicast_group = multicast_group
         self._logger = logger
         self._state = VirtualGatewayState.STOPPED
         self._error: str | None = None
@@ -170,7 +185,7 @@ class VirtualGateway:
 
     async def _start_async(self) -> None:
         try:
-            local_ip = await util.get_default_local_ip(_MCAST_GROUP)
+            local_ip = await util.get_default_local_ip(self._multicast_group)
             if local_ip is None:
                 raise RuntimeError("Could not determine local IP")
             if self._logger:
@@ -181,12 +196,18 @@ class VirtualGateway:
             with contextlib.suppress(AttributeError):
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             sock.bind(("", self._port))
-            mreq = socket.inet_aton(_MCAST_GROUP) + socket.inet_aton(local_ip)
+            mreq = socket.inet_aton(self._multicast_group) + socket.inet_aton(local_ip)
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
             loop = asyncio.get_running_loop()
             transport, _ = await loop.create_datagram_endpoint(
-                lambda: _KNXIPResponder(local_ip, self._port, self._name, self._logger),
+                lambda: _KNXIPResponder(
+                    local_ip,
+                    self._port,
+                    self._name,
+                    self._multicast_group,
+                    self._logger,
+                ),
                 sock=sock,
             )
             self._udp_transport = transport  # type: ignore[assignment]

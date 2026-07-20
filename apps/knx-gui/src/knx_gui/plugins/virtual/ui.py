@@ -3,7 +3,7 @@ from collections.abc import Callable
 from imgui_bundle import imgui
 
 from knx_gui.plugins.virtual.strings import S
-from knx_gui.plugins.virtual.virtual_gateway import VirtualGatewayState
+from knx_gui.plugins.virtual.virtual_gateway import VirtualGateway, VirtualGatewayState
 
 
 class VirtualPanel:
@@ -11,7 +11,7 @@ class VirtualPanel:
         self,
         get_gateway_state: Callable[[], VirtualGatewayState],
         get_gateway_error: Callable[[], str | None],
-        on_start: Callable[[str, int], None],
+        on_start: Callable[[str, int, str], None],
         on_stop: Callable[[], None],
     ) -> None:
         self._get_gateway_state = get_gateway_state
@@ -19,7 +19,8 @@ class VirtualPanel:
         self._on_start = on_start
         self._on_stop = on_stop
         self._name = "xknxtoolkit virtual gateway"
-        self._port_str = "3671"
+        self._port_str = str(VirtualGateway.DEFAULT_PORT)
+        self._multicast_group = VirtualGateway.DEFAULT_MCAST_GROUP
 
     def render(self) -> None:
         imgui.text_disabled(S.SECTION_GATEWAY)
@@ -48,6 +49,11 @@ class VirtualPanel:
         imgui.text(S.LABEL_PORT)
         imgui.set_next_item_width(-1)
         _, self._port_str = imgui.input_text("##vgw-port", self._port_str)
+        imgui.text(S.LABEL_MULTICAST_GROUP)
+        imgui.set_next_item_width(-1)
+        _, self._multicast_group = imgui.input_text(
+            "##vgw-mcast", self._multicast_group
+        )
         if is_running:
             imgui.end_disabled()
 
@@ -72,8 +78,8 @@ class VirtualPanel:
         try:
             port = int(self._port_str)
         except ValueError:
-            port = 3671
-        self._on_start(self._name, port)
+            port = VirtualGateway.DEFAULT_PORT
+        self._on_start(self._name, port, self._multicast_group)
 
     def _render_devices_section(self) -> None:
         imgui.text_disabled(S.DEVICES_EMPTY)

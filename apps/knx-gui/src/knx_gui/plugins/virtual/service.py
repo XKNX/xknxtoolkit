@@ -23,8 +23,13 @@ class VirtualService:
     def gateway_error(self) -> str | None:
         return self._gateway.error
 
-    def start_gateway(self, name: str, port: int) -> None:
-        self._gateway = VirtualGateway(name=name, port=port, logger=self._logger)
+    def start_gateway(self, name: str, port: int, multicast_group: str) -> None:
+        self._gateway = VirtualGateway(
+            name=name,
+            port=port,
+            multicast_group=multicast_group,
+            logger=self._logger,
+        )
         self._gateway.start()
 
     def stop_gateway(self) -> None:
