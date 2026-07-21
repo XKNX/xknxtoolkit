@@ -15,6 +15,7 @@ from xknxmono.product import Application
 class TelegramSource(Enum):
     CONNECTION = "connection"
     PROXY = "proxy"
+    VIRTUAL = "virtual"
 
 if TYPE_CHECKING:
     from xknxmono.models.intermediate.com_object_instance_ref_t import (

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from knx_gui.plugins.virtual.virtual_router import VirtualRouter, VirtualRouterState
@@ -10,10 +11,14 @@ class VirtualService:
 
     def __init__(self) -> None:
         self._logger: Any = None
+        self._cemi_listener: Callable[[bytes], None] | None = None
         self._router = VirtualRouter()
 
     def set_logger(self, logger: Any) -> None:
         self._logger = logger
+
+    def set_cemi_listener(self, listener: Callable[[bytes], None] | None) -> None:
+        self._cemi_listener = listener
 
     @property
     def router_state(self) -> VirtualRouterState:
@@ -28,6 +33,7 @@ class VirtualService:
             name=name,
             port=port,
             multicast_group=multicast_group,
+            on_cemi=self._cemi_listener,
             logger=self._logger,
         )
         self._router.start()

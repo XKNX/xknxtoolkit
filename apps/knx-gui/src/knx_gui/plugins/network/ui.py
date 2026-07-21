@@ -28,7 +28,11 @@ TPCI_ABBREV = {
     "TNak": "Nak",
 }
 DEFAULT_SERVICE_COLOR = (0.5, 0.5, 0.5)
-PROXY_COLOR = (0.7, 0.5, 0.9)  # violet tint for proxy traffic
+SOURCE_COLORS = {
+    TelegramSource.CONNECTION: (0.9, 0.7, 0.3),  # amber tint for connection traffic
+    TelegramSource.PROXY: (0.7, 0.5, 0.9),  # violet tint for proxy traffic
+    TelegramSource.VIRTUAL: (0.3, 0.75, 0.8),  # teal tint for virtual router traffic
+}
 
 
 class NetworkPanel:
@@ -211,7 +215,7 @@ class NetworkPanel:
 
         color = SERVICE_COLORS.get(telegram.service, DEFAULT_SERVICE_COLOR)
         selected = index in self._selected
-        is_proxy = telegram.source_type == TelegramSource.PROXY
+        source_color = SOURCE_COLORS.get(telegram.source_type)
 
         imgui.table_set_column_index(0)
         flags = (
@@ -232,9 +236,9 @@ class NetworkPanel:
         )
         imgui.dummy(imgui.ImVec2(8, 0))
 
-        # Via column: square = proxy, nothing = connection
+        # Via column: colored square indicates the telegram's source
         imgui.table_set_column_index(2)
-        if is_proxy:
+        if source_color is not None:
             cursor2 = imgui.get_cursor_screen_pos()
             half = imgui.get_text_line_height() / 2
             cx = cursor2.x + 3
@@ -242,13 +246,13 @@ class NetworkPanel:
             draw_list.add_rect_filled(
                 imgui.ImVec2(cx - 3, cy - 3),
                 imgui.ImVec2(cx + 3, cy + 3),
-                color_u32(*PROXY_COLOR),
+                color_u32(*source_color),
             )
         imgui.dummy(imgui.ImVec2(8, 0))
 
         imgui.table_set_column_index(3)
-        if is_proxy:
-            imgui.push_style_color(imgui.Col_.text, imgui.ImVec4(*PROXY_COLOR, 1.0))
+        if source_color is not None:
+            imgui.push_style_color(imgui.Col_.text, imgui.ImVec4(*source_color, 1.0))
             imgui.text_disabled(telegram.source)
             imgui.pop_style_color()
         else:
@@ -319,23 +323,23 @@ class NetworkPanel:
 
     def _render_cemi_row(self, index: int, rec: CemiRecord) -> None:
         imgui.table_next_row()
-        is_proxy = rec.source_type == TelegramSource.PROXY
+        source_color = SOURCE_COLORS.get(rec.source_type)
 
         imgui.table_set_column_index(0)
         imgui.text_disabled(rec.timestamp_str)
 
-        # Via: square for proxy
+        # Via: colored square indicates the cemi frame's source
         imgui.table_set_column_index(1)
         draw_list = imgui.get_window_draw_list()
         cursor = imgui.get_cursor_screen_pos()
-        if is_proxy:
+        if source_color is not None:
             half = imgui.get_text_line_height() / 2
             cx = cursor.x + 3
             cy = cursor.y + half
             draw_list.add_rect_filled(
                 imgui.ImVec2(cx - 3, cy - 3),
                 imgui.ImVec2(cx + 3, cy + 3),
-                color_u32(*PROXY_COLOR),
+                color_u32(*source_color),
             )
         imgui.dummy(imgui.ImVec2(8, 0))
 
@@ -415,8 +419,7 @@ class NetworkPanel:
         imgui.set_clipboard_text("\n".join([header, *rows]))
 
     def _telegram_to_row(self, t: TelegramRecord) -> str:
-        via = "proxy" if t.source_type == TelegramSource.PROXY else "conn"
-        return f"{t.timestamp_str}\t{via}\t{t.source}\t{t.destination}\t{t.tpci}\t{t.service}\t{t.dpt}\t{t.value}"
+        return f"{t.timestamp_str}\t{t.source_type.value}\t{t.source}\t{t.destination}\t{t.tpci}\t{t.service}\t{t.dpt}\t{t.value}"
 
     def _clear_telegrams(self) -> None:
         self._selected.clear()

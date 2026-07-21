@@ -11,6 +11,7 @@ class VirtualPlugin:
         self._api = api
         self._service = VirtualService()
         self._service.set_logger(Logger(api.log, "virtual"))
+        self._service.set_cemi_listener(api.connection.dispatch_virtual_cemi)
         self._panel = VirtualPanel(
             get_router_state=lambda: self._service.router_state,
             get_router_error=lambda: self._service.router_error,
