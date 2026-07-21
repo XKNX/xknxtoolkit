@@ -1,8 +1,10 @@
+import contextlib
 from collections.abc import Callable
 
 from imgui_bundle import imgui
 
 from knx_gui.plugins.virtual.strings import S
+from knx_gui.plugins.virtual.virtual_device import VirtualDevice
 from knx_gui.plugins.virtual.virtual_router import VirtualRouter, VirtualRouterState
 
 
@@ -13,14 +15,17 @@ class VirtualPanel:
         get_router_error: Callable[[], str | None],
         on_start: Callable[[str, int, str], None],
         on_stop: Callable[[], None],
+        get_device: Callable[[], VirtualDevice],
     ) -> None:
         self._get_router_state = get_router_state
         self._get_router_error = get_router_error
         self._on_start = on_start
         self._on_stop = on_stop
+        self._get_device = get_device
         self._name = "xknxtoolkit virtual router"
         self._port_str = str(VirtualRouter.DEFAULT_PORT)
         self._multicast_group = VirtualRouter.DEFAULT_MCAST_GROUP
+        self._device_serial_hex = get_device().serial_number.hex()
 
     def render(self) -> None:
         imgui.text_disabled(S.SECTION_ROUTER)
@@ -82,4 +87,28 @@ class VirtualPanel:
         self._on_start(self._name, port, self._multicast_group)
 
     def _render_devices_section(self) -> None:
-        imgui.text_disabled(S.DEVICES_EMPTY)
+        device = self._get_device()
+
+        imgui.text(S.LABEL_NAME)
+        imgui.set_next_item_width(-1)
+        _, device.name = imgui.input_text("##device-name", device.name)
+
+        imgui.text(S.LABEL_SERIAL_NUMBER)
+        imgui.set_next_item_width(-1)
+        changed, self._device_serial_hex = imgui.input_text(
+            "##device-serial", self._device_serial_hex
+        )
+        if changed:
+            with contextlib.suppress(ValueError):
+                device.serial_number = bytes.fromhex(self._device_serial_hex)
+
+        changed, programming_mode = imgui.checkbox(
+            S.LABEL_PROGRAMMING_MODE, device.programming_mode
+        )
+        if changed:
+            device.programming_mode = programming_mode
+
+        if device.programming_mode:
+            imgui.text_colored(
+                imgui.ImVec4(0.9, 0.7, 0.3, 1.0), S.STATUS_PROGRAMMING_MODE
+            )

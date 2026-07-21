@@ -58,8 +58,16 @@ class VirtualStrings(BaseStrings):
         return _("Error")
 
     @property
-    def DEVICES_EMPTY(self) -> str:
-        return _("No virtual devices yet.")
+    def LABEL_SERIAL_NUMBER(self) -> str:
+        return _("Serial Number")
+
+    @property
+    def LABEL_PROGRAMMING_MODE(self) -> str:
+        return _("Programming Mode")
+
+    @property
+    def STATUS_PROGRAMMING_MODE(self) -> str:
+        return _("Waiting for ETS...")
 
 
 S = VirtualStrings()

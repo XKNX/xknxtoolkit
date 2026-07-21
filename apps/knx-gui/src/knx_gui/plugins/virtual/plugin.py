@@ -17,6 +17,7 @@ class VirtualPlugin:
             get_router_error=lambda: self._service.router_error,
             on_start=self._service.start_router,
             on_stop=self._service.stop_router,
+            get_device=lambda: self._service.device,
         )
         self._panels = [
             PanelDefinition(
