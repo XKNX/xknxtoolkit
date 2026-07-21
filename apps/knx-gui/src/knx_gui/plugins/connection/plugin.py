@@ -8,6 +8,7 @@ from typing import Any
 from imgui_bundle import imgui, imspinner
 from xknx import XKNX
 from xknx.io.connection import ConnectionConfig, ConnectionType
+from xknx.io.const import DEFAULT_MCAST_GRP
 from xknx.io.gateway_scanner import GatewayDescriptor, GatewayScanner
 from xknx.io.self_description import request_description
 
@@ -36,6 +37,9 @@ class ConnectionPlugin:
         self._state = ConnectionState.DISCONNECTED
         self._error_message: str | None = None
         self._controller_ip: str = "192.168.1.1"
+        self._connection_type: ConnectionType = ConnectionType.TUNNELING
+        self._multicast_group: str = DEFAULT_MCAST_GRP
+        self._selected_gateway: GatewayDescriptor | None = None
         self._panels: list[PanelDefinition] = []
 
         self._xknx: XKNX | None = None
@@ -94,34 +98,72 @@ class ConnectionPlugin:
         asyncio.run_coroutine_threadsafe(coro, loop)
 
     def connect(self) -> None:
+        """Connect using the manually entered IP (always tunneling)."""
         if self._state in (ConnectionState.CONNECTING, ConnectionState.CONNECTED):
             return
+        self._connection_type = ConnectionType.TUNNELING
+        self._selected_gateway = None
         self._state = ConnectionState.CONNECTING
         self._error_message = None
         self._run_async(self._connect_async())
 
+    def connect_to_gateway(self, gateway: GatewayDescriptor) -> None:
+        """Connect to a discovered gateway, using tunneling if it's offered,
+        otherwise falling back to multicast routing (e.g. our virtual
+        router, which only ever advertises routing)."""
+        if self._state in (ConnectionState.CONNECTING, ConnectionState.CONNECTED):
+            return
+        if gateway.supports_tunnelling:
+            self._connection_type = ConnectionType.TUNNELING
+            self._controller_ip = gateway.ip_addr
+        else:
+            self._connection_type = ConnectionType.ROUTING
+            self._multicast_group = gateway.multicast_address or DEFAULT_MCAST_GRP
+        self._selected_gateway = gateway
+        self._state = ConnectionState.CONNECTING
+        self._error_message = None
+        self._run_async(self._connect_async())
+
+    @property
+    def _connection_target(self) -> str:
+        if self._connection_type == ConnectionType.ROUTING:
+            return f"{self._multicast_group} (routing)"
+        return self._controller_ip
+
     async def _connect_async(self) -> None:
         try:
             self._xknx = XKNX()
-            config = ConnectionConfig(
-                connection_type=ConnectionType.TUNNELING,
-                gateway_ip=self._controller_ip,
-                threaded=True,
-            )
+            if self._connection_type == ConnectionType.ROUTING:
+                config = ConnectionConfig(
+                    connection_type=ConnectionType.ROUTING,
+                    multicast_group=self._multicast_group,
+                    threaded=True,
+                )
+            else:
+                config = ConnectionConfig(
+                    connection_type=ConnectionType.TUNNELING,
+                    gateway_ip=self._controller_ip,
+                    threaded=True,
+                )
             self._interface = ObservableKNXIPInterfaceThreaded(
                 xknx=self._xknx,
                 connection_config=config,
                 raw_cemi_callback=self._api.connection.dispatch_raw_cemi,
             )
             await self._interface.start()
-            try:
-                self._gateway_info = await request_description(self._controller_ip)
-            except Exception:
+            if self._selected_gateway is not None:
+                self._gateway_info = self._selected_gateway
+            elif self._connection_type == ConnectionType.TUNNELING:
+                try:
+                    self._gateway_info = await request_description(self._controller_ip)
+                except Exception:
+                    self._gateway_info = None
+            else:
                 self._gateway_info = None
             self._state = ConnectionState.CONNECTED
             self._api.connection.set_connection(self._xknx, asyncio.get_running_loop())
             self._api.connection.dispatch_connected()
-            self._log.info("connected", ip=self._controller_ip)
+            self._log.info("connected", target=self._connection_target)
             if self._gateway_info:
                 services = [
                     s
@@ -146,7 +188,9 @@ class ConnectionPlugin:
             self._interface = None
             self._gateway_info = None
             self._xknx = None
-            self._log.error("connection failed", ip=self._controller_ip, error=str(e))
+            self._log.error(
+                "connection failed", target=self._connection_target, error=str(e)
+            )
 
     def disconnect(self) -> None:
         if self._state in (ConnectionState.DISCONNECTED, ConnectionState.DISCONNECTING):
@@ -207,7 +251,7 @@ class ConnectionPlugin:
             )
             imgui.dummy(imgui.ImVec2(12, 0))
             imgui.same_line()
-            imgui.text(S.STATUS_CONNECTED.format(ip=self._controller_ip))
+            imgui.text(S.STATUS_CONNECTED.format(ip=self._connection_target))
         elif self._state == ConnectionState.CONNECTING:
             spin = (imgui.get_time() * 4) % 1.0
             draw_list.add_circle_filled(
@@ -237,7 +281,7 @@ class ConnectionPlugin:
     def render_menu(self) -> None:
         if imgui.begin_menu(S.MENU_CONNECTION):
             if self._state == ConnectionState.CONNECTED:
-                imgui.text(S.STATUS_CONNECTED_TO.format(ip=self._controller_ip))
+                imgui.text(S.STATUS_CONNECTED_TO.format(ip=self._connection_target))
                 if self._gateway_info:
                     imgui.separator()
                     imgui.text_disabled("Gateway")
@@ -308,11 +352,12 @@ class ConnectionPlugin:
                 label = f"{gw.name}  ({gw.ip_addr})" + (f"  [{tag_str}]" if tag_str else "")
                 is_connected_to = (
                     self._state == ConnectionState.CONNECTED
-                    and self._controller_ip == gw.ip_addr
+                    and self._selected_gateway is not None
+                    and self._selected_gateway.ip_addr == gw.ip_addr
+                    and self._selected_gateway.port == gw.port
                 )
                 if imgui.menu_item(label, "", is_connected_to)[0]:
-                    self._controller_ip = gw.ip_addr
-                    self.connect()
+                    self.connect_to_gateway(gw)
         elif not self._scanning:
             imgui.text_disabled(S.NO_GATEWAYS_FOUND)
 
