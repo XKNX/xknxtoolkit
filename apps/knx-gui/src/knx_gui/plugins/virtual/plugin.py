@@ -12,10 +12,10 @@ class VirtualPlugin:
         self._service = VirtualService()
         self._service.set_logger(Logger(api.log, "virtual"))
         self._panel = VirtualPanel(
-            get_gateway_state=lambda: self._service.gateway_state,
-            get_gateway_error=lambda: self._service.gateway_error,
-            on_start=self._service.start_gateway,
-            on_stop=self._service.stop_gateway,
+            get_router_state=lambda: self._service.router_state,
+            get_router_error=lambda: self._service.router_error,
+            on_start=self._service.start_router,
+            on_stop=self._service.stop_router,
         )
         self._panels = [
             PanelDefinition(

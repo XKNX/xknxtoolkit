@@ -3,29 +3,29 @@ from collections.abc import Callable
 from imgui_bundle import imgui
 
 from knx_gui.plugins.virtual.strings import S
-from knx_gui.plugins.virtual.virtual_gateway import VirtualGateway, VirtualGatewayState
+from knx_gui.plugins.virtual.virtual_router import VirtualRouter, VirtualRouterState
 
 
 class VirtualPanel:
     def __init__(
         self,
-        get_gateway_state: Callable[[], VirtualGatewayState],
-        get_gateway_error: Callable[[], str | None],
+        get_router_state: Callable[[], VirtualRouterState],
+        get_router_error: Callable[[], str | None],
         on_start: Callable[[str, int, str], None],
         on_stop: Callable[[], None],
     ) -> None:
-        self._get_gateway_state = get_gateway_state
-        self._get_gateway_error = get_gateway_error
+        self._get_router_state = get_router_state
+        self._get_router_error = get_router_error
         self._on_start = on_start
         self._on_stop = on_stop
-        self._name = "xknxtoolkit virtual gateway"
-        self._port_str = str(VirtualGateway.DEFAULT_PORT)
-        self._multicast_group = VirtualGateway.DEFAULT_MCAST_GROUP
+        self._name = "xknxtoolkit virtual router"
+        self._port_str = str(VirtualRouter.DEFAULT_PORT)
+        self._multicast_group = VirtualRouter.DEFAULT_MCAST_GROUP
 
     def render(self) -> None:
-        imgui.text_disabled(S.SECTION_GATEWAY)
+        imgui.text_disabled(S.SECTION_ROUTER)
         imgui.separator()
-        self._render_gateway_section()
+        self._render_router_section()
 
         imgui.spacing()
         imgui.spacing()
@@ -34,39 +34,39 @@ class VirtualPanel:
         imgui.separator()
         self._render_devices_section()
 
-    def _render_gateway_section(self) -> None:
-        state = self._get_gateway_state()
+    def _render_router_section(self) -> None:
+        state = self._get_router_state()
         is_running = state in (
-            VirtualGatewayState.RUNNING,
-            VirtualGatewayState.STARTING,
+            VirtualRouterState.RUNNING,
+            VirtualRouterState.STARTING,
         )
 
         if is_running:
             imgui.begin_disabled()
         imgui.text(S.LABEL_NAME)
         imgui.set_next_item_width(-1)
-        _, self._name = imgui.input_text("##vgw-name", self._name)
+        _, self._name = imgui.input_text("##vrouter-name", self._name)
         imgui.text(S.LABEL_PORT)
         imgui.set_next_item_width(-1)
-        _, self._port_str = imgui.input_text("##vgw-port", self._port_str)
+        _, self._port_str = imgui.input_text("##vrouter-port", self._port_str)
         imgui.text(S.LABEL_MULTICAST_GROUP)
         imgui.set_next_item_width(-1)
         _, self._multicast_group = imgui.input_text(
-            "##vgw-mcast", self._multicast_group
+            "##vrouter-mcast", self._multicast_group
         )
         if is_running:
             imgui.end_disabled()
 
-        if state == VirtualGatewayState.RUNNING:
+        if state == VirtualRouterState.RUNNING:
             imgui.text_colored(imgui.ImVec4(0.4, 0.8, 0.4, 1.0), S.STATUS_RUNNING)
             if imgui.button(S.BTN_STOP):
                 self._on_stop()
-        elif state == VirtualGatewayState.STARTING:
+        elif state == VirtualRouterState.STARTING:
             imgui.text_disabled(S.STATUS_STARTING)
         else:
-            if state == VirtualGatewayState.ERROR:
+            if state == VirtualRouterState.ERROR:
                 imgui.text_colored(imgui.ImVec4(0.8, 0.2, 0.2, 1.0), S.STATUS_ERROR)
-                error = self._get_gateway_error()
+                error = self._get_router_error()
                 if error:
                     imgui.text_wrapped(error)
             else:
@@ -78,7 +78,7 @@ class VirtualPanel:
         try:
             port = int(self._port_str)
         except ValueError:
-            port = VirtualGateway.DEFAULT_PORT
+            port = VirtualRouter.DEFAULT_PORT
         self._on_start(self._name, port, self._multicast_group)
 
     def _render_devices_section(self) -> None:

@@ -26,7 +26,7 @@ _DESCRIPTION_REQUEST_SERVICE_TYPE = 0x0203
 _KNXIP_HEADER_LENGTH = 6
 
 
-class VirtualGatewayState(Enum):
+class VirtualRouterState(Enum):
     STOPPED = "stopped"
     STARTING = "starting"
     RUNNING = "running"
@@ -95,7 +95,6 @@ class _KNXIPResponder(asyncio.DatagramProtocol):
 
         dib_svc = DIBSuppSVCFamilies()
         dib_svc.families.append(DIBSuppSVCFamilies.Family(DIBServiceFamily.CORE, 2))
-        dib_svc.families.append(DIBSuppSVCFamilies.Family(DIBServiceFamily.TUNNELING, 2))
         dib_svc.families.append(DIBSuppSVCFamilies.Family(DIBServiceFamily.ROUTING, 1))
         return [dib_dev, dib_svc]
 
@@ -128,15 +127,15 @@ class _KNXIPResponder(asyncio.DatagramProtocol):
             self._logger.error("udp error", error=str(exc))
 
 
-class VirtualGateway:
-    """Minimal KNX/IP virtual gateway: responds to SEARCH_REQUEST and DESCRIPTION_REQUEST."""
+class VirtualRouter:
+    """Minimal KNX/IP virtual router: responds to SEARCH_REQUEST and DESCRIPTION_REQUEST."""
 
     DEFAULT_PORT = 3671
     DEFAULT_MCAST_GROUP = "224.0.23.12"
 
     def __init__(
         self,
-        name: str = "xknxtoolkit virtual gateway",
+        name: str = "xknxtoolkit virtual router",
         port: int = DEFAULT_PORT,
         multicast_group: str = DEFAULT_MCAST_GROUP,
         logger: Any = None,
@@ -145,14 +144,14 @@ class VirtualGateway:
         self._port = port
         self._multicast_group = multicast_group
         self._logger = logger
-        self._state = VirtualGatewayState.STOPPED
+        self._state = VirtualRouterState.STOPPED
         self._error: str | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self._thread: threading.Thread | None = None
         self._udp_transport: asyncio.DatagramTransport | None = None
 
     @property
-    def state(self) -> VirtualGatewayState:
+    def state(self) -> VirtualRouterState:
         return self._state
 
     @property
@@ -161,12 +160,12 @@ class VirtualGateway:
 
     @property
     def running(self) -> bool:
-        return self._state == VirtualGatewayState.RUNNING
+        return self._state == VirtualRouterState.RUNNING
 
     def start(self) -> None:
-        if self._state in (VirtualGatewayState.STARTING, VirtualGatewayState.RUNNING):
+        if self._state in (VirtualRouterState.STARTING, VirtualRouterState.RUNNING):
             return
-        self._state = VirtualGatewayState.STARTING
+        self._state = VirtualRouterState.STARTING
         self._error = None
 
         loop_ready = threading.Event()
@@ -177,7 +176,9 @@ class VirtualGateway:
             loop_ready.set()
             self._loop.run_forever()
 
-        self._thread = threading.Thread(target=_run, daemon=True, name="KNX-VGW")
+        self._thread = threading.Thread(
+            target=_run, daemon=True, name="KNX-VirtualRouter"
+        )
         self._thread.start()
         loop_ready.wait()
         assert self._loop is not None
@@ -211,22 +212,22 @@ class VirtualGateway:
                 sock=sock,
             )
             self._udp_transport = transport  # type: ignore[assignment]
-            self._state = VirtualGatewayState.RUNNING
+            self._state = VirtualRouterState.RUNNING
             if self._logger:
-                self._logger.info("virtual gateway running", local_ip=local_ip, port=self._port)
+                self._logger.info("virtual router running", local_ip=local_ip, port=self._port)
         except Exception as e:
-            self._state = VirtualGatewayState.ERROR
+            self._state = VirtualRouterState.ERROR
             self._error = str(e)
             if self._logger:
-                self._logger.error("virtual gateway failed to start", error=str(e))
+                self._logger.error("virtual router failed to start", error=str(e))
 
     def stop(self) -> None:
-        if self._state == VirtualGatewayState.STOPPED:
+        if self._state == VirtualRouterState.STOPPED:
             return
         if self._loop is not None:
             asyncio.run_coroutine_threadsafe(self._stop_async(), self._loop)
         else:
-            self._state = VirtualGatewayState.STOPPED
+            self._state = VirtualRouterState.STOPPED
 
     async def _stop_async(self) -> None:
         try:
@@ -234,9 +235,9 @@ class VirtualGateway:
                 self._udp_transport.close()
                 self._udp_transport = None
         finally:
-            self._state = VirtualGatewayState.STOPPED
+            self._state = VirtualRouterState.STOPPED
             if self._logger:
-                self._logger.info("virtual gateway stopped")
+                self._logger.info("virtual router stopped")
             if self._loop is not None:
                 self._loop.call_soon_threadsafe(self._loop.stop)
             self._loop = None
