@@ -4,10 +4,14 @@ import asyncio
 import contextlib
 import socket
 import threading
+from collections.abc import Callable
 from enum import Enum
 from typing import Any
 
+from xknx import XKNX
+from xknx.cemi import CEMIFrame
 from xknx.io import util
+from xknx.io.routing import Routing
 from xknx.knxip import (
     HPAI,
     DescriptionResponse,
@@ -128,7 +132,36 @@ class _KNXIPResponder(asyncio.DatagramProtocol):
 
 
 class VirtualRouter:
-    """Minimal KNX/IP virtual router: responds to SEARCH_REQUEST and DESCRIPTION_REQUEST."""
+    """
+    Minimal KNX/IP virtual router.
+
+    Responds to SEARCH_REQUEST/DESCRIPTION_REQUEST discovery, and joins
+    the multicast group to send and receive L_Data frames like a real
+    KNX/IP router.
+
+    This runs two separate sockets rather than one, and that's
+    deliberate: `xknx.io.routing.Routing` (used below for L_Data) only
+    parses RoutingIndication/RoutingBusy/RoutingLostMessage frames -
+    anything else, including SEARCH_REQUEST/DESCRIPTION_REQUEST, is
+    logged as "not implemented" and dropped. Its transport does expose
+    `register_callback()` for other service types, but its `send()`
+    forces every send to the multicast group whenever the transport is
+    in multicast mode (which it always is here) - it will not unicast a
+    reply to a specific address. That's a real requirement for
+    discovery, not a style choice: SEARCH_REQUEST/DESCRIPTION_REQUEST
+    arrive via multicast (any server might answer), but
+    SEARCH_RESPONSE/DESCRIPTION_RESPONSE must go back via unicast to
+    only the requester - otherwise every other client doing discovery
+    on the network would receive replies meant for someone else.
+    Reaching past `send()` into the transport's internals to force a
+    unicast send would work, but couples us to an xknx implementation
+    detail that isn't a supported extension point for this. Running our
+    own small `_KNXIPResponder` socket for discovery, alongside
+    `Routing`'s own socket for L_Data, keeps both correct without that
+    coupling - `SO_REUSEPORT` lets both bind the same multicast
+    group/port without conflict (verified: both reach RUNNING
+    simultaneously).
+    """
 
     DEFAULT_PORT = 3671
     DEFAULT_MCAST_GROUP = "224.0.23.12"
@@ -138,17 +171,21 @@ class VirtualRouter:
         name: str = "xknxtoolkit virtual router",
         port: int = DEFAULT_PORT,
         multicast_group: str = DEFAULT_MCAST_GROUP,
+        on_cemi: Callable[[bytes], None] | None = None,
         logger: Any = None,
     ) -> None:
         self._name = name
         self._port = port
         self._multicast_group = multicast_group
+        self._on_cemi = on_cemi
         self._logger = logger
         self._state = VirtualRouterState.STOPPED
         self._error: str | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self._thread: threading.Thread | None = None
         self._udp_transport: asyncio.DatagramTransport | None = None
+        self._routing: Routing | None = None
+        self._xknx: XKNX | None = None
 
     @property
     def state(self) -> VirtualRouterState:
@@ -212,6 +249,18 @@ class VirtualRouter:
                 sock=sock,
             )
             self._udp_transport = transport  # type: ignore[assignment]
+
+            self._xknx = XKNX()
+            self._routing = Routing(
+                self._xknx,
+                individual_address=None,
+                cemi_received_callback=self._on_cemi_received,
+                local_ip=local_ip,
+                multicast_group=self._multicast_group,
+                multicast_port=self._port,
+            )
+            await self._routing.connect()
+
             self._state = VirtualRouterState.RUNNING
             if self._logger:
                 self._logger.info("virtual router running", local_ip=local_ip, port=self._port)
@@ -220,6 +269,17 @@ class VirtualRouter:
             self._error = str(e)
             if self._logger:
                 self._logger.error("virtual router failed to start", error=str(e))
+
+    def _on_cemi_received(self, raw: bytes) -> None:
+        if self._logger:
+            self._logger.info("cemi received", hex=raw.hex(" "))
+        if self._on_cemi is not None:
+            self._on_cemi(raw)
+
+    def send_cemi(self, cemi: CEMIFrame) -> None:
+        if self._loop is None or self._routing is None:
+            return
+        asyncio.run_coroutine_threadsafe(self._routing.send_cemi(cemi), self._loop)
 
     def stop(self) -> None:
         if self._state == VirtualRouterState.STOPPED:
@@ -234,6 +294,10 @@ class VirtualRouter:
             if self._udp_transport is not None:
                 self._udp_transport.close()
                 self._udp_transport = None
+            if self._routing is not None:
+                await self._routing.disconnect()
+                self._routing = None
+                self._xknx = None
         finally:
             self._state = VirtualRouterState.STOPPED
             if self._logger:
