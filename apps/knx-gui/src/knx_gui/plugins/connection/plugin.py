@@ -14,9 +14,8 @@ from xknx.io.self_description import request_description
 
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.connection.interface import ObservableKNXIPInterfaceThreaded
-from knx_gui.plugins.connection.proxy import ProxyState, TunnelingProxy
 from knx_gui.plugins.connection.strings import S
-from knx_gui.types import TelegramSource, color_u32
+from knx_gui.types import color_u32
 
 
 class ConnectionState(Enum):
@@ -50,17 +49,6 @@ class ConnectionPlugin:
 
         self._gateways: list[GatewayDescriptor] = []
         self._scanning = False
-
-        self._proxy_log = Logger(api.log, "proxy")
-
-        self._proxy = TunnelingProxy(
-            on_cemi=self._api.connection.dispatch_proxy_cemi,
-            forward_cemi=None,
-            logger=self._proxy_log,
-        )
-        self._proxy_forward = False
-        self._proxy_port_str = str(TunnelingProxy.DEFAULT_PORT)
-        self._api.connection.add_raw_cemi_listener(self._relay_connection_cemi_to_proxy)
 
     @property
     def state(self) -> ConnectionState:
@@ -217,24 +205,6 @@ class ConnectionPlugin:
             self._api.connection.set_connection(None, None)
             self._log.info("disconnected")
 
-    def _forward_cemi(self, raw: bytes) -> None:
-        self._api.connection.send_cemi(raw)
-
-    def _relay_connection_cemi_to_proxy(
-        self, raw: bytes, source: TelegramSource
-    ) -> None:
-        """
-        The other half of "Forward to connection": frames received on the
-        real connection also need relaying back to the client through the
-        proxy, or point-to-point exchanges it initiates (e.g. reading a
-        device's descriptor) never get a reply and time out. Filtered to
-        CONNECTION so proxy/virtual traffic doesn't get echoed back into
-        the proxy.
-        """
-        if source != TelegramSource.CONNECTION or not self._proxy_forward:
-            return
-        self._proxy.send_cemi(raw)
-
     def scan(self) -> None:
         if self._scanning:
             return
@@ -252,7 +222,6 @@ class ConnectionPlugin:
             self._scanning = False
 
     def shutdown(self) -> None:
-        self._proxy.stop()
         if self._interface is not None:
             self._run_async(self._disconnect_async())
         if self._async_loop is not None:
@@ -341,11 +310,6 @@ class ConnectionPlugin:
                 self._render_gateway_picker(retry_label=S.MENU_CONNECT)
             imgui.end_menu()
 
-    def render_proxy_menu(self) -> None:
-        if imgui.begin_menu(S.MENU_PROXY):
-            self._render_proxy_section()
-            imgui.end_menu()
-
     def _render_gateway_picker(self, retry_label: str) -> None:
         if imgui.is_window_appearing() and not self._scanning:
             self.scan()
@@ -389,60 +353,6 @@ class ConnectionPlugin:
         _, self._controller_ip = imgui.input_text("IP##manual", self._controller_ip)
         if imgui.menu_item(retry_label, "", False)[0]:
             self.connect()
-
-    def _render_proxy_section(self) -> None:
-        state = self._proxy.state
-        if state == ProxyState.RUNNING:
-            imgui.text_colored(imgui.ImVec4(0.4, 0.8, 0.4, 1.0), "Proxy: running")
-            if self._proxy.connected:
-                imgui.text_disabled("Client connected")
-            else:
-                imgui.text_disabled(
-                    "Add manually as an interface using this machine's IP"
-                )
-            if self._proxy.local_ips:
-                imgui.text_disabled("IP: " + ", ".join(self._proxy.local_ips))
-        elif state == ProxyState.STARTING:
-            imgui.text_disabled("Proxy: starting...")
-        elif state == ProxyState.ERROR:
-            imgui.text_colored(imgui.ImVec4(0.8, 0.2, 0.2, 1.0), "Proxy: error")
-            if self._proxy.error:
-                imgui.text_wrapped(self._proxy.error)
-        else:
-            imgui.text_disabled("Proxy: stopped")
-
-        is_running = state in (ProxyState.RUNNING, ProxyState.STARTING)
-        if is_running:
-            imgui.begin_disabled()
-        imgui.set_next_item_width(60)
-        _, self._proxy_port_str = imgui.input_text("##proxyport", self._proxy_port_str)
-        imgui.same_line()
-        imgui.text_disabled("Port")
-        if is_running:
-            imgui.end_disabled()
-
-        changed, self._proxy_forward = imgui.checkbox(
-            "Forward to connection", self._proxy_forward
-        )
-        if changed:
-            self._proxy.set_forward(self._forward_cemi if self._proxy_forward else None)
-
-        if state in (ProxyState.STOPPED, ProxyState.ERROR):
-            if imgui.menu_item("Start proxy", "", False)[0]:
-                try:
-                    port = int(self._proxy_port_str)
-                except ValueError:
-                    port = TunnelingProxy.DEFAULT_PORT
-                self._proxy = TunnelingProxy(
-                    on_cemi=self._api.connection.dispatch_proxy_cemi,
-                    forward_cemi=self._forward_cemi if self._proxy_forward else None,
-                    port=port,
-                    logger=self._proxy_log,
-                )
-                self._proxy.start()
-        else:
-            if imgui.menu_item("Stop proxy", "", False)[0]:
-                self._proxy.stop()
 
     @property
     def panels(self) -> list[PanelDefinition]:
