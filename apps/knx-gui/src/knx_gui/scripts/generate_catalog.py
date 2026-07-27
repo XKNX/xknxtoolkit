@@ -3,19 +3,12 @@
 import sys
 from pathlib import Path
 
-from knx_gui.catalog.database import CatalogDatabase
-from knx_gui.catalog.loader import load_knxprod_to_catalog
+from xknxmono.catalog import CatalogService
 
 
 def generate_catalog(catalog_path: Path, knxprod_paths: list[Path]) -> None:
-    if catalog_path.exists():
-        print(f"Opening existing catalog: {catalog_path}")
-        db = CatalogDatabase(catalog_path)
-        db.open()
-    else:
-        print(f"Creating new catalog: {catalog_path}")
-        db = CatalogDatabase(catalog_path)
-        db.create()
+    print(f"Opening catalog: {catalog_path}")
+    catalog = CatalogService(catalog_path)
 
     total_added = 0
     for knxprod_path in knxprod_paths:
@@ -24,19 +17,21 @@ def generate_catalog(catalog_path: Path, knxprod_paths: list[Path]) -> None:
             continue
 
         print(f"  Loading: {knxprod_path.name}")
+        before = {a.application_id for a in catalog.list_applications()}
         try:
-            added = load_knxprod_to_catalog(db, knxprod_path)
-            if added:
-                print(f"    Added {len(added)} application(s)")
-                for app_id in added:
-                    print(f"      - {app_id}")
-                total_added += len(added)
-            else:
-                print("    No new applications (already in catalog)")
+            catalog.import_knxprod(knxprod_path.read_bytes())
         except Exception as e:
             print(f"    Error: {e}")
+            continue
+        added = sorted({a.application_id for a in catalog.list_applications()} - before)
+        if added:
+            print(f"    Added {len(added)} application(s)")
+            for app_id in added:
+                print(f"      - {app_id}")
+            total_added += len(added)
+        else:
+            print("    No new applications (already in catalog)")
 
-    db.close()
     print(f"\nCatalog updated: {total_added} application(s) added")
     print(f"Saved to: {catalog_path}")
 
