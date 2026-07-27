@@ -1,77 +1,87 @@
-# Catalog Database Architecture
+# Catalog Architecture
 
 ## Overview
 
-The catalog database stores application definitions extracted from `.knxprod` files. This allows devices to be reconstructed without needing the original knxprod file.
+The catalog is a searchable database of KNX hardware and application programs, built by importing
+`.knxprod` archives. It's independent of any single project, so devices can be browsed and added
+without re-importing a knxprod every time.
+
+The catalog is **not** GUI code: it's the standalone `xknx-catalog` package
+(`packages/catalog/src/xknxmono/catalog/`). The GUI only wraps it in a thin adapter,
+`plugins/catalog/service.py`.
+
+## Two Layers
+
+- **Library layer** — pure Python, no FastAPI required. The caller owns a SQLAlchemy engine
+  (`xknxmono.catalog.make_engine`) and calls query/ingest functions directly, or uses the
+  higher-level `CatalogService` (`xknxmono.catalog.core.service`) which owns the engine for you —
+  this is what the GUI uses.
+- **HTTP layer** (`xknxmono.catalog.http`) — an optional FastAPI app serving the same data over REST.
+  Not used by the desktop GUI; useful for a separate catalog browser/service.
 
 ## Database Schema
 
-### Applications Table
+SQLAlchemy models live in `xknxmono/catalog/models.py`. The schema is created automatically
+(`Base.metadata.create_all(engine)` on connect) — there are no Alembic migrations for this package.
 
-| Column          | Type        | Description                                           |
-|-----------------|-------------|-------------------------------------------------------|
-| id              | INTEGER     | Primary key, auto-increment                           |
-| manufacturer_id | TEXT        | Manufacturer ID (e.g., "M-0001")                      |
-| application_id  | TEXT        | Full application ID (unique, e.g., "M-0001_A-0001-00-0001") |
-| name            | TEXT        | Application name                                      |
-| xml_data        | BLOB        | Raw application XML from knxprod                      |
-| created_at      | DATETIME    | When the entry was added (UTC)                        |
+| Table | Purpose |
+|-------|---------|
+| `manufacturers` | Manufacturer id (`M-XXXX`) and name |
+| `applications` | An ETS application program: id, name, application number/version, mask version |
+| `hardware` | A physical device as described in a manufacturer's `Hardware.xml` |
+| `hardware_programs` | Links a `hardware` row to an `application` and the source `.knxprod` file (`knxprod_path`); this is what a project device's `hardware2program_ref_id` points at |
+| `hardware_program_medium_types` | Medium types (TP/IP/RF/...) a hardware program supports |
+| `catalog_sections` | The manufacturer's browsing hierarchy (tree of sections) |
+| `catalog_section_products` | An orderable product (`product_ref_id`) within a section, running a specific hardware program — the product-centric browse/selection unit |
 
 ## Usage
 
 ### Populating the Catalog
 
 ```bash
-# From specific knxprod files
 uv run generate-catalog device1.knxprod device2.knxprod
-
-# From all knxprod files in ~/knxprod/
-uv run generate-catalog
 ```
 
 ### Programmatic Access
 
 ```python
 from pathlib import Path
-from knx_gui.catalog import CatalogDatabase, load_knxprod_to_catalog, get_application_xml
+from xknxmono.catalog import CatalogService
 
-# Open or create catalog
-catalog = CatalogDatabase(Path("catalog.db"))
-catalog.open()  # or catalog.create() for new
+catalog = CatalogService(Path("catalog.db"))  # opens/creates; owns the engine + .knxprod store
 
-# Add applications from knxprod
-added = load_knxprod_to_catalog(catalog, Path("device.knxprod"))
+added_path = catalog.import_knxprod(Path("device.knxprod").read_bytes())
 
-# Retrieve XML by application_id
-xml_data = get_application_xml(catalog, "M-0001_A-0001-00-0001")
-
-catalog.close()
+products = catalog.list_products()             # product-first view (what add_device needs)
+app = catalog.get_application(application_id)   # parsed, IR-backed Application
 ```
 
-## Application ID
+### GUI Adapter
 
-The `application_id` is a unique identifier from the knxprod file (e.g., "M-0001_A-0001-00-0001"). It combines the manufacturer ID with the application-specific identifier, making it globally unique across all KNX products.
+`plugins/catalog/service.py`'s `CatalogService` wraps the package's `CatalogService` and adds only
+what the panel needs on top: a `list_products()` cache (the panel re-reads it every frame),
+path-based `import_knxprod`, and reporting which product refs were newly added by an import.
 
-This ensures:
-- Duplicate detection (same application from different sources)
-- Stable identifier for database references
-- Direct lookup without computing hashes
+## Product / Application / Hardware IDs
+
+- `application_id` (e.g. `"M-0001_A-0001-00-0001"`) identifies an application program, unique across
+  all KNX products.
+- `hardware2program_ref_id` (a `HardwareProgram.id`, e.g. `"HP-..."`) is what a project's `Device`
+  row actually stores — it resolves to both the hardware and the application via the
+  `hardware_programs` table.
+- `product_ref_id` (on `catalog_section_products`) is the orderable product identity; this is what a
+  device's `product_ref_id` column stores (what was "bought", as opposed to what program is loaded).
 
 ## Integration with Projects
 
-When a device is added from a knxprod file:
-1. The application XML is added to the catalog (if not already present)
-2. The project stores `template_id = "catalog:{application_id}"`
-3. On reload, the project looks up the catalog by application_id to reconstruct the device
+A project device stores `product_ref_id` and `hardware2program_ref_id` — references into the
+catalog, not a copy of the application data. On every read, the GUI's `ProjectService` resolves
+`hardware2program_ref_id` back to an `Application` via the catalog (see `docs/architecture.md`). If
+the referenced program isn't in the catalog (e.g. a fresh/emptied `catalog.db`), the device is
+skipped with a warning log rather than crashing — see "Limitations" in `docs/project.md`.
 
 ## File Location
 
-Default catalog location: `apps/knx-gui/demo.xknxcatalog`
-
-The catalog uses the `.xknxcatalog` extension and is shared across all projects.
-
-## Migrations
-
-Schema migrations use Alembic, same as the project database:
-- Migration files in `src/knx_gui/catalog/migrations/versions/`
-- Auto-runs on `open()`, auto-stamps on `create()`
+Default catalog used by the GUI: `apps/knx-gui/demo.xknxcatalog`, generated by `uv run
+generate-catalog` (see `src/knx_gui/scripts/generate_catalog.py`). The `.xknxcatalog` extension is
+just a naming convention — it's a plain SQLite file and can be inspected with any SQLite tool.

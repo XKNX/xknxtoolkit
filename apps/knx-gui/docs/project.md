@@ -2,190 +2,98 @@
 
 ## Overview
 
-KNX GUI uses SQLite3 for project persistence with an event sourcing pattern. Every user action is stored as an immutable event, enabling full undo/redo support.
+A project is one SQLite document (`.xknx` file) using event sourcing: every edit is an `Event`
+object, applied against the live tables and appended to an `events` log, so undo/redo just walks
+that log rather than diffing state.
+
+Like the catalog, this is **not** GUI code: it's the standalone `xknx-project` package
+(`packages/project/src/xknxmono/project/`). The GUI wraps it in `plugins/project/service.py`, which
+adds the GUI-only concerns (resolving devices against the catalog, caching the resolved
+`Application`, pub/sub for panels, selection state).
 
 ## Database Schema
 
-### Events Table
-Stores all user actions as serialized events.
+SQLAlchemy models live in `xknxmono/project/models.py`. Tree: `Installation → Area → Line → Segment
+→ Device`; group addresses live in a separate recursive `GroupRange` tree. Schema is
+auto-created (`Base.metadata.create_all`), no migrations.
 
-| Column    | Type     | Description                              |
-|-----------|----------|------------------------------------------|
-| id        | INTEGER  | Primary key, auto-increment              |
-| type      | TEXT     | Event class name (e.g., "DeviceAdded")   |
-| data      | JSON     | Serialized event payload                 |
-| timestamp | DATETIME | When the event occurred (UTC)            |
-| reverted  | BOOLEAN  | True if event has been undone            |
+| Table | Purpose |
+|-------|---------|
+| `projects` | Single metadata row: name, `group_address_style` (e.g. `"ThreeLevel"`) |
+| `installations` | One row per installation (`index` is the user-facing 0-based installation number) |
+| `areas` / `lines` / `segments` | Topology tree; `segments.medium_type` carries e.g. `MT-0` (TP) / `MT-5` (IP) |
+| `devices` | `address` (0–255 octet, unique within its line), `product_ref_id` (catalog product), `hardware2program_ref_id` (catalog `HardwareProgram.id`, resolves the `Application`) |
+| `module_instances` | Top-level module instances on a device (`instance_id`, `ref_id`) |
+| `parameters` | Parameter overrides: `(device_id, ref_id) -> value` |
+| `com_objects` | Com-object instance overrides: `ref_id`, `channel_id`, and `*_flag` columns (`None` = inherit the product/application default, a bool forces enabled/disabled) |
+| `group_ranges` | Recursive group-address range tree (main → middle in ThreeLevel style) |
+| `group_addresses` | Leaf addresses, with an optional `datapoint_type` override |
+| `com_object_links` | Links a com-object to a group address; `is_sending` marks the (at most one) transmit link |
+| `events` | The undo/redo history: `type`, `data` (JSON payload), `timestamp`, `reverted` |
 
-### Devices Table
-Materialized state for devices.
+## Event Sourcing
 
-| Column      | Type    | Description                    |
-|-------------|---------|--------------------------------|
-| id          | INTEGER | Primary key (node_id)          |
-| address     | TEXT    | KNX individual address         |
-| template_id | TEXT    | Reference to device template   |
-| name        | TEXT    | User-defined device name       |
+### Event Types
 
-### Parameters Table
-Stores device parameter values.
+All defined in `xknxmono/project/core/events.py`:
 
-| Column    | Type    | Description                    |
-|-----------|---------|--------------------------------|
-| id        | INTEGER | Primary key, auto-increment    |
-| device_id | INTEGER | Foreign key to devices         |
-| param_id  | TEXT    | Parameter identifier           |
-| value     | TEXT    | Current parameter value        |
+- **Topology**: `AddInstallation`, `CreateArea`, `CreateLine`, `CreateSegment`
+- **Devices**: `AddDevice`, `SetParameter`, `SetDeviceName`, `MoveDevice` (segment + address)
+- **Group addresses / links**: `CreateGroupAddress` (also finds-or-creates its containing range
+  chain as one undoable step), `LinkComObject`, `SetComObjectFlag`, `SetComObjectSending`,
+  `SetGroupAddressDatapointType`
+- **Reversible deletes** (snapshot-and-restore, see below): `RemoveDevice`, `RemoveArea`,
+  `RemoveLine`, `RemoveSegment`, `RemoveGroupAddress`, `UnlinkComObject`
+- **Renames**: `RenameArea`, `RenameLine`
 
-### Com Objects Table
-Stores communication object configuration.
+Every event is a dataclass implementing `apply(session)`, `revert(session)`, `to_dict()`,
+`from_dict()`. Row ids created by `apply()` are captured on the event itself (the `if self.x_id is
+not None: obj.id = self.x_id` idiom), so a redo re-inserts with the *same* ids and any foreign keys
+elsewhere in the JSON payload stay valid.
 
-| Column             | Type    | Description                    |
-|--------------------|---------|--------------------------------|
-| id                 | INTEGER | Primary key, auto-increment    |
-| device_id          | INTEGER | Foreign key to devices         |
-| co_id              | TEXT    | Com object identifier          |
-| dpt_major          | INTEGER | DPT major number               |
-| dpt_minor          | INTEGER | DPT minor number               |
-| flag_communication | BOOLEAN | Communication flag             |
-| flag_read          | BOOLEAN | Read flag                      |
-| flag_write         | BOOLEAN | Write flag                     |
-| flag_transmit      | BOOLEAN | Transmit flag                  |
-| flag_update        | BOOLEAN | Update flag                    |
+### Reversible Deletes
 
-### Links Table
-Stores connections between com object pins.
+`RemoveDevice`/`RemoveArea`/etc. are all `_SubtreeDelete`: `apply()` walks every cascade-owned
+descendant of the target row via SQLAlchemy relationship introspection, serializes each one to a
+plain dict (`_snapshot_subtree`), stores that list on the event, then deletes the row (cascade
+handles the rest). `revert()` just re-inserts every captured row (`_restore_rows`), parents first.
+This means deleting a device also captures and can restore its parameters, com objects, and module
+instances — no per-field revert logic needed for deletes.
 
-| Column    | Type    | Description                    |
-|-----------|---------|--------------------------------|
-| id        | INTEGER | Primary key (link_id)          |
-| start_pin | INTEGER | Source pin identifier          |
-| end_pin   | INTEGER | Destination pin identifier     |
+### EventStore (undo/redo)
 
-## Event Types
+`xknxmono/project/core/event_store.py`. A cursor tracks the id of the highest non-reverted event.
 
-### DeviceAdded
-Emitted when a device is added from catalog or knxprod file.
+- `append(event)` — if the cursor isn't at the end, deletes every event after it (discards the redo
+  branch), applies the new event, inserts its row, commits, moves the cursor to it.
+- `undo()` — reverts the event at the cursor, marks it `reverted=True`, moves the cursor to the
+  previous non-reverted event.
+- `redo()` — finds the next `reverted=True` event after the cursor, re-applies it, marks it
+  `reverted=False`, moves the cursor forward.
+- `jump_to(id)` — repeated undo/redo until the cursor reaches the target.
 
-```python
-{
-    "device_id": int,
-    "address": str | None,
-    "template_id": str,      # e.g., "switch_actuator" or "knxprod:M-123:A-456"
-    "name": str,
-    "parameters": [(param_id, value), ...],
-    "com_objects": [{co_id, dpt_major, dpt_minor, flags...}, ...]
-}
-```
+No rows are ever deleted by undo/redo itself (only `append` after a branch prunes forward history),
+so `history()` (newest first) always reflects the full log, reverted or not.
 
-### DeviceRemoved
-Emitted when a device is deleted. Stores full device state for undo.
+## GUI Facade (`plugins/project/service.py`)
 
-### DeviceAddressChanged
-Emitted when device individual address changes.
+The GUI's `ProjectService` wraps `xknxmono.project.ProjectService` and adds:
 
-```python
-{
-    "device_id": int,
-    "old_address": str | None,
-    "new_address": str | None
-}
-```
-
-### ParameterChanged
-Emitted when a device parameter value changes.
-
-```python
-{
-    "device_id": int,
-    "param_id": str,
-    "old_value": str,
-    "new_value": str
-}
-```
-
-### ComObjectDptChanged
-Emitted when a com object's DPT is changed.
-
-```python
-{
-    "device_id": int,
-    "co_id": str,
-    "old_dpt_major": int,
-    "old_dpt_minor": int,
-    "new_dpt_major": int,
-    "new_dpt_minor": int
-}
-```
-
-### ComObjectFlagChanged
-Emitted when a com object flag is toggled.
-
-```python
-{
-    "device_id": int,
-    "co_id": str,
-    "flag_name": str,        # "communication", "read", "write", "transmit", "update"
-    "old_value": bool,
-    "new_value": bool
-}
-```
-
-### LinkCreated
-Emitted when a link is created between two pins.
-
-```python
-{
-    "link_id": int,
-    "start_pin": int,
-    "end_pin": int
-}
-```
-
-### LinkRemoved
-Emitted when a link is deleted.
-
-## Event Sourcing Pattern
-
-### Dual-Write Strategy
-Each event both:
-1. Appends to the events table (immutable log)
-2. Updates the materialized state tables (devices, parameters, com_objects, links)
-
-This provides:
-- Fast reads from materialized state
-- Full history for undo/redo
-- No need to replay events on load
-
-### Undo/Redo Implementation
-
-The EventStore maintains a cursor pointing to the current position in history.
-
-**Undo:**
-1. Get event at cursor position
-2. Call `event.revert(session)` to update materialized state
-3. Mark event as `reverted=True`
-4. Move cursor back to previous non-reverted event
-
-**Redo:**
-1. Find next reverted event after cursor
-2. Call `event.apply(session)` to update materialized state
-3. Mark event as `reverted=False`
-4. Move cursor forward
-
-**New Action After Undo:**
-When a new event is appended while cursor is not at the end, all events after the cursor are deleted (branch is discarded).
-
-## Migrations
-
-Schema migrations use Alembic with auto-stamping:
-- `create()` initializes schema and stamps as current head
-- `open()` runs pending migrations on existing databases
-- Migration files in `src/knx_gui/project/migrations/versions/`
+- **Device resolution**: turns a `devices` row + its `parameters`/`com_objects`/`module_instances`
+  into a `knx_gui.types.Device` by resolving `hardware2program_ref_id` to an `Application` through
+  the catalog (`CatalogService.get_application`), with the resolved `Application` cached by program
+  ref (`_app_cache`) since parsing is the expensive part.
+- **Lazy rebuild via version counter**: every mutating call bumps `self._version`; property reads
+  like `.devices`/`.group_addresses` rebuild only if `self._cache_version != self._version`. There's
+  no explicit "reload from DB" — undo/redo just bump the version like any other edit.
+- **Pub/sub**: `subscribe(event, handler) -> unsubscribe_fn` for `"device_selected"` and similar UI
+  events, orthogonal to the persistence event log above.
+- **History labels**: `_history_label()` renders a human-readable string per event type for the
+  History panel — presentation lives in the GUI, not the project package.
 
 ## File Format
 
-Project files use `.xknx` extension. They are standard SQLite3 databases that can be inspected with any SQLite tool:
+Project files use the `.xknx` extension and are plain SQLite3 databases:
 
 ```bash
 sqlite3 project.xknx "SELECT type, data FROM events ORDER BY id;"
@@ -193,8 +101,14 @@ sqlite3 project.xknx "SELECT type, data FROM events ORDER BY id;"
 
 ## Limitations
 
-### knxprod Devices
-Devices loaded from `.knxprod` files store `template_id` as `knxprod:{manufacturer}:{application}`. These devices cannot be reconstructed after undo/redo because the full template data is not stored in the database. The knxprod file must be reloaded.
+### Devices with a missing catalog entry
+A project device only stores `product_ref_id`/`hardware2program_ref_id` — references into the
+catalog, not the application data itself. If the catalog doesn't have that program (a fresh or
+emptied `catalog.db`, or a product that was never (re-)imported), `ProjectService._build_device()`
+logs a warning and the device is silently dropped from `.devices` until the catalog is repopulated
+with a matching import. It is not deleted from the project database.
 
-### Template Changes
-If a template in `DEVICE_TEMPLATES` is modified between sessions, devices using that template may not load correctly. Template versioning is not currently implemented.
+### Catalog changes aren't versioned
+If an application's parameter/com-object definitions change between catalog imports (e.g. a
+manufacturer ships an updated `.knxprod` under the same `hardware2program_ref_id`), existing project
+overrides are re-applied against the new definition with no compatibility check.

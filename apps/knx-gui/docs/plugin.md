@@ -2,30 +2,39 @@
 
 ## Overview
 
-The application uses a plugin-based architecture where functionality is organized into self-contained plugins. Each plugin owns its UI panels, handles its own state, and communicates with other plugins through a shared API and event bus.
+The application organizes functionality into self-contained plugins under
+`src/knx_gui/plugins/<name>/`. Each plugin owns its own UI panels and state, and communicates with
+other plugins only through shared services on `PluginAPI` — never by holding a direct reference to
+another plugin instance.
 
 ## Core Components
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         PluginAPI                                │
-│  Shared context passed to all plugins                            │
-│                                                                  │
-│  ├── project: ProjectService   (devices, links, persistence)    │
-│  └── catalog: CatalogService   (device templates)               │
+│  Shared context passed to (most) plugins                         │
+│                                                                   │
+│  ├── project:    ProjectService     (devices, topology, undo)    │
+│  ├── catalog:    CatalogService     (device templates)           │
+│  ├── connection: ConnectionService  (KNX I/O, CEMI dispatch)      │
+│  └── log:        LogService         (structured logging)         │
 └─────────────────────────────────────────────────────────────────┘
                               │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-        ┌──────────┐   ┌──────────┐   ┌──────────┐
-        │  Plugin  │   │  Plugin  │   │  Plugin  │
-        │ (panels) │   │ (panels) │   │ (panels) │
-        └──────────┘   └──────────┘   └──────────┘
+      ┌───────────┬──────────┼──────────┬───────────┬─────────────┐
+      ▼           ▼          ▼          ▼           ▼             ▼
+ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌────────┐ ┌─────────┐ ┌─────────┐
+ │ Catalog │ │ Project │ │  Node   │ │Connect-│ │  Proxy  │ │ Virtual │  ...
+ │ Plugin  │ │ Plugin  │ │ Editor  │ │  ion   │ │ Plugin  │ │ Plugin  │
+ └─────────┘ └─────────┘ └─────────┘ └────────┘ └─────────┘ └─────────┘
 ```
+
+`main.py::KnxGuiApp.__init__` instantiates and wires every plugin directly — there is no dynamic
+plugin loading despite `base/registry.PluginRegistry` (entry-point discovery scaffolding) existing;
+it isn't called anywhere.
 
 ## Plugin Protocol
 
-Every plugin implements the `Plugin` protocol:
+Every plugin implements the `Plugin` protocol (`plugins/base/registry.py`):
 
 ```python
 class Plugin(Protocol):
@@ -36,6 +45,10 @@ class Plugin(Protocol):
     def on_load(self) -> None: ...
     def on_unload(self) -> None: ...
 ```
+
+Plugins that own background resources (an event loop, a socket server, a real KNX connection) also
+expose a `shutdown()` method, called explicitly from `main.py::KnxGuiApp.shutdown()` (order matters —
+e.g. the real connection is torn down before the process exits).
 
 ## Panel Definition
 
@@ -50,113 +63,68 @@ class PanelDefinition:
     render: Callable[[], None]     # render function
 ```
 
-**Dock spaces:**
-- `LeftSpace` - left sidebar (devices, catalog)
-- `RightSpace` - right sidebar (configure, history)
-- `BottomSpace` - bottom panel (telegrams)
-- `MainDockSpace` - central area (node editor)
+**Dock spaces** (defined in `main.py::create_docking_splits`):
+- `MainDockSpace` — central area (node editor)
+- `LeftSpace` (ratio 0.2, left of main) — catalog, devices
+- `RightSpace` (ratio 0.25, right of main) — configure, history, virtual
+- `BottomSpace` (ratio 0.25, below main) — network, logs
 
-**Example:**
-
-```python
-class ProjectPlugin:
-    def __init__(self, api: PluginAPI) -> None:
-        self._devices_panel = DevicesPanel(...)
-        self._configure_panel = ConfigurePanel(...)
-        
-        self._panels = [
-            PanelDefinition(
-                name="devices",
-                label=S.PANEL_DEVICES,
-                dock="LeftSpace",
-                render=self._devices_panel.render,
-            ),
-            PanelDefinition(
-                name="configure",
-                label=S.PANEL_CONFIGURE,
-                dock="RightSpace",
-                render=self._configure_panel.render,
-            ),
-        ]
-
-    @property
-    def panels(self) -> list[PanelDefinition]:
-        return self._panels
-```
-
-## Services
-
-### ProjectService
-
-Manages project state (devices, links) and persistence.
-
-```python
-# State access
-project.devices                    # list[Device]
-project.links                      # list[tuple[link_id, start_pin, end_pin]]
-project.selected_device            # Device | None (settable)
-
-# State mutation
-project.add_device_to_state(app, address) -> Device
-project.add_link_to_state(start_pin, end_pin) -> int
-project.remove_link_from_state(link_id)
-project.set_flag(device, co_id, flag_name, new_value)
-project.set_param(device, param_id, new_value)
-
-# Persistence (writes to DB with event sourcing)
-project.add_device(template_id, name, app, address) -> int
-project.add_link(link_id, start_pin, end_pin)
-project.remove_link(link_id, start_pin, end_pin)
-
-# Undo/redo (auto-reloads from DB)
-project.undo() -> bool
-project.redo() -> bool
-project.jump_to(event_id)
-
-# Events (subscribe to state changes)
-project.subscribe("device_selected", handler) -> unsubscribe_fn
-```
-
-**Events emitted by ProjectService:**
-
-| Event | Args | Description |
-|-------|------|-------------|
-| `device_selected` | `device: Device \| None` | Selection changed |
-| `flag_changed` | `device, co_id, flag_name, old, new` | Com object flag changed |
-| `param_changed` | `device, param_id, old, new` | Parameter value changed |
-| `link_added` | `link_id, start_pin, end_pin` | Link created |
-| `link_removed` | `link_id, start_pin, end_pin` | Link deleted |
-
-### CatalogService
-
-Provides access to device templates from the catalog.
-
-```python
-catalog.get_entries() -> list[CatalogEntry]
-catalog.get_application_xml(application_id) -> bytes | None
-catalog.import_knxprod(path) -> list[str]  # returns added app IDs
-```
+A plugin with no panels (e.g. `ConnectionPlugin`, `ProxyPlugin`, `CatPlugin`) returns `[]` and
+instead renders into the menu bar or a status area via its own methods, called directly from
+`main.py`.
 
 ## Current Plugins
 
 | Plugin | Panels | Purpose |
 |--------|--------|---------|
-| `ProjectPlugin` | devices, configure, history | Device management, configuration, undo history |
-| `NodeEditorPlugin` | node_editor | Visual node graph for linking com objects |
-| `CatalogPlugin` | catalog | Browse and add devices from catalog |
-| `TelegramsPlugin` | telegrams | KNX telegram monitoring |
-| `ConnectionPlugin` | (none) | KNX connection status, menu rendering |
+| `CatalogPlugin` | `catalog` (LeftSpace) | Browse and add devices from the catalog |
+| `ProjectPlugin` | `devices` (LeftSpace), `configure` (RightSpace), `history` (RightSpace) | Device topology, configuration, undo history |
+| `NodeEditorPlugin` | `node_editor` (MainDockSpace) | Visual node graph for linking com objects to group addresses |
+| `ConnectionPlugin` | *(none)* | Real KNX connection (tunneling/routing), gateway discovery, status indicator + menu |
+| `ProxyPlugin` | *(none)* | KNXnet/IP tunnelling server for testing without hardware; menu only |
+| `VirtualPlugin` | `virtual` (RightSpace) | Virtual router + virtual devices |
+| `NetworkPlugin` | `network` (BottomSpace) | KNX telegram monitoring/recording |
+| `LoggerPlugin` | `logger` (BottomSpace) | Structured, filterable application log viewer |
+| `CatPlugin` | *(none)* | Cosmetic desktop cat follower; no panels, `on_load` only |
+
+`LoggerPlugin` is constructed with a `LogService` directly rather than a full `PluginAPI` — it
+predates (or simply doesn't need) the shared-service pattern the others use.
+
+## Services
+
+### ConnectionService (`plugins/connection/service.py`)
+
+The hub other plugins use to send/receive CEMI frames without depending on `ConnectionPlugin`
+directly — e.g. `ProxyPlugin` relays frames to/from the real connection purely through this service.
+
+```python
+connection.add_raw_cemi_listener(callback: (bytes, TelegramSource) -> None)
+connection.dispatch_raw_cemi(raw_cemi)     # from the real connection
+connection.dispatch_proxy_cemi(raw_cemi)   # from the proxy
+connection.dispatch_virtual_cemi(raw_cemi) # from the virtual router/devices
+connection.send_cemi(raw_cemi) -> Future | None   # send out the real connection
+connection.xknx -> XKNX | None
+```
+
+`TelegramSource` (`knx_gui.types`) tags every dispatched frame as `CONNECTION`, `PROXY`, or `VIRTUAL`
+so listeners can filter by origin (e.g. to avoid echoing proxy traffic back into itself).
+
+### ProjectService / CatalogService
+
+Both are thin GUI-facing facades over the standalone `xknxmono.project`/`xknxmono.catalog` packages
+— see `docs/architecture.md`, `docs/project.md`, and `docs/catalog.md` for their actual data model
+and API surface; they're intentionally not duplicated here.
 
 ## Creating a New Plugin
 
-1. Create plugin directory: `plugins/myplugin/`
+1. Create the plugin directory: `plugins/myplugin/`
 
 2. Implement the plugin class:
 
 ```python
 # plugins/myplugin/plugin.py
 from knx_gui.plugins.base import PanelDefinition, PluginAPI
-from knx_gui.strings import S
+from knx_gui.plugins.myplugin.strings import S
 
 class MyPlugin:
     name = "myplugin"
@@ -193,33 +161,39 @@ from knx_gui.plugins.myplugin.plugin import MyPlugin
 __all__ = ["MyPlugin"]
 ```
 
-4. Register in `main.py`:
+4. Instantiate and register in `main.py::KnxGuiApp.__init__`:
 
 ```python
 self._myplugin = MyPlugin(self._plugin_api)
 self._plugins.append(self._myplugin)
 ```
 
+If it owns background resources, also call `self._myplugin.shutdown()` from
+`KnxGuiApp.shutdown()`.
+
 5. Create plugin strings with translations (see Translations section below)
 
 ## Dependencies Between Plugins
 
-Plugins can depend on each other through the PluginAPI or by passing callbacks:
+Prefer routing through a shared `PluginAPI` service (see `ConnectionService` above). When a plugin
+genuinely needs another specific plugin's data — not just a general service — pass a callback at
+construction instead of holding a reference:
 
 ```python
-# NodeEditorPlugin exposes method
+# NodeEditorPlugin exposes a method
 class NodeEditorPlugin:
     def get_selected_node_ids(self) -> list[int]:
         return self._panel.get_selected_node_ids()
 
-# ProjectPlugin uses it via callback injection
+# ProjectPlugin takes it as a callback (main.py wires the two together)
 self._project_plugin = ProjectPlugin(
     self._plugin_api,
     get_selected_node_ids=self._node_editor_plugin.get_selected_node_ids,
 )
 ```
 
-This avoids circular imports while allowing cross-plugin coordination.
+This avoids circular imports while allowing cross-plugin coordination for the one-off cases a shared
+service doesn't fit.
 
 ## Translations (i18n)
 
@@ -285,6 +259,9 @@ msgstr "Doe Ding"
 ```bash
 msgfmt -o myplugin.mo myplugin.po
 ```
+
+Locales are optional — a plugin with no `locales/` directory (e.g. `virtual`) just falls back to the
+literal string for every language (`create_translator` catches `FileNotFoundError`).
 
 ### Language Detection
 
