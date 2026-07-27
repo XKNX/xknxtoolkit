@@ -30,6 +30,10 @@ build-backend = "hatchling.build"
 packages = ["src/knx_gui"]
 
 [tool.uv.sources]
+# TEMPORARY: developing against the local xknx checkout instead of the
+# published package. Remove this line (and re-run `uv lock`) to go back
+# to the PyPI version.
+xknx = { path = "../../../xknx", editable = true }
 xknx-catalog = { workspace = true }
 xknx-models = { workspace = true }
 xknx-product = { workspace = true }

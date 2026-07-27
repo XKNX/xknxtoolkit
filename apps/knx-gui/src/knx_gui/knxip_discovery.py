@@ -25,9 +25,9 @@ class KNXIPDiscoveryResponder(asyncio.DatagramProtocol):
     """
     Answers SEARCH_REQUEST/SEARCH_REQUEST_EXTENDED/DESCRIPTION_REQUEST so a
     multicast-only KNX/IP endpoint (routing, no tunneling) shows up in
-    ETS's device list. Shared between VirtualRouter and RoutingProxy -
-    both are otherwise-independent multicast-only "devices" that need
-    the exact same discovery behavior.
+    ETS's device list. Used by VirtualRouter; factored out standalone so
+    any other multicast-only endpoint can reuse it without duplicating
+    this logic.
     """
 
     def __init__(

@@ -14,9 +14,9 @@ from xknx.io.self_description import request_description
 
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.connection.interface import ObservableKNXIPInterfaceThreaded
-from knx_gui.plugins.connection.proxy import ProxyState, RoutingProxy
+from knx_gui.plugins.connection.proxy import ProxyState, TunnelingProxy
 from knx_gui.plugins.connection.strings import S
-from knx_gui.types import color_u32
+from knx_gui.types import TelegramSource, color_u32
 
 
 class ConnectionState(Enum):
@@ -53,14 +53,14 @@ class ConnectionPlugin:
 
         self._proxy_log = Logger(api.log, "proxy")
 
-        self._proxy = RoutingProxy(
+        self._proxy = TunnelingProxy(
             on_cemi=self._api.connection.dispatch_proxy_cemi,
             forward_cemi=None,
             logger=self._proxy_log,
         )
         self._proxy_forward = False
-        self._proxy_multicast_group = RoutingProxy.DEFAULT_MCAST_GROUP
-        self._proxy_multicast_port_str = str(RoutingProxy.DEFAULT_MCAST_PORT)
+        self._proxy_port_str = str(TunnelingProxy.DEFAULT_PORT)
+        self._api.connection.add_raw_cemi_listener(self._relay_connection_cemi_to_proxy)
 
     @property
     def state(self) -> ConnectionState:
@@ -150,6 +150,13 @@ class ConnectionPlugin:
                 connection_config=config,
                 raw_cemi_callback=self._api.connection.dispatch_raw_cemi,
             )
+            # XKNX() builds its own inert default knxip_interface in
+            # __init__, separate from the one we just created and start
+            # below. Every internal xknx send path (CEMIHandler,
+            # Management procedures) sends through xknx.knxip_interface,
+            # so without this, outgoing frames silently hit the wrong,
+            # never-started interface and fail with "not connected".
+            self._xknx.knxip_interface = self._interface
             await self._interface.start()
             if self._selected_gateway is not None:
                 self._gateway_info = self._selected_gateway
@@ -212,6 +219,21 @@ class ConnectionPlugin:
 
     def _forward_cemi(self, raw: bytes) -> None:
         self._api.connection.send_cemi(raw)
+
+    def _relay_connection_cemi_to_proxy(
+        self, raw: bytes, source: TelegramSource
+    ) -> None:
+        """
+        The other half of "Forward to connection": frames received on the
+        real connection also need relaying back to the client through the
+        proxy, or point-to-point exchanges it initiates (e.g. reading a
+        device's descriptor) never get a reply and time out. Filtered to
+        CONNECTION so proxy/virtual traffic doesn't get echoed back into
+        the proxy.
+        """
+        if source != TelegramSource.CONNECTION or not self._proxy_forward:
+            return
+        self._proxy.send_cemi(raw)
 
     def scan(self) -> None:
         if self._scanning:
@@ -371,52 +393,50 @@ class ConnectionPlugin:
     def _render_proxy_section(self) -> None:
         state = self._proxy.state
         if state == ProxyState.RUNNING:
-            imgui.text_colored(imgui.ImVec4(0.4, 0.8, 0.4, 1.0), "Routing proxy: running")
+            imgui.text_colored(imgui.ImVec4(0.4, 0.8, 0.4, 1.0), "Proxy: running")
+            if self._proxy.connected:
+                imgui.text_disabled("Client connected")
+            else:
+                imgui.text_disabled(
+                    "Add manually as an interface using this machine's IP"
+                )
+            if self._proxy.local_ips:
+                imgui.text_disabled("IP: " + ", ".join(self._proxy.local_ips))
         elif state == ProxyState.STARTING:
-            imgui.text_disabled("Routing proxy: starting...")
+            imgui.text_disabled("Proxy: starting...")
         elif state == ProxyState.ERROR:
-            imgui.text_colored(imgui.ImVec4(0.8, 0.2, 0.2, 1.0), "Routing proxy: error")
+            imgui.text_colored(imgui.ImVec4(0.8, 0.2, 0.2, 1.0), "Proxy: error")
             if self._proxy.error:
                 imgui.text_wrapped(self._proxy.error)
         else:
-            imgui.text_disabled("Routing proxy: stopped")
+            imgui.text_disabled("Proxy: stopped")
 
         is_running = state in (ProxyState.RUNNING, ProxyState.STARTING)
         if is_running:
             imgui.begin_disabled()
-        imgui.set_next_item_width(180)
-        _, self._proxy_multicast_group = imgui.input_text(
-            "##mcast", self._proxy_multicast_group
-        )
-        imgui.same_line()
-        imgui.text_disabled("Multicast")
-
         imgui.set_next_item_width(60)
-        _, self._proxy_multicast_port_str = imgui.input_text(
-            "##port", self._proxy_multicast_port_str
-        )
+        _, self._proxy_port_str = imgui.input_text("##proxyport", self._proxy_port_str)
         imgui.same_line()
         imgui.text_disabled("Port")
         if is_running:
             imgui.end_disabled()
 
-        changed, self._proxy_forward = imgui.checkbox("Forward to connection", self._proxy_forward)
+        changed, self._proxy_forward = imgui.checkbox(
+            "Forward to connection", self._proxy_forward
+        )
         if changed:
-            self._proxy.set_forward(
-                self._forward_cemi if self._proxy_forward else None
-            )
+            self._proxy.set_forward(self._forward_cemi if self._proxy_forward else None)
 
         if state in (ProxyState.STOPPED, ProxyState.ERROR):
             if imgui.menu_item("Start proxy", "", False)[0]:
                 try:
-                    port = int(self._proxy_multicast_port_str)
+                    port = int(self._proxy_port_str)
                 except ValueError:
-                    port = 3671
-                self._proxy = RoutingProxy(
+                    port = TunnelingProxy.DEFAULT_PORT
+                self._proxy = TunnelingProxy(
                     on_cemi=self._api.connection.dispatch_proxy_cemi,
                     forward_cemi=self._forward_cemi if self._proxy_forward else None,
-                    multicast_group=self._proxy_multicast_group,
-                    multicast_port=port,
+                    port=port,
                     logger=self._proxy_log,
                 )
                 self._proxy.start()

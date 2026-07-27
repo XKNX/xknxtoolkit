@@ -70,9 +70,44 @@ class ConnectionService:
 
     def send_cemi(self, raw_cemi: bytes) -> Future[Any] | None:
         if self._xknx is None:
+            self._log.warning("send_cemi called while disconnected")
             return None
-        cemi = CEMIFrame.from_knx(raw_cemi)
-        return self.run_async(self._xknx.knxip_interface.send_cemi(cemi))
+        self._log.debug("send_cemi", hex=raw_cemi.hex(" "))
+        try:
+            cemi = CEMIFrame.from_knx(raw_cemi)
+        except Exception as e:
+            # xknx's send_cemi() always re-serializes via cemi.to_knx()
+            # rather than sending raw_cemi verbatim, so a frame we can't
+            # even parse can't currently be delivered at all - dropped
+            # here instead of crashing the caller (an unparseable CEMI
+            # from a real client used to take the whole TCP connection
+            # down with it).
+            self._log.error(
+                "send_cemi: could not parse CEMI, not delivered",
+                error=str(e),
+                hex=raw_cemi.hex(" "),
+            )
+            return None
+        reencoded = cemi.to_knx()
+        if reencoded != raw_cemi:
+            self._log.error(
+                "send_cemi: cemi round-trip mismatch, delivering reencoded form",
+                original=raw_cemi.hex(" "),
+                reencoded=reencoded.hex(" "),
+            )
+        future = self.run_async(self._xknx.knxip_interface.send_cemi(cemi))
+        if future is not None:
+            future.add_done_callback(self._log_send_cemi_result)
+        return future
+
+    def _log_send_cemi_result(self, future: Future[Any]) -> None:
+        if future.cancelled():
+            return
+        exc = future.exception()
+        if exc is not None:
+            self._log.error("send_cemi failed", error=str(exc))
+        else:
+            self._log.debug("send_cemi ok")
 
     def read_programming_mode_devices(self, timeout: float = 3.0) -> Future[Any] | None:
         if self._xknx is None:

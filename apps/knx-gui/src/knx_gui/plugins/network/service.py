@@ -113,6 +113,14 @@ class NetworkService:
                 flags = data.flags
                 hops = (data.flags & 0x0070) >> 4
 
+            reencoded = frame.to_knx()
+            if reencoded != cemi_bytes:
+                self._log.error(
+                    "cemi round-trip mismatch",
+                    original=cemi_bytes.hex(" "),
+                    reencoded=reencoded.hex(" "),
+                )
+
             return CemiRecord(
                 raw=cemi_bytes,
                 timestamp=timestamp,
