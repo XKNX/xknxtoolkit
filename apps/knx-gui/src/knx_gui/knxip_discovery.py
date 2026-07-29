@@ -26,9 +26,10 @@ class KNXIPDiscoveryResponder(asyncio.DatagramProtocol):
     Answers SEARCH_REQUEST/SEARCH_REQUEST_EXTENDED/DESCRIPTION_REQUEST over
     UDP multicast so a KNX/IP endpoint shows up in automatic gateway
     discovery instead of only being reachable by manually entering its
-    IP. Used by both VirtualRouter (routing) and TunnelingProxy
-    (TCP tunnelling) - factored out standalone so neither duplicates this
-    protocol handling. The DIBs (device info + supported service
+    IP. Used both by VirtualRouter (routing) and by TunnellingGateway
+    (TCP tunnelling, in turn used by the proxy and the virtual network's
+    own tunnelling entry point) - factored out standalone so none of
+    them duplicate this protocol handling. The DIBs (device info + supported service
     families) are supplied by the caller via `get_dibs`, since they
     differ per endpoint kind; `protocol` controls what the advertised
     control endpoint tells clients to connect back with (UDP for

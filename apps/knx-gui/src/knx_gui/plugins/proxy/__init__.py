@@ -1,8 +1,8 @@
+from knx_gui.knxip_tunnelling_gateway import GatewayState, TunnellingGateway
 from knx_gui.plugins.proxy.plugin import ProxyPlugin
-from knx_gui.plugins.proxy.proxy import ProxyState, TunnelingProxy
 
 __all__ = [
+    "GatewayState",
     "ProxyPlugin",
-    "ProxyState",
-    "TunnelingProxy",
+    "TunnellingGateway",
 ]

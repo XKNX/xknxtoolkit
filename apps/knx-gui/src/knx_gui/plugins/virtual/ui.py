@@ -13,12 +13,14 @@ class VirtualPanel:
         self,
         get_router_state: Callable[[], VirtualRouterState],
         get_router_error: Callable[[], str | None],
+        get_gateway_connected: Callable[[], bool],
         on_start: Callable[[str, int, str], None],
         on_stop: Callable[[], None],
         get_device: Callable[[], VirtualDevice],
     ) -> None:
         self._get_router_state = get_router_state
         self._get_router_error = get_router_error
+        self._get_gateway_connected = get_gateway_connected
         self._on_start = on_start
         self._on_stop = on_stop
         self._get_device = get_device
@@ -64,6 +66,8 @@ class VirtualPanel:
 
         if state == VirtualRouterState.RUNNING:
             imgui.text_colored(imgui.ImVec4(0.4, 0.8, 0.4, 1.0), S.STATUS_RUNNING)
+            if self._get_gateway_connected():
+                imgui.text_disabled("Gateway client connected")
             if imgui.button(S.BTN_STOP):
                 self._on_stop()
         elif state == VirtualRouterState.STARTING:
