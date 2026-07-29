@@ -12,6 +12,9 @@ from xknx import XKNX
 from xknx.cemi import CEMIFrame
 from xknx.io import util
 from xknx.io.routing import Routing
+from xknx.knxip import DIB, DIBDeviceInformation, DIBSuppSVCFamilies
+from xknx.knxip.knxip_enum import DIBServiceFamily
+from xknx.telegram.address import IndividualAddress
 
 from knx_gui.knxip_discovery import KNXIPDiscoveryResponder
 
@@ -63,12 +66,18 @@ class VirtualRouter:
         name: str = "xknxtoolkit virtual router",
         port: int = DEFAULT_PORT,
         multicast_group: str = DEFAULT_MCAST_GROUP,
+        individual_address: str = "1.1.0",
+        serial_number: str = "00:00:00:00:00:01",
+        mac_address: str = "00:00:00:00:00:01",
         on_cemi: Callable[[bytes], None] | None = None,
         logger: Any = None,
     ) -> None:
         self._name = name
         self._port = port
         self._multicast_group = multicast_group
+        self._individual_address = individual_address
+        self._serial_number = serial_number
+        self._mac_address = mac_address
         self._on_cemi = on_cemi
         self._logger = logger
         self._state = VirtualRouterState.STOPPED
@@ -90,6 +99,19 @@ class VirtualRouter:
     @property
     def running(self) -> bool:
         return self._state == VirtualRouterState.RUNNING
+
+    def _dibs(self) -> list[DIB]:
+        dib_dev = DIBDeviceInformation()
+        dib_dev.name = self._name
+        dib_dev.multicast_address = self._multicast_group
+        dib_dev.individual_address = IndividualAddress(self._individual_address)
+        dib_dev.serial_number = self._serial_number
+        dib_dev.mac_address = self._mac_address
+
+        dib_svc = DIBSuppSVCFamilies()
+        dib_svc.families.append(DIBSuppSVCFamilies.Family(DIBServiceFamily.CORE, 2))
+        dib_svc.families.append(DIBSuppSVCFamilies.Family(DIBServiceFamily.ROUTING, 1))
+        return [dib_dev, dib_svc]
 
     def start(self) -> None:
         if self._state in (VirtualRouterState.STARTING, VirtualRouterState.RUNNING):
@@ -134,8 +156,7 @@ class VirtualRouter:
                 lambda: KNXIPDiscoveryResponder(
                     local_ip,
                     self._port,
-                    self._name,
-                    self._multicast_group,
+                    get_dibs=self._dibs,
                     logger=self._logger,
                 ),
                 sock=sock,

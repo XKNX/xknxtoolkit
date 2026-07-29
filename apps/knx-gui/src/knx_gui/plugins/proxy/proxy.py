@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import socket
 import threading
 from collections.abc import Callable
 from enum import Enum
@@ -38,6 +40,8 @@ from xknx.knxip import (
 from xknx.knxip.knxip_enum import DIBServiceFamily
 from xknx.telegram.address import IndividualAddress
 from xknx.telegram.apci import ReturnCode
+
+from knx_gui.knxip_discovery import KNXIPDiscoveryResponder
 
 # Static answers for TUNNELLING_FEATURE_GET - clients query these during
 # TCP tunnel setup and won't proceed without a response. cEMI-only, one
@@ -91,19 +95,22 @@ class TunnelingProxy:
     """
     Minimal KNXnet/IP tunnelling server, over TCP.
 
-    Clients connect to this directly by IP (added manually as an
-    interface). There's no multicast SEARCH_REQUEST responder for
-    broadcast auto-discovery here (see `knx_gui.knxip_discovery`/
-    VirtualRouter for that) - but manual-add flows commonly validate the
-    address before letting you connect, over the same TCP connection, in
-    two steps: a DESCRIPTION_REQUEST, then a unicast
-    SEARCH_REQUEST_EXTENDED (over a second TCP connection, in practice)
-    to fetch full capability DIBs. Both are answered here so that
-    validation succeeds. Handles the connection handshake
-    (CONNECT_REQUEST/CONNECTIONSTATE_REQUEST/DISCONNECT_REQUEST) and
-    relays TUNNELLING frames to/from a single connected client,
-    optionally forwarding them on to another connection (see
-    `forward_cemi`).
+    Also joins the multicast group to answer SEARCH_REQUEST/
+    SEARCH_REQUEST_EXTENDED/DESCRIPTION_REQUEST over UDP, via the shared
+    `knx_gui.knxip_discovery.KNXIPDiscoveryResponder` (same one
+    VirtualRouter uses) - so the proxy shows up in automatic gateway
+    discovery instead of only being reachable by manually entering its
+    IP. The advertised control endpoint carries `HostProtocol.IPV4_TCP`,
+    telling clients to open a TCP connection to us for everything past
+    discovery. Manual-add flows also commonly validate the address
+    before letting you connect, over the same TCP connection, in two
+    steps: a DESCRIPTION_REQUEST, then a unicast SEARCH_REQUEST_EXTENDED
+    (over a second TCP connection, in practice) to fetch full capability
+    DIBs - both are answered here too, over TCP, so validation succeeds
+    either way. Handles the connection handshake (CONNECT_REQUEST/
+    CONNECTIONSTATE_REQUEST/DISCONNECT_REQUEST) and relays TUNNELLING
+    frames to/from a single connected client, optionally forwarding them
+    on to another connection (see `forward_cemi`).
 
     TCP rather than UDP: KNXnet/IP tunnelling v2 (and most "add interface
     manually" flows) commonly goes over TCP, and unlike UDP a single
@@ -120,6 +127,7 @@ class TunnelingProxy:
     DEFAULT_PORT = 3671
     DEFAULT_MAX_APDU_LENGTH = 15
     DEFAULT_CLIENT_INDIVIDUAL_ADDRESS = "15.15.1"
+    DEFAULT_MCAST_GROUP = "224.0.23.12"
 
     def __init__(
         self,
@@ -129,6 +137,7 @@ class TunnelingProxy:
         mac_address: str = "00:00:00:00:00:02",
         max_apdu_length: int = DEFAULT_MAX_APDU_LENGTH,
         client_individual_address: str = DEFAULT_CLIENT_INDIVIDUAL_ADDRESS,
+        multicast_group: str = DEFAULT_MCAST_GROUP,
         on_cemi: Callable[[bytes], None] | None = None,
         forward_cemi: Callable[[bytes], None] | None = None,
         logger: Any = None,
@@ -139,6 +148,7 @@ class TunnelingProxy:
         self._mac_address = mac_address
         self._max_apdu_length = max_apdu_length
         self._client_individual_address = IndividualAddress(client_individual_address)
+        self._multicast_group = multicast_group
         self._on_cemi = on_cemi
         self._forward_cemi = forward_cemi
         self._logger = logger
@@ -148,6 +158,7 @@ class TunnelingProxy:
         self._loop: asyncio.AbstractEventLoop | None = None
         self._thread: threading.Thread | None = None
         self._server: asyncio.Server | None = None
+        self._discovery_transport: asyncio.DatagramTransport | None = None
         self._local_ips: list[str] = []
 
         self._transport: asyncio.Transport | None = None
@@ -203,11 +214,43 @@ class TunnelingProxy:
             self._server = await loop.create_server(
                 lambda: _ClientProtocol(self), host="0.0.0.0", port=self._port
             )
+
+            local_ip = await util.get_default_local_ip(self._multicast_group)
+            if local_ip is not None:
+                sock = socket.socket(
+                    socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP
+                )
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                with contextlib.suppress(AttributeError):
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+                sock.bind(("", self._port))
+                mreq = socket.inet_aton(self._multicast_group) + socket.inet_aton(
+                    local_ip
+                )
+                sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+                transport, _ = await loop.create_datagram_endpoint(
+                    lambda: KNXIPDiscoveryResponder(
+                        local_ip,
+                        self._port,
+                        get_dibs=self._dibs,
+                        protocol=HostProtocol.IPV4_TCP,
+                        logger=self._logger,
+                    ),
+                    sock=sock,
+                )
+                self._discovery_transport = transport  # type: ignore[assignment]
+            elif self._logger:
+                self._logger.warning(
+                    "could not determine local IP - proxy will not be "
+                    "discoverable over multicast, only by manual IP entry"
+                )
+
             self._state = ProxyState.RUNNING
             self._local_ips = [ip.ip for ip in util.get_local_ips()]
             if self._logger:
                 self._logger.info(
-                    "proxy running - add manually as an interface (TCP)",
+                    "proxy running - add manually as an interface (TCP), "
+                    "or discoverable automatically",
                     port=self._port,
                     candidate_ips=", ".join(self._local_ips),
                 )
@@ -233,6 +276,9 @@ class TunnelingProxy:
             if self._server is not None:
                 self._server.close()
                 self._server = None
+            if self._discovery_transport is not None:
+                self._discovery_transport.close()
+                self._discovery_transport = None
         finally:
             self._channel_id = None
             self._peer = None

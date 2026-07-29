@@ -56,7 +56,8 @@ class ProxyPlugin:
                 imgui.text_disabled("Client connected")
             else:
                 imgui.text_disabled(
-                    "Add manually as an interface using this machine's IP"
+                    "Discoverable automatically, or add manually using this "
+                    "machine's IP"
                 )
             if self._proxy.local_ips:
                 imgui.text_disabled("IP: " + ", ".join(self._proxy.local_ips))
