@@ -47,8 +47,7 @@ class VirtualService:
     def _handle_cemi(self, raw: bytes) -> None:
         if self._cemi_listener is not None:
             self._cemi_listener(raw)
-        reply = self.device.handle_cemi(raw)
-        if reply is not None:
+        for reply in self.device.handle_cemi(raw):
             self._router.send_cemi(reply)
 
     def shutdown(self) -> None:
