@@ -17,7 +17,6 @@ from xknx.knxip.knxip_enum import DIBServiceFamily
 from xknx.telegram.address import IndividualAddress
 
 from knx_gui.knxip_discovery import KNXIPDiscoveryResponder
-from knx_gui.knxip_tunnelling_gateway import TunnellingGateway
 
 
 class VirtualRouterState(Enum):
@@ -29,17 +28,17 @@ class VirtualRouterState(Enum):
 
 class VirtualRouter:
     """
-    Minimal KNX/IP virtual network: a router (routing over multicast) and
-    a point-to-point gateway (TCP tunnelling, via the shared
-    `TunnellingGateway`), both fronting the same virtual bus - like a real
-    hybrid interface that offers ROUTING and TUNNELING side by side, a
-    client can reach it either way.
+    Minimal KNX/IP virtual router.
 
-    This runs multiple sockets rather than one, and that's deliberate:
-    `xknx.io.routing.Routing` (used below for L_Data) only parses
-    RoutingIndication/RoutingBusy/RoutingLostMessage frames - anything
-    else, including SEARCH_REQUEST/DESCRIPTION_REQUEST, is logged as
-    "not implemented" and dropped. Its transport does expose
+    Responds to SEARCH_REQUEST/DESCRIPTION_REQUEST discovery, and joins
+    the multicast group to send and receive L_Data frames like a real
+    KNX/IP router.
+
+    This runs two separate sockets rather than one, and that's
+    deliberate: `xknx.io.routing.Routing` (used below for L_Data) only
+    parses RoutingIndication/RoutingBusy/RoutingLostMessage frames -
+    anything else, including SEARCH_REQUEST/DESCRIPTION_REQUEST, is
+    logged as "not implemented" and dropped. Its transport does expose
     `register_callback()` for other service types, but its `send()`
     forces every send to the multicast group whenever the transport is
     in multicast mode (which it always is here) - it will not unicast a
@@ -57,13 +56,6 @@ class VirtualRouter:
     coupling - `SO_REUSEPORT` lets both bind the same multicast
     group/port without conflict (verified: both reach RUNNING
     simultaneously).
-
-    The embedded `TunnellingGateway` runs with `enable_discovery=False`
-    and shares our own event loop (`start_on_loop`/`stop_on_loop`)
-    instead of spinning up a separate thread - our discovery responder's
-    `_dibs()` already advertises both ROUTING and TUNNELING, so having
-    the gateway run its own discovery too would answer every
-    SEARCH_REQUEST twice with two conflicting, single-family DIB sets.
     """
 
     DEFAULT_PORT = 3671
@@ -75,22 +67,18 @@ class VirtualRouter:
         port: int = DEFAULT_PORT,
         multicast_group: str = DEFAULT_MCAST_GROUP,
         individual_address: str = "1.1.0",
-        client_individual_address: str = TunnellingGateway.DEFAULT_CLIENT_INDIVIDUAL_ADDRESS,
         serial_number: str = "00:00:00:00:00:01",
         mac_address: str = "00:00:00:00:00:01",
         on_cemi: Callable[[bytes], None] | None = None,
-        on_gateway_cemi: Callable[[bytes], None] | None = None,
         logger: Any = None,
     ) -> None:
         self._name = name
         self._port = port
         self._multicast_group = multicast_group
         self._individual_address = individual_address
-        self._client_individual_address = client_individual_address
         self._serial_number = serial_number
         self._mac_address = mac_address
         self._on_cemi = on_cemi
-        self._on_gateway_cemi = on_gateway_cemi
         self._logger = logger
         self._state = VirtualRouterState.STOPPED
         self._error: str | None = None
@@ -99,7 +87,6 @@ class VirtualRouter:
         self._udp_transport: asyncio.DatagramTransport | None = None
         self._routing: Routing | None = None
         self._xknx: XKNX | None = None
-        self._gateway: TunnellingGateway | None = None
 
     @property
     def state(self) -> VirtualRouterState:
@@ -113,10 +100,6 @@ class VirtualRouter:
     def running(self) -> bool:
         return self._state == VirtualRouterState.RUNNING
 
-    @property
-    def gateway_connected(self) -> bool:
-        return self._gateway is not None and self._gateway.connected
-
     def _dibs(self) -> list[DIB]:
         dib_dev = DIBDeviceInformation()
         dib_dev.name = self._name
@@ -128,9 +111,6 @@ class VirtualRouter:
         dib_svc = DIBSuppSVCFamilies()
         dib_svc.families.append(DIBSuppSVCFamilies.Family(DIBServiceFamily.CORE, 2))
         dib_svc.families.append(DIBSuppSVCFamilies.Family(DIBServiceFamily.ROUTING, 1))
-        dib_svc.families.append(
-            DIBSuppSVCFamilies.Family(DIBServiceFamily.TUNNELING, 2)
-        )
         return [dib_dev, dib_svc]
 
     def start(self) -> None:
@@ -194,19 +174,6 @@ class VirtualRouter:
             )
             await self._routing.connect()
 
-            self._gateway = TunnellingGateway(
-                port=self._port,
-                name=self._name,
-                serial_number=self._serial_number,
-                mac_address=self._mac_address,
-                client_individual_address=self._client_individual_address,
-                multicast_group=self._multicast_group,
-                enable_discovery=False,
-                on_cemi=self._on_gateway_cemi_received,
-                logger=self._logger,
-            )
-            await self._gateway.start_on_loop(loop)
-
             self._state = VirtualRouterState.RUNNING
             if self._logger:
                 self._logger.info("virtual router running", local_ip=local_ip, port=self._port)
@@ -231,19 +198,10 @@ class VirtualRouter:
         if self._on_cemi is not None:
             self._on_cemi(raw)
 
-    def _on_gateway_cemi_received(self, raw: bytes) -> None:
-        if self._on_gateway_cemi is not None:
-            self._on_gateway_cemi(raw)
-
     def send_cemi(self, cemi: CEMIFrame) -> None:
         if self._loop is None or self._routing is None:
             return
         asyncio.run_coroutine_threadsafe(self._routing.send_cemi(cemi), self._loop)
-
-    def send_gateway_cemi(self, raw_cemi: bytes) -> None:
-        if self._gateway is None:
-            return
-        self._gateway.send_cemi(raw_cemi)
 
     def stop(self) -> None:
         if self._state == VirtualRouterState.STOPPED:
@@ -258,9 +216,6 @@ class VirtualRouter:
             if self._udp_transport is not None:
                 self._udp_transport.close()
                 self._udp_transport = None
-            if self._gateway is not None:
-                await self._gateway.stop_on_loop()
-                self._gateway = None
             if self._routing is not None:
                 await self._routing.disconnect()
                 self._routing = None

@@ -14,8 +14,8 @@ class VirtualStrings(BaseStrings):
         return _("Virtual")
 
     @property
-    def SECTION_ROUTER(self) -> str:
-        return _("Virtual Router")
+    def SECTION_GATEWAY(self) -> str:
+        return _("Virtual Gateway")
 
     @property
     def SECTION_DEVICES(self) -> str:

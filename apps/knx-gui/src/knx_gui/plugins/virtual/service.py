@@ -5,17 +5,25 @@ from typing import Any
 
 from xknx.cemi import CEMIFrame, CEMIMessageCode
 
+from knx_gui.knxip_tunnelling_gateway import GatewayState, TunnellingGateway
 from knx_gui.plugins.virtual.virtual_device import VirtualDevice
 from knx_gui.plugins.virtual.virtual_router import VirtualRouter, VirtualRouterState
 
 
 class VirtualService:
-    """Owns the virtual router and virtual device lifecycle."""
+    """
+    Owns the virtual router, the virtual gateway, and the virtual device
+    lifecycle. The router (multicast routing) and the gateway (TCP
+    tunnelling) are independent, separately startable things - for now,
+    only the gateway is actually wired up to the UI; the router is kept
+    around and fully functional, just not started by anything yet.
+    """
 
     def __init__(self) -> None:
         self._logger: Any = None
         self._cemi_listener: Callable[[bytes], None] | None = None
         self._router = VirtualRouter()
+        self._gateway = TunnellingGateway()
         self.device = VirtualDevice()
 
     def set_logger(self, logger: Any) -> None:
@@ -34,8 +42,20 @@ class VirtualService:
         return self._router.error
 
     @property
+    def gateway_state(self) -> GatewayState:
+        return self._gateway.state
+
+    @property
+    def gateway_error(self) -> str | None:
+        return self._gateway.error
+
+    @property
     def gateway_connected(self) -> bool:
-        return self._router.gateway_connected
+        return self._gateway.connected
+
+    @property
+    def gateway_local_ips(self) -> list[str]:
+        return self._gateway.local_ips
 
     def start_router(self, name: str, port: int, multicast_group: str) -> None:
         self._router = VirtualRouter(
@@ -43,13 +63,25 @@ class VirtualService:
             port=port,
             multicast_group=multicast_group,
             on_cemi=self._handle_routing_cemi,
-            on_gateway_cemi=self._handle_gateway_cemi,
             logger=self._logger,
         )
         self._router.start()
 
     def stop_router(self) -> None:
         self._router.stop()
+
+    def start_gateway(self, name: str, port: int, multicast_group: str) -> None:
+        self._gateway = TunnellingGateway(
+            name=name,
+            port=port,
+            multicast_group=multicast_group,
+            on_cemi=self._handle_gateway_cemi,
+            logger=self._logger,
+        )
+        self._gateway.start()
+
+    def stop_gateway(self) -> None:
+        self._gateway.stop()
 
     def _handle_routing_cemi(self, raw: bytes) -> None:
         """CEMI received over multicast routing - replies go back the same way."""
@@ -66,7 +98,7 @@ class VirtualService:
             self._cemi_listener(raw)
         self._confirm_if_request(raw)
         for reply in self.device.handle_cemi(raw):
-            self._router.send_gateway_cemi(reply.to_knx())
+            self._gateway.send_cemi(reply.to_knx())
 
     def _confirm_if_request(self, raw: bytes) -> None:
         """A tunnelling client blocks waiting for an L_Data.con confirming every
@@ -83,7 +115,8 @@ class VirtualService:
         if cemi.code is not CEMIMessageCode.L_DATA_REQ:
             return
         cemi.code = CEMIMessageCode.L_DATA_CON
-        self._router.send_gateway_cemi(cemi.to_knx())
+        self._gateway.send_cemi(cemi.to_knx())
 
     def shutdown(self) -> None:
         self._router.stop()
+        self._gateway.stop()
