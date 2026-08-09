@@ -2,8 +2,7 @@
 
 XKNX Toolkit is a desktop application and set of Python libraries for working with [KNX](https://www.knx.org/) home and building automation installations — browsing product catalogs, editing installation projects, and talking to real or simulated KNX devices.
 
-![App overview](docs/screenshots/app-overview.png)
-<!-- TODO: screenshot -->
+![App overview](assets/main.png)
 
 ## Features
 
@@ -11,22 +10,13 @@ XKNX Toolkit is a desktop application and set of Python libraries for working wi
 
 Devices and group addresses are laid out as nodes on a canvas. Communication objects are linked to group addresses by drawing a connection between them, with live datapoint-type (DPT) compatibility checks and warnings for lossy or ambiguous links. Every change (device edits, links, renames, address moves) is tracked in a full undo/redo history.
 
-![Node editor](docs/screenshots/node-editor.png)
-<!-- TODO: screenshot -->
-
 ### Project management
 
 Devices are organized by area/line/segment, matching standard KNX topology. Each device's parameters, com object flags, load procedures, and raw memory layout can be inspected and edited directly.
 
-![Project devices](docs/screenshots/project-devices.png)
-<!-- TODO: screenshot -->
-
 ### Product catalog
 
 Import `.knxprod` archives to build up a searchable catalog of manufacturers, hardware, and application programs, independent of any single project. Catalog entries can be dragged into a project as new devices.
-
-![Catalog browser](docs/screenshots/catalog.png)
-<!-- TODO: screenshot -->
 
 ### Real KNX connections
 
@@ -40,15 +30,9 @@ No KNX interface on hand? XKNX Toolkit can stand in for one:
 - **Virtual Devices** — simulate individual KNX devices, including programming-mode scanning and serial-number-based addressing.
 - **Proxy** — a minimal KNXnet/IP tunnelling server added manually as an interface, useful for inspecting or relaying traffic between a real connection and another client without a physical interface in the loop.
 
-![Virtual testing](docs/screenshots/virtual-testing.png)
-<!-- TODO: screenshot -->
-
 ### Network monitor and logs
 
 Every KNX telegram crossing a connection, the virtual router, or the proxy can be recorded and inspected in the Network panel, alongside a structured, filterable log of what the application itself is doing.
-
-![Network monitor](docs/screenshots/network.png)
-<!-- TODO: screenshot -->
 
 ## Installation
 
