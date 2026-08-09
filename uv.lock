@@ -704,7 +704,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "sqlalchemy", specifier = ">=2.0.49" },
     { name = "structlog", specifier = ">=24.0.0" },
-    { name = "xknx", editable = "../xknx" },
+    { name = "xknx", specifier = ">=3.18.0" },
     { name = "xknx-catalog", editable = "packages/catalog" },
     { name = "xknx-models", editable = "packages/models" },
     { name = "xknx-product", editable = "packages/product" },
@@ -1539,18 +1539,15 @@ wheels = [
 
 [[package]]
 name = "xknx"
-source = { editable = "../xknx" }
+version = "3.18.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "ifaddr" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "async-timeout", marker = "python_full_version < '3.11'", specifier = ">=4.0.0" },
-    { name = "cryptography", specifier = ">=35.0.0" },
-    { name = "ifaddr", specifier = ">=0.1.7" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+sdist = { url = "https://files.pythonhosted.org/packages/21/bc/f80479543890e2b83a8d32c31af3899adcbe9143c2deccfdcf8d7dfb3af0/xknx-3.18.0.tar.gz", hash = "sha256:bbca50110fd32e28274bee998462c1e7e992260d7489b957b85af10f15e5991d", size = 190189, upload-time = "2026-08-02T14:11:20.328Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8f/db/044894d64f0726bcf35555110235ba1927c5d4cb9b707600f4483a3e20f0/xknx-3.18.0-py3-none-any.whl", hash = "sha256:98841b34ab28d2f688d6906f5d994b2f3c36b1807204d662e278f7fbd322b54c", size = 280395, upload-time = "2026-08-02T14:11:18.916Z" },
 ]
 
 [[package]]

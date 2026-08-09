@@ -8,7 +8,7 @@ dependencies = [
     "imgui-bundle>=1.92.0",
     "sqlalchemy>=2.0.49",
     "structlog>=24.0.0",
-    "xknx>=3.0.0",
+    "xknx>=3.18.0",
     "xknx-catalog",
     "xknx-models",
     "xknx-product",
@@ -30,10 +30,6 @@ build-backend = "hatchling.build"
 packages = ["src/knx_gui"]
 
 [tool.uv.sources]
-# TEMPORARY: developing against the local xknx checkout instead of the
-# published package. Remove this line (and re-run `uv lock`) to go back
-# to the PyPI version.
-xknx = { path = "../../../xknx", editable = true }
 xknx-catalog = { workspace = true }
 xknx-models = { workspace = true }
 xknx-product = { workspace = true }

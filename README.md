@@ -74,6 +74,29 @@ uv run pyright                      # Type check
 
 See `CLAUDE.md` and `apps/knx-gui/CLAUDE.md` for architecture notes and repo conventions.
 
+### Developing against a local xknx checkout
+
+To test unreleased `xknx` library changes end-to-end in the GUI, point `apps/knx-gui` at a sibling checkout instead of the published package:
+
+```bash
+git clone https://github.com/XKNX/xknx ../xknx   # relative to xknxtoolkit/
+```
+
+Add a source override to `apps/knx-gui/pyproject.toml`:
+
+```toml
+[tool.uv.sources]
+xknx = { path = "../../../xknx", editable = true }
+```
+
+Then re-lock:
+
+```bash
+uv lock
+```
+
+Revert both files (`git checkout apps/knx-gui/pyproject.toml uv.lock`) before committing, to go back to the published version.
+
 ## Requirements
 
 - Python >= 3.12
