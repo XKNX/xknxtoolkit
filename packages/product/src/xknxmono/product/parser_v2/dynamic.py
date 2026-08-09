@@ -191,7 +191,7 @@ class DynamicTreeBuilder:
             assert pt is not None, (
                 f"ParameterType {param.parameter_type!r} not found in static"
             )
-            assert pt.plugin is None, (
+            assert not pt.plugin, (
                 f"ParameterType {param.parameter_type!r} uses unsupported plugin {pt.plugin!r}"
             )
             return ParameterRefRefNode(elem, pr, param, pt)
