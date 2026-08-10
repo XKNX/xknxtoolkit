@@ -39,7 +39,7 @@ Every KNX telegram crossing a connection, the virtual router, or the proxy can b
 
 ## Installation
 
-Download the latest release for your platform from the [GitHub releases page](https://github.com/XKNX/xknxtoolkit/releases), or run from source (see below).
+Only running from source is supported for now — this is developer-focused software, see below.
 
 ## Running from source
 
