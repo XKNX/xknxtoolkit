@@ -1,7 +1,7 @@
 # XKNX Toolkit
 
 > [!WARNING]
-> **Alpha, experimental software.** XKNX Toolkit is not intended for end users and comes with no stability or safety guarantees — expect breaking changes, rough edges, and bugs. It's mostly useful for developers experimenting with the [xknx](https://github.com/XKNX/xknx) library.
+> **Alpha, experimental software.** XKNX Toolkit is not intended for end users and comes with no stability or safety guarantees — expect breaking changes, rough edges, and bugs. It's mostly useful for developers experimenting with the [xknx](https://github.com/XKNX/xknx) library. It cannot program devices, and no support is offered to end users. Contributions are welcome. Large parts of this project were built using LLMs.
 
 XKNX Toolkit is a desktop application and set of Python libraries for working with [KNX](https://www.knx.org/) home and building automation installations — browsing product catalogs, editing installation projects, and talking to real or simulated KNX devices.
 
