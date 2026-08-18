@@ -48,12 +48,14 @@ uv run generate-catalog device1.knxprod device2.knxprod
 from pathlib import Path
 from xknxmono.catalog import CatalogService
 
-catalog = CatalogService(Path("catalog.db"))  # opens/creates; owns the engine + .knxprod store
+catalog = CatalogService(
+    Path("catalog.db")
+)  # opens/creates; owns the engine + .knxprod store
 
 added_path = catalog.import_knxprod(Path("device.knxprod").read_bytes())
 
-products = catalog.list_products()             # product-first view (what add_device needs)
-app = catalog.get_application(application_id)   # parsed, IR-backed Application
+products = catalog.list_products()  # product-first view (what add_device needs)
+app = catalog.get_application(application_id)  # parsed, IR-backed Application
 ```
 
 ### GUI Adapter
