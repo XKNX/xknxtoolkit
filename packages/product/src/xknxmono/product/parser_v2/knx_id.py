@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 # ── App-level schema definition leaves ────────────────────────────────────────
 
+
 @dataclass(frozen=True, slots=True)
 class Parameter:
     """Bare P-N parameter definition (no ParameterRef accessor)."""
@@ -196,6 +197,7 @@ class ComObjectRef:
 
 # ── Module-level leaves ───────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True, slots=True)
 class ParamRef:
     parameter: int
@@ -237,6 +239,7 @@ class RepeatPath:
 
 # ── Structural nodes ──────────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True, slots=True)
 class SubModule:
     """M-N[_MI-N] within a SubModuleDef scope."""
@@ -267,7 +270,25 @@ class SubModuleDef:
     """SM-N and its contents; appears directly under ModuleDef or under Module."""
 
     id: int
-    content: ArgRef | RepeatPath | SubModule | Channel | ComObject | ComObjectRef | ParamRef | Parameter | ParameterBlock | ParameterBlockRef | ParameterBlockCell | ParameterSeparator | ParameterCalc | AllocatorRef | UnionParameter | UnionParameterRef | None = None
+    content: (
+        ArgRef
+        | RepeatPath
+        | SubModule
+        | Channel
+        | ComObject
+        | ComObjectRef
+        | ParamRef
+        | Parameter
+        | ParameterBlock
+        | ParameterBlockRef
+        | ParameterBlockCell
+        | ParameterSeparator
+        | ParameterCalc
+        | AllocatorRef
+        | UnionParameter
+        | UnionParameterRef
+        | None
+    ) = None
 
     @property
     def sub_module(self) -> SubModule | None:
@@ -374,7 +395,29 @@ class ModuleDef:
     """MD-N and its contents."""
 
     id: int
-    content: Module | SubModuleDef | Parameter | ParamRef | ParameterBlock | ParameterBlockRef | ParameterBlockCell | ParameterSeparator | ParameterCalc | ArgRef | AllocatorRef | UnionParameter | UnionParameterRef | Channel | ComObject | ComObjectRef | RepeatPath | ParameterValue | Block | ParameterRename | None = None
+    content: (
+        Module
+        | SubModuleDef
+        | Parameter
+        | ParamRef
+        | ParameterBlock
+        | ParameterBlockRef
+        | ParameterBlockCell
+        | ParameterSeparator
+        | ParameterCalc
+        | ArgRef
+        | AllocatorRef
+        | UnionParameter
+        | UnionParameterRef
+        | Channel
+        | ComObject
+        | ComObjectRef
+        | RepeatPath
+        | ParameterValue
+        | Block
+        | ParameterRename
+        | None
+    ) = None
 
     @property
     def module(self) -> Module | None:
@@ -737,7 +780,25 @@ class KnxId:
             if peek() != "SM":
                 return None
             sm_id = hx(consume()[1])
-            sub_content: ArgRef | RepeatPath | SubModule | Channel | ComObject | ComObjectRef | ParamRef | Parameter | ParameterBlock | ParameterBlockRef | ParameterBlockCell | ParameterSeparator | ParameterCalc | AllocatorRef | UnionParameter | UnionParameterRef | None
+            sub_content: (
+                ArgRef
+                | RepeatPath
+                | SubModule
+                | Channel
+                | ComObject
+                | ComObjectRef
+                | ParamRef
+                | Parameter
+                | ParameterBlock
+                | ParameterBlockRef
+                | ParameterBlockCell
+                | ParameterSeparator
+                | ParameterCalc
+                | AllocatorRef
+                | UnionParameter
+                | UnionParameterRef
+                | None
+            )
             if peek() == "A":
                 sub_content = ArgRef(hx(consume()[1]))
             elif peek() == "X":
@@ -749,11 +810,15 @@ class KnxId:
             elif peek() == "O":
                 o_id = consume()[1]
                 r = maybe("R")
-                sub_content = ComObjectRef(o_id, hx(r)) if r is not None else ComObject(o_id)
+                sub_content = (
+                    ComObjectRef(o_id, hx(r)) if r is not None else ComObject(o_id)
+                )
             elif peek() == "P":
                 p_id = hx(consume()[1])
                 r = maybe("R")
-                sub_content = ParamRef(p_id, hx(r)) if r is not None else Parameter(p_id)
+                sub_content = (
+                    ParamRef(p_id, hx(r)) if r is not None else Parameter(p_id)
+                )
             elif peek() == "PB":
                 pb_id = hx(consume()[1])
                 if peek() == "R":
@@ -767,7 +832,11 @@ class KnxId:
             elif peek() == "UP":
                 up_id = hx(consume()[1])
                 r = maybe("R")
-                sub_content = UnionParameterRef(up_id, hx(r)) if r is not None else UnionParameter(up_id)
+                sub_content = (
+                    UnionParameterRef(up_id, hx(r))
+                    if r is not None
+                    else UnionParameter(up_id)
+                )
             elif peek() == "L":
                 sub_content = AllocatorRef(hx(consume()[1]))
             elif peek() == "PC":
@@ -796,7 +865,29 @@ class KnxId:
                 mod_content = parse_param_ref()
             return Module(m_id, instance, mod_content)
 
-        def parse_module_def_content() -> Module | SubModuleDef | Parameter | ParamRef | ParameterBlock | ParameterBlockRef | ParameterBlockCell | ParameterSeparator | ParameterCalc | ArgRef | AllocatorRef | UnionParameter | UnionParameterRef | Channel | ComObject | ComObjectRef | RepeatPath | ParameterValue | Block | ParameterRename | None:
+        def parse_module_def_content() -> (
+            Module
+            | SubModuleDef
+            | Parameter
+            | ParamRef
+            | ParameterBlock
+            | ParameterBlockRef
+            | ParameterBlockCell
+            | ParameterSeparator
+            | ParameterCalc
+            | ArgRef
+            | AllocatorRef
+            | UnionParameter
+            | UnionParameterRef
+            | Channel
+            | ComObject
+            | ComObjectRef
+            | RepeatPath
+            | ParameterValue
+            | Block
+            | ParameterRename
+            | None
+        ):
             if peek() == "X":
                 return parse_repeat()
             if peek() == "M":

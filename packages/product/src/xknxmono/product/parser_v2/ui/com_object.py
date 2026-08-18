@@ -5,10 +5,10 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class UiComObject:
-    ref_id: str                  # instance-qualified ComObjectRef ID
-    name: str                    # resolved display name ({{0}} filled from text_parameter_ref_id)
+    ref_id: str  # instance-qualified ComObjectRef ID
+    name: str  # resolved display name ({{0}} filled from text_parameter_ref_id)
     number: int
-    dpt_codes: tuple[str, ...]   # e.g. ("1.0", "1.1")
+    dpt_codes: tuple[str, ...]  # e.g. ("1.0", "1.1")
     communication: bool
     read: bool
     write: bool

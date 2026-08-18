@@ -20,7 +20,19 @@ from .allocator import Allocator
 class ApplicationIndexer:
     """Pre-built lookup tables for static IR sections (parameters, parameter refs, parameter types, module defs)."""
 
-    __slots__ = ("_calculations", "allocators", "arg_alloc", "code_segments", "com_object_refs", "com_objects", "module_defs", "parameter_refs", "parameter_types", "parameters", "script")
+    __slots__ = (
+        "_calculations",
+        "allocators",
+        "arg_alloc",
+        "code_segments",
+        "com_object_refs",
+        "com_objects",
+        "module_defs",
+        "parameter_refs",
+        "parameter_types",
+        "parameters",
+        "script",
+    )
 
     def __init__(self, app: ApplicationProgram) -> None:
         self.module_defs: dict[str, ModuleDef] = {}
@@ -85,9 +97,13 @@ class ApplicationIndexer:
     def _index_calculations(self, calcs: list[ParameterCalculation]) -> None:
         for calc in calcs:
             for pr in calc.lparameters.parameter_ref_ref:
-                self._calculations.setdefault(pr.ref_id, {}).setdefault("l", []).append(calc)
+                self._calculations.setdefault(pr.ref_id, {}).setdefault("l", []).append(
+                    calc
+                )
             for pr in calc.rparameters.parameter_ref_ref:
-                self._calculations.setdefault(pr.ref_id, {}).setdefault("r", []).append(calc)
+                self._calculations.setdefault(pr.ref_id, {}).setdefault("r", []).append(
+                    calc
+                )
 
     def _index_module_def(self, md: ModuleDef) -> None:
         if md.id:
@@ -109,9 +125,14 @@ class ApplicationIndexer:
             for cor in md.static.com_object_refs.com_object_ref:
                 self.com_object_refs[cor.id] = cor
         if md.static.parameter_calculations is not None:
-            self._index_calculations(md.static.parameter_calculations.parameter_calculation)
+            self._index_calculations(
+                md.static.parameter_calculations.parameter_calculation
+            )
         if md.static.allocators is not None:
-            self.allocators[md.id] = {a.id: Allocator(id=a.id, start=a.start, max_inclusive=a.max_inclusive) for a in md.static.allocators.allocator}
+            self.allocators[md.id] = {
+                a.id: Allocator(id=a.id, start=a.start, max_inclusive=a.max_inclusive)
+                for a in md.static.allocators.allocator
+            }
         if md.arguments is not None:
             self.arg_alloc[md.id] = {
                 a.id: (a.allocates if a.allocates is not None else 1, a.alignment.value)

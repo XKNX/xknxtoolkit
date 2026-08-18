@@ -29,12 +29,18 @@ class ParameterRefRefNode(DynamicNode):
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
         ctx.mark_active_param(self._elem.ref_id)
-        access = self._param_ref.access if self._param_ref.access is not None else self._param.access
+        access = (
+            self._param_ref.access
+            if self._param_ref.access is not None
+            else self._param.access
+        )
         if access is Access.NONE:
             return []
         local_ref_id = self._elem.ref_id
         arg_defaults = ctx.get_arg_defaults()
-        static_label = apply_text_args(self._param_ref.text or self._param.text or "", arg_defaults)
+        static_label = apply_text_args(
+            self._param_ref.text or self._param.text or "", arg_defaults
+        )
         text_ref = self._param_ref.text_parameter_ref_id
         label = (ctx.get(text_ref) if text_ref else None) or static_label
         raw_suffix = self._param_ref.suffix_text or self._param.suffix_text

@@ -73,8 +73,12 @@ def _param_type(size_in_bit: int = 8) -> ParameterType:
     return ParameterType(id=_PT_ID, name="T", choice=_num_type(size_in_bit))
 
 
-def _segment(size: int = 8, data: bytes | None = None) -> ApplicationProgramStaticCodeAbsoluteSegment:
-    return ApplicationProgramStaticCodeAbsoluteSegment(id=_SEG_ID, size=size, address=0, data=data)
+def _segment(
+    size: int = 8, data: bytes | None = None
+) -> ApplicationProgramStaticCodeAbsoluteSegment:
+    return ApplicationProgramStaticCodeAbsoluteSegment(
+        id=_SEG_ID, size=size, address=0, data=data
+    )
 
 
 def _param(
@@ -87,15 +91,26 @@ def _param(
     )
 
 
-def _union_param(param_id: str, offset: int, value: str, default: bool = False) -> UnionParameter:
+def _union_param(
+    param_id: str, offset: int, value: str, default: bool = False
+) -> UnionParameter:
     return UnionParameter(
-        id=param_id, name="", text="", parameter_type=_PT_ID,
-        value=value, offset=offset, bit_offset=0, default_union_parameter=default,
+        id=param_id,
+        name="",
+        text="",
+        parameter_type=_PT_ID,
+        value=value,
+        offset=offset,
+        bit_offset=0,
+        default_union_parameter=default,
     )
 
 
 def _app(
-    params: list[ApplicationProgramStaticParametersParameter | ApplicationProgramStaticParametersUnion],
+    params: list[
+        ApplicationProgramStaticParametersParameter
+        | ApplicationProgramStaticParametersUnion
+    ],
     seg_size: int = 8,
     seg_data: bytes | None = None,
     pt_size: int = 8,
@@ -113,7 +128,9 @@ def _app(
         dynamic_table_management=False,
         linkable=False,
         static=ApplicationProgramStatic(
-            code=ApplicationProgramStaticCode(absolute_segment=[_segment(seg_size, seg_data)]),
+            code=ApplicationProgramStaticCode(
+                absolute_segment=[_segment(seg_size, seg_data)]
+            ),
             parameter_types=ApplicationProgramStaticParameterTypes(
                 parameter_type=[_param_type(pt_size)]
             ),
@@ -129,7 +146,9 @@ def _app(
 
 
 def test_collect_mem_param() -> None:
-    p = _param("P1", MemoryParameter(code_segment=_SEG_ID, offset=2, bit_offset=0), value="42")
+    p = _param(
+        "P1", MemoryParameter(code_segment=_SEG_ID, offset=2, bit_offset=0), value="42"
+    )
     app, idx = _app([p])
     w = collect_writes(app, idx, {})
     assert len(w.mem) == 1
@@ -153,7 +172,13 @@ def test_collect_mem_param_override() -> None:
 
 
 def test_collect_prop_param() -> None:
-    p = _param("P1", PropertyParameter(object_index=1, property_id=53, occurrence=0, offset=0, bit_offset=0), value="5")
+    p = _param(
+        "P1",
+        PropertyParameter(
+            object_index=1, property_id=53, occurrence=0, offset=0, bit_offset=0
+        ),
+        value="5",
+    )
     app, idx = _app([p])
     w = collect_writes(app, idx, {})
     assert len(w.mem) == 0
@@ -174,7 +199,10 @@ def test_collect_mem_union_default() -> None:
     union = ApplicationProgramStaticParametersUnion(
         choice=MemoryUnion(code_segment=_SEG_ID, offset=0, bit_offset=0),
         size_in_bit=8,
-        parameter=[_union_param("U1", 0, "10", default=True), _union_param("U2", 0, "20")],
+        parameter=[
+            _union_param("U1", 0, "10", default=True),
+            _union_param("U2", 0, "20"),
+        ],
     )
     app, idx = _app([union])
     w = collect_writes(app, idx, {})
@@ -187,7 +215,10 @@ def test_collect_mem_union_active_override() -> None:
     union = ApplicationProgramStaticParametersUnion(
         choice=MemoryUnion(code_segment=_SEG_ID, offset=0, bit_offset=0),
         size_in_bit=8,
-        parameter=[_union_param("U1", 0, "10", default=True), _union_param("U2", 0, "20")],
+        parameter=[
+            _union_param("U1", 0, "10", default=True),
+            _union_param("U2", 0, "20"),
+        ],
     )
     app, idx = _app([union])
     w = collect_writes(app, idx, {"U2": "99"})
@@ -202,9 +233,14 @@ def test_collect_mem_union_active_override() -> None:
 
 def test_collect_prop_union_default() -> None:
     union = ApplicationProgramStaticParametersUnion(
-        choice=PropertyUnion(object_index=0, property_id=10, occurrence=0, offset=0, bit_offset=0),
+        choice=PropertyUnion(
+            object_index=0, property_id=10, occurrence=0, offset=0, bit_offset=0
+        ),
         size_in_bit=8,
-        parameter=[_union_param("U1", 0, "3", default=True), _union_param("U2", 0, "4")],
+        parameter=[
+            _union_param("U1", 0, "3", default=True),
+            _union_param("U2", 0, "4"),
+        ],
     )
     app, idx = _app([union])
     w = collect_writes(app, idx, {})
@@ -219,29 +255,42 @@ def test_collect_prop_union_default() -> None:
 
 
 def test_encode_to_memory_writes_value() -> None:
-    app, idx = _app([_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=3, bit_offset=0))])
+    app, idx = _app(
+        [_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=3, bit_offset=0))]
+    )
     mem = encode_to_memory(app, idx, {"P1": "255"})
     assert mem[_SEG_ID][3] == 255
 
 
 def test_encode_to_memory_default_value() -> None:
-    app, idx = _app([_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0), value="42")])
+    app, idx = _app(
+        [
+            _param(
+                "P1",
+                MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0),
+                value="42",
+            )
+        ]
+    )
     mem = encode_to_memory(app, idx, {})
     assert mem[_SEG_ID][0] == 42
 
 
 def test_encode_to_memory_seeded_from_seg_data() -> None:
     p = _param("P1", MemoryParameter(code_segment=_SEG_ID, offset=1, bit_offset=0))
-    app, idx = _app([p], seg_data=b"\xFF\x00\xFF\xFF")
+    app, idx = _app([p], seg_data=b"\xff\x00\xff\xff")
     mem = encode_to_memory(app, idx, {"P1": "7"})
     assert mem[_SEG_ID][0] == 0xFF  # seeded from data
-    assert mem[_SEG_ID][1] == 7     # overwritten by param
+    assert mem[_SEG_ID][1] == 7  # overwritten by param
     assert mem[_SEG_ID][2] == 0xFF  # seeded from data
 
 
 def test_encode_to_memory_sub_byte() -> None:
     # 4-bit param at bit_offset=4 of byte 0 — value 3 should land in lower nibble
-    app, idx = _app([_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=4))], pt_size=4)
+    app, idx = _app(
+        [_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=4))],
+        pt_size=4,
+    )
     mem = encode_to_memory(app, idx, {"P1": "3"})
     assert mem[_SEG_ID][0] == 0x03  # bits 4-7 = 0b0011
 
@@ -252,26 +301,51 @@ def test_encode_to_memory_sub_byte() -> None:
 
 
 def test_encode_to_properties_basic() -> None:
-    p = _param("P1", PropertyParameter(object_index=2, property_id=57, occurrence=0, offset=0, bit_offset=0))
+    p = _param(
+        "P1",
+        PropertyParameter(
+            object_index=2, property_id=57, occurrence=0, offset=0, bit_offset=0
+        ),
+    )
     app, idx = _app([p])
     props = encode_to_properties(app, idx, {"P1": "200"})
     assert props[(2, 57, 0)][0] == 200
 
 
 def test_encode_to_properties_default_value() -> None:
-    p = _param("P1", PropertyParameter(object_index=0, property_id=10, occurrence=0, offset=0, bit_offset=0), value="99")
+    p = _param(
+        "P1",
+        PropertyParameter(
+            object_index=0, property_id=10, occurrence=0, offset=0, bit_offset=0
+        ),
+        value="99",
+    )
     app, idx = _app([p])
     props = encode_to_properties(app, idx, {})
     assert props[(0, 10, 0)][0] == 99
 
 
 def test_encode_to_properties_empty_when_no_prop_params() -> None:
-    app, idx = _app([_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0), value="1")])
+    app, idx = _app(
+        [
+            _param(
+                "P1",
+                MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0),
+                value="1",
+            )
+        ]
+    )
     assert encode_to_properties(app, idx, {}) == {}
 
 
 def test_encode_to_memory_empty_when_no_mem_params() -> None:
-    p = _param("P1", PropertyParameter(object_index=0, property_id=10, occurrence=0, offset=0, bit_offset=0), value="1")
+    p = _param(
+        "P1",
+        PropertyParameter(
+            object_index=0, property_id=10, occurrence=0, offset=0, bit_offset=0
+        ),
+        value="1",
+    )
     app, idx = _app([p])
     mem = encode_to_memory(app, idx, {})
     assert all(b == 0 for b in mem[_SEG_ID])
@@ -279,8 +353,18 @@ def test_encode_to_memory_empty_when_no_mem_params() -> None:
 
 def test_encode_to_properties_multiple_params_same_property() -> None:
     # Two params writing to the same property at different offsets
-    p1 = _param("P1", PropertyParameter(object_index=0, property_id=5, occurrence=0, offset=0, bit_offset=0))
-    p2 = _param("P2", PropertyParameter(object_index=0, property_id=5, occurrence=0, offset=1, bit_offset=0))
+    p1 = _param(
+        "P1",
+        PropertyParameter(
+            object_index=0, property_id=5, occurrence=0, offset=0, bit_offset=0
+        ),
+    )
+    p2 = _param(
+        "P2",
+        PropertyParameter(
+            object_index=0, property_id=5, occurrence=0, offset=1, bit_offset=0
+        ),
+    )
     app, idx = _app([p1, p2])
     props = encode_to_properties(app, idx, {"P1": "11", "P2": "22"})
     key = (0, 5, 0)

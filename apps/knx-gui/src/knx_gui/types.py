@@ -17,6 +17,7 @@ class TelegramSource(Enum):
     PROXY = "proxy"
     VIRTUAL = "virtual"
 
+
 if TYPE_CHECKING:
     from xknxmono.models.intermediate.com_object_instance_ref_t import (
         ComObjectInstanceRef,
@@ -188,7 +189,9 @@ def generate_rows(com_objects: list[ComObject]) -> list[PinRow]:
     return rows
 
 
-def _collect_ui_com_objects(nodes: list[UiNode] | tuple[UiNode, ...]) -> list[UiComObject]:
+def _collect_ui_com_objects(
+    nodes: list[UiNode] | tuple[UiNode, ...],
+) -> list[UiComObject]:
     from xknxmono.product.parser_v2.ui import UiComObject as _UiComObject
     from xknxmono.product.parser_v2.ui import UiParameterBlock as _UiParameterBlock
     from xknxmono.product.parser_v2.ui import UiTab as _UiTab
@@ -209,16 +212,29 @@ class Device:
     app: Application
     individual_address: str
     com_objects: list[ComObject] = field(default_factory=list[ComObject])
-    parameter_instance_refs: list[ParameterInstanceRef] = field(default_factory=list, repr=False, compare=False)
-    module_instances: list[ModuleInstance] = field(default_factory=list, repr=False, compare=False)
-    com_object_instance_refs: list[ComObjectInstanceRef] = field(default_factory=list, repr=False, compare=False)
-    _dynamic_ui: DynamicUI | None = field(default=None, repr=False, compare=False, init=False)
-    _cached_visible_cos: list[ComObject] | None = field(default=None, repr=False, compare=False, init=False)
-    _cached_rows: list[PinRow] | None = field(default=None, repr=False, compare=False, init=False)
+    parameter_instance_refs: list[ParameterInstanceRef] = field(
+        default_factory=list, repr=False, compare=False
+    )
+    module_instances: list[ModuleInstance] = field(
+        default_factory=list, repr=False, compare=False
+    )
+    com_object_instance_refs: list[ComObjectInstanceRef] = field(
+        default_factory=list, repr=False, compare=False
+    )
+    _dynamic_ui: DynamicUI | None = field(
+        default=None, repr=False, compare=False, init=False
+    )
+    _cached_visible_cos: list[ComObject] | None = field(
+        default=None, repr=False, compare=False, init=False
+    )
+    _cached_rows: list[PinRow] | None = field(
+        default=None, repr=False, compare=False, init=False
+    )
 
     def __post_init__(self) -> None:
         if self.app.program.dynamic is not None:
             from xknxmono.product.parser_v2.dynamic import DynamicUI as _DynamicUI
+
             self._dynamic_ui = _DynamicUI(
                 self.app.program,
                 parameter_instance_refs=self.parameter_instance_refs or None,

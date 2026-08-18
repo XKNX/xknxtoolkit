@@ -89,7 +89,9 @@ class TestFromString:
     def test_module_instance_param_ref(self):
         k = KnxId.from_string(f"{_BASE}_MD-1_M-200_MI-1_P-150_R-243")
         assert isinstance(k.content, Application)
-        assert k.content.content == ModuleDef(1, Module(0x200, 1, ParamRef(0x150, 0x243)))
+        assert k.content.content == ModuleDef(
+            1, Module(0x200, 1, ParamRef(0x150, 0x243))
+        )
 
     def test_submodule_def_under_module_def(self):
         k = KnxId.from_string(f"{_BASE}_MD-1_SM-1")
@@ -109,12 +111,19 @@ class TestFromString:
     def test_submodule_instance(self):
         k = KnxId.from_string(f"{_BASE}_MD-1_M-100_MI-1_SM-1_M-200_MI-1")
         assert isinstance(k.content, Application)
-        assert k.content.content == ModuleDef(1, Module(0x100, 1, SubModuleDef(1, SubModule(0x200, 1))))
+        assert k.content.content == ModuleDef(
+            1, Module(0x100, 1, SubModuleDef(1, SubModule(0x200, 1)))
+        )
 
     def test_submodule_instance_param_ref(self):
         k = KnxId.from_string(f"{_BASE}_MD-1_M-100_MI-1_SM-1_M-200_MI-1_P-150_R-243")
         assert isinstance(k.content, Application)
-        assert k.content.content == ModuleDef(1, Module(0x100, 1, SubModuleDef(1, SubModule(0x200, 1, ParamRef(0x150, 0x243)))))
+        assert k.content.content == ModuleDef(
+            1,
+            Module(
+                0x100, 1, SubModuleDef(1, SubModule(0x200, 1, ParamRef(0x150, 0x243)))
+            ),
+        )
 
     def test_nested_repeats(self):
         k = KnxId.from_string(f"{_BASE}_MD-1_X-1_X-2")

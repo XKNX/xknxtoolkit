@@ -108,7 +108,10 @@ plus the GUI-only runtime view (`knx_gui.types.Device`).
 ```python
 def load_device(project_service, catalog_service, device_row):
     # 1. Resolve the catalog application via the device's program ref
-    products = {p.hardware2program_ref_id: p.application_id for p in catalog_service.get_products()}
+    products = {
+        p.hardware2program_ref_id: p.application_id
+        for p in catalog_service.get_products()
+    }
     app_id = products[device_row.hardware2program_ref_id]
     app = catalog_service.get_application(app_id)
 
@@ -118,8 +121,8 @@ def load_device(project_service, catalog_service, device_row):
         name=device_row.name,
         app=app,
         individual_address=project_service.individual_address(device_row.id),
-        parameter_instance_refs=[...],   # from device_row.parameters
-        module_instances=[...],          # from device_row.module_instances
+        parameter_instance_refs=[...],  # from device_row.parameters
+        module_instances=[...],  # from device_row.module_instances
         com_object_instance_refs=[...],  # from device_row.com_objects
     )
     return device

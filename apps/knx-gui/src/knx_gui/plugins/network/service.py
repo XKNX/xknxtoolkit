@@ -54,7 +54,9 @@ class NetworkService:
         self._state = CaptureState.STOPPED
         self._emit("capture_state_changed", self._state)
 
-    def add_raw(self, cemi_bytes: bytes, source: TelegramSource) -> TelegramRecord | None:
+    def add_raw(
+        self, cemi_bytes: bytes, source: TelegramSource
+    ) -> TelegramRecord | None:
         return self.add_raw_with_timestamp(cemi_bytes, source, datetime.now(UTC))
 
     def add_raw_with_timestamp(
@@ -160,7 +162,9 @@ class NetworkService:
                 payload=data.payload,
                 tpci=data.tpci,
             )
-            return TelegramRecord(telegram=telegram, timestamp=timestamp, source_type=source)
+            return TelegramRecord(
+                telegram=telegram, timestamp=timestamp, source_type=source
+            )
         except Exception as e:
             self._log.error("failed to parse CEMI frame", error=str(e))
             return None

@@ -23,7 +23,9 @@ class ProjectPlugin:
         self._get_selected_node_ids = get_selected_node_ids
         api.project.set_logger(Logger(api.log, "project"))
 
-        self._memory_preview = MemoryPreviewWindow(get_devices=lambda: api.project.devices)
+        self._memory_preview = MemoryPreviewWindow(
+            get_devices=lambda: api.project.devices
+        )
 
         self._devices_panel = DevicesPanel(
             get_devices=lambda: api.project.devices,

@@ -255,7 +255,9 @@ class DynamicUI:
         self._ui = None
 
     def segment_base_addrs(self) -> dict[str, int]:
-        return {sid: self._idx.segment_base_addr(sid) for sid in self._idx.code_segments}
+        return {
+            sid: self._idx.segment_base_addr(sid) for sid in self._idx.code_segments
+        }
 
     def encode_to_memory(self) -> dict[str, bytes]:
         """Encode current parameter state into code segment byte buffers."""

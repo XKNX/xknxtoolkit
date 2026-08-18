@@ -12,7 +12,9 @@ from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
 from .application_indexer import ApplicationIndexer
 
 
-def compute_arg_defaults(mod_def_arguments: object, instance_args: list[ModuleArg]) -> dict[str, str]:
+def compute_arg_defaults(
+    mod_def_arguments: object, instance_args: list[ModuleArg]
+) -> dict[str, str]:
     """Return {arg_name: value} for all text args in a module instance."""
     result: dict[str, str] = {}
     if mod_def_arguments is None:
@@ -26,13 +28,19 @@ def compute_arg_defaults(mod_def_arguments: object, instance_args: list[ModuleAr
     return result
 
 
-def compute_param_ref_defaults(refs_container: object, idx: ApplicationIndexer) -> dict[str, str]:
+def compute_param_ref_defaults(
+    refs_container: object, idx: ApplicationIndexer
+) -> dict[str, str]:
     """Return {pr.id: effective_value} for all ParameterRefs in a static section.
 
     Tries pr.value first; falls back to the base Parameter's value via idx.
     """
     result: dict[str, str] = {}
-    refs = getattr(refs_container, "parameter_ref", None) if refs_container is not None else None
+    refs = (
+        getattr(refs_container, "parameter_ref", None)
+        if refs_container is not None
+        else None
+    )
     if not refs:
         return result
     for pr in refs:
@@ -71,7 +79,12 @@ class ParameterState:
         "param_ref_id_to_value",
     )
 
-    def __init__(self, values: dict[str, str] | None = None, parent: ParameterState | None = None, param_ref_defaults: dict[str, str] | None = None) -> None:
+    def __init__(
+        self,
+        values: dict[str, str] | None = None,
+        parent: ParameterState | None = None,
+        param_ref_defaults: dict[str, str] | None = None,
+    ) -> None:
         self.param_ref_id_to_value: dict[str, str] = dict(values or {})
         self._parent: ParameterState | None = parent
         self._children: dict[str, ModuleState] = {}
@@ -177,7 +190,9 @@ class ParameterState:
     def qualify(self, ref_id: str) -> str:
         return ref_id
 
-    def find_scope_for_qualified(self, ref_id: str) -> tuple[ParameterState, str] | None:
+    def find_scope_for_qualified(
+        self, ref_id: str
+    ) -> tuple[ParameterState, str] | None:
         for child in self._children.values():
             result = child.find_scope_for_qualified(ref_id)
             if result is not None:
@@ -200,12 +215,26 @@ class ParameterState:
         else:
             self.param_ref_id_to_value.pop(ref_id, None)
 
-    def module_child(self, module_id: str, repeat_idx: int = 1, arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None, ref_id: str | None = None) -> ModuleState:
+    def module_child(
+        self,
+        module_id: str,
+        repeat_idx: int = 1,
+        arguments: dict[str, ModuleArg] | None = None,
+        param_ref_defaults: dict[str, str] | None = None,
+        arg_defaults: dict[str, str] | None = None,
+        ref_id: str | None = None,
+    ) -> ModuleState:
         """Returns (creating if needed) the module instance state and wires it into the tree."""
         key = f"{module_id}_MI-{repeat_idx}"
         self._active_module_keys.add(key)
         if key not in self._children:
-            child = ModuleState(key, arguments, param_ref_defaults=param_ref_defaults, arg_defaults=arg_defaults, ref_id=ref_id)
+            child = ModuleState(
+                key,
+                arguments,
+                param_ref_defaults=param_ref_defaults,
+                arg_defaults=arg_defaults,
+                ref_id=ref_id,
+            )
             child._parent = self
             self._children[key] = child
         else:
@@ -276,9 +305,11 @@ class GlobalState(ParameterState):
                 p = f"_{ref_id}_".find(f"_{mid}_")
                 if p != -1:
                     app_prefix = ref_id[:p]
-                    suffix = ref_id[p + len(mid):]
+                    suffix = ref_id[p + len(mid) :]
                     ms.module_instance_id = app_prefix + mid
-                    ms.param_ref_id_to_value[app_prefix + mid_to_mdid[mid] + suffix] = value
+                    ms.param_ref_id_to_value[app_prefix + mid_to_mdid[mid] + suffix] = (
+                        value
+                    )
                     break
             else:
                 root.param_ref_id_to_value[ref_id] = value
@@ -299,7 +330,14 @@ class ModuleState(ParameterState):
 
     __slots__ = ("_arg_defaults", "arguments", "module_instance_id", "ref_id")
 
-    def __init__(self, module_instance_id: str, arguments: dict[str, ModuleArg] | None = None, param_ref_defaults: dict[str, str] | None = None, arg_defaults: dict[str, str] | None = None, ref_id: str | None = None) -> None:
+    def __init__(
+        self,
+        module_instance_id: str,
+        arguments: dict[str, ModuleArg] | None = None,
+        param_ref_defaults: dict[str, str] | None = None,
+        arg_defaults: dict[str, str] | None = None,
+        ref_id: str | None = None,
+    ) -> None:
         super().__init__(param_ref_defaults=param_ref_defaults)
         self.module_instance_id = module_instance_id
         self.ref_id: str | None = ref_id
@@ -318,14 +356,18 @@ class ModuleState(ParameterState):
 
     def as_module_instance(self) -> tuple[str, str, dict[str, ModuleArg]]:
         instance_id = self.module_instance_id
-        ref_id = self.ref_id if self.ref_id is not None else instance_id.rsplit("_MI-", 1)[0]
-        args = {k[k.find("_MD-") + 1:]: v for k, v in self.arguments.items()}
+        ref_id = (
+            self.ref_id if self.ref_id is not None else instance_id.rsplit("_MI-", 1)[0]
+        )
+        args = {k[k.find("_MD-") + 1 :]: v for k, v in self.arguments.items()}
         return instance_id, ref_id, args
 
     def qualify(self, ref_id: str) -> str:
         return self._qualify(ref_id)
 
-    def find_scope_for_qualified(self, ref_id: str) -> tuple[ParameterState, str] | None:
+    def find_scope_for_qualified(
+        self, ref_id: str
+    ) -> tuple[ParameterState, str] | None:
         mid = self.module_instance_id
         if not ref_id.startswith(mid + "_"):
             return None
@@ -333,7 +375,7 @@ class ModuleState(ParameterState):
             result = child.find_scope_for_qualified(ref_id)
             if result is not None:
                 return result
-        suffix = ref_id[len(mid):]
+        suffix = ref_id[len(mid) :]
         if self.ref_id is None:
             return None
         return (self, self.ref_id + suffix)
@@ -342,7 +384,7 @@ class ModuleState(ParameterState):
         i, n = 0, min(len(self.module_instance_id), len(ref_id))
         while i < n and self.module_instance_id[i] == ref_id[i]:
             i += 1
-        return self.module_instance_id + ref_id[i - 1:]
+        return self.module_instance_id + ref_id[i - 1 :]
 
     def active_param_refs(self) -> set[str]:
         result = {self.qualify(ref) for ref in self._active_param_refs}
@@ -363,10 +405,17 @@ class ModuleState(ParameterState):
         return result
 
     def module_instances(self) -> list[tuple[str, str, dict[str, ModuleArg]]]:
-        result: list[tuple[str, str, dict[str, ModuleArg]]] = [self.as_module_instance()]
+        result: list[tuple[str, str, dict[str, ModuleArg]]] = [
+            self.as_module_instance()
+        ]
         for child in self._children.values():
             result.extend(child.module_instances())
         return result
 
 
-__all__ = ["GlobalState", "ModuleState", "compute_arg_defaults", "compute_param_ref_defaults"]
+__all__ = [
+    "GlobalState",
+    "ModuleState",
+    "compute_arg_defaults",
+    "compute_param_ref_defaults",
+]

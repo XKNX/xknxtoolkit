@@ -41,7 +41,17 @@ def _co_instance_ref_from_row(row: Any) -> ComObjectInstanceRef | None:
     def _e(v: bool | None) -> Enable | None:
         return None if v is None else (Enable.ENABLED if v else Enable.DISABLED)
 
-    if all(getattr(row, col) is None for col in ("communication_flag", "read_flag", "write_flag", "transmit_flag", "update_flag", "read_on_init_flag")):
+    if all(
+        getattr(row, col) is None
+        for col in (
+            "communication_flag",
+            "read_flag",
+            "write_flag",
+            "transmit_flag",
+            "update_flag",
+            "read_on_init_flag",
+        )
+    ):
         return None
     return ComObjectInstanceRef(
         ref_id=row.ref_id,
@@ -236,12 +246,20 @@ class ProjectService:
         assert self._pid is not None
         from xknxmono.models.intermediate import ParameterInstanceRef as _PIR
         from xknxmono.models.intermediate.module_instance_t import ModuleInstance as _MI
+
         pirs = [_PIR(ref_id=p.ref_id, value=p.value) for p in row.parameters]
         mis = [_MI(id=mi.instance_id, ref_id=mi.ref_id) for mi in row.module_instances]
-        coirs = [coir for co_row in row.com_objects if (coir := _co_instance_ref_from_row(co_row)) is not None]
+        coirs = [
+            coir
+            for co_row in row.com_objects
+            if (coir := _co_instance_ref_from_row(co_row)) is not None
+        ]
         ia = self._svc.individual_address(self._pid, row.id) or ""
         device = Device(
-            node_id=row.id, name=row.name, app=app, individual_address=ia,
+            node_id=row.id,
+            name=row.name,
+            app=app,
+            individual_address=ia,
             parameter_instance_refs=pirs,
             module_instances=mis,
             com_object_instance_refs=coirs,
@@ -304,7 +322,9 @@ class ProjectService:
         ]
         self._lines_cache = {
             a.id: [
-                _Line(id=ln.id, area_id=ln.area_id, line_number=ln.address, name=ln.name)
+                _Line(
+                    id=ln.id, area_id=ln.area_id, line_number=ln.address, name=ln.name
+                )
                 for ln in a.lines
             ]
             for a in installation.areas
@@ -373,7 +393,9 @@ class ProjectService:
             return None
         segment_id = self._installation().areas[0].lines[0].segments[0].id
         init_device = Device(node_id=0, name=name, app=app, individual_address="")
-        com_objects: list[tuple[str, str | None]] = [(co.id, None) for co in init_device.com_objects]
+        com_objects: list[tuple[str, str | None]] = [
+            (co.id, None) for co in init_device.com_objects
+        ]
         module_instances = init_device.get_module_instances()
         device_id = self._svc.add_device(
             self._pid,

@@ -44,7 +44,9 @@ def get_program_application(
     if not program:
         raise HTTPException(404, "Hardware program not found")
     if not program.application_id:
-        raise HTTPException(404, "No application program associated with this hardware program")
+        raise HTTPException(
+            404, "No application program associated with this hardware program"
+        )
 
     if "application/xml" in accept:
         try:

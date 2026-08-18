@@ -190,8 +190,12 @@ class NetworkPanel:
 
         imgui.table_setup_scroll_freeze(0, 1)
         imgui.table_setup_column("Time", imgui.TableColumnFlags_.width_fixed, 70)
-        imgui.table_setup_column("", imgui.TableColumnFlags_.width_fixed, 12)  # service dot
-        imgui.table_setup_column("Via", imgui.TableColumnFlags_.width_fixed, 12)   # source indicator
+        imgui.table_setup_column(
+            "", imgui.TableColumnFlags_.width_fixed, 12
+        )  # service dot
+        imgui.table_setup_column(
+            "Via", imgui.TableColumnFlags_.width_fixed, 12
+        )  # source indicator
         imgui.table_setup_column("Source", imgui.TableColumnFlags_.width_fixed, 60)
         imgui.table_setup_column("Dest", imgui.TableColumnFlags_.width_fixed, 60)
         imgui.table_setup_column("TPCI", imgui.TableColumnFlags_.width_fixed, 50)
@@ -222,7 +226,9 @@ class NetworkPanel:
             imgui.SelectableFlags_.span_all_columns
             | imgui.SelectableFlags_.allow_overlap
         )
-        if imgui.selectable(f"{telegram.timestamp_str}##row{index}", selected, flags)[0]:
+        if imgui.selectable(f"{telegram.timestamp_str}##row{index}", selected, flags)[
+            0
+        ]:
             self._handle_click(index, telegram)
 
         imgui.table_set_column_index(1)
@@ -283,7 +289,8 @@ class NetworkPanel:
         if self._filter_text:
             filter_lower = self._filter_text.lower()
             records = [
-                r for r in records
+                r
+                for r in records
                 if filter_lower in r.src_addr.lower()
                 or filter_lower in r.dst_addr.lower()
                 or filter_lower in r.msg_code.lower()
@@ -295,9 +302,7 @@ class NetworkPanel:
             | imgui.TableFlags_.scroll_y
             | imgui.TableFlags_.borders_inner_h
         )
-        if not imgui.begin_table(
-            "##cemi", 8, flags, imgui.ImVec2(avail.x, avail.y)
-        ):
+        if not imgui.begin_table("##cemi", 8, flags, imgui.ImVec2(avail.x, avail.y)):
             return
 
         imgui.table_setup_scroll_freeze(0, 1)

@@ -30,7 +30,9 @@ class ConnectionService:
     def set_logger(self, log: Logger) -> None:
         self._log = log
 
-    def add_raw_cemi_listener(self, callback: Callable[[bytes, TelegramSource], None]) -> None:
+    def add_raw_cemi_listener(
+        self, callback: Callable[[bytes, TelegramSource], None]
+    ) -> None:
         self._raw_cemi_listeners.append(callback)
 
     def add_connected_listener(self, callback: Callable[[], None]) -> None:
@@ -38,14 +40,17 @@ class ConnectionService:
 
     def dispatch_raw_cemi(self, raw_cemi: bytes) -> None:
         from knx_gui.types import TelegramSource
+
         self._dispatch_cemi(raw_cemi, TelegramSource.CONNECTION)
 
     def dispatch_proxy_cemi(self, raw_cemi: bytes) -> None:
         from knx_gui.types import TelegramSource
+
         self._dispatch_cemi(raw_cemi, TelegramSource.PROXY)
 
     def dispatch_virtual_cemi(self, raw_cemi: bytes) -> None:
         from knx_gui.types import TelegramSource
+
         self._dispatch_cemi(raw_cemi, TelegramSource.VIRTUAL)
 
     def _dispatch_cemi(self, raw_cemi: bytes, source: TelegramSource) -> None:

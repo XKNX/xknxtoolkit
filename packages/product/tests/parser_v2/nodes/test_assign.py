@@ -11,10 +11,10 @@ from xknxmono.product.parser_v2.ui import UiNode
 from xknxmono.product.parser_v2.ui.separator import UiSeparator
 
 _BASE = "M-0008_A-7072-21-5CC3-O000A"
-_REF_MODE    = f"{_BASE}_P-1_R-1"
-_REF_TARGET  = f"{_BASE}_P-2_R-2"
-_REF_SOURCE  = f"{_BASE}_P-3_R-3"
-_REF_OTHER   = f"{_BASE}_P-4_R-4"
+_REF_MODE = f"{_BASE}_P-1_R-1"
+_REF_TARGET = f"{_BASE}_P-2_R-2"
+_REF_SOURCE = f"{_BASE}_P-3_R-3"
+_REF_OTHER = f"{_BASE}_P-4_R-4"
 _REF_MISSING = f"{_BASE}_P-5_R-5"
 
 

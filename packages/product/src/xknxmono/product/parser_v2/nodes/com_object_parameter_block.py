@@ -16,7 +16,9 @@ class ComObjectParameterBlockNode(DynamicNode):
 
     __slots__ = ("_children", "_elem")
 
-    def __init__(self, elem: ComObjectParameterBlock, children: list[DynamicNode | None]) -> None:
+    def __init__(
+        self, elem: ComObjectParameterBlock, children: list[DynamicNode | None]
+    ) -> None:
         self._elem = elem
         self._children = children
 
@@ -26,18 +28,36 @@ class ComObjectParameterBlockNode(DynamicNode):
         text_ref = self._elem.text_parameter_ref_id
         name_value = ctx.get(text_ref) if text_ref else None
         template = ctx.get_text(self._elem.id) or self._elem.text or self._elem.name
-        text = fill_name(apply_text_args(template or "", arg_defaults), name_value or "") or None
+        text = (
+            fill_name(apply_text_args(template or "", arg_defaults), name_value or "")
+            or None
+        )
         rows = self._elem.rows
         cols = self._elem.columns
-        row_labels = tuple(apply_text_args(r.text or r.name or "", arg_defaults) for r in rows.row) if rows else ()
-        column_headers = tuple(apply_text_args(c.text or c.name or "", arg_defaults) for c in cols.column) if cols else ()
-        return [UiParameterBlock(
-            id=self._elem.id,
-            name=self._elem.name,
-            text=text,
-            inline=self._elem.inline,
-            layout=self._elem.layout,
-            children=tuple(items),
-            row_labels=row_labels,
-            column_headers=column_headers,
-        )]
+        row_labels = (
+            tuple(
+                apply_text_args(r.text or r.name or "", arg_defaults) for r in rows.row
+            )
+            if rows
+            else ()
+        )
+        column_headers = (
+            tuple(
+                apply_text_args(c.text or c.name or "", arg_defaults)
+                for c in cols.column
+            )
+            if cols
+            else ()
+        )
+        return [
+            UiParameterBlock(
+                id=self._elem.id,
+                name=self._elem.name,
+                text=text,
+                inline=self._elem.inline,
+                layout=self._elem.layout,
+                children=tuple(items),
+                row_labels=row_labels,
+                column_headers=column_headers,
+            )
+        ]

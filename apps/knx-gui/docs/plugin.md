@@ -57,10 +57,10 @@ Plugins declare their UI panels via `PanelDefinition`:
 ```python
 @dataclass
 class PanelDefinition:
-    name: str                      # unique identifier
-    label: str                     # display name (use S.PANEL_*)
-    dock: str                      # dock space name
-    render: Callable[[], None]     # render function
+    name: str  # unique identifier
+    label: str  # display name (use S.PANEL_*)
+    dock: str  # dock space name
+    render: Callable[[], None]  # render function
 ```
 
 **Dock spaces** (defined in `main.py::create_docking_splits`):
@@ -126,6 +126,7 @@ and API surface; they're intentionally not duplicated here.
 from knx_gui.plugins.base import PanelDefinition, PluginAPI
 from knx_gui.plugins.myplugin.strings import S
 
+
 class MyPlugin:
     name = "myplugin"
 
@@ -185,6 +186,7 @@ class NodeEditorPlugin:
     def get_selected_node_ids(self) -> list[int]:
         return self._panel.get_selected_node_ids()
 
+
 # ProjectPlugin takes it as a callback (main.py wires the two together)
 self._project_plugin = ProjectPlugin(
     self._plugin_api,
@@ -220,6 +222,7 @@ from knx_gui.strings import create_translator
 _locale_dir = Path(__file__).parent / "locales"
 _ = create_translator("myplugin", _locale_dir)
 
+
 class MyPluginStrings:
     @property
     def PANEL_TITLE(self) -> str:
@@ -229,6 +232,7 @@ class MyPluginStrings:
     def BTN_DO_THING(self) -> str:
         return _("Do Thing")
 
+
 S = MyPluginStrings()
 ```
 
@@ -236,6 +240,7 @@ To inherit common strings (buttons like Add, Close, Cancel), extend `BaseStrings
 
 ```python
 from knx_gui.strings import BaseStrings, create_translator
+
 
 class MyPluginStrings(BaseStrings):
     # now has BTN_ADD, BTN_CLOSE, BTN_CANCEL, etc.

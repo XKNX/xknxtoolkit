@@ -63,18 +63,27 @@ class HexView:
             sel_lo = min(self._sel_anchor, self._sel_cursor)
             sel_hi = max(self._sel_anchor, self._sel_cursor)
 
-        n_sel = (sel_hi - sel_lo + 1) if (sel_lo is not None and sel_hi is not None) else 0
+        n_sel = (
+            (sel_hi - sel_lo + 1) if (sel_lo is not None and sel_hi is not None) else 0
+        )
 
         def _copy_selection() -> None:
             if sel_lo is None or sel_hi is None:
                 return
             fmt_byte = "{:02X}" if self.uppercase else "{:02x}"
-            imgui.set_clipboard_text(" ".join(fmt_byte.format(b) for b in data[sel_lo : sel_hi + 1]))
+            imgui.set_clipboard_text(
+                " ".join(fmt_byte.format(b) for b in data[sel_lo : sel_hi + 1])
+            )
 
         # Footer: 2 options rows + sep + (8 or 9) preview rows + sep + 2 param rows
         sp = imgui.get_style().item_spacing.y
         preview_rows = 9 if ref is not None else 8
-        footer_h = imgui.get_frame_height_with_spacing() * 2 + sp + imgui.get_text_line_height_with_spacing() * preview_rows + sp * 2
+        footer_h = (
+            imgui.get_frame_height_with_spacing() * 2
+            + sp
+            + imgui.get_text_line_height_with_spacing() * preview_rows
+            + sp * 2
+        )
 
         # Scrolling child
         imgui.begin_child(
@@ -124,10 +133,22 @@ class HexView:
                     bx = row_x + hex_x(i)
                     p_min = imgui.ImVec2(bx, row_y)
                     p_max = imgui.ImVec2(bx + glyph_w * 2, row_y + line_h)
-                    is_hov = bx <= mouse.x < p_max.x and row_y <= mouse.y < row_y + line_h
-                    in_sel = sel_lo is not None and sel_hi is not None and sel_lo <= byte_idx <= sel_hi
-                    is_diff = ref is not None and (byte_idx >= len(ref) or ref[byte_idx] != b)
-                    is_param = highlighted_param is not None and byte_map is not None and byte_map.get(byte_idx, (None,))[0] == highlighted_param
+                    is_hov = (
+                        bx <= mouse.x < p_max.x and row_y <= mouse.y < row_y + line_h
+                    )
+                    in_sel = (
+                        sel_lo is not None
+                        and sel_hi is not None
+                        and sel_lo <= byte_idx <= sel_hi
+                    )
+                    is_diff = ref is not None and (
+                        byte_idx >= len(ref) or ref[byte_idx] != b
+                    )
+                    is_param = (
+                        highlighted_param is not None
+                        and byte_map is not None
+                        and byte_map.get(byte_idx, (None,))[0] == highlighted_param
+                    )
 
                     if is_hov:
                         self._hover_addr = byte_idx
@@ -137,7 +158,10 @@ class HexView:
                             else:
                                 self._sel_anchor = byte_idx
                                 self._sel_cursor = byte_idx
-                        elif imgui.is_mouse_down(imgui.MouseButton_.left) and self._sel_anchor is not None:
+                        elif (
+                            imgui.is_mouse_down(imgui.MouseButton_.left)
+                            and self._sel_anchor is not None
+                        ):
                             self._sel_cursor = byte_idx
 
                     if in_sel:
@@ -149,12 +173,18 @@ class HexView:
                     elif is_hov:
                         draw_list.add_rect_filled(p_min, p_max, col_hover)
 
-                    col = col_dim if (b == 0 and self.grey_zeros and not in_sel and not is_diff) else col_normal
+                    col = (
+                        col_dim
+                        if (b == 0 and self.grey_zeros and not in_sel and not is_diff)
+                        else col_normal
+                    )
                     draw_list.add_text(p_min, col, fmt_b.format(b))
 
                 if self.show_ascii:
                     imgui.same_line(ascii_x0)
-                    imgui.text_disabled("".join(chr(b) if 32 <= b < 128 else "." for b in chunk))
+                    imgui.text_disabled(
+                        "".join(chr(b) if 32 <= b < 128 else "." for b in chunk)
+                    )
 
         imgui.pop_style_var(2)
         imgui.end_child()
@@ -197,7 +227,8 @@ class HexView:
         entered, self._goto_buf = imgui.input_text(
             "##hx_goto",
             self._goto_buf,
-            imgui.InputTextFlags_.chars_hexadecimal | imgui.InputTextFlags_.enter_returns_true,
+            imgui.InputTextFlags_.chars_hexadecimal
+            | imgui.InputTextFlags_.enter_returns_true,
         )
         if entered and self._goto_buf:
             try:
@@ -229,7 +260,9 @@ class HexView:
         if imgui.begin_combo("##hx_goto_param", preview):
             if imgui.is_window_appearing():
                 imgui.set_keyboard_focus_here()
-            _, self._goto_param_buf = imgui.input_text("##hx_param_filter", self._goto_param_buf)
+            _, self._goto_param_buf = imgui.input_text(
+                "##hx_param_filter", self._goto_param_buf
+            )
             if byte_map is not None:
                 needle = self._goto_param_buf.lower()
                 seen: set[str] = set()
@@ -262,7 +295,9 @@ class HexView:
 
         if addr is not None and addr < n:
             abs_addr = base_addr + addr
-            addr_fmt = f"{{:0{addr_digits}X}}" if self.uppercase else f"{{:0{addr_digits}x}}"
+            addr_fmt = (
+                f"{{:0{addr_digits}X}}" if self.uppercase else f"{{:0{addr_digits}x}}"
+            )
             _row("Offset:", addr_fmt.format(abs_addr))
             rem = n - addr
             b0 = data[addr]
@@ -270,14 +305,14 @@ class HexView:
             _row("Uint8 / Int8:", f"{b0} / {i8}  (0x{b0:02X})")
             _row("Binary:", f"{b0 >> 4:04b} {b0 & 0xF:04b}")
             if rem >= 2:
-                u16, = struct.unpack_from(">H", data, addr)
-                s16, = struct.unpack_from(">h", data, addr)
+                (u16,) = struct.unpack_from(">H", data, addr)
+                (s16,) = struct.unpack_from(">h", data, addr)
                 _row("Uint16 / Int16:", f"{u16} / {s16}  (0x{u16:04X})")
             else:
                 _row("Uint16 / Int16:", None)
             if rem >= 4:
-                u32, = struct.unpack_from(">I", data, addr)
-                f32, = struct.unpack_from(">f", data, addr)
+                (u32,) = struct.unpack_from(">I", data, addr)
+                (f32,) = struct.unpack_from(">f", data, addr)
                 _row("Uint32:", f"{u32}  (0x{u32:08X})")
                 _row("Float32:", f"{f32:.6g}")
             else:

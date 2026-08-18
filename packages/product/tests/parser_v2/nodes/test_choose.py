@@ -102,7 +102,9 @@ class TestChooseWhenNode:
         assert node.eval(EvalContext(GlobalState())) == []
 
     def test_eval_matches_value_in_space_separated_condition(self):
-        node = ChooseWhenNode(_REF_MODE, {"1 2 130 4 6 134 36 132": [UiLeaf(_UI_A)]}, None)
+        node = ChooseWhenNode(
+            _REF_MODE, {"1 2 130 4 6 134 36 132": [UiLeaf(_UI_A)]}, None
+        )
         assert node.eval(EvalContext(GlobalState({_REF_MODE: "130"}))) == [_UI_A]
         assert node.eval(EvalContext(GlobalState({_REF_MODE: "36"}))) == [_UI_A]
         assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}))) == []

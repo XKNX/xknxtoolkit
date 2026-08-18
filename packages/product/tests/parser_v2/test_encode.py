@@ -9,7 +9,9 @@ import pytest
 from xknxmono.product import load
 from xknxmono.product.parser_v2.dynamic import DynamicUI
 
-_FIXTURE = Path(__file__).parent.parent / "fixtures" / "gira_2gang_button_interface.knxprod"
+_FIXTURE = (
+    Path(__file__).parent.parent / "fixtures" / "gira_2gang_button_interface.knxprod"
+)
 _APP_ID = "M-0008_A-7072-21-5CC3-O000A"
 _SEG_ID = "M-0008_A-7072-21-5CC3-O000A_RS-04-00000"
 
@@ -53,7 +55,11 @@ def test_changed_value_encodes_correctly(dui: DynamicUI) -> None:
     # Find which byte changed and verify it contains the new value
     seg_before = mem_default[_SEG_ID]
     seg_after = mem_changed[_SEG_ID]
-    diffs = [(i, seg_before[i], seg_after[i]) for i in range(min(len(seg_before), len(seg_after))) if seg_before[i] != seg_after[i]]
+    diffs = [
+        (i, seg_before[i], seg_after[i])
+        for i in range(min(len(seg_before), len(seg_after)))
+        if seg_before[i] != seg_after[i]
+    ]
     assert len(diffs) > 0, "no bytes changed"
     # At least one changed byte must contain the encoded value 7
     assert any(after == 7 for _, _, after in diffs), f"encoded diffs: {diffs}"
@@ -94,9 +100,13 @@ def test_param_map_value_matches_encoded_byte(dui: DynamicUI) -> None:
 
     # Find the byte(s) that the param map says belong to _DELAY_REF_ID's parameter
     delay_param_id = "M-0008_A-7072-21-5CC3-O000A_P-496"
-    matching = {offset: val for offset, (pid, val) in seg_map.items() if delay_param_id in pid}
+    matching = {
+        offset: val for offset, (pid, val) in seg_map.items() if delay_param_id in pid
+    }
     assert matching, "param map has no entry for delay-minutes parameter"
 
     for offset, val in matching.items():
         assert val == "4", f"param map shows value {val!r} but expected '4'"
-        assert seg[offset] == 4, f"encoded byte at offset {offset} is {seg[offset]:#04x}, expected 0x04"
+        assert seg[offset] == 4, (
+            f"encoded byte at offset {offset} is {seg[offset]:#04x}, expected 0x04"
+        )
