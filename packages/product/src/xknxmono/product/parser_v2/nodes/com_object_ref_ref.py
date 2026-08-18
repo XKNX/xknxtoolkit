@@ -76,7 +76,9 @@ class ComObjectRefRefNode(DynamicNode):
         self._text_param_ref_id: str | None = cor.text_parameter_ref_id if cor else None
         self._number: int = co.number if co else 0
         self._base_number_ref: str | None = (
-            co.base_number if isinstance(co, ModuleDefStaticComObjectsComObject) else None
+            co.base_number
+            if isinstance(co, ModuleDefStaticComObjectsComObject)
+            else None
         )
         self._dpt_codes: tuple[str, ...] = _dpt_codes(
             cor.datapoint_type if cor else [],
@@ -87,9 +89,15 @@ class ComObjectRefRefNode(DynamicNode):
             co.communication_flag if co else None,
         )
         self._read = _flag(cor.read_flag if cor else None, co.read_flag if co else None)
-        self._write = _flag(cor.write_flag if cor else None, co.write_flag if co else None)
-        self._transmit = _flag(cor.transmit_flag if cor else None, co.transmit_flag if co else None)
-        self._update = _flag(cor.update_flag if cor else None, co.update_flag if co else None)
+        self._write = _flag(
+            cor.write_flag if cor else None, co.write_flag if co else None
+        )
+        self._transmit = _flag(
+            cor.transmit_flag if cor else None, co.transmit_flag if co else None
+        )
+        self._update = _flag(
+            cor.update_flag if cor else None, co.update_flag if co else None
+        )
         self._read_on_init = _flag(
             cor.read_on_init_flag if cor else None,
             co.read_on_init_flag if co else None,
@@ -99,27 +107,56 @@ class ComObjectRefRefNode(DynamicNode):
         self._write_locked: bool = bool(co.write_flag_locked) if co else False
         self._transmit_locked: bool = bool(co.transmit_flag_locked) if co else False
         self._update_locked: bool = bool(co.update_flag_locked) if co else False
-        self._read_on_init_locked: bool = bool(co.read_on_init_flag_locked) if co else False
+        self._read_on_init_locked: bool = (
+            bool(co.read_on_init_flag_locked) if co else False
+        )
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
         ctx.mark_active_com_object(self._local_ref_id)
         qualified_ref_id = ctx.qualify(self._local_ref_id)
-        name_value = ctx.get(self._text_param_ref_id) if self._text_param_ref_id else None
-        name = fill_name(apply_text_args(self._name_template, ctx.get_arg_defaults()), name_value or "")
+        name_value = (
+            ctx.get(self._text_param_ref_id) if self._text_param_ref_id else None
+        )
+        name = fill_name(
+            apply_text_args(self._name_template, ctx.get_arg_defaults()),
+            name_value or "",
+        )
         ov = ctx.get_com_obj_instance_ref(qualified_ref_id)
-        base = ctx.get_arg_value(self._base_number_ref) if self._base_number_ref is not None else 0
+        base = (
+            ctx.get_arg_value(self._base_number_ref)
+            if self._base_number_ref is not None
+            else 0
+        )
         return [
             UiComObject(
                 ref_id=qualified_ref_id,
                 name=name,
                 number=self._number + base,
                 dpt_codes=self._dpt_codes,
-                communication=_flag(ov.communication_flag if ov else None, Enable.ENABLED if self._communication else Enable.DISABLED),
-                read=_flag(ov.read_flag if ov else None, Enable.ENABLED if self._read else Enable.DISABLED),
-                write=_flag(ov.write_flag if ov else None, Enable.ENABLED if self._write else Enable.DISABLED),
-                transmit=_flag(ov.transmit_flag if ov else None, Enable.ENABLED if self._transmit else Enable.DISABLED),
-                update=_flag(ov.update_flag if ov else None, Enable.ENABLED if self._update else Enable.DISABLED),
-                read_on_init=_flag(ov.read_on_init_flag if ov else None, Enable.ENABLED if self._read_on_init else Enable.DISABLED),
+                communication=_flag(
+                    ov.communication_flag if ov else None,
+                    Enable.ENABLED if self._communication else Enable.DISABLED,
+                ),
+                read=_flag(
+                    ov.read_flag if ov else None,
+                    Enable.ENABLED if self._read else Enable.DISABLED,
+                ),
+                write=_flag(
+                    ov.write_flag if ov else None,
+                    Enable.ENABLED if self._write else Enable.DISABLED,
+                ),
+                transmit=_flag(
+                    ov.transmit_flag if ov else None,
+                    Enable.ENABLED if self._transmit else Enable.DISABLED,
+                ),
+                update=_flag(
+                    ov.update_flag if ov else None,
+                    Enable.ENABLED if self._update else Enable.DISABLED,
+                ),
+                read_on_init=_flag(
+                    ov.read_on_init_flag if ov else None,
+                    Enable.ENABLED if self._read_on_init else Enable.DISABLED,
+                ),
                 read_locked=self._read_locked,
                 write_locked=self._write_locked,
                 transmit_locked=self._transmit_locked,

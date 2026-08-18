@@ -12,7 +12,7 @@ def _token_matches(value: str, token: str) -> bool:
     for op in _OPERATORS:
         if token.startswith(op):
             try:
-                left, right = int(value), int(token[len(op):])
+                left, right = int(value), int(token[len(op) :])
             except ValueError:
                 return False
             if op == ">=":

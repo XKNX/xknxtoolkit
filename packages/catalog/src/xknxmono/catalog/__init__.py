@@ -34,7 +34,10 @@ _LAZY: dict[str, tuple[str, str]] = {
     "build_catalog_tree": (".core.catalog_sections", "build_catalog_tree"),
     "collect_section_ids": (".core.catalog_sections", "collect_section_ids"),
     "get_application_detail": (".core.applications", "get_application_detail"),
-    "get_application_detail_by_id": (".core.applications", "get_application_detail_by_id"),
+    "get_application_detail_by_id": (
+        ".core.applications",
+        "get_application_detail_by_id",
+    ),
     "get_application_xml": (".core.applications", "get_application_xml"),
     "get_hardware": (".core.hardware", "get_hardware"),
     "get_hardware_program": (".core.hardware", "get_hardware_program"),
@@ -105,6 +108,7 @@ if TYPE_CHECKING:
 def __getattr__(name: str) -> object:
     if name in _LAZY:
         import importlib
+
         module_path, attr = _LAZY[name]
         mod = importlib.import_module(module_path, __package__)
         value = getattr(mod, attr)

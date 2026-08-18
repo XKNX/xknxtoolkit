@@ -27,7 +27,10 @@ class TestGenericCollectionNode:
         a = UiLeaf("a")
         b = UiLeaf("b")
         result = GenericCollectionNode([a, b]).eval(EvalContext(GlobalState()))
-        assert result == [UiSeparator(id="a", text=None), UiSeparator(id="b", text=None)]
+        assert result == [
+            UiSeparator(id="a", text=None),
+            UiSeparator(id="b", text=None),
+        ]
 
     def test_eval_filters_none_children(self):
         a = UiLeaf("a")

@@ -14,6 +14,7 @@ def apply_text_args(text: str, text_args: dict[str, str]) -> str:
 
 def fill_name(template: str, name_value: str) -> str:
     """Fill {{0}} / {{0:fallback}} with name_value or the fallback, strip remaining {{...}}."""
+
     def replace(m: re.Match[str]) -> str:
         if name_value:
             return name_value

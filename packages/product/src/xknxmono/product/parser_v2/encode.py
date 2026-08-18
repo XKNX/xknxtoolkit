@@ -85,7 +85,9 @@ class Writes:
 PropertyKey = tuple[int | None, int, int]  # (object_index, property_id, occurrence)
 
 
-def _write_bits(buf: bytearray, offset: int, bit_offset: int, size_in_bit: int, value: int) -> None:
+def _write_bits(
+    buf: bytearray, offset: int, bit_offset: int, size_in_bit: int, value: int
+) -> None:
     """Write value into buf at byte offset + bit_offset (0 = MSB of byte), big-endian."""
     start = offset * 8 + bit_offset
     for i in range(size_in_bit):
@@ -165,7 +167,9 @@ def _resolve_base(base_id: str | None, ms: ModuleState) -> int | None:
     return arg.value
 
 
-def _build_instance_overrides(ms: ModuleState, idx: ApplicationIndexer) -> dict[str, str]:
+def _build_instance_overrides(
+    ms: ModuleState, idx: ApplicationIndexer
+) -> dict[str, str]:
     overrides: dict[str, str] = {}
     for pr_id, value in ms.param_ref_id_to_value.items():
         pr = idx.parameter_refs.get(pr_id)
@@ -195,7 +199,8 @@ def _pick_union_param(
 
 
 def _collect_param(
-    item: ApplicationProgramStaticParametersParameter | ModuleDefStaticParametersParameter,
+    item: ApplicationProgramStaticParametersParameter
+    | ModuleDefStaticParametersParameter,
     overrides: dict[str, str],
     ms: ModuleState | None,
     out: Writes,
@@ -203,7 +208,11 @@ def _collect_param(
     choice = item.choice
     value = overrides.get(item.id) or item.value
     # base_value on a module parameter shifts the encoded value by an arg-resolved offset.
-    if isinstance(item, ModuleDefStaticParametersParameter) and item.base_value is not None and ms is not None:
+    if (
+        isinstance(item, ModuleDefStaticParametersParameter)
+        and item.base_value is not None
+        and ms is not None
+    ):
         bv = _resolve_base(item.base_value, ms)
         if bv is not None and bv != 0:
             value = str(int(value) + bv)
@@ -212,9 +221,27 @@ def _collect_param(
         assert ms is not None
         base = _resolve_base(choice.base_offset, ms)
         if base is not None:
-            out.mem.append(MemWrite(choice.code_segment, base + choice.offset, choice.bit_offset, item.id, item.parameter_type, value))
+            out.mem.append(
+                MemWrite(
+                    choice.code_segment,
+                    base + choice.offset,
+                    choice.bit_offset,
+                    item.id,
+                    item.parameter_type,
+                    value,
+                )
+            )
     elif isinstance(choice, MemoryParameter):
-        out.mem.append(MemWrite(choice.code_segment, choice.offset, choice.bit_offset, item.id, item.parameter_type, value))
+        out.mem.append(
+            MemWrite(
+                choice.code_segment,
+                choice.offset,
+                choice.bit_offset,
+                item.id,
+                item.parameter_type,
+                value,
+            )
+        )
     elif isinstance(choice, ModuleDefStaticParametersParameterProperty):
         assert ms is not None
         bo = _resolve_base(choice.base_offset, ms)
@@ -222,9 +249,31 @@ def _collect_param(
         boc = _resolve_base(choice.base_occurrence, ms)
         if bo is not None and bi is not None and boc is not None:
             obj_idx = (choice.object_index or 0) + bi if bi else choice.object_index
-            out.prop.append(PropWrite(obj_idx, choice.property_id, choice.occurrence + boc, bo + choice.offset, choice.bit_offset, item.id, item.parameter_type, value))
+            out.prop.append(
+                PropWrite(
+                    obj_idx,
+                    choice.property_id,
+                    choice.occurrence + boc,
+                    bo + choice.offset,
+                    choice.bit_offset,
+                    item.id,
+                    item.parameter_type,
+                    value,
+                )
+            )
     elif isinstance(choice, PropertyParameter):
-        out.prop.append(PropWrite(choice.object_index, choice.property_id, choice.occurrence, choice.offset, choice.bit_offset, item.id, item.parameter_type, value))
+        out.prop.append(
+            PropWrite(
+                choice.object_index,
+                choice.property_id,
+                choice.occurrence,
+                choice.offset,
+                choice.bit_offset,
+                item.id,
+                item.parameter_type,
+                value,
+            )
+        )
     # IoPointParameter and None: skip
 
 
@@ -242,15 +291,39 @@ def _collect_union(
         assert ms is not None
         base = _resolve_base(choice.base_offset, ms)
         if base is not None:
-            picked = _pick_union_param(item.parameter, overrides, f"{choice.code_segment}+{base + choice.offset}")
+            picked = _pick_union_param(
+                item.parameter,
+                overrides,
+                f"{choice.code_segment}+{base + choice.offset}",
+            )
             if picked is not None:
                 up, value = picked
-                out.mem.append(MemWrite(choice.code_segment, base + choice.offset + up.offset, choice.bit_offset + up.bit_offset, up.id, up.parameter_type, value))
+                out.mem.append(
+                    MemWrite(
+                        choice.code_segment,
+                        base + choice.offset + up.offset,
+                        choice.bit_offset + up.bit_offset,
+                        up.id,
+                        up.parameter_type,
+                        value,
+                    )
+                )
     elif isinstance(choice, MemoryUnion):
-        picked = _pick_union_param(item.parameter, overrides, f"{choice.code_segment}+{choice.offset}")
+        picked = _pick_union_param(
+            item.parameter, overrides, f"{choice.code_segment}+{choice.offset}"
+        )
         if picked is not None:
             up, value = picked
-            out.mem.append(MemWrite(choice.code_segment, choice.offset + up.offset, choice.bit_offset + up.bit_offset, up.id, up.parameter_type, value))
+            out.mem.append(
+                MemWrite(
+                    choice.code_segment,
+                    choice.offset + up.offset,
+                    choice.bit_offset + up.bit_offset,
+                    up.id,
+                    up.parameter_type,
+                    value,
+                )
+            )
     elif isinstance(choice, ModuleDefStaticParametersUnionProperty):
         assert ms is not None
         bo = _resolve_base(choice.base_offset, ms)
@@ -258,19 +331,49 @@ def _collect_union(
         boc = _resolve_base(choice.base_occurrence, ms)
         if bo is not None and bi is not None and boc is not None:
             obj_idx = (choice.object_index or 0) + bi if bi else choice.object_index
-            picked = _pick_union_param(item.parameter, overrides, f"prop_id={choice.property_id}+{bo + choice.offset}")
+            picked = _pick_union_param(
+                item.parameter,
+                overrides,
+                f"prop_id={choice.property_id}+{bo + choice.offset}",
+            )
             if picked is not None:
                 up, value = picked
-                out.prop.append(PropWrite(obj_idx, choice.property_id, choice.occurrence + boc, bo + choice.offset + up.offset, choice.bit_offset + up.bit_offset, up.id, up.parameter_type, value))
+                out.prop.append(
+                    PropWrite(
+                        obj_idx,
+                        choice.property_id,
+                        choice.occurrence + boc,
+                        bo + choice.offset + up.offset,
+                        choice.bit_offset + up.bit_offset,
+                        up.id,
+                        up.parameter_type,
+                        value,
+                    )
+                )
     else:
         assert isinstance(choice, PropertyUnion)
-        picked = _pick_union_param(item.parameter, overrides, f"prop_id={choice.property_id}+{choice.offset}")
+        picked = _pick_union_param(
+            item.parameter, overrides, f"prop_id={choice.property_id}+{choice.offset}"
+        )
         if picked is not None:
             up, value = picked
-            out.prop.append(PropWrite(choice.object_index, choice.property_id, choice.occurrence, choice.offset + up.offset, choice.bit_offset + up.bit_offset, up.id, up.parameter_type, value))
+            out.prop.append(
+                PropWrite(
+                    choice.object_index,
+                    choice.property_id,
+                    choice.occurrence,
+                    choice.offset + up.offset,
+                    choice.bit_offset + up.bit_offset,
+                    up.id,
+                    up.parameter_type,
+                    value,
+                )
+            )
 
 
-def _collect_module_writes(ms: ModuleState, idx: ApplicationIndexer, out: Writes) -> None:
+def _collect_module_writes(
+    ms: ModuleState, idx: ApplicationIndexer, out: Writes
+) -> None:
     if ms.ref_id is not None:
         md = idx.module_defs.get(ms.ref_id)
         if md is not None and md.static.parameters is not None:
@@ -349,7 +452,9 @@ def build_memory_param_map(
 ) -> dict[str, dict[int, tuple[str, str]]]:
     """Build {seg_id: {byte_offset: (param_id, value)}} for hex viewer hover lookups."""
     writes = collect_writes(app, idx, overrides, state)
-    maps: dict[str, dict[int, tuple[str, str]]] = {seg_id: {} for seg_id in idx.code_segments}
+    maps: dict[str, dict[int, tuple[str, str]]] = {
+        seg_id: {} for seg_id in idx.code_segments
+    }
     for w in writes.mem:
         seg_map = maps.get(w.seg_id)
         if seg_map is None:

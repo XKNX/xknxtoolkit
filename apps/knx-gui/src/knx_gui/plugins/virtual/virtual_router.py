@@ -176,7 +176,9 @@ class VirtualRouter:
 
             self._state = VirtualRouterState.RUNNING
             if self._logger:
-                self._logger.info("virtual router running", local_ip=local_ip, port=self._port)
+                self._logger.info(
+                    "virtual router running", local_ip=local_ip, port=self._port
+                )
         except Exception as e:
             self._state = VirtualRouterState.ERROR
             self._error = str(e)

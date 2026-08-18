@@ -23,6 +23,7 @@ def _load_version(version: str) -> ModuleType:
         VERSION_MODULES[version] = mod
     return mod
 
+
 VERSION_NAMESPACES = {v: f"http://knx.org/xml/project/{v}" for v in SUPPORTED_VERSIONS}
 
 _parser = XmlParser()

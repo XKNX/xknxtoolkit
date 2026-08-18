@@ -126,7 +126,11 @@ def render_ui_tree(
                 label = tab.text or tab.name or tab.id or "Tab"
                 if imgui.begin_tab_item(f"{label}##{device.node_id}_{tab.id}")[0]:
                     req = _render_children(
-                        device, tab.children, on_change, deferred_enum, f"{device.node_id}_{tab.id}",
+                        device,
+                        tab.children,
+                        on_change,
+                        deferred_enum,
+                        f"{device.node_id}_{tab.id}",
                     )
                     if req is not None:
                         popup_request = req
@@ -134,7 +138,11 @@ def render_ui_tree(
             imgui.end_tab_bar()
     else:
         req = _render_children(
-            device, tuple(nodes), on_change, deferred_enum, str(device.node_id),
+            device,
+            tuple(nodes),
+            on_change,
+            deferred_enum,
+            str(device.node_id),
         )
         if req is not None:
             popup_request = req
@@ -156,7 +164,9 @@ def _render_children(
         nonlocal popup_request, table_idx
         if not pending_params:
             return
-        req = _render_param_table(device, pending_params, on_change, deferred_enum, f"{prefix}_{table_idx}")
+        req = _render_param_table(
+            device, pending_params, on_change, deferred_enum, f"{prefix}_{table_idx}"
+        )
         table_idx += 1
         if req is not None:
             popup_request = req
@@ -193,7 +203,9 @@ def _render_block(
         return _render_grid_block(device, block, on_change, deferred_enum, block_prefix)
 
     if block.inline:
-        return _render_children(device, block.children, on_change, deferred_enum, block_prefix)
+        return _render_children(
+            device, block.children, on_change, deferred_enum, block_prefix
+        )
 
     label = block.text or block.name or block.id
     param_count = count_parameters(block.children)
@@ -202,7 +214,9 @@ def _render_block(
     imgui.same_line()
     imgui.text_disabled(f"({param_count})")
     if is_open:
-        req = _render_children(device, block.children, on_change, deferred_enum, block_prefix)
+        req = _render_children(
+            device, block.children, on_change, deferred_enum, block_prefix
+        )
         if req is not None:
             popup_request = req
         imgui.tree_pop()
@@ -248,7 +262,9 @@ def _render_grid_block(
     max_col = max(all_cols, default=1)
 
     is_table = block.layout == ParameterBlockLayout.TABLE
-    table_flags = imgui.TableFlags_.no_saved_settings | imgui.TableFlags_.sizing_stretch_prop
+    table_flags = (
+        imgui.TableFlags_.no_saved_settings | imgui.TableFlags_.sizing_stretch_prop
+    )
     if is_table:
         table_flags |= imgui.TableFlags_.borders | imgui.TableFlags_.row_bg
 
@@ -273,7 +289,9 @@ def _render_grid_block(
             imgui.table_next_row()
             if has_row_labels:
                 imgui.table_set_column_index(0)
-                label = block.row_labels[row - 1] if row - 1 < len(block.row_labels) else ""
+                label = (
+                    block.row_labels[row - 1] if row - 1 < len(block.row_labels) else ""
+                )
                 imgui.text_disabled(label)
             for col in range(1, max_col + 1):
                 imgui.table_set_column_index(col - 1 + col_offset)
@@ -374,7 +392,9 @@ class EnumPopup:
                 for choice in target.param.widget.choices:
                     selected = str(choice.value) == target.param.value
                     if imgui.menu_item(choice.label, "", selected)[0]:
-                        self._on_change(target.device, target.param.ref_id, str(choice.value))
+                        self._on_change(
+                            target.device, target.param.ref_id, str(choice.value)
+                        )
             imgui.end_popup()
         else:
             self._active = None

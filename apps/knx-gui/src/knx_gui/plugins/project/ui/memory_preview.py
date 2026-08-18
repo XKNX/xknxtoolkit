@@ -61,7 +61,12 @@ class MemoryPreviewWindow:
                         self._render_seg_toolbar(seg_id, data, i)
                         imgui.separator()
                         view = self._hex_views.setdefault(seg_id, HexView())
-                        view.draw(data, self._base_addrs.get(seg_id, 0), self._param_maps.get(seg_id), self._ref_data.get(seg_id))
+                        view.draw(
+                            data,
+                            self._base_addrs.get(seg_id, 0),
+                            self._param_maps.get(seg_id),
+                            self._ref_data.get(seg_id),
+                        )
                         imgui.end_tab_item()
                 imgui.end_tab_bar()
         imgui.end()
@@ -70,7 +75,9 @@ class MemoryPreviewWindow:
         current_idx = 0
         labels: list[str] = []
         for i, d in enumerate(devices):
-            label = f"{d.name} ({d.individual_address})" if d.individual_address else d.name
+            label = (
+                f"{d.name} ({d.individual_address})" if d.individual_address else d.name
+            )
             labels.append(label)
             if self._device is not None and d.node_id == self._device.node_id:
                 current_idx = i
@@ -102,7 +109,9 @@ class MemoryPreviewWindow:
     def _render_load_ref_modal(self) -> None:
         imgui.set_next_window_size(imgui.ImVec2(500, 0), imgui.Cond_.always)
         if imgui.begin_popup_modal(
-            "##loadref", None, imgui.WindowFlags_.no_title_bar | imgui.WindowFlags_.always_auto_resize
+            "##loadref",
+            None,
+            imgui.WindowFlags_.no_title_bar | imgui.WindowFlags_.always_auto_resize,
         )[0]:
             imgui.text("Reference file path:")
             imgui.set_next_item_width(-1)
@@ -123,7 +132,9 @@ class MemoryPreviewWindow:
     def _render_save_modal(self) -> None:
         imgui.set_next_window_size(imgui.ImVec2(500, 0), imgui.Cond_.always)
         if imgui.begin_popup_modal(
-            "##savedump", None, imgui.WindowFlags_.no_title_bar | imgui.WindowFlags_.always_auto_resize
+            "##savedump",
+            None,
+            imgui.WindowFlags_.no_title_bar | imgui.WindowFlags_.always_auto_resize,
         )[0]:
             imgui.text("Save path:")
             imgui.set_next_item_width(-1)

@@ -335,7 +335,9 @@ class ConnectionPlugin:
                 if gw.supports_secure:
                     tags.append("S")
                 tag_str = "/".join(tags)
-                label = f"{gw.name}  ({gw.ip_addr})" + (f"  [{tag_str}]" if tag_str else "")
+                label = f"{gw.name}  ({gw.ip_addr})" + (
+                    f"  [{tag_str}]" if tag_str else ""
+                )
                 is_connected_to = (
                     self._state == ConnectionState.CONNECTED
                     and self._selected_gateway is not None

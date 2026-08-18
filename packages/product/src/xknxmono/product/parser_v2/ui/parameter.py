@@ -191,16 +191,20 @@ Widget = (
 
 @dataclass(frozen=True, slots=True)
 class UiParameter:
-    ref_id: str                               # instance-qualified ParameterRef ID (for state binding)
-    label: str                                # resolved display text (static fallback)
-    value: str                                # state → ParameterRef.value → ParameterBase.value
-    widget: Widget                            # rendering hint — None means TypeNone / unrecognised
+    ref_id: str  # instance-qualified ParameterRef ID (for state binding)
+    label: str  # resolved display text (static fallback)
+    value: str  # state → ParameterRef.value → ParameterBase.value
+    widget: Widget  # rendering hint — None means TypeNone / unrecognised
     indent_level: int = 0
     suffix: str | None = None
-    access: Access = Access.READ_WRITE           # merged from ParameterRef (overrides) and ParameterBase
-    icon: str | None = None                      # per-placement icon override
-    cell: str | None = None                      # grid position "row,col" for TABLE/GRID layouts
-    text_alignment: TextAlignment | None = None  # value display alignment from ParameterType
+    access: Access = (
+        Access.READ_WRITE
+    )  # merged from ParameterRef (overrides) and ParameterBase
+    icon: str | None = None  # per-placement icon override
+    cell: str | None = None  # grid position "row,col" for TABLE/GRID layouts
+    text_alignment: TextAlignment | None = (
+        None  # value display alignment from ParameterType
+    )
 
 
 def resolve_widget(param_type: ParameterType) -> Widget:
@@ -227,7 +231,9 @@ def resolve_widget(param_type: ParameterType) -> Widget:
             )
         case ParameterTypeTypeRestriction() as r:
             return NumberWidget(min=0, max=2**r.size_in_bit - 1)
-        case ParameterTypeTypeNumber() as n if n.uihint is ParameterTypeTypeNumberUihint.SLIDER:
+        case ParameterTypeTypeNumber() as n if (
+            n.uihint is ParameterTypeTypeNumberUihint.SLIDER
+        ):
             return NumberSliderWidget(
                 min=n.min_inclusive,
                 max=n.max_inclusive,
@@ -236,9 +242,13 @@ def resolve_widget(param_type: ParameterType) -> Widget:
                 display_offset=n.display_offset,
                 display_factor=n.display_factor,
             )
-        case ParameterTypeTypeNumber() as n if n.uihint is ParameterTypeTypeNumberUihint.CHECK_BOX:
+        case ParameterTypeTypeNumber() as n if (
+            n.uihint is ParameterTypeTypeNumberUihint.CHECK_BOX
+        ):
             return CheckBoxWidget()
-        case ParameterTypeTypeNumber() as n if n.uihint is ParameterTypeTypeNumberUihint.PROGRESS_BAR:
+        case ParameterTypeTypeNumber() as n if (
+            n.uihint is ParameterTypeTypeNumberUihint.PROGRESS_BAR
+        ):
             return ProgressBarWidget(
                 min=n.min_inclusive,
                 max=n.max_inclusive,
@@ -254,7 +264,9 @@ def resolve_widget(param_type: ParameterType) -> Widget:
                 display_offset=n.display_offset,
                 display_factor=n.display_factor,
             )
-        case ParameterTypeTypeFloat() as f if f.uihint is ParameterTypeTypeFloatUihint.SLIDER:
+        case ParameterTypeTypeFloat() as f if (
+            f.uihint is ParameterTypeTypeFloatUihint.SLIDER
+        ):
             return FloatSliderWidget(
                 min=f.min_inclusive,
                 max=f.max_inclusive,
@@ -277,13 +289,17 @@ def resolve_widget(param_type: ParameterType) -> Widget:
         case ParameterTypeTypeText() as t:
             return TextWidget(max_length=t.size_in_bit // 8, pattern=t.pattern)
         case ParameterTypeTypeTime() as t:
-            return TimeWidget(unit=t.unit, min=t.min_inclusive, max=t.max_inclusive, hint=t.uihint)
+            return TimeWidget(
+                unit=t.unit, min=t.min_inclusive, max=t.max_inclusive, hint=t.uihint
+            )
         case ParameterTypeTypeDate() as d:
             return DateWidget(encoding=d.encoding, display_the_year=d.display_the_year)
         case ParameterTypeTypeIpaddress() as ip:
             return IpAddressWidget(address_type=ip.address_type, version=ip.version)
         case ParameterTypeTypePicture() as p:
-            return PictureWidget(ref_id=p.ref_id, horizontal_alignment=p.horizontal_alignment)
+            return PictureWidget(
+                ref_id=p.ref_id, horizontal_alignment=p.horizontal_alignment
+            )
         case ParameterTypeTypeColor() as c:
             return ColorWidget(space=c.space)
         case ParameterTypeTypeRawData() as r:

@@ -78,13 +78,17 @@ class TestComObjectRefRefNodeBasic:
         assert co.number == 42
 
     def test_dpt_codes_parsed_from_base(self):
-        node = ComObjectRefRefNode(_ELEM, _cor(), _co(datapoint_type=["DPT-1", "DPST-1-1"]))
+        node = ComObjectRefRefNode(
+            _ELEM, _cor(), _co(datapoint_type=["DPT-1", "DPST-1-1"])
+        )
         co = node.eval(EvalContext(GlobalState()))[0]
         assert isinstance(co, UiComObject)
         assert co.dpt_codes == ("1.0", "1.1")
 
     def test_dpt_codes_ref_overrides_base(self):
-        node = ComObjectRefRefNode(_ELEM, _cor(datapoint_type=["DPT-5"]), _co(datapoint_type=["DPT-1"]))
+        node = ComObjectRefRefNode(
+            _ELEM, _cor(datapoint_type=["DPT-5"]), _co(datapoint_type=["DPT-1"])
+        )
         co = node.eval(EvalContext(GlobalState()))[0]
         assert isinstance(co, UiComObject)
         assert co.dpt_codes == ("5.0",)
@@ -92,14 +96,18 @@ class TestComObjectRefRefNodeBasic:
 
 class TestFlags:
     def test_flags_from_base(self):
-        node = ComObjectRefRefNode(_ELEM, _cor(), _co(
-            communication_flag=Enable.ENABLED,
-            read_flag=Enable.DISABLED,
-            write_flag=Enable.ENABLED,
-            transmit_flag=Enable.DISABLED,
-            update_flag=Enable.DISABLED,
-            read_on_init_flag=Enable.DISABLED,
-        ))
+        node = ComObjectRefRefNode(
+            _ELEM,
+            _cor(),
+            _co(
+                communication_flag=Enable.ENABLED,
+                read_flag=Enable.DISABLED,
+                write_flag=Enable.ENABLED,
+                transmit_flag=Enable.DISABLED,
+                update_flag=Enable.DISABLED,
+                read_on_init_flag=Enable.DISABLED,
+            ),
+        )
         co = node.eval(EvalContext(GlobalState()))[0]
         assert isinstance(co, UiComObject)
         assert co.communication is True
@@ -118,11 +126,15 @@ class TestFlags:
         assert co.read is True
 
     def test_locked_flags_from_base_only(self):
-        node = ComObjectRefRefNode(_ELEM, _cor(), _co(
-            read_flag_locked=True,
-            write_flag_locked=False,
-            transmit_flag_locked=True,
-        ))
+        node = ComObjectRefRefNode(
+            _ELEM,
+            _cor(),
+            _co(
+                read_flag_locked=True,
+                write_flag_locked=False,
+                transmit_flag_locked=True,
+            ),
+        )
         co = node.eval(EvalContext(GlobalState()))[0]
         assert isinstance(co, UiComObject)
         assert co.read_locked is True
@@ -140,7 +152,9 @@ class TestFlags:
 
 class TestName:
     def test_name_from_base_text(self):
-        node = ComObjectRefRefNode(_ELEM, _cor(text=None), _co(text="Switch Output", name="Switch"))
+        node = ComObjectRefRefNode(
+            _ELEM, _cor(text=None), _co(text="Switch Output", name="Switch")
+        )
         co = node.eval(EvalContext(GlobalState()))[0]
         assert isinstance(co, UiComObject)
         assert co.name == "Switch Output"

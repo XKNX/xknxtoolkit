@@ -19,7 +19,11 @@ class ParameterSeparatorNode(DynamicNode):
         raw = self._elem.text
         if raw:
             template = apply_text_args(raw, ctx.get_arg_defaults())
-            name_value = ctx.get(self._elem.text_parameter_ref_id) if self._elem.text_parameter_ref_id else None
+            name_value = (
+                ctx.get(self._elem.text_parameter_ref_id)
+                if self._elem.text_parameter_ref_id
+                else None
+            )
             text: str | None = fill_name(template, name_value or "") or None
         else:
             text = None

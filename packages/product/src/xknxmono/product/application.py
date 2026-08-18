@@ -61,6 +61,7 @@ class Application:
         if self.program.dynamic is None:
             return None
         from .parser_v2.dynamic import DynamicUI as _DynamicUI
+
         return _DynamicUI(self.program)
 
 

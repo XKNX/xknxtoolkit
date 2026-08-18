@@ -97,6 +97,7 @@ if TYPE_CHECKING:
 def __getattr__(name: str) -> object:
     if name in _LAZY:
         import importlib
+
         module_path, attr = _LAZY[name]
         mod = importlib.import_module(module_path, __package__)
         value = getattr(mod, attr)

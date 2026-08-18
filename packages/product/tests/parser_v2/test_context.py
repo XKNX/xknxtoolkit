@@ -28,20 +28,22 @@ class _ParamLeaf(DynamicNode):
 
 _BASE = "M-0008_A-7072-21-5CC3-O000A"
 
-_REF_MODE   = f"{_BASE}_P-1_R-1"
+_REF_MODE = f"{_BASE}_P-1_R-1"
 _REF_TARGET = f"{_BASE}_P-2_R-2"
 
-_DEF_PREFIX         = f"{_BASE}_MD-1"
-_MODULE_ID          = f"{_BASE}_MD-1_M-C8"           # Module(0xC8 = 200)
+_DEF_PREFIX = f"{_BASE}_MD-1"
+_MODULE_ID = f"{_BASE}_MD-1_M-C8"  # Module(0xC8 = 200)
 _MODULE_INSTANCE_ID = f"{_BASE}_MD-1_M-C8_MI-1"
-_LOCAL_REF          = f"{_BASE}_MD-1_P-96_R-F3"      # ParamRef(0x96=150, 0xF3=243)
-_QUALIFIED_REF      = f"{_BASE}_MD-1_M-C8_MI-1_P-96_R-F3"
-_ARG_REF            = f"{_BASE}_MD-1_A-1"
+_LOCAL_REF = f"{_BASE}_MD-1_P-96_R-F3"  # ParamRef(0x96=150, 0xF3=243)
+_QUALIFIED_REF = f"{_BASE}_MD-1_M-C8_MI-1_P-96_R-F3"
+_ARG_REF = f"{_BASE}_MD-1_A-1"
 
-_SM_DEF_PREFIX         = f"{_BASE}_MD-1_SM-1"
-_SM_MODULE_INSTANCE_ID = f"{_BASE}_MD-1_M-64_MI-1_SM-1_M-C8_MI-1"  # Module(0x64=100), SubModule(0xC8=200)
-_SM_ARG_REF            = f"{_BASE}_MD-1_SM-1_A-1"
-_REL_SM_ARG_REF        = "MD-1_SM-1_A-1"  # relative form; no manufacturer prefix
+_SM_DEF_PREFIX = f"{_BASE}_MD-1_SM-1"
+_SM_MODULE_INSTANCE_ID = (
+    f"{_BASE}_MD-1_M-64_MI-1_SM-1_M-C8_MI-1"  # Module(0x64=100), SubModule(0xC8=200)
+)
+_SM_ARG_REF = f"{_BASE}_MD-1_SM-1_A-1"
+_REL_SM_ARG_REF = "MD-1_SM-1_A-1"  # relative form; no manufacturer prefix
 
 
 def _num_arg(ref_id: str, value: int) -> ModuleNumericArg:
@@ -231,7 +233,6 @@ class TestTrimToActive:
 _ALLOC_ID = f"{_BASE}_MD-1_L-2"
 
 
-
 class TestModuleChildMerge:
     def test_arg_overwritten_on_second_visit(self):
         first = ModuleNumericArg(ref_id=_ARG_REF, value=42)
@@ -244,31 +245,39 @@ class TestModuleChildMerge:
         assert child.get_arg(_ARG_REF) is second
 
 
-_ARGS: dict[str, ModuleArg] = {_ARG_REF: ModuleNumericArg(ref_id=_ARG_REF, allocator_ref_id=_ALLOC_ID)}
+_ARGS: dict[str, ModuleArg] = {
+    _ARG_REF: ModuleNumericArg(ref_id=_ARG_REF, allocator_ref_id=_ALLOC_ID)
+}
 
 
 class TestAllocator:
     def test_resolves_at_given_position(self):
-        address, next_pos = Allocator(id=_ALLOC_ID, start=100, max_inclusive=199).resolve(100, 10, 1, 0)
+        address, next_pos = Allocator(
+            id=_ALLOC_ID, start=100, max_inclusive=199
+        ).resolve(100, 10, 1, 0)
         assert address == 100
         assert next_pos == 110
 
     def test_resolves_at_advanced_position(self):
-        address, next_pos = Allocator(id=_ALLOC_ID, start=100, max_inclusive=199).resolve(110, 10, 1, 0)
+        address, next_pos = Allocator(
+            id=_ALLOC_ID, start=100, max_inclusive=199
+        ).resolve(110, 10, 1, 0)
         assert address == 110
         assert next_pos == 120
 
     def test_alignment_rounds_up_position(self):
         # position=103, allocates=3, alignment=4 → aligned to 104, next=107
-        address, next_pos = Allocator(id=_ALLOC_ID, start=100, max_inclusive=199).resolve(103, 3, 4, 0)
+        address, next_pos = Allocator(
+            id=_ALLOC_ID, start=100, max_inclusive=199
+        ).resolve(103, 3, 4, 0)
         assert address == 104
         assert next_pos == 107
 
     def test_overflow_raises(self):
         import pytest
+
         with pytest.raises(OverflowError):
             Allocator(id=_ALLOC_ID, start=100, max_inclusive=109).resolve(100, 11, 1, 0)
-
 
 
 class TestSetInstanceRef:
@@ -281,7 +290,11 @@ class TestSetInstanceRef:
         state = GlobalState()
         _ = state.module_child(_MODULE_ID, ref_id=_DEF_PREFIX)
         state.set_instance_ref(_QUALIFIED_REF, "7")
-        ms = next(c for c in state.module_children() if c.module_instance_id == _MODULE_INSTANCE_ID)
+        ms = next(
+            c
+            for c in state.module_children()
+            if c.module_instance_id == _MODULE_INSTANCE_ID
+        )
         assert ms.param_ref_id_to_value[_LOCAL_REF] == "7"
 
     def test_qualified_ref_visible_via_parameter_instance_refs(self):

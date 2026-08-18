@@ -10,17 +10,24 @@ from .base import DynamicNode
 
 def _resolved_base(ref_id: str, args: dict[str, ModuleArg]) -> int:
     ref = args.get(ref_id)
-    return ref.value if isinstance(ref, ModuleNumericArg) and ref.value is not None else 0
+    return (
+        ref.value if isinstance(ref, ModuleNumericArg) and ref.value is not None else 0
+    )
 
 
-def _resolve_arguments(ctx: EvalContext, ref_id: str, arguments: dict[str, ModuleArg]) -> dict[str, ModuleArg]:
+def _resolve_arguments(
+    ctx: EvalContext, ref_id: str, arguments: dict[str, ModuleArg]
+) -> dict[str, ModuleArg]:
     out = dict(arguments)
     for r_id, arg in arguments.items():
         if not isinstance(arg, ModuleNumericArg):
             continue
         base = _resolved_base(arg.base_value, out) if arg.base_value is not None else 0
         if arg.allocator_ref_id is not None:
-            out[r_id] = ModuleNumericArg(ref_id=r_id, value=ctx.allocate(ref_id, arg.allocator_ref_id, r_id, base))
+            out[r_id] = ModuleNumericArg(
+                ref_id=r_id,
+                value=ctx.allocate(ref_id, arg.allocator_ref_id, r_id, base),
+            )
         elif base:
             out[r_id] = ModuleNumericArg(ref_id=r_id, value=(arg.value or 0) + base)
     return out

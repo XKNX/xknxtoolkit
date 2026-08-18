@@ -35,7 +35,9 @@ def _read_js_var(interp: dukpy.JSInterpreter, expr: str) -> str | None:
     return str(v)
 
 
-def eval_inline(code: str, inputs: dict[str, str], output_names: list[str]) -> dict[str, str]:
+def eval_inline(
+    code: str, inputs: dict[str, str], output_names: list[str]
+) -> dict[str, str]:
     interp = dukpy.JSInterpreter()
     for name, val in inputs.items():
         interp.evaljs(f"var {name} = {_to_js_literal(val)};")  # type: ignore[union-attr]
@@ -58,5 +60,11 @@ def eval_named_func(
     input_obj = json.dumps({k: _coerce(v) for k, v in inputs.items()})
     output_obj = json.dumps({k: None for k in output_names})
     context_obj = func_params or "{}"
-    interp.evaljs(f"var __i={input_obj};var __o={output_obj};var __c={context_obj};{func_name}(__i,__o,__c);")  # type: ignore[union-attr]
-    return {n: v for n in output_names if (v := _read_js_var(interp, f"__o.{n}")) is not None}
+    interp.evaljs(  # type: ignore[union-attr]
+        f"var __i={input_obj};var __o={output_obj};var __c={context_obj};{func_name}(__i,__o,__c);"
+    )
+    return {
+        n: v
+        for n in output_names
+        if (v := _read_js_var(interp, f"__o.{n}")) is not None
+    }

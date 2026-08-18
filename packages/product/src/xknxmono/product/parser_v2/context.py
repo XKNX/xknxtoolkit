@@ -19,7 +19,12 @@ class EvalContext:
 
     __slots__ = ("_idx", "_repeat_idx", "_scope")
 
-    def __init__(self, scope: ParameterState, repeat_idx: int = 1, idx: ApplicationIndexer | None = None) -> None:
+    def __init__(
+        self,
+        scope: ParameterState,
+        repeat_idx: int = 1,
+        idx: ApplicationIndexer | None = None,
+    ) -> None:
         self._scope = scope
         self._repeat_idx = repeat_idx
         self._idx = idx
@@ -48,7 +53,9 @@ class EvalContext:
     def get_com_obj_instance_ref(self, ref_id: str) -> ComObjectInstanceRef | None:
         return self._scope.get_com_obj_instance_ref(ref_id)
 
-    def allocate(self, def_ref_id: str, alloc_id: str, arg_ref_id: str, base: int = 0) -> int:
+    def allocate(
+        self, def_ref_id: str, alloc_id: str, arg_ref_id: str, base: int = 0
+    ) -> int:
         """Allocate an address from the running pool, advance the scope position, and return the address."""
         if self._idx is None:
             raise RuntimeError("allocate() requires an ApplicationIndexer")
@@ -85,5 +92,12 @@ class EvalContext:
         arg_defaults: dict[str, str] | None = None,
         ref_id: str | None = None,
     ) -> EvalContext:
-        ms = self._scope.module_child(module_id, self._repeat_idx, default_arguments, param_ref_defaults=param_ref_defaults, arg_defaults=arg_defaults, ref_id=ref_id)
+        ms = self._scope.module_child(
+            module_id,
+            self._repeat_idx,
+            default_arguments,
+            param_ref_defaults=param_ref_defaults,
+            arg_defaults=arg_defaults,
+            ref_id=ref_id,
+        )
         return EvalContext(ms, idx=self._idx)

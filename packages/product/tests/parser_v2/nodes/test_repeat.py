@@ -66,23 +66,31 @@ class TestCount:
 
 class TestEval:
     def test_zero_count_returns_empty(self):
-        assert _repeat(count=0, children=[UiLeaf()]).eval(EvalContext(GlobalState())) == []
+        assert (
+            _repeat(count=0, children=[UiLeaf()]).eval(EvalContext(GlobalState())) == []
+        )
 
     def test_repeated_n_times(self):
         result = _repeat(count=3, children=[UiLeaf()]).eval(EvalContext(GlobalState()))
         assert len(result) == 3
 
     def test_none_children_filtered(self):
-        result = _repeat(count=2, children=[None, UiLeaf(), None]).eval(EvalContext(GlobalState()))
+        result = _repeat(count=2, children=[None, UiLeaf(), None]).eval(
+            EvalContext(GlobalState())
+        )
         assert len(result) == 2
 
     def test_multiple_children_all_included_per_iteration(self):
-        result = _repeat(count=2, children=[UiLeaf(), UiLeaf()]).eval(EvalContext(GlobalState()))
+        result = _repeat(count=2, children=[UiLeaf(), UiLeaf()]).eval(
+            EvalContext(GlobalState())
+        )
         assert len(result) == 4
 
     def test_dynamic_count_drives_iterations(self):
         state = GlobalState({_PARAM_REF: "4"})
-        result = _repeat(count=0, param_ref_id=_PARAM_REF, children=[UiLeaf()]).eval(EvalContext(state))
+        result = _repeat(count=0, param_ref_id=_PARAM_REF, children=[UiLeaf()]).eval(
+            EvalContext(state)
+        )
         assert len(result) == 4
 
     def test_indices_start_at_one(self):

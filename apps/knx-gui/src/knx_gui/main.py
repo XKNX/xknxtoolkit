@@ -261,10 +261,12 @@ def _detect_locale() -> str:
 
 def main() -> None:
     import sys
+
     if "--profile" in sys.argv:
         import cProfile
         import io
         import pstats
+
         pr = cProfile.Profile()
         pr.enable()
         try:

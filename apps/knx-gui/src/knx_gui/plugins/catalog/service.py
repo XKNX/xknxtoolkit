@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 class CatalogService:
     def __init__(self, catalog_path: Path) -> None:
         from xknxmono.catalog import CatalogService as _CatalogService
+
         self._service = _CatalogService(catalog_path)
         self._products: list[ProductSummary] | None = None
 

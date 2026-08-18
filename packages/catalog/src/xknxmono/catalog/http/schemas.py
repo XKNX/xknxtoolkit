@@ -87,5 +87,3 @@ class CatalogSectionResponse(BaseModel):
     manufacturer_id: str
     parent_id: str | None
     children: list[CatalogSectionResponse] = []
-
-
