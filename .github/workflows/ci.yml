@@ -39,7 +39,9 @@ jobs:
           enable-cache: true
       - run: uv sync
       - run: uv run pytest
-      - run: uv run pytest apps/knx-gui/src/knx_gui/plugins/network/tests -v
+      - name: Test knx-gui network plugin
+        working-directory: apps/knx-gui
+        run: uv run pytest src/knx_gui/plugins/network/tests -v
 
   build:
     name: Build packages
