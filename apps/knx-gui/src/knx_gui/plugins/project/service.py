@@ -13,8 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from knx_gui.device import Device
 from knx_gui.plugins.project.ui.history import HistoryEntry
-from knx_gui.types import Device
 from xknxmono.models.intermediate import ComObjectInstanceRef
 from xknxmono.models.intermediate.enable_t import Enable
 from xknxmono.product import Application

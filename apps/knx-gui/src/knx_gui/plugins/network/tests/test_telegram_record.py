@@ -1,4 +1,4 @@
-from knx_gui.types import TelegramRecord
+from knx_gui.plugins.network.records import TelegramRecord
 
 
 def test_telegram_record_properties(mock_telegrams: list[TelegramRecord]) -> None:

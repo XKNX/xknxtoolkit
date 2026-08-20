@@ -15,8 +15,9 @@ from xknx.management.procedures import (
 if TYPE_CHECKING:
     from xknx import XKNX
 
+    from knx_gui.device import Device
+    from knx_gui.net import TelegramSource
     from knx_gui.plugins.base import Logger
-    from knx_gui.types import Device, TelegramSource
 
 
 class ConnectionService:
@@ -39,17 +40,17 @@ class ConnectionService:
         self._connected_listeners.append(callback)
 
     def dispatch_raw_cemi(self, raw_cemi: bytes) -> None:
-        from knx_gui.types import TelegramSource
+        from knx_gui.net import TelegramSource
 
         self._dispatch_cemi(raw_cemi, TelegramSource.CONNECTION)
 
     def dispatch_proxy_cemi(self, raw_cemi: bytes) -> None:
-        from knx_gui.types import TelegramSource
+        from knx_gui.net import TelegramSource
 
         self._dispatch_cemi(raw_cemi, TelegramSource.PROXY)
 
     def dispatch_virtual_cemi(self, raw_cemi: bytes) -> None:
-        from knx_gui.types import TelegramSource
+        from knx_gui.net import TelegramSource
 
         self._dispatch_cemi(raw_cemi, TelegramSource.VIRTUAL)
 

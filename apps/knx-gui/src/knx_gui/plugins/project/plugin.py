@@ -8,7 +8,7 @@ from knx_gui.plugins.project.ui.devices import Area, Line
 from knx_gui.plugins.project.ui.memory_preview import MemoryPreviewWindow
 
 if TYPE_CHECKING:
-    from knx_gui.types import Device
+    from knx_gui.device import Device
 
 
 class ProjectPlugin:

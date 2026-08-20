@@ -5,8 +5,8 @@ from dataclasses import dataclass
 
 from imgui_bundle import imgui
 
+from knx_gui.device import Device
 from knx_gui.plugins.node_editor.strings import S
-from knx_gui.types import Device
 from xknxmono.models.intermediate.parameter_block_layout_t import ParameterBlockLayout
 from xknxmono.product.parser_v2.ui import (
     UiComObject,

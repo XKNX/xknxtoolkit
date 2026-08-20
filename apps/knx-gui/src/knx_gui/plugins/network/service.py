@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Any
 from xknx.cemi import CEMIFrame, CEMILData, CEMIMessageCode
 from xknx.telegram import Telegram
 
-from knx_gui.types import CemiRecord, TelegramRecord, TelegramSource
+from knx_gui.net import TelegramSource
+from knx_gui.plugins.network.records import CemiRecord, TelegramRecord
 
 if TYPE_CHECKING:
     from knx_gui.plugins.base import Logger

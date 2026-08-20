@@ -5,9 +5,7 @@ from imgui_bundle import imgui
 from imgui_bundle import imgui_node_editor as ed
 
 from knx_gui.color import color_u32
-from knx_gui.dpt import DPT, DPTMatch, dpt_color, dpt_match
-from knx_gui.plugins.node_editor.strings import S
-from knx_gui.types import (
+from knx_gui.device import (
     FLAG_LABELS,
     ComObject,
     ComObjectFlags,
@@ -18,6 +16,8 @@ from knx_gui.types import (
     default_flags_for,
     flag_diff_letters,
 )
+from knx_gui.dpt import DPT, DPTMatch, dpt_color, dpt_match
+from knx_gui.plugins.node_editor.strings import S
 from knx_gui.widgets import EnumPopup
 
 NODE_PADDING = 8.0

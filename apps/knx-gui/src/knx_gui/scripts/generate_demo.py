@@ -8,7 +8,7 @@ catalog product, and the device stores that product's refs.
 from dataclasses import dataclass
 from pathlib import Path
 
-from knx_gui.types import Device as _Device
+from knx_gui.device import Device as _Device
 from xknxmono.catalog import CatalogService
 from xknxmono.project import ProjectService
 
