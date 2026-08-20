@@ -2,12 +2,12 @@ from collections.abc import Callable
 
 from imgui_bundle import imgui
 
-from knx_gui.plugins.node_editor.strings import S
-from knx_gui.types import (
+from knx_gui.device import (
     FLAG_LABELS,
     ComObject,
     Device,
 )
+from knx_gui.plugins.node_editor.strings import S
 
 
 class ComFlagsTable:

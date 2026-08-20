@@ -5,7 +5,7 @@ from knx_gui.plugins.node_editor.strings import S
 from knx_gui.plugins.node_editor.ui import NodeEditorPanel
 
 if TYPE_CHECKING:
-    from knx_gui.types import Device
+    from knx_gui.device import Device
 
 NAVIGATE_TO_NODE_DURATION = 0.3
 

@@ -42,7 +42,7 @@ from xknx.telegram.apci import (
     UserMemoryWrite,
 )
 
-from knx_gui.types import TelegramRecord
+from knx_gui.plugins.network.records import TelegramRecord
 
 
 def make_telegram_record(source: str, dest: str, payload, sec: int) -> TelegramRecord:

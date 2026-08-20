@@ -1,9 +1,9 @@
 from imgui_bundle import imgui
 
 from knx_gui.knxip_tunnelling_gateway import GatewayState, TunnellingGateway
+from knx_gui.net import TelegramSource
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.proxy.strings import S
-from knx_gui.types import TelegramSource
 
 _NAME = "xknxtoolkit proxy"
 
