@@ -12,10 +12,10 @@ from xknx.io.const import DEFAULT_MCAST_GRP
 from xknx.io.gateway_scanner import GatewayDescriptor, GatewayScanner
 from xknx.io.self_description import request_description
 
+from knx_gui.color import color_u32
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.connection.interface import ObservableKNXIPInterfaceThreaded
 from knx_gui.plugins.connection.strings import S
-from knx_gui.types import color_u32
 
 
 class ConnectionState(Enum):
