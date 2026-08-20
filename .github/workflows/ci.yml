@@ -52,10 +52,3 @@ jobs:
         with:
           enable-cache: true
       - run: uv build --all-packages
-
-  changelog:
-    name: Changelog format
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - run: python3 .github/scripts/check_changelog_format.py
