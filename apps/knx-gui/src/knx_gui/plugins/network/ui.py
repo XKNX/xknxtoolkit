@@ -4,8 +4,9 @@ from enum import Enum
 
 from imgui_bundle import imgui
 
+from knx_gui.color import color_u32
 from knx_gui.plugins.network.strings import S
-from knx_gui.types import CemiRecord, TelegramRecord, TelegramSource, color_u32
+from knx_gui.types import CemiRecord, TelegramRecord, TelegramSource
 
 
 class CaptureState(Enum):

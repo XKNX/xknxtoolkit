@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from imgui_bundle import imgui
 from imgui_bundle import imgui_node_editor as ed
 
+from knx_gui.color import color_u32
 from knx_gui.dpt import DPT, DPTMatch, dpt_color, dpt_match
 from knx_gui.plugins.node_editor.strings import S
 from knx_gui.types import (
@@ -12,7 +13,6 @@ from knx_gui.types import (
     ComObjectFlags,
     Device,
     PinDir,
-    color_u32,
     com_object_has_input,
     com_object_has_output,
     default_flags_for,
