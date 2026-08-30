@@ -3,5 +3,6 @@
 *.xknx
 knxprod/
 NodeEditor.json
+online_catalog_manufacturers.json
 .venv/
 internal/

@@ -43,6 +43,25 @@ def lookup_or_make_dpt(code: str | None) -> DPT:
     return DPT(major, minor, f"DPT {major}.{minor:03d}", code)
 
 
+@lru_cache(maxsize=512)
+def transcoder_for(dpt_str: str | None) -> type[DPTBase] | None:
+    """Resolve an xknx transcoder from a project DPT string (``"DPST-1-1"`` / ``"DPT-5"``).
+
+    The project stores ETS-token DPTs, but xknx's ``parse_transcoder`` wants dotted ``"1.1"`` (or
+    ``"DPT-1"`` for main-only). We convert and fall back to the main-only transcoder."""
+    if not dpt_str:
+        return None
+    parts = dpt_str.split("-")
+    if parts[0] == "DPST" and len(parts) >= 3:
+        transcoder = DPTBase.parse_transcoder(f"{parts[1]}.{parts[2]}")
+        if transcoder is not None:
+            return transcoder
+        return DPTBase.parse_transcoder(f"DPT-{parts[1]}")
+    if parts[0] == "DPT" and len(parts) >= 2:
+        return DPTBase.parse_transcoder(f"DPT-{parts[1]}")
+    return DPTBase.parse_transcoder(dpt_str)
+
+
 DPT_MAJOR_COLORS: dict[int, imgui.ImVec4] = {
     1: imgui.ImVec4(0.9, 0.3, 0.3, 1.0),
     2: imgui.ImVec4(0.9, 0.5, 0.5, 1.0),

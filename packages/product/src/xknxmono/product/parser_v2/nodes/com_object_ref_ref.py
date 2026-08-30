@@ -46,6 +46,8 @@ class ComObjectRefRefNode(DynamicNode):
         "_local_ref_id",
         "_name_template",
         "_number",
+        "_object_size",
+        "_priority",
         "_read",
         "_read_locked",
         "_read_on_init",
@@ -84,6 +86,11 @@ class ComObjectRefRefNode(DynamicNode):
             cor.datapoint_type if cor else [],
             co.datapoint_type if co else [],
         )
+        # Size and priority: the ref overrides the base, else the base value.
+        size = (cor.object_size if cor else None) or (co.object_size if co else None)
+        self._object_size: str = size.value if size is not None else ""
+        priority = (cor.priority if cor else None) or (co.priority if co else None)
+        self._priority: str = priority.value if priority is not None else ""
         self._communication = _flag(
             cor.communication_flag if cor else None,
             co.communication_flag if co else None,
@@ -133,6 +140,8 @@ class ComObjectRefRefNode(DynamicNode):
                 name=name,
                 number=self._number + base,
                 dpt_codes=self._dpt_codes,
+                object_size=self._object_size,
+                priority=self._priority,
                 communication=_flag(
                     ov.communication_flag if ov else None,
                     Enable.ENABLED if self._communication else Enable.DISABLED,

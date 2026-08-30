@@ -34,6 +34,7 @@ htmlcov/
 .DS_Store
 NodeEditor.json
 XKNX_Toolkit.ini
+.references
 
 scan_repeats.py
 

@@ -5,6 +5,7 @@ from imgui_bundle import imgui
 
 from knx_gui.device import Device
 from knx_gui.plugins.project.strings import S
+from knx_gui.plugins.project.ui._filter import filter_box
 
 
 @dataclass
@@ -49,6 +50,7 @@ class DevicesPanel:
         self._on_remove_line = on_remove_line
         self._on_rename_line = on_rename_line
         self._dragging_device: Device | None = None
+        self._filter_text: str = ""
 
         self._popup_area_number: int = 0
         self._popup_line_number: int = 0
@@ -63,6 +65,14 @@ class DevicesPanel:
         devices = self._get_devices()
         areas = self._get_areas()
         device_tree = self._build_device_tree(devices)
+
+        self._filter_text = filter_box(
+            "##device_filter", S.DEVICE_FILTER_HINT, self._filter_text
+        )
+        flt = self._filter_text.strip().lower()
+
+        if not areas and not devices:
+            imgui.text_disabled(S.DEVICE_EMPTY_HINT)
 
         if imgui.begin_popup_context_window("##devices_context"):
             if imgui.menu_item(S.CONTEXT_ADD_AREA, "", False)[0]:
@@ -93,53 +103,94 @@ class DevicesPanel:
 
         for area in areas:
             lines = self._get_lines(area.id)
+            if flt and not any(
+                self._device_matches(device, flt)
+                for line in lines
+                for device in device_tree.get(area.number, {}).get(line.number, [])
+            ):
+                continue  # while filtering, hide areas with no matching device
             area_label = self._format_area_label(area)
             area_flags = (
                 imgui.TreeNodeFlags_.default_open
                 | imgui.TreeNodeFlags_.span_avail_width
             )
+            if flt:
+                imgui.set_next_item_open(True, imgui.Cond_.always)
             if imgui.tree_node_ex(f"{area_label}##area_{area.id}", area_flags):
                 self._render_area_context_menu(area, lines)
 
                 for line in lines:
+                    line_devices = device_tree.get(area.number, {}).get(line.number, [])
+                    if flt:
+                        line_devices = [
+                            d for d in line_devices if self._device_matches(d, flt)
+                        ]
+                        if not line_devices:
+                            continue  # hide lines with no match while filtering
                     line_label = self._format_line_label(area, line)
                     line_flags = (
                         imgui.TreeNodeFlags_.default_open
                         | imgui.TreeNodeFlags_.span_avail_width
                     )
+                    if flt:
+                        imgui.set_next_item_open(True, imgui.Cond_.always)
                     if imgui.tree_node_ex(f"{line_label}##line_{line.id}", line_flags):
                         self._render_line_context_menu(line)
                         self._render_line_drop_target(area, line)
 
-                        line_devices = device_tree.get(area.number, {}).get(
-                            line.number, []
-                        )
                         for device in line_devices:
-                            imgui.tree_node_ex(
-                                f"{device.name} ({device.individual_address})",
-                                leaf_flags,
-                            )
+                            imgui.tree_node_ex(self._device_label(device), leaf_flags)
                             if imgui.is_item_clicked():
                                 self._on_select_device(device)
+                            self._render_device_context_menu(device)
                             self._render_device_drag_source(device)
                         imgui.tree_pop()
                 imgui.tree_pop()
 
         unassigned = self._get_unassigned_devices(devices, areas)
+        if flt:
+            unassigned = [d for d in unassigned if self._device_matches(d, flt)]
         if unassigned:
             unassigned_flags = (
                 imgui.TreeNodeFlags_.default_open
                 | imgui.TreeNodeFlags_.span_avail_width
             )
+            if flt:
+                imgui.set_next_item_open(True, imgui.Cond_.always)
             if imgui.tree_node_ex(
                 S.DEVICE_UNASSIGNED.format(count=len(unassigned)), unassigned_flags
             ):
                 for device in unassigned:
-                    imgui.tree_node_ex(device.name, leaf_flags)
+                    imgui.tree_node_ex(self._device_label(device), leaf_flags)
                     if imgui.is_item_clicked():
                         self._on_select_device(device)
+                    self._render_device_context_menu(device)
                     self._render_device_drag_source(device)
                 imgui.tree_pop()
+
+    def _render_device_context_menu(self, device: Device) -> None:
+        if not device.individual_address:
+            return
+        if imgui.begin_popup_context_item(f"##dev_ctx_{device.node_id}"):
+            if imgui.menu_item(S.CONTEXT_COPY_ADDRESS, "", False)[0]:
+                imgui.set_clipboard_text(device.individual_address)
+            imgui.end_popup()
+
+    def _device_matches(self, device: Device, flt: str) -> bool:
+        """Case-insensitive match of a device against the filter (name, address, app name)."""
+        if flt in (device.name or "").lower():
+            return True
+        if flt in (device.individual_address or "").lower():
+            return True
+        app_name = getattr(device.app, "name", "") or ""
+        return flt in app_name.lower()
+
+    def _device_label(self, device: Device) -> str:
+        # Imported devices are often unnamed; fall back to the application/product name (like ETS).
+        primary = device.name or getattr(device.app, "name", "") or "?"
+        if device.individual_address:
+            return f"{device.individual_address}  {primary}##dev{device.node_id}"
+        return f"{primary}##dev{device.node_id}"
 
     def _format_area_label(self, area: Area) -> str:
         if area.name:

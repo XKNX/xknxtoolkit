@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
+from knx_gui.plugins.catalog.online_catalog import OnlineCatalogError
 from knx_gui.plugins.catalog.strings import S
 from knx_gui.plugins.catalog.ui import CatalogPanel
 
@@ -19,6 +20,8 @@ class CatalogPlugin:
         self._panel = CatalogPanel(
             get_products=api.catalog.get_products,
             on_select=self._on_select,
+            get_online_manufacturers=api.catalog.online_manufacturers,
+            on_online_refresh=self._refresh_online,
         )
         self._panels = [
             PanelDefinition(
@@ -50,6 +53,15 @@ class CatalogPlugin:
         )
         if device_id:
             self._log.info("device added", name=app.name, id=device_id)
+
+    def _refresh_online(self) -> None:
+        """Fetch the online manufacturer list (called on a worker thread)."""
+        try:
+            manufacturers = self._api.catalog.refresh_online_manufacturers()
+        except OnlineCatalogError as exc:
+            self._log.error("online catalog refresh failed", error=str(exc))
+            raise
+        self._log.info("online catalog manufacturers loaded", count=len(manufacturers))
 
     @property
     def panels(self) -> list[PanelDefinition]:

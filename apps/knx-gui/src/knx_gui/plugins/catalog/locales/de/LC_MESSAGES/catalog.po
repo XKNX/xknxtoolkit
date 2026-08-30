@@ -18,3 +18,15 @@ msgstr "{count} Anwendung(en) gefunden"
 
 msgid "({count} com objects)"
 msgstr "({count} Kommunikationsobjekte)"
+
+msgid "Online Catalog"
+msgstr "Online-Katalog"
+
+msgid "Loading manufacturer list..."
+msgstr "Lade Herstellerliste..."
+
+msgid "Online catalog not reachable"
+msgstr "Online-Katalog nicht erreichbar"
+
+msgid "{count} manufacturers"
+msgstr "{count} Hersteller"

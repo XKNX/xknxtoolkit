@@ -9,6 +9,7 @@ dependencies = [
     "xknx-project",
     "xknx-keyring",
     "xknx-catalog",
+    "xknx-download",
 ]
 
 [dependency-groups]
@@ -35,3 +36,4 @@ xknx-project = { workspace = true }
 xknx-keyring = { workspace = true }
 knx-gui = { workspace = true }
 xknx-catalog = { workspace = true }
+xknx-download = { workspace = true }

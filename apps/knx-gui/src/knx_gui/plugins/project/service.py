@@ -13,16 +13,20 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from knx_gui.concurrency import io_guarded
 from knx_gui.device import Device
 from knx_gui.plugins.project.ui.history import HistoryEntry
 from xknxmono.models.intermediate import ComObjectInstanceRef
 from xknxmono.models.intermediate.enable_t import Enable
 from xknxmono.product import Application
 from xknxmono.project import ProjectService as _ProjectService
+from xknxmono.project import import_knxproj as _import_knxproj
+from xknxmono.project.core.addressing import GroupAddressStyle, parse_ga
 
 if TYPE_CHECKING:
     from knx_gui.plugins.base import Logger
     from knx_gui.plugins.catalog.service import CatalogService
+    from xknxmono.project.core.service import DeviceInfo, GroupRangeInfo, SpaceInfo
 
 _INSTALLATION = 0
 
@@ -123,6 +127,22 @@ class _GroupAddress:
     id: int
     address: str
     name: str
+    datapoint_type: str | None = None
+    description: str = ""
+    comment: str = ""
+    data_secure: bool = False
+
+
+@dataclass
+class _ProjectInfo:
+    id: str
+    name: str
+    group_address_style: str
+    guid: str
+    created_by: str
+    last_modified: str
+    schema_version: str
+    tool_version: str
 
 
 @dataclass
@@ -136,6 +156,8 @@ class _Assignment:
 class ProjectService:
     def __init__(self, catalog: "CatalogService") -> None:
         self._catalog = catalog
+        # Share the catalog's re-entrant lock: a background import holds it while writing both stores.
+        self._io_lock = catalog.io_lock
         self._svc = _ProjectService()
         self._pid: str | None = None
         self._path: Path | None = None
@@ -185,12 +207,46 @@ class ProjectService:
         self._log.info("project created", path=str(path))
 
     def open(self, path: Path) -> None:
-        if self._pid is not None:
-            self.close()
-        self._pid = self._svc.open(path)
-        self._path = path
-        self._reset()
-        self._log.info("project opened", path=str(path), devices=len(self.devices))
+        # Hold the shared lock for the whole open (incl. the device-view build) so per-frame UI reads
+        # on other threads bail to empty placeholders instead of racing it — lets a background open
+        # run behind a progress spinner. Re-entrant, so our own nested reads still work.
+        with self._io_lock:
+            if self._pid is not None:
+                self.close()
+            self._pid = self._svc.open(path)
+            self._path = path
+            self._reset()
+            self._log.info("project opened", path=str(path), devices=len(self.devices))
+
+    def import_knxproj(
+        self, source: Path, dest: Path, *, password: str | None = None
+    ) -> None:
+        """Import an ETS ``.knxproj`` into a new project at ``dest`` and open it.
+
+        A ``.knxproj`` bundles the (unencrypted) manufacturer/application data for the products it
+        uses, so we also ingest it into the catalog — without it the device view cannot resolve the
+        applications and would skip every imported device."""
+        if not dest.suffix:
+            dest = dest.with_suffix(".xknx")
+        # Hold the shared lock for the whole import so per-frame UI reads on other threads bail to
+        # empty placeholders (see knx_gui.concurrency) instead of racing these writes. This method is
+        # meant to run on a worker thread; the lock is re-entrant, so our own nested reads still work.
+        with self._io_lock:
+            try:
+                added = self._catalog.import_knxprod(source)
+                self._log.info("catalog updated from knxproj", added=len(added))
+            except Exception as e:
+                # Best effort: catalog ingest is optional enrichment (it lets the device view resolve
+                # applications). Any failure here — including product-parser bugs on odd archives —
+                # must not block the project import; topology and group addresses still load.
+                self._log.warning(
+                    "could not populate catalog from knxproj",
+                    source=str(source),
+                    error=f"{type(e).__name__}: {e}",
+                )
+            _import_knxproj(source, dest, password=password)
+            self.open(dest)
+        self._log.info("project imported", source=str(source), path=str(dest))
 
     def close(self) -> None:
         if self._pid is not None:
@@ -271,6 +327,7 @@ class ProjectService:
         return device
 
     @property
+    @io_guarded(list)
     def devices(self) -> list[Device]:
         if self._devices_cache is None or self._cache_version != self._version:
             devices: list[Device] = []
@@ -331,12 +388,14 @@ class ProjectService:
         }
         self._cache_version = self._version
 
+    @io_guarded(list)
     def get_areas(self) -> list[_Area]:
         if self._pid is None:
             return []
         self._ensure_topology_cache()
         return self._areas_cache or []
 
+    @io_guarded(list)
     def get_lines(self, area_id: int) -> list[_Line]:
         if self._pid is None:
             return []
@@ -346,18 +405,28 @@ class ProjectService:
     # --- group address reads ----------------------------------------------
 
     @property
+    @io_guarded(list)
     def group_addresses(self) -> list[_GroupAddress]:
         if self._pid is None:
             return []
         if self._ga_cache is not None and self._cache_version == self._version:
             return self._ga_cache
         self._ga_cache = [
-            _GroupAddress(id=g.id, address=g.text, name=g.name)
+            _GroupAddress(
+                id=g.id,
+                address=g.text,
+                name=g.name,
+                datapoint_type=g.datapoint_type,
+                description=g.description,
+                comment=g.comment,
+                data_secure=g.data_secure,
+            )
             for g in self._svc.group_addresses(self._pid)
         ]
         self._cache_version = self._version
         return self._ga_cache
 
+    @io_guarded(lambda: None)
     def get_group_address(self, ga_id: int) -> _GroupAddress | None:
         if self._pid is None:
             return None
@@ -365,8 +434,17 @@ class ProjectService:
             g = self._svc.group_address(self._pid, ga_id)
         except KeyError:
             return None
-        return _GroupAddress(id=g.id, address=g.text, name=g.name)
+        return _GroupAddress(
+            id=g.id,
+            address=g.text,
+            name=g.name,
+            datapoint_type=g.datapoint_type,
+            description=g.description,
+            comment=g.comment,
+            data_secure=g.data_secure,
+        )
 
+    @io_guarded(list)
     def get_assignments_for_ga(self, ga_id: int) -> list[_Assignment]:
         if self._pid is None:
             return []
@@ -379,6 +457,79 @@ class ProjectService:
             )
             for link in self._svc.group_address_links(self._pid, ga_id)
         ]
+
+    @io_guarded(list)
+    def get_links_for_com_object(self, com_object_db_id: int) -> list[_Assignment]:
+        """A device com-object's group-address links (the per-com-object direction, for the editor's
+        Group Objects view). ``com_object_db_id`` is ``ComObject.db_id``."""
+        if self._pid is None:
+            return []
+        return [
+            _Assignment(
+                id=link.id,
+                com_object_id=link.com_object_id,
+                group_address_id=link.group_address_id,
+                is_sending=link.is_sending,
+            )
+            for link in self._svc.com_object_links(self._pid, com_object_db_id)
+        ]
+
+    @io_guarded(list)
+    def get_group_range_tree(self) -> list["GroupRangeInfo"]:
+        """The named group-address range tree (roots → children → GAs) for the GA view."""
+        if self._pid is None:
+            return []
+        return self._svc.group_ranges(self._pid, _INSTALLATION)
+
+    @io_guarded(list)
+    def get_space_tree(self) -> list["SpaceInfo"]:
+        """The building/location tree (spaces → devices/functions) for the Buildings view."""
+        if self._pid is None:
+            return []
+        return self._svc.space_tree(self._pid, _INSTALLATION)
+
+    @io_guarded(lambda: None)
+    def get_project_metadata(self) -> _ProjectInfo | None:
+        """Project-level metadata (name, author, tool/schema version, …) from the imported project."""
+        if self._pid is None:
+            return None
+        p = self._svc.project(self._pid)
+        return _ProjectInfo(
+            id=p.id,
+            name=p.name,
+            group_address_style=p.group_address_style,
+            guid=p.guid,
+            created_by=p.created_by,
+            last_modified=p.last_modified,
+            schema_version=p.schema_version,
+            tool_version=p.tool_version,
+        )
+
+    @io_guarded(lambda: None)
+    def get_device_info(self, node_id: int) -> "DeviceInfo | None":
+        """Descriptive device metadata (manufacturer/order number/hardware/description) from the
+        imported project, independent of catalog resolution."""
+        if self._pid is None:
+            return None
+        try:
+            return self._svc.device(self._pid, node_id)
+        except KeyError:
+            return None
+
+    @io_guarded(set)
+    def program_refs(self) -> set[str]:
+        """Distinct hardware-program refs (fallback product refs) across all project devices.
+
+        Used to collect the manufacturer archives a ``.knxproj`` export needs to bundle.
+        """
+        if self._pid is None:
+            return set()
+        refs: set[str] = set()
+        for row in self._svc.devices(self._pid):
+            ref = row.hardware2program_ref_id or row.product_ref_id
+            if ref:
+                refs.add(ref)
+        return refs
 
     # --- device edits -----------------------------------------------------
 
@@ -498,12 +649,34 @@ class ProjectService:
     def create_group_address(
         self, address: str | None = None, name: str = ""
     ) -> int | None:
+        """Create a group address. ``address`` is a style-formatted string (e.g. ``"1/2/3"``); when
+        omitted, the next free address is allocated. Returns ``None`` on an invalid address."""
         if self._pid is None:
             return None
-        value = self._svc.next_free_group_address(self._pid, _INSTALLATION)
+        if address:
+            style = GroupAddressStyle(self._svc.project(self._pid).group_address_style)
+            try:
+                value = parse_ga(address, style)
+            except (ValueError, IndexError):
+                self._log.warning("invalid group address", address=address)
+                return None
+        else:
+            value = self._svc.next_free_group_address(self._pid, _INSTALLATION)
         ga_id = self._svc.create_group_address(self._pid, _INSTALLATION, value, name)
         self._bump()
         return ga_id
+
+    def rename_group_address(self, ga_id: int, name: str) -> None:
+        if self._pid is None:
+            return
+        self._svc.rename_group_address(self._pid, ga_id, name)
+        self._bump()
+
+    def set_group_address_dpt(self, ga_id: int, dpt: str | None) -> None:
+        if self._pid is None:
+            return
+        self._svc.set_group_address_datapoint_type(self._pid, ga_id, dpt or None)
+        self._bump()
 
     def remove_group_address(
         self, ga_id: int, address: str = "", name: str = ""
@@ -554,13 +727,16 @@ class ProjectService:
             self._bump()
         return result
 
+    @io_guarded(lambda: False)
     def can_undo(self) -> bool:
         return self._pid is not None and self._svc.can_undo(self._pid)
 
+    @io_guarded(lambda: False)
     def can_redo(self) -> bool:
         return self._pid is not None and self._svc.can_redo(self._pid)
 
     @property
+    @io_guarded(lambda: 0)
     def cursor(self) -> int:
         return self._svc.cursor(self._pid) if self._pid is not None else 0
 
@@ -570,6 +746,7 @@ class ProjectService:
         self._svc.jump_to(self._pid, event_id)
         self._bump()
 
+    @io_guarded(list)
     def history(self) -> list[HistoryEntry]:
         if self._pid is None:
             return []

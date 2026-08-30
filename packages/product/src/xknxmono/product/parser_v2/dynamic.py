@@ -36,6 +36,7 @@ from .encode import (
     build_property_param_map,
     collect_writes,
     encode_to_memory,
+    encode_to_memory_masked,
     encode_to_properties,
     resolve_param_values,
 )
@@ -82,6 +83,7 @@ __all__ = [
     "build_property_param_map",
     "collect_writes",
     "encode_to_memory",
+    "encode_to_memory_masked",
     "encode_to_properties",
     "resolve_param_values",
 ]
@@ -263,6 +265,16 @@ class DynamicUI:
         """Encode current parameter state into code segment byte buffers."""
         self.ui()  # ensure state is current
         return encode_to_memory(
+            self._app,
+            self._idx,
+            resolve_param_values(self._idx, self._state),
+            self._state,
+        )
+
+    def encode_to_memory_masked(self) -> dict[str, tuple[bytes, bytes]]:
+        """Encode into ``{segment_id: (data, mask)}``; mask marks written bytes."""
+        self.ui()  # ensure state is current
+        return encode_to_memory_masked(
             self._app,
             self._idx,
             resolve_param_values(self._idx, self._state),

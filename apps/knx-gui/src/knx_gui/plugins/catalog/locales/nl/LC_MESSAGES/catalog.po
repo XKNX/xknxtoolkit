@@ -18,3 +18,15 @@ msgstr "{count} applicatie(s) gevonden"
 
 msgid "({count} com objects)"
 msgstr "({count} com objecten)"
+
+msgid "Online Catalog"
+msgstr "Onlinecatalogus"
+
+msgid "Loading manufacturer list..."
+msgstr "Fabrikantenlijst laden..."
+
+msgid "Online catalog not reachable"
+msgstr "Onlinecatalogus niet bereikbaar"
+
+msgid "{count} manufacturers"
+msgstr "{count} fabrikanten"

@@ -490,6 +490,15 @@ def test_group_address_datapoint_type(tmp_path: Path):
     assert svc.group_address(pid, gid).datapoint_type is None
 
 
+def test_rename_group_address(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    gid = svc.create_group_address(pid, 0, 1, "Switch")
+    svc.rename_group_address(pid, gid, "Living room light")
+    assert svc.group_address(pid, gid).name == "Living room light"
+    svc.undo(pid)
+    assert svc.group_address(pid, gid).name == "Switch"
+
+
 def test_device_info_carries_refs(tmp_path: Path):
     svc, pid = _new(tmp_path)
     seg = _backbone_segment(svc, pid)

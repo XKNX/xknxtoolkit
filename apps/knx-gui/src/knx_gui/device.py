@@ -306,3 +306,8 @@ class Device:
             if co.id == co_id:
                 return co
         return None
+
+    @property
+    def dynamic_ui(self) -> DynamicUI | None:
+        """The live evaluator holding this device's current parameter state."""
+        return self._dynamic_ui

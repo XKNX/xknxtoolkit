@@ -203,3 +203,27 @@ def get_hardware_program(
             HardwareProgram.hardware_id == hardware_id,
         )
     ).first()
+
+
+def get_program_source(db: Session, program_id: str) -> tuple[str, str] | None:
+    """Return ``(knxprod_path, manufacturer_id)`` for a hardware program, or ``None``.
+
+    Resolves a program by its id alone (as stored on a project device's
+    ``hardware2program_ref_id``) to the on-disk ``.knxprod`` it was imported from and its
+    manufacturer, so callers can re-extract the manufacturer XMLs from that archive.
+
+    Args:
+      db: An active SQLAlchemy session.
+      program_id: The hardware program's primary-key identifier.
+
+    Returns:
+      A ``(knxprod_path, manufacturer_id)`` tuple, or ``None`` if the program is unknown.
+    """
+    row = db.execute(
+        select(HardwareProgram.knxprod_path, Hardware.manufacturer_id)
+        .join(Hardware, Hardware.id == HardwareProgram.hardware_id)
+        .where(HardwareProgram.id == program_id)
+    ).first()
+    if row is None:
+        return None
+    return row[0], row[1]

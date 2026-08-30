@@ -10,6 +10,7 @@ dependencies = [
     "structlog>=24.0.0",
     "xknx>=3.18.0",
     "xknx-catalog",
+    "xknx-download",
     "xknx-models",
     "xknx-product",
     "xknx-project",
@@ -31,6 +32,7 @@ packages = ["src/knx_gui"]
 
 [tool.uv.sources]
 xknx-catalog = { workspace = true }
+xknx-download = { workspace = true }
 xknx-models = { workspace = true }
 xknx-product = { workspace = true }
 xknx-project = { workspace = true }

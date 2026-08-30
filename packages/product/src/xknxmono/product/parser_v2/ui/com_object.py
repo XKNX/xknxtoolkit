@@ -9,6 +9,10 @@ class UiComObject:
     name: str  # resolved display name ({{0}} filled from text_parameter_ref_id)
     number: int
     dpt_codes: tuple[str, ...]  # e.g. ("1.0", "1.1")
+    object_size: (
+        str  # resolved ComObjectSize value, e.g. "1 Bit" / "1 Byte" ("" if unset)
+    )
+    priority: str  # resolved ComObjectPriority value, e.g. "Low" ("" if unset)
     communication: bool
     read: bool
     write: bool

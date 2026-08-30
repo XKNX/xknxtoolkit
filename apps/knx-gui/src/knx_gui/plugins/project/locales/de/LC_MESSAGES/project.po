@@ -141,3 +141,6 @@ msgstr "Linie {number} entfernt"
 
 msgid "Line: {old} -> {new}"
 msgstr "Linie: {old} -> {new}"
+
+msgid "Cannot run: no KNX connection. Connect to a gateway (Connection menu) and make sure the device is reachable at its individual address."
+msgstr "Nicht möglich: Keine KNX-Verbindung. Verbinde ein Gateway (Menü Connection) und stelle sicher, dass das Gerät unter seiner Individualadresse erreichbar ist."

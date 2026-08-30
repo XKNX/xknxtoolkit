@@ -31,20 +31,38 @@ from xknxmono.models.intermediate.module_def_static_t_parameters_union_property 
     ModuleDefStaticParametersUnionProperty,
 )
 from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
+from xknxmono.models.intermediate.parameter_type_t_type_color import (
+    ParameterTypeTypeColor,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_color_space import (
+    ParameterTypeTypeColorSpace,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_date import (
+    ParameterTypeTypeDate,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_float import (
     ParameterTypeTypeFloat,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_float_encoding import (
     ParameterTypeTypeFloatEncoding,
 )
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress import (
+    ParameterTypeTypeIpaddress,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_number import (
     ParameterTypeTypeNumber,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_raw_data import (
+    ParameterTypeTypeRawData,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_restriction import (
     ParameterTypeTypeRestriction,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_text import (
     ParameterTypeTypeText,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_time import (
+    ParameterTypeTypeTime,
 )
 from xknxmono.models.intermediate.property_parameter_t import PropertyParameter
 from xknxmono.models.intermediate.property_union_t import PropertyUnion
@@ -85,6 +103,16 @@ class Writes:
 PropertyKey = tuple[int | None, int, int]  # (object_index, property_id, occurrence)
 
 
+def _program_little_endian(app: ApplicationProgram) -> bool:
+    """Whether the application program encodes parameter values little-endian.
+
+    Read from the static options' ``ParameterByteOrder`` (default big-endian).
+    """
+    options = getattr(app.static, "options", None)
+    order = getattr(options, "parameter_byte_order", None)
+    return order is not None and order.value == "LittleEndian"
+
+
 def _write_bits(
     buf: bytearray, offset: int, bit_offset: int, size_in_bit: int, value: int
 ) -> None:
@@ -99,62 +127,264 @@ def _write_bits(
             buf[pos // 8] &= ~bit_mask
 
 
-def _encode_value(str_value: str, size_in_bit: int, tc: object) -> int | None:
-    if isinstance(tc, (ParameterTypeTypeNumber, ParameterTypeTypeRestriction)):
-        try:
-            v = int(str_value)
-        except (ValueError, TypeError):
-            return None
-        return v & ((1 << size_in_bit) - 1)
+def _encode_value(
+    str_value: str, size_in_bit: int, tc: object, *, little_endian: bool = False
+) -> int | None:
+    """Encode a parameter value string into the integer that ``_write_bits`` packs.
+
+    Values are packed MSB-first. The default byte order is big-endian; when the
+    application program selects little-endian (``ParameterByteOrder`` in its static
+    options), the byte order of a multi-octet numeric value is reversed, matching
+    the reference engine (which reverses the octets of integer and float values for
+    a little-endian program). Ports the reference engine's per-type value encoders.
+    """
+    if isinstance(tc, (ParameterTypeTypeNumber, ParameterTypeTypeTime)):
+        # A time value is stored as a plain integer in the type's unit.
+        return _apply_byte_order(
+            _encode_number(str_value, size_in_bit), size_in_bit, little_endian
+        )
+
+    if isinstance(tc, ParameterTypeTypeRestriction):
+        return _encode_restriction(str_value, size_in_bit, tc, little_endian)
 
     if isinstance(tc, ParameterTypeTypeFloat):
-        try:
-            f = float(str_value)
-        except (ValueError, TypeError):
-            return None
-        if tc.encoding == ParameterTypeTypeFloatEncoding.DPT_9:
-            mantissa = round(f * 100)
-            exp = 0
-            while mantissa < -2048 or mantissa > 2047:
-                mantissa >>= 1
-                exp += 1
-            if exp > 15:
-                return None
-            sign = 1 if mantissa < 0 else 0
-            return (sign << 15) | (exp << 11) | (mantissa & 0x7FF)
-        if tc.encoding == ParameterTypeTypeFloatEncoding.IEEE_754_SINGLE:
-            return struct.unpack(">I", struct.pack(">f", f))[0]
-        if tc.encoding == ParameterTypeTypeFloatEncoding.IEEE_754_DOUBLE:
-            return struct.unpack(">Q", struct.pack(">d", f))[0]
-        return None
+        return _apply_byte_order(
+            _encode_float(str_value, size_in_bit, tc), size_in_bit, little_endian
+        )
 
     if isinstance(tc, ParameterTypeTypeText):
-        encoded = str_value.encode("latin-1", errors="replace")
-        n_bytes = size_in_bit // 8
-        padded = encoded[:n_bytes].ljust(n_bytes, b"\x00")
-        result = 0
-        for b in padded:
-            result = (result << 8) | b
-        return result
+        return _encode_text(str_value, size_in_bit)
+
+    if isinstance(tc, ParameterTypeTypeDate):
+        return _encode_date(str_value, tc)
+
+    if isinstance(tc, ParameterTypeTypeIpaddress):
+        return _encode_ipaddress(str_value)
+
+    if isinstance(tc, ParameterTypeTypeColor):
+        return _encode_color(str_value, size_in_bit, tc)
+
+    if isinstance(tc, ParameterTypeTypeRawData):
+        return _encode_raw_data(str_value, size_in_bit, little_endian)
 
     return None
 
 
-def resolve_param_values(idx: ApplicationIndexer, state: GlobalState) -> dict[str, str]:
-    """Build {param_id: state_value} for parameters with an explicit user override in state.
+def _apply_byte_order(
+    value: int | None, size_in_bit: int, little_endian: bool
+) -> int | None:
+    """Reverse the octet order of a byte-aligned multi-octet numeric ``value``.
 
-    Does not include static defaults — collect_writes reads those directly from the
-    parameter objects as it iterates the static model.
+    Only applies for a little-endian program and a whole-octet field (at least two
+    octets); single-octet and sub-octet fields are unaffected.
     """
-    state_values = dict(state.relative_param_values())
+    if value is None or not little_endian or size_in_bit < 16 or size_in_bit % 8 != 0:
+        return value
+    n = size_in_bit // 8
+    return int.from_bytes(value.to_bytes(n, "big")[::-1], "big")
+
+
+def _encode_restriction(
+    str_value: str,
+    size_in_bit: int,
+    tc: ParameterTypeTypeRestriction,
+    little_endian: bool,
+) -> int | None:
+    """Encode an enumeration value of a restricted parameter type.
+
+    An enumeration entry may carry an explicit ``BinaryValue`` (the exact octets to
+    store, e.g. a priority ordering); that is written verbatim, big-endian, and is
+    not subject to the program byte order. Entries without a binary value fall back
+    to encoding the enumeration value as an integer (honouring the byte order).
+    """
+    for enumeration in tc.enumeration:
+        if str(enumeration.value) == str_value:
+            if enumeration.binary_value:
+                return int.from_bytes(enumeration.binary_value, "big")
+            break
+    return _apply_byte_order(
+        _encode_number(str_value, size_in_bit), size_in_bit, little_endian
+    )
+
+
+def _encode_number(str_value: str, size_in_bit: int) -> int | None:
+    """Signed/unsigned integer, masked to ``size_in_bit`` (two's complement)."""
+    try:
+        v = int(str_value, 0) if str_value[:2].lower() == "0x" else int(str_value)
+    except (ValueError, TypeError):
+        return None
+    return v & ((1 << size_in_bit) - 1)
+
+
+def _encode_float(
+    str_value: str, size_in_bit: int, tc: ParameterTypeTypeFloat
+) -> int | None:
+    try:
+        f = float(str_value)
+    except (ValueError, TypeError):
+        return None
+    if tc.encoding == ParameterTypeTypeFloatEncoding.DPT_9:
+        # KNX DPT 9 (2 octet float): value = 0.01 * m * 2^exp, m = 11 bit signed
+        # two's complement, sign in bit 15, exponent in bits 14..11.
+        mantissa = round(f * 100)
+        exp = 0
+        while mantissa < -2048 or mantissa > 2047:
+            mantissa >>= 1
+            exp += 1
+        if exp > 15:
+            return None
+        sign = 1 if mantissa < 0 else 0
+        return (sign << 15) | (exp << 11) | (mantissa & 0x7FF)
+    if tc.encoding == ParameterTypeTypeFloatEncoding.IEEE_754_SINGLE:
+        return struct.unpack(">I", struct.pack(">f", f))[0]
+    if tc.encoding == ParameterTypeTypeFloatEncoding.IEEE_754_DOUBLE:
+        return struct.unpack(">Q", struct.pack(">d", f))[0]
+    return None
+
+
+def _encode_text(str_value: str, size_in_bit: int) -> int:
+    """Code-page (Latin-1) text, truncated and zero-padded to the field width.
+
+    Zero padding also provides the null terminator implicitly (the reference
+    engine relies on the zero-initialised buffer for termination).
+    """
+    encoded = str_value.encode("latin-1", errors="replace")
+    n_bytes = size_in_bit // 8
+    padded = encoded[:n_bytes].ljust(n_bytes, b"\x00")
+    return int.from_bytes(padded, "big")
+
+
+def _encode_date(str_value: str, tc: ParameterTypeTypeDate) -> int | None:
+    """KNX date: 3 octets day, month, year mod 100 (value ``YYYY-MM-DD``).
+
+    When the type does not display the year, the year octet stays zero (the
+    reference engine writes only day and month for that formatting).
+    """
+    parts = str_value.split("-")
+    if len(parts) != 3:
+        return None
+    try:
+        year, month, day = (int(p) for p in parts)
+    except ValueError:
+        return None
+    year_octet = 0 if tc.display_the_year is False else year % 100
+    return (day << 16) | (month << 8) | year_octet
+
+
+def _encode_ipaddress(str_value: str) -> int | None:
+    """IPv4 dotted-quad to 4 octets in network (big-endian) order."""
+    parts = str_value.split(".")
+    if len(parts) != 4:
+        return None
+    try:
+        octets = [int(p) for p in parts]
+    except ValueError:
+        return None
+    if any(o < 0 or o > 255 for o in octets):
+        return None
+    return int.from_bytes(bytes(octets), "big")
+
+
+def _encode_color(
+    str_value: str, size_in_bit: int, tc: ParameterTypeTypeColor
+) -> int | None:
+    """Colour from a ``#RRGGBB``/``#RRGGBBWW`` hex string, per the type's space.
+
+    - RGB: three octets ``[R, G, B]``.
+    - RGBW: four octets ``[R, G, B, W]``.
+    - HSV: three octets ``[H, S, V]`` converted from the RGB value (H scaled to a
+      single octet), matching the reference engine's RGB-to-HSV conversion.
+    """
+    try:
+        raw = bytes.fromhex(str_value.lstrip("#"))
+    except ValueError:
+        return None
+    if tc.space == ParameterTypeTypeColorSpace.RGBW:
+        raw = raw[:4].ljust(4, b"\x00")
+        return int.from_bytes(raw, "big")
+    if len(raw) < 3:
+        return None
+    r, g, b = raw[0], raw[1], raw[2]
+    if tc.space == ParameterTypeTypeColorSpace.HSV:
+        h, s, v = _rgb_to_hsv(r, g, b)
+        return (h << 16) | (s << 8) | v
+    return (r << 16) | (g << 8) | b
+
+
+def _rgb_to_hsv(r: int, g: int, b: int) -> tuple[int, int, int]:
+    """Convert an RGB triple to the KNX HSV octet triple (H scaled to 0..255)."""
+    low = min(r, g, b)
+    high = max(r, g, b)
+    if low == high:
+        hue = 0.0
+    elif high == r:
+        hue = 60.0 * (g - b) / (high - low)
+    elif high == g:
+        hue = 60.0 * (2.0 + (b - r) / (high - low))
+    else:
+        hue = 60.0 * (4.0 + (r - g) / (high - low))
+    if hue < 0.0:
+        hue += 360.0
+    elif hue > 360.0:
+        hue -= 360.0
+    saturation = 0 if high == 0 else int(255.0 * (high - low) / high)
+    return int(255.0 * hue / 360.0), saturation, high
+
+
+def _encode_raw_data(
+    str_value: str, size_in_bit: int, little_endian: bool = False
+) -> int | None:
+    """Raw octets from a hex string, truncated/zero-padded to the field width.
+
+    For a little-endian program the octets are preceded by the data length as a
+    four octet little-endian prefix (matching the reference engine), then the whole
+    is padded to the field width.
+    """
+    try:
+        data = bytes.fromhex(str_value)
+    except ValueError:
+        return None
+    if little_endian:
+        data = len(data).to_bytes(4, "little") + data
+    n_bytes = size_in_bit // 8
+    padded = data[:n_bytes].ljust(n_bytes, b"\x00")
+    return int.from_bytes(padded, "big") if padded else 0
+
+
+def resolve_param_values(idx: ApplicationIndexer, state: GlobalState) -> dict[str, str]:
+    """Build {referenced_id: effective_value} for the ACTIVE ParameterRefs.
+
+    ETS encodes each memory/property cell from the ParameterRef that is active in
+    the resolved UI, taking its instance value, else its ref default, else the base
+    Parameter default (``state.get`` resolves that whole chain). Parameters whose
+    ref is not active are not encoded at all - their cells stay at the segment seed.
+
+    Keys are the referenced ``Parameter``/``UnionParameter`` id (``pr.ref_id``),
+    matching ``item.id`` in :func:`_collect_param` and ``up.id`` in a union pick.
+    Module-qualified active refs are not in ``idx.parameter_refs``; the module
+    collection path resolves those from its own instance state instead.
+    """
+    # When several active refs target the same parameter cell (the evaluator can
+    # reach more than one in overlapping conditional branches), the reference
+    # engine keeps the first one in definition order. Iterate parameter_refs in
+    # their (XML/insertion) order and take the first active ref per parameter.
+    active = state.active_param_refs()
     overrides: dict[str, str] = {}
-    for pr_id, pr in idx.parameter_refs.items():
-        state_val = state_values.get(pr_id)
-        if state_val is None:
+    for ref_id, pr in idx.parameter_refs.items():
+        if ref_id not in active or pr.ref_id in overrides:
             continue
-        param = idx.parameters.get(pr.ref_id)
-        if param is not None:
-            overrides[param.id] = state_val
+        value = state.get(ref_id)
+        if value is not None:
+            overrides[pr.ref_id] = value
+    # Explicitly configured union alternatives drive the union selection even if
+    # the evaluator did not mark their ref active; carry them too.
+    for ref_id, _ in state.relative_param_values():
+        pr = idx.parameter_refs.get(ref_id)
+        if pr is None or not isinstance(idx.parameters.get(pr.ref_id), UnionParameter):
+            continue
+        value = state.get(ref_id)
+        if value is not None:
+            overrides[pr.ref_id] = value
     return overrides
 
 
@@ -180,22 +410,26 @@ def _build_instance_overrides(
     return overrides
 
 
-def _pick_union_param(
+def _union_params_to_write(
     parameters: list[UnionParameter],
     overrides: dict[str, str],
-    location: str,
-) -> tuple[UnionParameter, str] | None:
+    gated: bool = False,
+) -> list[tuple[UnionParameter, str]]:
+    """Return the union alternatives to write, each with its value.
+
+    Union alternatives can sit at different bit offsets within the shared cell, so
+    more than one may be active at once; each active alternative is written (their
+    bits accumulate), matching the reference engine. When nothing is active: in a
+    resolved UI (gated) the cell keeps its seed; a bare caller falls back to the
+    union's default alternative so ``collect_writes`` still yields a value.
+    """
     active = [up for up in parameters if up.id in overrides]
-    assert len(active) <= 1, (
-        f"union at {location} has {len(active)} active alternatives: "
-        + ", ".join(up.id for up in active)
-    )
     if active:
-        return active[0], overrides[active[0].id]
+        return [(up, overrides[up.id]) for up in active]
+    if gated:
+        return []
     default_up = next((up for up in parameters if up.default_union_parameter), None)
-    if default_up is not None:
-        return default_up, default_up.value
-    return None
+    return [(default_up, default_up.value)] if default_up is not None else []
 
 
 def _collect_param(
@@ -204,7 +438,12 @@ def _collect_param(
     overrides: dict[str, str],
     ms: ModuleState | None,
     out: Writes,
+    active_ids: set[str] | None = None,
 ) -> None:
+    # When an active-ref set is given (resolved UI), encode only active parameters;
+    # inactive cells are left at the segment seed, as the reference engine does.
+    if active_ids is not None and item.id not in active_ids:
+        return
     choice = item.choice
     value = overrides.get(item.id) or item.value
     # base_value on a module parameter shifts the encoded value by an arg-resolved offset.
@@ -282,22 +521,18 @@ def _collect_union(
     overrides: dict[str, str],
     ms: ModuleState | None,
     out: Writes,
+    gated: bool = False,
 ) -> None:
     choice = item.choice
     if choice is None:
         return
+    selected = _union_params_to_write(item.parameter, overrides, gated)
     # Check subclasses before parents (module types extend their top-level counterparts)
     if isinstance(choice, ModuleDefStaticParametersUnionMemory):
         assert ms is not None
         base = _resolve_base(choice.base_offset, ms)
         if base is not None:
-            picked = _pick_union_param(
-                item.parameter,
-                overrides,
-                f"{choice.code_segment}+{base + choice.offset}",
-            )
-            if picked is not None:
-                up, value = picked
+            for up, value in selected:
                 out.mem.append(
                     MemWrite(
                         choice.code_segment,
@@ -309,11 +544,7 @@ def _collect_union(
                     )
                 )
     elif isinstance(choice, MemoryUnion):
-        picked = _pick_union_param(
-            item.parameter, overrides, f"{choice.code_segment}+{choice.offset}"
-        )
-        if picked is not None:
-            up, value = picked
+        for up, value in selected:
             out.mem.append(
                 MemWrite(
                     choice.code_segment,
@@ -331,13 +562,7 @@ def _collect_union(
         boc = _resolve_base(choice.base_occurrence, ms)
         if bo is not None and bi is not None and boc is not None:
             obj_idx = (choice.object_index or 0) + bi if bi else choice.object_index
-            picked = _pick_union_param(
-                item.parameter,
-                overrides,
-                f"prop_id={choice.property_id}+{bo + choice.offset}",
-            )
-            if picked is not None:
-                up, value = picked
+            for up, value in selected:
                 out.prop.append(
                     PropWrite(
                         obj_idx,
@@ -352,11 +577,7 @@ def _collect_union(
                 )
     else:
         assert isinstance(choice, PropertyUnion)
-        picked = _pick_union_param(
-            item.parameter, overrides, f"prop_id={choice.property_id}+{choice.offset}"
-        )
-        if picked is not None:
-            up, value = picked
+        for up, value in selected:
             out.prop.append(
                 PropWrite(
                     choice.object_index,
@@ -397,13 +618,22 @@ def collect_writes(
     """Collect all parameter writes into a Writes container (mem + prop), separated by destination type."""
     out = Writes()
     s = app.static
+    # With a resolved state, gate top-level parameters to the active set (regular
+    # parameters present in overrides); inactive cells stay at the segment seed.
+    # Without a state (direct callers), no gating: every static parameter encodes
+    # as before. Unions keep their explicit-selection behaviour either way.
+    active_ids = (
+        {k for k in overrides if not isinstance(idx.parameters.get(k), UnionParameter)}
+        if state is not None
+        else None
+    )
     if s.parameters is not None:
         for item in s.parameters.choice:
             if isinstance(item, ApplicationProgramStaticParametersParameter):
-                _collect_param(item, overrides, None, out)
+                _collect_param(item, overrides, None, out, active_ids)
             else:
                 assert isinstance(item, ApplicationProgramStaticParametersUnion)
-                _collect_union(item, overrides, None, out)
+                _collect_union(item, overrides, None, out, gated=active_ids is not None)
     if state is not None:
         for ms in state.module_children():
             _collect_module_writes(ms, idx, out)
@@ -422,6 +652,7 @@ def encode_to_memory(
     Bit layout: bit_offset=0 is the MSB of each byte; values stored big-endian.
     """
     writes = collect_writes(app, idx, overrides, state)
+    little_endian = _program_little_endian(app)
     bufs: dict[str, bytearray] = {
         seg_id: bytearray(seg.data) if seg.data else bytearray(seg.size)
         for seg_id, seg in idx.code_segments.items()
@@ -437,11 +668,59 @@ def encode_to_memory(
         size_in_bit = getattr(tc, "size_in_bit", None)
         if size_in_bit is None:
             continue
-        encoded = _encode_value(w.value, size_in_bit, tc)
+        encoded = _encode_value(w.value, size_in_bit, tc, little_endian=little_endian)
         if encoded is None:
             continue
         _write_bits(buf, w.offset, w.bit_offset, size_in_bit, encoded)
     return {seg_id: bytes(buf) for seg_id, buf in bufs.items()}
+
+
+def encode_to_memory_masked(
+    app: ApplicationProgram,
+    idx: ApplicationIndexer,
+    overrides: dict[str, str],
+    state: GlobalState | None = None,
+) -> dict[str, tuple[bytes, bytes]]:
+    """Like :func:`encode_to_memory` but also return a write mask per segment.
+
+    Returns ``{segment_id: (data, mask)}`` where ``mask`` has one byte per data
+    byte: ``0xFF`` for bytes an encoded parameter actually wrote, ``0x00`` for
+    bytes left at the segment seed. A downloader writes only masked bytes, so it
+    never overwrites regions this encoder does not produce (e.g. the com object
+    table or RAM) - mirroring the reference engine, which loads only touched
+    bytes on a partial download.
+    """
+    writes = collect_writes(app, idx, overrides, state)
+    little_endian = _program_little_endian(app)
+    bufs: dict[str, bytearray] = {
+        seg_id: bytearray(seg.data) if seg.data else bytearray(seg.size)
+        for seg_id, seg in idx.code_segments.items()
+    }
+    masks: dict[str, bytearray] = {
+        seg_id: bytearray(len(buf)) for seg_id, buf in bufs.items()
+    }
+    for w in writes.mem:
+        buf = bufs.get(w.seg_id)
+        if buf is None:
+            continue
+        pt = idx.parameter_types.get(w.parameter_type)
+        if pt is None:
+            continue
+        tc = pt.choice
+        size_in_bit = getattr(tc, "size_in_bit", None)
+        if size_in_bit is None:
+            continue
+        encoded = _encode_value(w.value, size_in_bit, tc, little_endian=little_endian)
+        if encoded is None:
+            continue
+        _write_bits(buf, w.offset, w.bit_offset, size_in_bit, encoded)
+        start_bit = w.offset * 8 + w.bit_offset
+        end_bit = start_bit + size_in_bit - 1
+        mask = masks[w.seg_id]
+        for b in range(start_bit // 8, end_bit // 8 + 1):
+            if b < len(mask):
+                mask[b] = 0xFF
+    return {seg_id: (bytes(buf), bytes(masks[seg_id])) for seg_id, buf in bufs.items()}
 
 
 def build_memory_param_map(
@@ -485,6 +764,7 @@ def encode_to_properties(
     Buffers are sized dynamically to fit all writes.
     """
     writes = collect_writes(app, idx, overrides, state)
+    little_endian = _program_little_endian(app)
     bufs: dict[PropertyKey, bytearray] = {}
     for w in writes.prop:
         pt = idx.parameter_types.get(w.parameter_type)
@@ -494,7 +774,7 @@ def encode_to_properties(
         size_in_bit = getattr(tc, "size_in_bit", None)
         if not size_in_bit:
             continue
-        encoded = _encode_value(w.value, size_in_bit, tc)
+        encoded = _encode_value(w.value, size_in_bit, tc, little_endian=little_endian)
         if encoded is None:
             continue
         key: PropertyKey = (w.object_index, w.property_id, w.occurrence)

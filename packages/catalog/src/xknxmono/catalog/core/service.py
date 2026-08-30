@@ -30,6 +30,7 @@ from xknxmono.catalog.core.hardware import (
     HardwareFilters,
     get_hardware,
     get_hardware_program,
+    get_program_source,
     list_hardware,
 )
 from xknxmono.catalog.core.manufacturers import get_manufacturer, list_manufacturers
@@ -90,6 +91,11 @@ class CatalogService:
     def get_application_xml(self, program_id: str) -> tuple[bytes, str] | None:
         with Session(self._engine) as db:
             return get_application_xml(db, program_id)
+
+    def get_program_source(self, program_id: str) -> tuple[str, str] | None:
+        """Return ``(knxprod_path, manufacturer_id)`` for a program id, or ``None``."""
+        with Session(self._engine) as db:
+            return get_program_source(db, program_id)
 
     def get_application_detail(self, program_id: str) -> Application | None:
         with Session(self._engine) as db:

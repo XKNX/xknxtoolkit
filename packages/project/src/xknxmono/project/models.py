@@ -31,6 +31,12 @@ class Project(Base):
     group_address_style: Mapped[str] = mapped_column(
         String, nullable=False, default="ThreeLevel"
     )
+    # Descriptive metadata carried over from the imported .knxproj (ETS project information).
+    guid: Mapped[str] = mapped_column(String, nullable=False, default="")
+    created_by: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    last_modified: Mapped[str] = mapped_column(String, nullable=False, default="")
+    schema_version: Mapped[str] = mapped_column(String, nullable=False, default="")
+    tool_version: Mapped[str] = mapped_column(String, nullable=False, default="")
 
 
 class Installation(Base):
@@ -46,6 +52,9 @@ class Installation(Base):
         back_populates="installation", cascade="all, delete-orphan"
     )
     group_ranges: Mapped[list["GroupRange"]] = relationship(
+        back_populates="installation", cascade="all, delete-orphan"
+    )
+    spaces: Mapped[list["Space"]] = relationship(
         back_populates="installation", cascade="all, delete-orphan"
     )
 
@@ -123,8 +132,17 @@ class Device(Base):
     name: Mapped[str] = mapped_column(Text, nullable=False, default="")
     product_ref_id: Mapped[str] = mapped_column(String, nullable=False)
     hardware2program_ref_id: Mapped[str | None] = mapped_column(String)
+    # The building/room (Space) the device is placed in, if any.
+    space_id: Mapped[int | None] = mapped_column(ForeignKey("spaces.id"), index=True)
+    # Descriptive metadata carried over from the imported .knxproj (for display without a catalog).
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    order_number: Mapped[str] = mapped_column(String, nullable=False, default="")
+    hardware_name: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    product_name: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    manufacturer_name: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
     segment: Mapped["Segment"] = relationship(back_populates="devices")
+    space: Mapped["Space | None"] = relationship(back_populates="devices")
     module_instances: Mapped[list["ModuleInstance"]] = relationship(
         back_populates="device", cascade="all, delete-orphan"
     )
@@ -238,9 +256,16 @@ class GroupAddress(Base):
     address: Mapped[int] = mapped_column(Integer, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False, default="")
     datapoint_type: Mapped[str | None] = mapped_column(String)
+    # Descriptive metadata carried over from the imported .knxproj.
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    comment: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    data_secure: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     group_range: Mapped["GroupRange"] = relationship(back_populates="group_addresses")
     links: Mapped[list["ComObjectLink"]] = relationship(
+        back_populates="group_address", cascade="all, delete-orphan"
+    )
+    function_links: Mapped[list["FunctionGroupAddress"]] = relationship(
         back_populates="group_address", cascade="all, delete-orphan"
     )
 
@@ -263,6 +288,79 @@ class ComObjectLink(Base):
 
     com_object: Mapped["ComObject"] = relationship(back_populates="links")
     group_address: Mapped["GroupAddress"] = relationship(back_populates="links")
+
+
+class Space(Base):
+    """A node in the building/location tree (recursive: building → floor → room → …), imported
+    from the ETS project's locations. ``space_type`` is the ETS type string (e.g. ``Building``,
+    ``Floor``, ``Room``). ``order`` preserves the project's original sibling order."""
+
+    __tablename__ = "spaces"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    installation_id: Mapped[int] = mapped_column(
+        ForeignKey("installations.id"), nullable=False, index=True
+    )
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("spaces.id"), index=True)
+    space_type: Mapped[str] = mapped_column(String, nullable=False, default="")
+    name: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    number: Mapped[str] = mapped_column(String, nullable=False, default="")
+    usage_text: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    installation: Mapped["Installation"] = relationship(back_populates="spaces")
+    parent: Mapped["Space | None"] = relationship(
+        back_populates="children", remote_side="Space.id"
+    )
+    children: Mapped[list["Space"]] = relationship(
+        back_populates="parent", cascade="all, delete-orphan"
+    )
+    devices: Mapped[list["Device"]] = relationship(back_populates="space")
+    functions: Mapped[list["Function"]] = relationship(
+        back_populates="space", cascade="all, delete-orphan"
+    )
+
+
+class Function(Base):
+    """A function assigned to a space (ETS ``Function``): a named grouping of group addresses by
+    role (e.g. a light's switch/status/dimming addresses)."""
+
+    __tablename__ = "functions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    space_id: Mapped[int] = mapped_column(
+        ForeignKey("spaces.id"), nullable=False, index=True
+    )
+    function_type: Mapped[str] = mapped_column(String, nullable=False, default="")
+    name: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    usage_text: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    space: Mapped["Space"] = relationship(back_populates="functions")
+    group_addresses: Mapped[list["FunctionGroupAddress"]] = relationship(
+        back_populates="function", cascade="all, delete-orphan"
+    )
+
+
+class FunctionGroupAddress(Base):
+    """A group address referenced by a function, with its ``role`` within that function."""
+
+    __tablename__ = "function_group_addresses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    function_id: Mapped[int] = mapped_column(
+        ForeignKey("functions.id"), nullable=False, index=True
+    )
+    group_address_id: Mapped[int] = mapped_column(
+        ForeignKey("group_addresses.id"), nullable=False, index=True
+    )
+    role: Mapped[str] = mapped_column(String, nullable=False, default="")
+
+    function: Mapped["Function"] = relationship(back_populates="group_addresses")
+    group_address: Mapped["GroupAddress"] = relationship(
+        back_populates="function_links"
+    )
 
 
 class Event(Base):

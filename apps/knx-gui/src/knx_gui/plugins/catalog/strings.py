@@ -29,5 +29,21 @@ class CatalogStrings:
     def ARCHIVE_COM_OBJECTS(self) -> str:
         return _("({count} com objects)")
 
+    @property
+    def BTN_ONLINE_CATALOG(self) -> str:
+        return _("Online Catalog")
+
+    @property
+    def ONLINE_LOADING(self) -> str:
+        return _("Loading manufacturer list...")
+
+    @property
+    def ONLINE_FAILED(self) -> str:
+        return _("Online catalog not reachable")
+
+    @property
+    def ONLINE_COUNT(self) -> str:
+        return _("{count} manufacturers")
+
 
 S = CatalogStrings()

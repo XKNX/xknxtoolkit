@@ -31,5 +31,9 @@ class LoggerStrings(BaseStrings):
     def COL_MESSAGE(self) -> str:
         return _("Message")
 
+    @property
+    def COPY_LOG(self) -> str:
+        return _("Copy Log")
+
 
 S = LoggerStrings()

@@ -69,6 +69,34 @@ class BaseStrings:
         return _("All files")
 
     @property
+    def STATUS_PROJECT(self) -> str:
+        return _("Project: {name}  ·  {devices} devices  ·  {gas} GAs")
+
+    @property
+    def STATUS_NO_PROJECT(self) -> str:
+        return _("No project open")
+
+    @property
+    def STATUS_PROGRAMMING(self) -> str:
+        return _("Programming {address}...")
+
+    @property
+    def STATUS_TESTING(self) -> str:
+        return _("Testing {address}...")
+
+    @property
+    def STATUS_PROGRAM_DONE(self) -> str:
+        return _("Programming complete")
+
+    @property
+    def STATUS_PROGRAM_FAILED(self) -> str:
+        return _("Programming failed")
+
+    @property
+    def STATUS_NO_CONNECTION(self) -> str:
+        return _("No KNX connection")
+
+    @property
     def SHORTCUT_UNDO(self) -> str:
         return "Ctrl+Z"
 
@@ -89,6 +117,14 @@ class MenuStrings:
     @property
     def MENU_OPEN_PROJECT(self) -> str:
         return _("Open Project")
+
+    @property
+    def MENU_EXPORT_KNXPROJ(self) -> str:
+        return _("Export .knxproj...")
+
+    @property
+    def FILE_DIALOG_KNXPROJ_SAVE_TITLE(self) -> str:
+        return _("Export ETS project")
 
     @property
     def MENU_LOAD_KNXPROD(self) -> str:
@@ -119,6 +155,10 @@ class MenuStrings:
         return _("KNX product (*.knxprod)")
 
     @property
+    def FILE_DIALOG_KNXPROJ_FILTER(self) -> str:
+        return _("ETS project (*.knxproj)")
+
+    @property
     def FILE_DIALOG_PROJECT_TITLE(self) -> str:
         return _("Open XKNX project")
 
@@ -129,6 +169,46 @@ class MenuStrings:
     @property
     def FILE_DIALOG_PROJECT_FILTER(self) -> str:
         return _("XKNX project (*.xknx)")
+
+    @property
+    def FILE_DIALOG_OPEN_FILTER(self) -> str:
+        return _("Projects (*.xknx, *.knxproj)")
+
+    @property
+    def PROGRESS_TITLE(self) -> str:
+        return _("Working…")
+
+    @property
+    def IMPORT_PROGRESS_TEXT(self) -> str:
+        return _("Importing project — this can take a while for large projects.")
+
+    @property
+    def PROGRESS_LOAD_KNXPROD(self) -> str:
+        return _("Loading product catalog…")
+
+    @property
+    def PROGRESS_OPEN_PROJECT(self) -> str:
+        return _("Opening project…")
+
+    @property
+    def IMPORT_PASSWORD_TITLE(self) -> str:
+        return _("Project password")
+
+    @property
+    def IMPORT_PASSWORD_PROMPT(self) -> str:
+        return _("This ETS project is password protected. Enter its password:")
+
+    @property
+    def IMPORT_PASSWORD_WRONG(self) -> str:
+        return _("Wrong password, please try again.")
+
+    @property
+    def BTN_OK(self) -> str:
+        return _("OK")
+
+    @property
+    def BTN_CANCEL(self) -> str:
+        return _("Cancel")
 
 
 class _CombinedStrings(BaseStrings, MenuStrings):

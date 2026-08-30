@@ -33,6 +33,29 @@ class LogPanel:
         self._render_toolbar()
         self._render_table()
 
+    def _filtered_records(self) -> list[LogRecord]:
+        records = self._get_records()
+        if not self._filter_text:
+            return records
+        fl = self._filter_text.lower()
+        return [
+            r
+            for r in records
+            if fl in r.event.lower()
+            or fl in r.plugin.lower()
+            or fl in r.level.lower()
+            or any(fl in v.lower() for v in r.payload.values())
+        ]
+
+    def _record_as_text(self, record: LogRecord) -> str:
+        line = (
+            f"{record.timestamp_str} {record.level.upper()} "
+            f"[{record.plugin}] {record.event}"
+        )
+        if record.payload:
+            line += "  " + "  ".join(f"{k}={v}" for k, v in record.payload.items())
+        return line
+
     def _render_toolbar(self) -> None:
         records = self._get_records()
         imgui.text_disabled(str(len(records)))
@@ -42,22 +65,19 @@ class LogPanel:
             "##logfilter", S.FILTER_PLACEHOLDER, self._filter_text
         )
         imgui.same_line()
+        # Rows are plain text (not selectable), so offer an explicit copy-all-to-clipboard.
+        filtered = self._filtered_records()
+        if imgui.button(S.COPY_LOG) and filtered:
+            imgui.set_clipboard_text(
+                "\n".join(self._record_as_text(r) for r in filtered)
+            )
+        imgui.same_line()
         if imgui.button(S.BTN_CLEAR):
             self._on_clear()
             self._last_count = 0
 
     def _render_table(self) -> None:
-        records = self._get_records()
-        if self._filter_text:
-            fl = self._filter_text.lower()
-            records = [
-                r
-                for r in records
-                if fl in r.event.lower()
-                or fl in r.plugin.lower()
-                or fl in r.level.lower()
-                or any(fl in v.lower() for v in r.payload.values())
-            ]
+        records = self._filtered_records()
 
         avail = imgui.get_content_region_avail()
         flags = (

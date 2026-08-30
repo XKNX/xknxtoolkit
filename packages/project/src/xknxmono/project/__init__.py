@@ -14,6 +14,6 @@ com-object refs into :meth:`ProjectService.add_device`.
 
 __version__ = "0.1.0"
 
-from xknxmono.project.core import ProjectService
+from xknxmono.project.core import ProjectService, export_knxproj, import_knxproj
 
-__all__ = ["ProjectService"]
+__all__ = ["ProjectService", "export_knxproj", "import_knxproj"]

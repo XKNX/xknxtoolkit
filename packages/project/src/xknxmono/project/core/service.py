@@ -40,6 +40,7 @@ from xknxmono.project.core.events import (
     RemoveLine,
     RemoveSegment,
     RenameArea,
+    RenameGroupAddress,
     RenameLine,
     SetComObjectFlag,
     SetComObjectSending,
@@ -54,12 +55,14 @@ from xknxmono.project.models import (
     Area,
     ComObjectLink,
     Device,
+    Function,
     GroupAddress,
     GroupRange,
     Installation,
     Line,
     Project,
     Segment,
+    Space,
 )
 
 
@@ -80,6 +83,69 @@ class GroupAddressInfo:
     name: str
     datapoint_type: str | None
     links: list[int]
+    description: str
+    comment: str
+    data_secure: bool
+
+
+@dataclass(frozen=True)
+class GroupRangeInfo:
+    """A node in the group-address range tree, resolved for display (recursive)."""
+
+    id: int
+    name: str
+    range_start: int
+    range_end: int
+    children: list[GroupRangeInfo]
+    group_addresses: list[GroupAddressInfo]
+
+
+@dataclass(frozen=True)
+class SpaceDeviceInfo:
+    """A device as referenced from a space (building tree leaf), with display metadata."""
+
+    id: int
+    name: str
+    individual_address: str | None
+    description: str
+    product_name: str
+    hardware_name: str
+    manufacturer_name: str
+
+
+@dataclass(frozen=True)
+class FunctionGroupAddressInfo:
+    """A group address referenced by a function, with its role."""
+
+    group_address_id: int
+    text: str
+    role: str
+
+
+@dataclass(frozen=True)
+class FunctionInfo:
+    """A function assigned to a space, resolved for display."""
+
+    id: int
+    name: str
+    function_type: str
+    usage_text: str
+    group_addresses: list[FunctionGroupAddressInfo]
+
+
+@dataclass(frozen=True)
+class SpaceInfo:
+    """A node in the building/location tree, resolved for display (recursive)."""
+
+    id: int
+    name: str
+    space_type: str
+    number: str
+    usage_text: str
+    description: str
+    children: list[SpaceInfo]
+    devices: list[SpaceDeviceInfo]
+    functions: list[FunctionInfo]
 
 
 @dataclass(frozen=True)
@@ -92,6 +158,11 @@ class DeviceInfo:
     individual_address: str | None
     product_ref_id: str
     hardware2program_ref_id: str | None
+    description: str
+    order_number: str
+    hardware_name: str
+    product_name: str
+    manufacturer_name: str
 
 
 @dataclass(frozen=True)
@@ -327,6 +398,13 @@ class ProjectService:
     def rename_line(self, project_id: str, line_id: int, name: str) -> None:
         self._state(project_id).store.append(RenameLine(line_id=line_id, name=name))
 
+    def rename_group_address(
+        self, project_id: str, group_address_id: int, name: str
+    ) -> None:
+        self._state(project_id).store.append(
+            RenameGroupAddress(group_address_id=group_address_id, name=name)
+        )
+
     def set_device_name(self, project_id: str, device_id: int, name: str) -> None:
         self._state(project_id).store.append(
             SetDeviceName(device_id=device_id, name=name)
@@ -398,6 +476,11 @@ class ProjectService:
             individual_address=self._compose_ia(device),
             product_ref_id=device.product_ref_id,
             hardware2program_ref_id=device.hardware2program_ref_id,
+            description=device.description,
+            order_number=device.order_number,
+            hardware_name=device.hardware_name,
+            product_name=device.product_name,
+            manufacturer_name=device.manufacturer_name,
         )
 
     def com_object_links(self, project_id: str, com_object_id: int) -> list[LinkInfo]:
@@ -427,6 +510,36 @@ class ProjectService:
         style = self._style(state)
         rows = state.session.query(GroupAddress).order_by(GroupAddress.id).all()
         return [self._ga_info(row, style) for row in rows]
+
+    def group_ranges(self, project_id: str, installation: int) -> list[GroupRangeInfo]:
+        """The installation's group-address range tree (roots → children), resolved for display."""
+        state = self._state(project_id)
+        style = self._style(state)
+        inst = self._installation(state, installation)
+        roots = (
+            state.session.query(GroupRange)
+            .filter(
+                GroupRange.installation_id == inst.id,
+                GroupRange.parent_id.is_(None),
+            )
+            .order_by(GroupRange.range_start)
+            .all()
+        )
+        return [self._range_info(r, style) for r in roots]
+
+    def space_tree(self, project_id: str, installation: int) -> list[SpaceInfo]:
+        """The installation's building/location tree (roots → children), with devices and functions
+        resolved for display."""
+        state = self._state(project_id)
+        style = self._style(state)
+        inst = self._installation(state, installation)
+        roots = (
+            state.session.query(Space)
+            .filter(Space.installation_id == inst.id, Space.parent_id.is_(None))
+            .order_by(Space.order, Space.id)
+            .all()
+        )
+        return [self._space_info(s, style) for s in roots]
 
     def group_address(self, project_id: str, group_address_id: int) -> GroupAddressInfo:
         state = self._state(project_id)
@@ -533,6 +646,75 @@ class ProjectService:
             name=ga.name,
             datapoint_type=ga.datapoint_type,
             links=[link.com_object_id for link in ga.links],
+            description=ga.description,
+            comment=ga.comment,
+            data_secure=ga.data_secure,
+        )
+
+    def _range_info(
+        self, group_range: GroupRange, style: GroupAddressStyle
+    ) -> GroupRangeInfo:
+        return GroupRangeInfo(
+            id=group_range.id,
+            name=group_range.name,
+            range_start=group_range.range_start,
+            range_end=group_range.range_end,
+            children=[
+                self._range_info(child, style)
+                for child in sorted(group_range.children, key=lambda c: c.range_start)
+            ],
+            group_addresses=[
+                self._ga_info(ga, style)
+                for ga in sorted(group_range.group_addresses, key=lambda g: g.address)
+            ],
+        )
+
+    def _space_info(self, space: Space, style: GroupAddressStyle) -> SpaceInfo:
+        return SpaceInfo(
+            id=space.id,
+            name=space.name,
+            space_type=space.space_type,
+            number=space.number,
+            usage_text=space.usage_text,
+            description=space.description,
+            children=[
+                self._space_info(child, style)
+                for child in sorted(space.children, key=lambda c: (c.order, c.id))
+            ],
+            devices=[
+                SpaceDeviceInfo(
+                    id=device.id,
+                    name=device.name,
+                    individual_address=self._compose_ia(device),
+                    description=device.description,
+                    product_name=device.product_name,
+                    hardware_name=device.hardware_name,
+                    manufacturer_name=device.manufacturer_name,
+                )
+                for device in space.devices
+            ],
+            functions=[
+                self._function_info(fn, style)
+                for fn in sorted(space.functions, key=lambda f: (f.order, f.id))
+            ],
+        )
+
+    def _function_info(
+        self, function: Function, style: GroupAddressStyle
+    ) -> FunctionInfo:
+        return FunctionInfo(
+            id=function.id,
+            name=function.name,
+            function_type=function.function_type,
+            usage_text=function.usage_text,
+            group_addresses=[
+                FunctionGroupAddressInfo(
+                    group_address_id=link.group_address_id,
+                    text=format_ga(link.group_address.address, style),
+                    role=link.role,
+                )
+                for link in function.group_addresses
+            ],
         )
 
     def _register(self, project_id: str, engine: Engine, session: Session) -> None:

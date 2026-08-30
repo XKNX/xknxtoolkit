@@ -605,6 +605,38 @@ class SetGroupAddressDatapointType(Event):
 
 @_register
 @dataclass
+class RenameGroupAddress(Event):
+    event_type: ClassVar[str] = "RenameGroupAddress"
+
+    group_address_id: int
+    name: str
+    old_name: str | None = None
+
+    def apply(self, session: Session) -> None:
+        ga = session.get(GroupAddress, self.group_address_id)
+        if ga is not None:
+            self.old_name = ga.name
+            ga.name = self.name
+
+    def revert(self, session: Session) -> None:
+        ga = session.get(GroupAddress, self.group_address_id)
+        if ga is not None and self.old_name is not None:
+            ga.name = self.old_name
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "group_address_id": self.group_address_id,
+            "name": self.name,
+            "old_name": self.old_name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RenameGroupAddress:
+        return cls(**data)
+
+
+@_register
+@dataclass
 class SetComObjectSending(Event):
     """Make one link the sending link, clearing the sending bit on the com-object's other links so
     at most one is sending. ``previous`` captures every sibling's prior bit for revert."""

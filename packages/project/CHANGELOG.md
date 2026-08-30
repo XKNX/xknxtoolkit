@@ -10,5 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - KNX project state management on top of `xknx-models`.
-- Load and save `.knxproj` project archives.
+- `import_knxproj()` — import an ETS `.knxproj` archive into a new project (topology, group
+  addresses with DPTs, devices, and com-object links), parsed via `xknxproject`.
 - Typed read/write access to group addresses, topology, and device configuration.

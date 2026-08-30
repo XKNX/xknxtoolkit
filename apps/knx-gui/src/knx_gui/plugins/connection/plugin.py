@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import math
 import threading
 from collections.abc import Coroutine
@@ -16,6 +17,9 @@ from knx_gui.color import color_u32
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.connection.interface import ObservableKNXIPInterfaceThreaded
 from knx_gui.plugins.connection.strings import S
+from knx_gui.settings import load_settings, save_settings
+
+_SETTINGS = "connection"
 
 
 class ConnectionState(Enum):
@@ -40,6 +44,7 @@ class ConnectionPlugin:
         self._multicast_group: str = DEFAULT_MCAST_GRP
         self._selected_gateway: GatewayDescriptor | None = None
         self._panels: list[PanelDefinition] = []
+        self._load_saved_settings()
 
         self._xknx: XKNX | None = None
         self._interface: ObservableKNXIPInterfaceThreaded | None = None
@@ -85,6 +90,29 @@ class ConnectionPlugin:
         loop = self._ensure_async_loop()
         asyncio.run_coroutine_threadsafe(coro, loop)
 
+    def _load_saved_settings(self) -> None:
+        data = load_settings(_SETTINGS)
+        ip = data.get("controller_ip")
+        if isinstance(ip, str) and ip:
+            self._controller_ip = ip
+        mcast = data.get("multicast_group")
+        if isinstance(mcast, str) and mcast:
+            self._multicast_group = mcast
+        ctype = data.get("connection_type")
+        if ctype is not None:
+            with contextlib.suppress(ValueError):
+                self._connection_type = ConnectionType(ctype)
+
+    def _save_current_settings(self) -> None:
+        save_settings(
+            _SETTINGS,
+            {
+                "controller_ip": self._controller_ip,
+                "multicast_group": self._multicast_group,
+                "connection_type": self._connection_type.value,
+            },
+        )
+
     def connect(self) -> None:
         """Connect using the manually entered IP (always tunneling)."""
         if self._state in (ConnectionState.CONNECTING, ConnectionState.CONNECTED):
@@ -93,6 +121,7 @@ class ConnectionPlugin:
         self._selected_gateway = None
         self._state = ConnectionState.CONNECTING
         self._error_message = None
+        self._save_current_settings()
         self._run_async(self._connect_async())
 
     def connect_to_gateway(self, gateway: GatewayDescriptor) -> None:
@@ -110,6 +139,7 @@ class ConnectionPlugin:
         self._selected_gateway = gateway
         self._state = ConnectionState.CONNECTING
         self._error_message = None
+        self._save_current_settings()
         self._run_async(self._connect_async())
 
     @property

@@ -89,5 +89,9 @@ class NodeEditorStrings(BaseStrings):
     def TOOLTIP_LOCKED(self) -> str:
         return _("{name} (locked)")
 
+    @property
+    def SEARCH_HINT(self) -> str:
+        return _("Search…")
+
 
 S = NodeEditorStrings()

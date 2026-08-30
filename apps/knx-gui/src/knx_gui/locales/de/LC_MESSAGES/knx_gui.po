@@ -66,3 +66,6 @@ msgstr "XKNX Projekt speichern"
 
 msgid "XKNX project (*.xknx)"
 msgstr "XKNX Projekt (*.xknx)"
+
+msgid "No KNX connection"
+msgstr "Keine KNX-Verbindung"

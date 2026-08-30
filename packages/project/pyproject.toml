@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "sqlalchemy>=2.0.0",
     "xknx-models",
+    "xknxproject>=3.10",
 ]
 
 [build-system]
