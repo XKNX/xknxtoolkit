@@ -19,6 +19,9 @@ from xknx.telegram.apci import (
     Restart,
     RestartMasterReset,
     RestartMasterResetResponse,
+    UserMemoryRead,
+    UserMemoryResponse,
+    UserMemoryWrite,
 )
 
 from xknxmono.download.load_state import (
@@ -62,7 +65,7 @@ class FakeDevice:
     async def send_data(self, payload: APCI, wait_for_ack: bool = True) -> None:
         """Handle a payload the programmer does not expect an answer to."""
         self.sent.append(payload)
-        if isinstance(payload, MemoryWrite):
+        if isinstance(payload, MemoryWrite | UserMemoryWrite):
             for index, byte in enumerate(payload.data):
                 self.memory[payload.address + index] = byte
         elif isinstance(payload, PropertyValueWrite):
@@ -78,6 +81,13 @@ class FakeDevice:
                 self.memory.get(payload.address + i, 0) for i in range(payload.count)
             )
             return self._telegram(MemoryResponse(address=payload.address, data=data))
+        if isinstance(payload, UserMemoryRead):
+            data = bytes(
+                self.memory.get(payload.address + i, 0) for i in range(payload.count)
+            )
+            return self._telegram(
+                UserMemoryResponse(address=payload.address, data=data)
+            )
         if isinstance(payload, PropertyValueWrite):
             # A_PropertyValue_Write is confirmed by a response carrying the
             # resulting value; apply the write, then answer with a read.

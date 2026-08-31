@@ -100,14 +100,36 @@ def _mcb_table_with_crc(data: bytes, segment: bytes) -> bytes:
     """Patch the segment CRC into each CRC-protected Memory Control Block entry.
 
     ``data`` is the MCB table value (8 octet entries, plus any trailing padding);
-    ``segment`` is the loaded segment the CRC protects. Only entries whose
-    CRC-protected flag is set get their CRC octets filled.
+    ``segment`` is the loaded object segment the CRCs protect. Each entry declares
+    its own sub-segment size in octets 0..3 and carries the CRC (octets 6..7) over
+    just that sub-segment; the sub-segments tile the object data in order, so a
+    device with several segments in one object gets one CRC per segment rather
+    than one CRC over everything (KNX 3/5/1 4.2.27; matches Hawk gd.cs SegmentCRCs,
+    which reads the size via gy.c at 8*n and advances the offset cumulatively).
+    The size is a 32-bit value stored as two 16-bit big-endian halves, low half
+    first (gy.c order). Only entries whose CRC-protected flag (bit 0 of octet 4)
+    is clear get their CRC octets filled.
+
+    If the declared sizes do not tile the segment exactly, fall back to a single
+    CRC over the whole segment - the behaviour validated byte-perfect on real
+    single-segment devices (e.g. System B 1.1.41), so an unexpected size encoding
+    can never regress it.
     """
     out = bytearray(data)
-    crc = segment_crc(segment)
-    for start in range(0, len(out) - _MCB_ENTRY_SIZE + 1, _MCB_ENTRY_SIZE):
+    starts = list(range(0, len(out) - _MCB_ENTRY_SIZE + 1, _MCB_ENTRY_SIZE))
+    sizes = [
+        int.from_bytes(out[s : s + 2], "big")
+        | (int.from_bytes(out[s + 2 : s + 4], "big") << 16)
+        for s in starts
+    ]
+    per_entry = bool(sizes) and sum(sizes) == len(segment)
+    offset = 0
+    for start, size in zip(starts, sizes, strict=True):
+        sub_segment = segment[offset : offset + size] if per_entry else segment
+        offset += size
         if out[start + _MCB_CRC_PROTECTED_OCTET] & 1:
             continue
+        crc = segment_crc(sub_segment)
         out[start + _MCB_CRC_OFFSET] = (crc >> 8) & 0xFF
         out[start + _MCB_CRC_OFFSET + 1] = crc & 0xFF
     return bytes(out)
@@ -125,6 +147,42 @@ _CLIENT_SIDE = (
     "LdCtrlProgressText",
     "LdCtrlClearCachedObjectTypes",
     "LdCtrlDeclarePropDesc",
+)
+
+# Load Controls this engine executes on the bus (the isinstance branches of
+# :meth:`LoadProcedureRunner._execute`). Used to pre-validate a resolved,
+# scoped procedure before touching the device, so an unsupported control is
+# reported up front instead of after earlier controls have already unloaded or
+# written the device (a real master procedure can contain e.g.
+# ``LdCtrlClearLCFilterTable``, which is not implemented).
+_SUPPORTED_CONTROLS = frozenset(
+    {
+        "LdCtrlConnect",
+        "LdCtrlDisconnect",
+        "LdCtrlDelay",
+        "LdCtrlRestart",
+        "LdCtrlMasterReset",
+        "LdCtrlUnload",
+        "LdCtrlLoad",
+        "LdCtrlLoadCompleted",
+        "LdCtrlWriteMem",
+        "LdCtrlLoadImageMem",
+        "LdCtrlCompareMem",
+        "LdCtrlWriteRelMem",
+        "LdCtrlCompareRelMem",
+        "LdCtrlLoadImageRelMem",
+        "LdCtrlWriteProp",
+        "LdCtrlLoadImageProp",
+        "LdCtrlCompareProp",
+        "LdCtrlInvokeFunctionProp",
+        "LdCtrlReadFunctionProp",
+        "LdCtrlAbsSegment",
+        "LdCtrlRelSegment",
+        "LdCtrlTaskSegment",
+        "LdCtrlTaskPtr",
+        "LdCtrlTaskCtrl1",
+        "LdCtrlTaskCtrl2",
+    }
 )
 
 
@@ -156,6 +214,7 @@ class LoadProcedureRunner:
         scope: DownloadScope = DownloadScope.FULL,
         expected_descriptor: int | None = None,
         negotiate_apdu: bool = False,
+        apdu_overhead: int = 0,
     ) -> None:
         """Initialize the runner.
 
@@ -184,6 +243,9 @@ class LoadProcedureRunner:
         self._max_apdu_length = (
             programmer.max_apdu_length if programmer is not None else max_apdu_length
         )
+        self._apdu_overhead = (
+            programmer.apdu_overhead if programmer is not None else apdu_overhead
+        )
         self._restart_cooldown = restart_cooldown
         self._restart_at: float | None = None
         # A one-shot cooldown that overrides the default for the next reconnect
@@ -209,6 +271,7 @@ class LoadProcedureRunner:
         download progress.
         """
         in_scope = [c for c in self._controls if self._in_scope(c)]
+        self._prevalidate(in_scope)
         total = len(in_scope)
         logger.info(
             "download run start: %s, %d of %d load controls in scope",
@@ -235,6 +298,7 @@ class LoadProcedureRunner:
         segments: list[SegmentDiff] = []
         properties: list[PropertyDiff] = []
         in_scope = [c for c in self._controls if self._in_scope(c)]
+        self._prevalidate(in_scope)
         logger.info(
             "download preflight start: %s, %d of %d load controls in scope",
             self._target(),
@@ -253,6 +317,23 @@ class LoadProcedureRunner:
     def _in_scope(self, control: object) -> bool:
         """Whether a control participates in the requested download scope."""
         return control_in_scope(control, self.scope)
+
+    def _prevalidate(self, in_scope: list[object]) -> None:
+        """Reject an unsupported control before any device state is changed.
+
+        Scans the resolved, scoped controls up front so a procedure containing a
+        control this engine cannot execute fails before the connection is opened
+        or any Load State Machine is unloaded, rather than partway through
+        (leaving the device unloaded). Client-side no-ops are accepted.
+        """
+        for position, control in enumerate(in_scope, start=1):
+            name = type(control).__name__
+            if name in _SUPPORTED_CONTROLS or name in _CLIENT_SIDE:
+                continue
+            self._position = (position, len(in_scope))
+            error = self._unsupported(control)
+            self._position = None
+            raise error
 
     def _target(self) -> str:
         """A short, log-friendly identity of the download target for diagnostics."""
@@ -293,7 +374,9 @@ class LoadProcedureRunner:
         await self._await_restart_cooldown()
         connection = await self._manager.open()
         self._programmer = DeviceProgrammer(
-            connection, max_apdu_length=self._max_apdu_length
+            connection,
+            max_apdu_length=self._max_apdu_length,
+            apdu_overhead=self._apdu_overhead,
         )
         await self._prepare_device(self._programmer)
         return self._programmer
@@ -411,7 +494,9 @@ class LoadProcedureRunner:
             # one-shot reconnect cooldown when it exceeds the default.
             await self._close()
             self._restart_at = time.monotonic()
-            self._pending_cooldown = max(self._restart_cooldown, process_time / 1000)
+            # Process Time is a 2 octet unsigned value in *seconds* (DPT 7.005,
+            # KNX 3/5/2 3.7.1.2.2), so use it directly - not milliseconds.
+            self._pending_cooldown = max(self._restart_cooldown, process_time)
             return
         if isinstance(control, LdCtrlUnload):
             index = await self._resolve_index(control)
@@ -670,7 +755,15 @@ class LoadProcedureRunner:
                 )
 
     def _image_property_data(self, object_index: int, property_id: int) -> bytes:
-        """Find the download image's property data for an object and property."""
+        """Find the download image's property data for an object and property.
+
+        Matches on the resolved device object index (or an object-agnostic image
+        property). Note: the image keys properties by object index, not by
+        (object type, occurrence), so a product with several instances of the
+        same object type that carry *different* per-instance property images is
+        not distinguished here - the first matching property wins. No such device
+        has been observed; a fix would resolve by (object type, occurrence).
+        """
         for prop in self.image.properties:
             if prop.property_id != property_id:
                 continue
@@ -699,6 +792,14 @@ class LoadProcedureRunner:
             start_index=control.start_element,
         )
         expected = control.inline_data
+        # A device that returns no data (absent property / rejected read) must
+        # not pass the compare vacuously - the overlapping-prefix rule below
+        # would otherwise match against an empty prefix.
+        if not read_back:
+            raise VerificationError(
+                f"property compare for object {index} property {control.prop_id} "
+                "read no data from the device"
+            )
         mask = control.mask
         length = min(len(read_back), len(expected))
         if mask:

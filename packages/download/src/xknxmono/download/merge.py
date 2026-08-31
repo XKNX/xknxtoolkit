@@ -101,7 +101,17 @@ def _default_procedure(
     mask_version_id: str,
     procedure_type: ProcedureType,
 ) -> LoadProcedure | None:
-    """Find the mask version's default procedure of the given type."""
+    """Find the mask version's default procedure of the given type.
+
+    Returns the first procedure of ``procedure_type`` (Load), regardless of its
+    ProcedureSubType (ap1/all/grp/par/par,grp). ETS/Falcon pick a subtype-specific
+    procedure per requested scope; this engine instead resolves one Load procedure
+    and applies the download scope afterwards by the interface object each control
+    targets (see :mod:`xknxmono.download.scope`). That object-based filtering was
+    validated byte-perfect against real hardware (memory-mapped and System B),
+    whereas ProcedureSubType/AppliesTo selection was not, so it is deliberately
+    the single point that decides full vs partial here.
+    """
     if master_data is None or master_data.mask_versions is None:
         return None
     for mask_version in master_data.mask_versions.mask_version:

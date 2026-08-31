@@ -9,6 +9,7 @@ property services.
 from __future__ import annotations
 
 from .commissioning import program_individual_address
+from .data_secure import DeviceSecurity, SecureProgrammingError
 from .download import download, preflight
 from .errors import (
     DownloadError,
@@ -44,6 +45,7 @@ from .project_data import (
     parameter_values_from_device,
 )
 from .scope import DownloadScope
+from .secure_keyring import device_security_from_keyring, load_device_security
 from .tables import (
     Association,
     build_association_table,
@@ -57,6 +59,7 @@ __all__ = [
     "ByteRange",
     "ConnectionManager",
     "DeviceProgrammer",
+    "DeviceSecurity",
     "DownloadError",
     "DownloadImage",
     "DownloadScope",
@@ -71,6 +74,7 @@ __all__ = [
     "PreflightReport",
     "PropertyDiff",
     "PropertyValue",
+    "SecureProgrammingError",
     "SeedDevice",
     "SegmentDiff",
     "UnsupportedProcedureError",
@@ -78,9 +82,11 @@ __all__ = [
     "build_association_table",
     "build_group_address_table",
     "build_image",
+    "device_security_from_keyring",
     "download",
     "group_address_table",
     "group_communication_from_device",
+    "load_device_security",
     "module_instances_from_device",
     "parameter_instance_refs_from_device",
     "parameter_values_from_device",

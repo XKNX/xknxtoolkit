@@ -33,6 +33,9 @@ from xknx.telegram.apci import (
     Restart,
     RestartMasterReset,
     RestartMasterResetResponse,
+    UserMemoryRead,
+    UserMemoryResponse,
+    UserMemoryWrite,
 )
 
 from . import load_state
@@ -62,6 +65,12 @@ PID_OBJECT_TYPE = 1
 PID_TABLE_REFERENCE = 7
 # Highest interface object index scanned when locating an object by type.
 _MAX_OBJECT_INDEX = 255
+# A_Memory_Read/Write carry a 16-bit address, so they only reach the first 64
+# KiB; at and above this boundary A_UserMemory_Read/Write (3-byte address) are
+# used. ETS splits a transfer straddling the boundary into a Standard part below
+# and a UserMemory part at/above it (Hawk eo.cs, e.g. the 65536 split around
+# lines 16704-16707 and 16647). See KNX 3/5/1 4.2 and 3/3/7 3.5.
+_USER_MEMORY_BOUNDARY = 0x10000
 
 
 class BusConnection(Protocol):
@@ -101,16 +110,31 @@ class DeviceProgrammer:
         connection: BusConnection,
         *,
         max_apdu_length: int = DEFAULT_MAX_APDU_LENGTH,
+        apdu_overhead: int = 0,
     ) -> None:
-        """Initialize with a connected bus connection and the negotiated APDU length."""
+        """Initialize with a connected bus connection and the negotiated APDU length.
+
+        ``apdu_overhead`` is the number of octets a lower layer adds around each
+        APDU on the wire (13 for a KNX Data Secure session, 0 otherwise). It is
+        subtracted from ``max_apdu_length`` when sizing chunks so the fully
+        encoded frame still fits the device's APDU length.
+        """
         self.connection = connection
         self.max_apdu_length = max_apdu_length
+        self.apdu_overhead = apdu_overhead
         self._object_index_cache: dict[tuple[int, int], int] = {}
+
+    @property
+    def _plain_apdu_length(self) -> int:
+        """Usable plaintext APDU length after the wire overhead (at least 1)."""
+        return max(1, self.max_apdu_length - self.apdu_overhead)
 
     @property
     def memory_chunk_size(self) -> int:
         """Largest memory payload that fits into a single telegram (at least 1)."""
-        return max(1, min(self.max_apdu_length - _MEMORY_OVERHEAD, _MAX_MEMORY_CHUNK))
+        return max(
+            1, min(self._plain_apdu_length - _MEMORY_OVERHEAD, _MAX_MEMORY_CHUNK)
+        )
 
     async def read_device_descriptor(self) -> int:
         """Read device descriptor type 0 (the mask version)."""
@@ -134,29 +158,47 @@ class DeviceProgrammer:
             return DEFAULT_MAX_APDU_LENGTH
         return int.from_bytes(data, "big")
 
+    def _block_count(self, address: int, remaining: int) -> int:
+        """Octets to transfer next: the APDU chunk, clamped to the 64 KiB boundary.
+
+        A single A_Memory_/A_UserMemory_ transfer must not straddle the 64 KiB
+        boundary (the address space and APCI change there), so a block that would
+        cross it is cut at the boundary (Hawk eo.cs splits the same way).
+        """
+        count = min(self.memory_chunk_size, remaining)
+        if address < _USER_MEMORY_BOUNDARY < address + count:
+            count = _USER_MEMORY_BOUNDARY - address
+        return count
+
     async def read_memory(self, address: int, size: int) -> bytes:
         """Read ``size`` octets starting at ``address``, chunked to the APDU length."""
         result = bytearray()
-        chunk = self.memory_chunk_size
         offset = 0
         while offset < size:
-            count = min(chunk, size - offset)
-            telegram = await self.connection.request(
-                MemoryRead(address=address + offset, count=count), MemoryResponse
-            )
-            payload = telegram.payload
-            if not isinstance(payload, MemoryResponse):
-                raise VerificationError(
-                    f"no memory response for address {address + offset:#06x}"
-                )
-            if len(payload.data) != count:
-                raise VerificationError(
-                    f"short memory response at {address + offset:#06x}: "
-                    f"asked {count} got {len(payload.data)}"
-                )
-            result.extend(payload.data)
+            block_address = address + offset
+            count = self._block_count(block_address, size - offset)
+            result.extend(await self._read_block(block_address, count))
             offset += count
         return bytes(result)
+
+    async def _read_block(self, address: int, count: int) -> bytes:
+        """Read one block via A_Memory_Read or A_UserMemory_Read by address."""
+        if address >= _USER_MEMORY_BOUNDARY:
+            request: APCI = UserMemoryRead(address=address, count=count)
+            expected: type[APCI] = UserMemoryResponse
+        else:
+            request = MemoryRead(address=address, count=count)
+            expected = MemoryResponse
+        telegram = await self.connection.request(request, expected)
+        payload = telegram.payload
+        if not isinstance(payload, MemoryResponse | UserMemoryResponse):
+            raise VerificationError(f"no memory response for address {address:#06x}")
+        if len(payload.data) != count:
+            raise VerificationError(
+                f"short memory response at {address:#06x}: "
+                f"asked {count} got {len(payload.data)}"
+            )
+        return payload.data
 
     async def write_memory(
         self, address: int, data: bytes, *, verify: bool = False
@@ -166,13 +208,12 @@ class DeviceProgrammer:
         With ``verify`` each block is read back and compared right after it is
         written (per KNX 3/5/2), so a lost EEPROM write is caught immediately.
         """
-        chunk = self.memory_chunk_size
-        for offset in range(0, len(data), chunk):
-            block = data[offset : offset + chunk]
+        offset = 0
+        while offset < len(data):
             block_address = address + offset
-            await self.connection.send_data(
-                MemoryWrite(address=block_address, data=block)
-            )
+            count = self._block_count(block_address, len(data) - offset)
+            block = data[offset : offset + count]
+            await self._write_block(block_address, block)
             if verify:
                 read_back = await self.read_memory(block_address, len(block))
                 if read_back != block:
@@ -180,6 +221,16 @@ class DeviceProgrammer:
                         f"memory verification failed at {block_address:#06x}: "
                         f"wrote {block.hex()} read {read_back.hex()}"
                     )
+            offset += count
+
+    async def _write_block(self, address: int, block: bytes) -> None:
+        """Write one block via A_Memory_Write or A_UserMemory_Write by address."""
+        if address >= _USER_MEMORY_BOUNDARY:
+            await self.connection.send_data(
+                UserMemoryWrite(address=address, data=block)
+            )
+        else:
+            await self.connection.send_data(MemoryWrite(address=address, data=block))
 
     async def read_property(
         self,
@@ -199,12 +250,10 @@ class DeviceProgrammer:
             ),
             PropertyValueResponse,
         )
-        payload = telegram.payload
-        if not isinstance(payload, PropertyValueResponse):
-            raise VerificationError(
-                f"no property response for object {object_index} property {property_id}"
-            )
-        return payload.data
+        response = _validate_property_response(
+            telegram.payload, object_index, property_id, "read"
+        )
+        return response.data
 
     async def write_property(
         self,
@@ -226,9 +275,26 @@ class DeviceProgrammer:
         so a value spanning more than 15 elements or one frame is written in
         successive element ranges; the last response is returned.
         """
+        if count <= 0:
+            raise VerificationError(
+                f"property write for object {object_index} property {property_id} "
+                "has a non-positive element count (an unresolved wildcard count is "
+                "not supported)"
+            )
+        if count > 1 and len(data) % count:
+            raise VerificationError(
+                f"property data ({len(data)} octets) is not divisible by the "
+                f"element count {count} for object {object_index} property {property_id}"
+            )
         element_size = (len(data) // count) if count > 1 else len(data)
-        max_bytes = max(1, self.max_apdu_length - _PROPERTY_OVERHEAD)
-        if element_size and element_size <= max_bytes:
+        max_bytes = max(1, self._plain_apdu_length - _PROPERTY_OVERHEAD)
+        if element_size > max_bytes:
+            raise VerificationError(
+                f"a single property element ({element_size} octets) does not fit "
+                f"the APDU ({max_bytes} octets) for object {object_index} "
+                f"property {property_id}; element fragmentation is not implemented"
+            )
+        if element_size:
             per_frame = max(1, min(_MAX_PROPERTY_ELEMENTS, max_bytes // element_size))
         else:
             per_frame = _MAX_PROPERTY_ELEMENTS
@@ -271,13 +337,10 @@ class DeviceProgrammer:
             ),
             PropertyValueResponse,
         )
-        payload = telegram.payload
-        if not isinstance(payload, PropertyValueResponse):
-            raise VerificationError(
-                f"no property write response for object {object_index} "
-                f"property {property_id}"
-            )
-        return payload.data
+        response = _validate_property_response(
+            telegram.payload, object_index, property_id, "write", require_nonzero=True
+        )
+        return response.data
 
     async def invoke_function_property(
         self, object_index: int, property_id: int, data: bytes
@@ -334,11 +397,25 @@ class DeviceProgrammer:
         return payload.data
 
     async def read_table_reference(self, object_index: int) -> int:
-        """Read a loadable part's table base address (PID_TABLE_REFERENCE)."""
+        """Read a loadable part's table base address (PID_TABLE_REFERENCE).
+
+        The reference width depends on the realisation type - 2 octets for the
+        memory-mapped BCU/System 7 families, 4 octets (PDT_GENERIC_04, KNX 3/5/1
+        4.2.7) for System B - so the raw value is taken as-is rather than fixed
+        to one width. A zero reference means the segment has not been allocated
+        (or allocation failed) and must not be used as a write target (KNX 3/5/3
+        3.5.1.4).
+        """
         data = await self.read_property(object_index, PID_TABLE_REFERENCE)
         if not data:
             raise VerificationError(f"empty table reference for object {object_index}")
-        return int.from_bytes(data, "big")
+        reference = int.from_bytes(data, "big")
+        if reference == 0:
+            raise LoadStateError(
+                f"object {object_index} reports a zero table reference "
+                "(segment not allocated)"
+            )
+        return reference
 
     async def locate_object(self, object_type: int, occurrence: int = 0) -> int:
         """Resolve the object index of the ``occurrence``-th object of a type.
@@ -415,11 +492,20 @@ class DeviceProgrammer:
             )
 
     async def restart(self) -> None:
-        """Restart the device (also closes the transport connection)."""
+        """Restart the device (also closes the transport connection).
+
+        Sent without waiting for a transport ACK on purpose: a Basic Restart has
+        no application-layer response and the device tears the connection down
+        immediately, so it often restarts before (or instead of) ACKing. Waiting
+        for the ACK would usually time out and just delay the teardown the caller
+        already performs. The connection-oriented confirmation the standard
+        mentions (3/3/7 3.4.2.2) is therefore not relied upon here; a Master
+        Reset, which *is* application-layer confirmed, uses the response path.
+        """
         await self.connection.send_data(Restart(), wait_for_ack=False)
 
     async def master_reset(self, erase_code: int, channel_number: int) -> int:
-        """Perform a Master Reset and return the device's process time in ms.
+        """Perform a Master Reset and return the device's process time in seconds.
 
         A Master Reset is an A_Restart with restart_type = 1, carrying an erase
         code and channel number (KNX Standard v3.0.0, 3/3/7 section 3.4.2.2; the
@@ -442,6 +528,42 @@ class DeviceProgrammer:
                 f"{channel_number}): error code {payload.error_code:#04x}"
             )
         return payload.process_time
+
+
+def _validate_property_response(
+    payload: APCI | None,
+    object_index: int,
+    property_id: int,
+    operation: str,
+    *,
+    require_nonzero: bool = False,
+) -> PropertyValueResponse:
+    """Return the response, or raise if it is missing or mismatched.
+
+    A response echoes the addressed object and property; a differing echo means a
+    stale/buffered telegram was mistaken for the answer. With ``require_nonzero``
+    a count (nr_of_elem) of 0 is treated as the device rejecting the access (KNX
+    3/3/7 3.4.4.1/3.4.4.2). Reads leave it off: a 0-element/empty response is how
+    a device reports an absent property, which callers such as object location and
+    APDU-length negotiation handle by falling back rather than failing.
+    """
+    if not isinstance(payload, PropertyValueResponse):
+        raise VerificationError(
+            f"no property {operation} response for object {object_index} "
+            f"property {property_id}, got {payload!r}"
+        )
+    if payload.object_index != object_index or payload.property_id != property_id:
+        raise VerificationError(
+            f"property {operation} response addresses object "
+            f"{payload.object_index} property {payload.property_id}, "
+            f"expected object {object_index} property {property_id}"
+        )
+    if require_nonzero and payload.count == 0:
+        raise VerificationError(
+            f"device rejected property {operation}: object {object_index} "
+            f"property {property_id} returned 0 elements"
+        )
+    return payload
 
 
 def _decode_load_state(value: int, object_index: int) -> load_state.LoadState:

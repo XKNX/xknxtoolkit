@@ -47,9 +47,32 @@ connection).
 
 Not covered yet: clearing a line coupler filter table (`LdCtrlClearLCFilterTable`,
 coupler-only and not yet validated against a router), the load procedure control
-flow directives `LdCtrlOnError` / `LdCtrlProcType`, KNX Data Secure, and USB
-transport. Unsupported Load Controls are reported via `UnsupportedProcedureError`
-rather than guessed (see [Implementation gaps](#implementation-gaps-and-diagnostics)).
+flow directives `LdCtrlOnError` / `LdCtrlProcType`, and USB transport. Unsupported
+Load Controls are reported via `UnsupportedProcedureError` rather than guessed (see
+[Implementation gaps](#implementation-gaps-and-diagnostics)).
+
+## KNX Data Secure (Tool Key)
+
+For a secure device, pass a `DeviceSecurity(address, tool_key)` as the `security`
+argument to `download`/`preflight`. The whole session is then KNX Data Secure
+protected with the device's Tool Key (the mode ETS uses for programming), the same
+way a plain download runs - the programmer is unaware of it.
+
+- The CCM construction (B0/Ctr0, the `A`/`P` split per S-AL service, the AES-CBC-MAC
+  and AES-CTR steps) follows KNX Standard v3.0.0, 3/3/7 section 5 and is verified
+  byte-for-byte against the worked examples in 3/3/7 Annex C (C.1.1-C.1.4).
+- Before the first secured frame the session is synchronised with an S-A_Sync
+  exchange (`DM_SecureSync`, 3/5/2), learning the device's Sequence Numbers.
+- Frames are secured on the CEMI path (`xknx.cemi_handler.data_secure`), after the
+  transport layer has assigned the connection-oriented sequence number that the B0
+  block binds - the same hook xknx uses for group Data Secure.
+
+The Tool Key can be supplied directly (`DeviceSecurity(address, tool_key)`) or read
+from a KNX keyring: `load_device_security(path, password, address)` loads and
+decrypts a `.knxkeys` file and returns the `DeviceSecurity` for the device, and
+`device_security_from_keyring(keyring, address)` does the same from an already
+loaded keyring. Decryption uses xknx's keyring loader. Wiring this into the GUI is
+not part of this package yet.
 
 ## Group communication tables
 

@@ -17,6 +17,20 @@ def test_memory_chunk_size_respects_apdu() -> None:
     assert DeviceProgrammer(FakeDevice(), max_apdu_length=55).memory_chunk_size == 52
 
 
+def test_memory_chunk_size_accounts_for_secure_overhead() -> None:
+    # A Data Secure session adds 13 octets, so the plaintext ceiling shrinks by
+    # 13 before the memory overhead is applied: 55 - 13 - 3 = 39.
+    programmer = DeviceProgrammer(FakeDevice(), max_apdu_length=55, apdu_overhead=13)
+    assert programmer.memory_chunk_size == 39
+    # A tiny APDU still yields at least a 1-octet chunk.
+    assert (
+        DeviceProgrammer(
+            FakeDevice(), max_apdu_length=15, apdu_overhead=13
+        ).memory_chunk_size
+        == 1
+    )
+
+
 async def test_write_memory_is_chunked() -> None:
     device = FakeDevice()
     programmer = DeviceProgrammer(device, max_apdu_length=15)

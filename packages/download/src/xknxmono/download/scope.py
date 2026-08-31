@@ -13,6 +13,20 @@ the interface object it addresses:
 The applies_to marker (``LdCtrlProcType``) is uniform on many products, so the
 object a control targets - not applies_to - is what distinguishes a partial
 parameter download from a partial group communication download.
+
+This is a deliberate deviation from ETS/Falcon, which evaluate ``AppliesTo`` (and
+select a subtype-specific procedure). Object-based scoping was validated
+byte-perfect on real hardware (e.g. a partial parameter download on 1.1.74),
+whereas an ``AppliesTo``-driven scope was observed to be wrong on that device, so
+the object a control addresses is the authoritative signal here.
+
+The classification looks at the object *type* for controls that carry one
+(``obj_type``, e.g. the synthesized group-communication table writes use types
+1/2/9) and at the interface object *index* otherwise (``obj_idx``/``lsm_idx``).
+For our control set these do not collide - group-communication controls always
+carry ``obj_type`` and parameter controls carry the Application Program index -
+but a hand-built procedure that group-addressed the System B group object at
+*index* 3 (rather than type 9) would need an index-to-type map to classify.
 """
 
 from __future__ import annotations

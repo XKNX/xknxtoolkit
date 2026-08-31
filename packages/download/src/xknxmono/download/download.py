@@ -28,9 +28,10 @@ if TYPE_CHECKING:
 
     from xknxmono.product import Application, MasterData
 
+    from .data_secure import DeviceSecurity
     from .image import DownloadImage, GroupCommunication
     from .preflight import PreflightReport
-    from .programmer import BusConnection
+    from .programmer import BusConnection, ConnectionManager
     from .project_data import SeedDevice
 
 
@@ -64,6 +65,32 @@ def _apdu_settings(max_apdu_length: int | None) -> tuple[int, bool]:
     return max_apdu_length, False
 
 
+def _connection_manager(
+    xknx: XKNX, address: IndividualAddress, security: DeviceSecurity | None
+) -> ConnectionManager:
+    """Return a plain or a Tool-Key secured connection manager for ``address``."""
+    if security is None:
+        return _XknxConnectionManager(xknx, address)
+    from .data_secure import SecureProgrammingError
+    from .secure_session import SecureConnectionManager
+
+    if security.address != address:
+        raise SecureProgrammingError(
+            f"security material is for {security.address}, not the download "
+            f"target {address}"
+        )
+    return SecureConnectionManager(xknx, address, security)
+
+
+def _apdu_overhead(security: DeviceSecurity | None) -> int:
+    """Wire APDU overhead a secure session adds around each plaintext APDU."""
+    if security is None:
+        return 0
+    from .data_secure import SECURE_APDU_OVERHEAD
+
+    return SECURE_APDU_OVERHEAD
+
+
 async def download(
     xknx: XKNX,
     individual_address: IndividualAddressableType,
@@ -77,6 +104,7 @@ async def download(
     parameter_values: Mapping[str, str] | None = None,
     max_apdu_length: int | None = None,
     expected_descriptor: int | None = None,
+    security: DeviceSecurity | None = None,
     progress: Callable[[int, int], None] | None = None,
 ) -> None:
     """Download ``application`` into the device at ``individual_address``.
@@ -113,12 +141,20 @@ async def download(
         *resolve_download_controls(
             application, master.raw if master is not None else None
         ),
+        # System B products carry no Load Controls for the group communication
+        # tables, so they are synthesized and appended here. NOTE: they run after
+        # the application procedure; for a product whose procedure ends in a
+        # Restart the runner reconnects and writes the tables in a fresh session.
+        # ETS/Falcon instead bind the table images to the master procedure's own
+        # allocation/write controls (before its restart). This ordering has only
+        # been validated read-only via preflight, not on a real write+restart, so
+        # it should be verified against hardware before relying on it there.
         *synthesize_group_communication_controls(image),
     ]
     address = IndividualAddress(individual_address)
     apdu_ceiling, negotiate_apdu = _apdu_settings(max_apdu_length)
 
-    manager = _XknxConnectionManager(xknx, address)
+    manager = _connection_manager(xknx, address, security)
     runner = LoadProcedureRunner(
         application,
         image,
@@ -128,6 +164,7 @@ async def download(
         scope=scope,
         expected_descriptor=expected_descriptor,
         negotiate_apdu=negotiate_apdu,
+        apdu_overhead=_apdu_overhead(security),
     )
     try:
         await runner.run(progress)
@@ -150,6 +187,7 @@ async def preflight(
     parameter_values: Mapping[str, str] | None = None,
     max_apdu_length: int | None = None,
     expected_descriptor: int | None = None,
+    security: DeviceSecurity | None = None,
 ) -> PreflightReport:
     """Report what :func:`download` would change on the device, changing nothing.
 
@@ -172,12 +210,20 @@ async def preflight(
         *resolve_download_controls(
             application, master.raw if master is not None else None
         ),
+        # System B products carry no Load Controls for the group communication
+        # tables, so they are synthesized and appended here. NOTE: they run after
+        # the application procedure; for a product whose procedure ends in a
+        # Restart the runner reconnects and writes the tables in a fresh session.
+        # ETS/Falcon instead bind the table images to the master procedure's own
+        # allocation/write controls (before its restart). This ordering has only
+        # been validated read-only via preflight, not on a real write+restart, so
+        # it should be verified against hardware before relying on it there.
         *synthesize_group_communication_controls(image),
     ]
     address = IndividualAddress(individual_address)
     apdu_ceiling, negotiate_apdu = _apdu_settings(max_apdu_length)
 
-    manager = _XknxConnectionManager(xknx, address)
+    manager = _connection_manager(xknx, address, security)
     runner = LoadProcedureRunner(
         application,
         image,
@@ -187,6 +233,7 @@ async def preflight(
         scope=scope,
         expected_descriptor=expected_descriptor,
         negotiate_apdu=negotiate_apdu,
+        apdu_overhead=_apdu_overhead(security),
     )
     try:
         return await runner.preflight()
