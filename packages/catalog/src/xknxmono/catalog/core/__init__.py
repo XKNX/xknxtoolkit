@@ -38,6 +38,7 @@ _LAZY: dict[str, tuple[str, str]] = {
     "get_hardware": (".hardware", "get_hardware"),
     "get_hardware_program": (".hardware", "get_hardware_program"),
     "list_hardware": (".hardware", "list_hardware"),
+    "ManufacturerInfo": (".manufacturers", "ManufacturerInfo"),
     "get_manufacturer": (".manufacturers", "get_manufacturer"),
     "list_manufacturers": (".manufacturers", "list_manufacturers"),
     "ProductSummary": (".products", "ProductSummary"),
@@ -51,6 +52,7 @@ __all__ = [
     "CatalogSectionNode",
     "CatalogService",
     "HardwareFilters",
+    "ManufacturerInfo",
     "ProductSummary",
     "build_catalog_tree",
     "collect_section_ids",
@@ -88,7 +90,7 @@ if TYPE_CHECKING:
         get_hardware_program,
         list_hardware,
     )
-    from .manufacturers import get_manufacturer, list_manufacturers
+    from .manufacturers import ManufacturerInfo, get_manufacturer, list_manufacturers
     from .products import ProductSummary, list_products
     from .service import CatalogService
     from .upload import upload_knxprod
