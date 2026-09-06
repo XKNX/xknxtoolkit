@@ -3,6 +3,7 @@ name = "xknx-product"
 version = "0.1.0"
 description = "XKNX product library"
 requires-python = ">=3.12"
+license = "GPL-2.0-only"
 dependencies = [
     "xknx-models",
     "dukpy",

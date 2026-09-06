@@ -104,3 +104,7 @@ Revert both files (`git checkout apps/knx-gui/pyproject.toml uv.lock`) before co
 
 - Python >= 3.12
 - [uv](https://docs.astral.sh/uv/)
+
+## License
+
+GPL-2.0-only. See [LICENSE](LICENSE).
