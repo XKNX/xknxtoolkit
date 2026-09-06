@@ -290,7 +290,10 @@ class ConfigurePanel:
 
     def _commit_address(self, device: Device) -> None:
         new_address = self._assembled_address()
-        if new_address:
+        # 0.0.0 is the reserved "unassigned device" placeholder (KNX v01.03.02
+        # - Data Link Layer General - §1.4.2: routers use Device Address 0,
+        # other devices 1-255) - not a value a configured device should hold.
+        if new_address and new_address != "0.0.0":
             self._on_individual_address_change(device, new_address)
 
     def _render_restart_controls(self, device: Device) -> None:
