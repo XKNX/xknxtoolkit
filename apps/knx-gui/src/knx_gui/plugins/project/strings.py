@@ -70,6 +70,70 @@ class ProjectStrings:
         return _("Preview Memory")
 
     @property
+    def CONFIGURE_RESET_SECTION(self) -> str:
+        return _("Advanced Actions")
+
+    @property
+    def CONFIGURE_RESET_HEADER(self) -> str:
+        return _("Reset Device")
+
+    @property
+    def CONFIGURE_RESET_CHANNEL(self) -> str:
+        return _("Channel")
+
+    @property
+    def BTN_RESET(self) -> str:
+        return _("Reset")
+
+    @property
+    def RESET_MODE_BASIC_RESTART(self) -> str:
+        return _("Basic Restart (unconfirmed)")
+
+    @property
+    def RESET_MODE_CONFIRMED_RESTART(self) -> str:
+        return _("Confirmed Restart - resets nothing")
+
+    @property
+    def RESET_MODE_FACTORY_RESET(self) -> str:
+        return _("Factory Reset - all Resources, incl. Individual Address")
+
+    @property
+    def RESET_MODE_RESET_IA(self) -> str:
+        return _("Reset Individual Address")
+
+    @property
+    def RESET_MODE_RESET_AP(self) -> str:
+        return _("Reset Application Program")
+
+    @property
+    def RESET_MODE_RESET_PARAM(self) -> str:
+        return _("Reset Application Parameters")
+
+    @property
+    def RESET_MODE_RESET_LINKS(self) -> str:
+        return _("Reset Group Object Links")
+
+    @property
+    def RESET_MODE_FACTORY_RESET_NO_IA(self) -> str:
+        return _("Factory Reset - keep Individual Address")
+
+    @property
+    def RESET_MODE_ERASE_APP_DATA(self) -> str:
+        return _("Erase Persistently Stored Application Data")
+
+    @property
+    def POPUP_CONFIRM_RESET_TITLE(self) -> str:
+        return _("Confirm Reset")
+
+    @property
+    def POPUP_CONFIRM_RESET_TEXT(self) -> str:
+        return _("This will {mode} on {device}.\nThis cannot be undone. Continue?")
+
+    @property
+    def BTN_CANCEL(self) -> str:
+        return _("Cancel")
+
+    @property
     def CONFIGURE_MEMORY_PREVIEW(self) -> str:
         return _("Memory Preview")
 

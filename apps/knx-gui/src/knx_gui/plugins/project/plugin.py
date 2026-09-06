@@ -3,7 +3,12 @@ from typing import TYPE_CHECKING
 
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.project.strings import S
-from knx_gui.plugins.project.ui import ConfigurePanel, DevicesPanel, HistoryPanel
+from knx_gui.plugins.project.ui import (
+    ConfigurePanel,
+    DevicesPanel,
+    HistoryPanel,
+    RestartRequest,
+)
 from knx_gui.plugins.project.ui.devices import Area, Line
 from knx_gui.plugins.project.ui.memory_preview import MemoryPreviewWindow
 
@@ -51,6 +56,7 @@ class ProjectPlugin:
             set_flag=self._handle_flag_change,
             on_program_device=api.connection.assign_individual_address_for_device,
             open_memory_preview=self._memory_preview.open,
+            on_restart_device=self._handle_restart_device,
         )
 
         self._history_panel = HistoryPanel(
@@ -163,6 +169,14 @@ class ProjectPlugin:
         if old_name != new_name:
             device.name = new_name
             self._api.project.set_device_name(device.node_id, old_name, new_name)
+
+    def _handle_restart_device(self, device: "Device", request: RestartRequest) -> None:
+        self._api.connection.restart_device_for_device(
+            device,
+            master_reset=request.master_reset,
+            erase_code=request.erase_code,
+            channel_number=request.channel_number,
+        )
 
     def _handle_flag_change(
         self, device: "Device", co_id: str, flag_name: str, new_value: bool
