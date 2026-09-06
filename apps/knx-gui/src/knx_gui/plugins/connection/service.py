@@ -196,26 +196,6 @@ class ConnectionService:
         else:
             self._log.debug("restart_device ok", address=address)
 
-    def restart_device_for_device(
-        self,
-        device: Device,
-        *,
-        master_reset: bool = False,
-        erase_code: int = 1,
-        channel_number: int = 0,
-    ) -> Future[Any] | None:
-        if not device.individual_address:
-            self._log.warning(
-                "Device has no individual address assigned", device=device.name
-            )
-            return None
-        return self.restart_device(
-            device.individual_address,
-            master_reset=master_reset,
-            erase_code=erase_code,
-            channel_number=channel_number,
-        )
-
     def run_async(self, coro: Coroutine[Any, Any, Any]) -> Future[Any] | None:
         if self._loop is None:
             coro.close()

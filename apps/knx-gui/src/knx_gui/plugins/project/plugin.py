@@ -171,8 +171,8 @@ class ProjectPlugin:
             self._api.project.set_device_name(device.node_id, old_name, new_name)
 
     def _handle_restart_device(self, device: "Device", request: RestartRequest) -> None:
-        self._api.connection.restart_device_for_device(
-            device,
+        self._api.connection.restart_device(
+            device.individual_address,
             master_reset=request.master_reset,
             erase_code=request.erase_code,
             channel_number=request.channel_number,
