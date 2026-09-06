@@ -23,6 +23,7 @@ from xknxmono.project import ProjectService as _ProjectService
 if TYPE_CHECKING:
     from knx_gui.plugins.base import Logger
     from knx_gui.plugins.catalog.service import CatalogService
+    from xknxmono.catalog import HardwareInfo
 
 _INSTALLATION = 0
 
@@ -142,6 +143,7 @@ class ProjectService:
         self._log: Logger
         self._listeners: dict[str, list[Callable[..., Any]]] = {}
         self._app_cache: dict[str, Application] = {}
+        self._hardware_cache: dict[str, HardwareInfo | None] = {}
         self._program_to_app: dict[str, str] | None = None
         self._devices_cache: list[Device] | None = None
         self._areas_cache: list[_Area] | None = None
@@ -209,6 +211,7 @@ class ProjectService:
         self._version = 0
         self._selected_node_id = None
         self._app_cache.clear()
+        self._hardware_cache.clear()
         self._program_to_app = None
 
     def _bump(self) -> None:
@@ -233,6 +236,15 @@ class ProjectService:
         if app is not None:
             self._app_cache[program_ref] = app
         return app
+
+    def _resolve_hardware(self, program_ref: str | None) -> "HardwareInfo | None":
+        if program_ref is None:
+            return None
+        if program_ref not in self._hardware_cache:
+            self._hardware_cache[program_ref] = self._catalog.get_hardware_by_program(
+                program_ref
+            )
+        return self._hardware_cache[program_ref]
 
     def _build_device(self, row: Any) -> Device | None:
         app = self._resolve_app(row.hardware2program_ref_id)
@@ -260,7 +272,7 @@ class ProjectService:
             name=row.name,
             app=app,
             individual_address=ia,
-            hardware2program_ref_id=row.hardware2program_ref_id,
+            hardware=self._resolve_hardware(row.hardware2program_ref_id),
             parameter_instance_refs=pirs,
             module_instances=mis,
             com_object_instance_refs=coirs,

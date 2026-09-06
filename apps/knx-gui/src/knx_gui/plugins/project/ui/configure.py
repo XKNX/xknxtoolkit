@@ -15,7 +15,7 @@ from knx_gui.widgets import (
 from xknxmono.project.core.addressing import format_ia, parse_ia
 
 if TYPE_CHECKING:
-    from xknxmono.catalog import HardwareInfo, ManufacturerInfo
+    from xknxmono.catalog import ManufacturerInfo
 
 # KNX v01.03.02 - Data Link Layer General - §1.4.2, Figure 2: Individual
 # Address is a 16 bit value, Octet 0 = 4 bit Area + 4 bit Line, Octet 1 =
@@ -71,6 +71,10 @@ class RestartRequest:
     channel_number: int
 
 
+def _yes_no(value: bool) -> str:
+    return S.YES if value else S.NO
+
+
 class ConfigurePanel:
     def __init__(
         self,
@@ -85,7 +89,6 @@ class ConfigurePanel:
         open_memory_preview: Callable[[Device], None] | None = None,
         on_restart_device: Callable[[Device, RestartRequest], None] | None = None,
         get_manufacturer: Callable[[str], "ManufacturerInfo | None"] = lambda _: None,
-        get_hardware: Callable[[str], "HardwareInfo | None"] = lambda _: None,
     ) -> None:
         self._get_devices = get_devices
         self._get_selected_device = get_selected_device
@@ -97,7 +100,6 @@ class ConfigurePanel:
         self._open_memory_preview = open_memory_preview
         self._on_restart_device = on_restart_device
         self._get_manufacturer = get_manufacturer
-        self._get_hardware = get_hardware
         self._com_flags_table = ComFlagsTable(set_flag)
         self._name_buffer: str = ""
         self._ia_area: str = ""
@@ -258,24 +260,27 @@ class ConfigurePanel:
                             imgui.end_table()
                         imgui.tree_pop()
 
-    def _render_label_with_id(self, label: str, id_: str, name: str | None) -> None:
-        """Render "label: id", or "label: name (id)" with the id greyed out via text_disabled."""
-        imgui.text_disabled(label)
-        imgui.same_line(120.0)
-        if name and name != id_:
-            imgui.text(name)
-            imgui.same_line()
-            imgui.text_disabled(f"({id_})")
-        else:
-            imgui.text(id_)
-
     def _render_label_value(self, label: str, value: str) -> None:
         imgui.text_disabled(label)
         imgui.same_line(120.0)
         imgui.text(value)
 
-    def _yes_no(self, value: bool) -> str:
-        return S.YES if value else S.NO
+    def _render_label_with_id(self, label: str, id_: str, name: str | None) -> None:
+        """Render "label: id", or "label: name (id)" with the id greyed out via text_disabled."""
+        if not name or name == id_:
+            self._render_label_value(label, id_)
+            return
+        imgui.text_disabled(label)
+        imgui.same_line(120.0)
+        imgui.text(name)
+        imgui.same_line()
+        imgui.text_disabled(f"({id_})")
+
+    def _render_fields(self, fields: list[tuple[str, str | None]]) -> None:
+        """Render each (label, value) pair, skipping any with no value to show."""
+        for label, value in fields:
+            if value:
+                self._render_label_value(label, value)
 
     def _render_metadata_section(self, device: Device) -> None:
         app = device.app
@@ -289,69 +294,73 @@ class ConfigurePanel:
         )
         self._render_label_with_id(S.CONFIGURE_APPLICATION, app.id, app.name)
 
-        self._render_label_value(S.CONFIGURE_MASK_VERSION, program.mask_version)
-        self._render_label_value(S.CONFIGURE_PEI_TYPE, str(program.pei_type))
-        self._render_label_value(
-            S.CONFIGURE_APPLICATION_NUMBER, str(program.application_number)
+        self._render_fields(
+            [
+                (S.CONFIGURE_MASK_VERSION, program.mask_version),
+                (S.CONFIGURE_PEI_TYPE, str(program.pei_type)),
+                (S.CONFIGURE_APPLICATION_NUMBER, str(program.application_number)),
+                (S.CONFIGURE_APPLICATION_VERSION, str(program.application_version)),
+                (S.CONFIGURE_PROGRAM_TYPE, program.program_type.value),
+                (
+                    S.CONFIGURE_LOAD_PROCEDURE_STYLE,
+                    program.load_procedure_style.value,
+                ),
+                (S.CONFIGURE_LINKABLE, _yes_no(program.linkable)),
+                (
+                    S.CONFIGURE_DYNAMIC_TABLE_MANAGEMENT,
+                    _yes_no(program.dynamic_table_management),
+                ),
+                (S.CONFIGURE_SECURE_ENABLED, _yes_no(program.is_secure_enabled)),
+                (
+                    S.CONFIGURE_ADDITIONAL_ADDRESSES,
+                    str(program.additional_addresses_count)
+                    if program.additional_addresses_count
+                    else None,
+                ),
+                (S.CONFIGURE_DESCRIPTION, program.visible_description),
+                (S.CONFIGURE_ORIGINAL_MANUFACTURER, program.original_manufacturer),
+            ]
         )
-        self._render_label_value(
-            S.CONFIGURE_APPLICATION_VERSION, str(program.application_version)
-        )
-        self._render_label_value(S.CONFIGURE_PROGRAM_TYPE, program.program_type.value)
-        self._render_label_value(
-            S.CONFIGURE_LOAD_PROCEDURE_STYLE, program.load_procedure_style.value
-        )
-        self._render_label_value(S.CONFIGURE_LINKABLE, self._yes_no(program.linkable))
-        self._render_label_value(
-            S.CONFIGURE_DYNAMIC_TABLE_MANAGEMENT,
-            self._yes_no(program.dynamic_table_management),
-        )
-        self._render_label_value(
-            S.CONFIGURE_SECURE_ENABLED, self._yes_no(program.is_secure_enabled)
-        )
-        if program.additional_addresses_count:
-            self._render_label_value(
-                S.CONFIGURE_ADDITIONAL_ADDRESSES,
-                str(program.additional_addresses_count),
-            )
-        if program.visible_description:
-            self._render_label_value(
-                S.CONFIGURE_DESCRIPTION, program.visible_description
-            )
-        if program.original_manufacturer:
-            self._render_label_value(
-                S.CONFIGURE_ORIGINAL_MANUFACTURER, program.original_manufacturer
-            )
 
-        if not device.hardware2program_ref_id:
-            return
-        hardware = self._get_hardware(device.hardware2program_ref_id)
+        hardware = device.hardware
         if hardware is None:
             return
 
         self._render_label_with_id(S.CONFIGURE_HARDWARE, hardware.id, hardware.name)
-        if hardware.order_number:
-            self._render_label_value(S.CONFIGURE_ORDER_NUMBER, hardware.order_number)
-        if hardware.serial_number:
-            self._render_label_value(S.CONFIGURE_SERIAL_NUMBER, hardware.serial_number)
-        if hardware.bus_current is not None:
-            self._render_label_value(
-                S.CONFIGURE_BUS_CURRENT, f"{hardware.bus_current:g} mA"
-            )
-        if hardware.is_rail_mounted is not None:
-            self._render_label_value(
-                S.CONFIGURE_RAIL_MOUNTED, self._yes_no(hardware.is_rail_mounted)
-            )
-        if hardware.width_mm is not None:
-            self._render_label_value(S.CONFIGURE_WIDTH, f"{hardware.width_mm:g} mm")
+        self._render_fields(
+            [
+                (S.CONFIGURE_ORDER_NUMBER, hardware.order_number),
+                (S.CONFIGURE_SERIAL_NUMBER, hardware.serial_number),
+                (
+                    S.CONFIGURE_BUS_CURRENT,
+                    f"{hardware.bus_current:g} mA"
+                    if hardware.bus_current is not None
+                    else None,
+                ),
+                (
+                    S.CONFIGURE_RAIL_MOUNTED,
+                    _yes_no(hardware.is_rail_mounted)
+                    if hardware.is_rail_mounted is not None
+                    else None,
+                ),
+                (
+                    S.CONFIGURE_WIDTH,
+                    f"{hardware.width_mm:g} mm"
+                    if hardware.width_mm is not None
+                    else None,
+                ),
+            ]
+        )
 
-        roles: list[str] = []
-        if hardware.is_coupler:
-            roles.append(S.ROLE_COUPLER)
-        if hardware.is_power_supply:
-            roles.append(S.ROLE_POWER_SUPPLY)
-        if hardware.is_ip_enabled:
-            roles.append(S.ROLE_IP_ENABLED)
+        roles = [
+            label
+            for flag, label in (
+                (hardware.is_coupler, S.ROLE_COUPLER),
+                (hardware.is_power_supply, S.ROLE_POWER_SUPPLY),
+                (hardware.is_ip_enabled, S.ROLE_IP_ENABLED),
+            )
+            if flag
+        ]
         self._render_label_value(
             S.CONFIGURE_ROLE, ", ".join(roles) if roles else S.ROLE_END_DEVICE
         )

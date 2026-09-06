@@ -8,6 +8,7 @@ from knx_gui.dpt import DPT
 from xknxmono.product import Application
 
 if TYPE_CHECKING:
+    from xknxmono.catalog import HardwareInfo
     from xknxmono.models.intermediate.com_object_instance_ref_t import (
         ComObjectInstanceRef,
     )
@@ -157,7 +158,7 @@ class Device:
     name: str
     app: Application
     individual_address: str
-    hardware2program_ref_id: str | None = None
+    hardware: HardwareInfo | None = None
     com_objects: list[ComObject] = field(default_factory=list[ComObject])
     parameter_instance_refs: list[ParameterInstanceRef] = field(
         default_factory=list, repr=False, compare=False

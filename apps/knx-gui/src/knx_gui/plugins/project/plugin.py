@@ -58,7 +58,6 @@ class ProjectPlugin:
             open_memory_preview=self._memory_preview.open,
             on_restart_device=self._handle_restart_device,
             get_manufacturer=api.catalog.get_manufacturer,
-            get_hardware=api.catalog.get_hardware_by_program,
         )
 
         self._history_panel = HistoryPanel(

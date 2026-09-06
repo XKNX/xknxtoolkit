@@ -221,7 +221,6 @@ class HardwareInfo:
     name: str | None
     order_number: str | None
     serial_number: str | None
-    version_number: int | None
     bus_current: float | None
     is_rail_mounted: bool | None
     width_mm: float | None
@@ -237,7 +236,9 @@ def get_hardware_by_program(
 
     A project device only knows its ``hardware2program_ref_id`` (the
     Hardware2Program/``HardwareProgram`` row it was instantiated from), not
-    the underlying hardware item's own ID - this resolves the join.
+    the underlying hardware item's own ID - this resolves the join via the
+    ``HardwareProgram.hardware`` relationship (see :func:`get_hardware_program`
+    for the same relationship used the other way round).
 
     Args:
       db: An active SQLAlchemy session.
@@ -248,19 +249,19 @@ def get_hardware_by_program(
       A :class:`HardwareInfo` snapshot, or ``None`` if no such
       Hardware2Program entry exists.
     """
-    hardware = db.scalars(
-        select(Hardware)
-        .join(HardwareProgram, HardwareProgram.hardware_id == Hardware.id)
+    program = db.scalars(
+        select(HardwareProgram)
+        .options(selectinload(HardwareProgram.hardware))
         .where(HardwareProgram.id == hardware2program_ref_id)
     ).first()
-    if hardware is None:
+    if program is None or program.hardware is None:
         return None
+    hardware = program.hardware
     return HardwareInfo(
         id=hardware.id,
         name=hardware.name,
         order_number=hardware.order_number,
         serial_number=hardware.serial_number,
-        version_number=hardware.version_number,
         bus_current=hardware.bus_current,
         is_rail_mounted=hardware.is_rail_mounted,
         width_mm=hardware.width_mm,
