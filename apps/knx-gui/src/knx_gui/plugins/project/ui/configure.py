@@ -332,6 +332,12 @@ class ConfigurePanel:
                 (S.CONFIGURE_ORDER_NUMBER, hardware.order_number),
                 (S.CONFIGURE_SERIAL_NUMBER, hardware.serial_number),
                 (
+                    S.CONFIGURE_VERSION_NUMBER,
+                    str(hardware.version_number)
+                    if hardware.version_number is not None
+                    else None,
+                ),
+                (
                     S.CONFIGURE_BUS_CURRENT,
                     f"{hardware.bus_current:g} mA"
                     if hardware.bus_current is not None

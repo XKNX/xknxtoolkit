@@ -221,6 +221,7 @@ class HardwareInfo:
     name: str | None
     order_number: str | None
     serial_number: str | None
+    version_number: int | None
     bus_current: float | None
     is_rail_mounted: bool | None
     width_mm: float | None
@@ -262,6 +263,7 @@ def get_hardware_by_program(
         name=hardware.name,
         order_number=hardware.order_number,
         serial_number=hardware.serial_number,
+        version_number=hardware.version_number,
         bus_current=hardware.bus_current,
         is_rail_mounted=hardware.is_rail_mounted,
         width_mm=hardware.width_mm,

@@ -114,6 +114,10 @@ class ProjectStrings:
         return _("Serial Number")
 
     @property
+    def CONFIGURE_VERSION_NUMBER(self) -> str:
+        return _("Version Number")
+
+    @property
     def CONFIGURE_BUS_CURRENT(self) -> str:
         return _("Bus Current")
 
