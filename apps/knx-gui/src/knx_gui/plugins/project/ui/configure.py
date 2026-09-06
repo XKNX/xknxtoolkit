@@ -18,33 +18,34 @@ class _ResetMode:
 
     ``erase_code`` is only meaningful when ``master_reset`` is True - see
     KNX v02.01.02 - Management Procedures 03.05.02 - §3.7.1.2.3.1, Table 4.
-    ``channel_scopable`` mirrors that table's own "Channel Number: Fixed:
-    00h" vs. "= 00h: all Channels / != 00h: only this Channel" distinction -
-    the channel field is only meaningful (and only sent as non-zero) for
-    modes the spec lets scope to one Channel. ``destructive`` marks every
-    mode that actually resets a Resource - anything but Basic Restart and
-    Confirmed Restart - and gates the confirmation popup.
+    ``destructive`` marks every mode that actually resets a Resource -
+    anything but Basic Restart and Confirmed Restart - and gates the
+    confirmation popup.
+
+    Table 4 lets several of these Erase Codes scope to a single Channel
+    Number instead of the whole device; there's no UI for that yet, so
+    every request is sent with Channel Number 00h ("all Channels"), which
+    every Erase Code accepts.
     """
 
     label: str
     master_reset: bool
     erase_code: int
-    channel_scopable: bool
     destructive: bool
 
 
 def _reset_modes() -> list[_ResetMode]:
     """Build the dropdown entries fresh so labels pick up the current locale."""
     return [
-        _ResetMode(S.RESET_MODE_BASIC_RESTART, False, 0, False, False),
-        _ResetMode(S.RESET_MODE_CONFIRMED_RESTART, True, 0x01, False, False),
-        _ResetMode(S.RESET_MODE_FACTORY_RESET, True, 0x02, True, True),
-        _ResetMode(S.RESET_MODE_RESET_IA, True, 0x03, False, True),
-        _ResetMode(S.RESET_MODE_RESET_AP, True, 0x04, False, True),
-        _ResetMode(S.RESET_MODE_RESET_PARAM, True, 0x05, True, True),
-        _ResetMode(S.RESET_MODE_RESET_LINKS, True, 0x06, True, True),
-        _ResetMode(S.RESET_MODE_FACTORY_RESET_NO_IA, True, 0x07, True, True),
-        _ResetMode(S.RESET_MODE_ERASE_APP_DATA, True, 0x08, True, True),
+        _ResetMode(S.RESET_MODE_BASIC_RESTART, False, 0, False),
+        _ResetMode(S.RESET_MODE_CONFIRMED_RESTART, True, 0x01, False),
+        _ResetMode(S.RESET_MODE_FACTORY_RESET, True, 0x02, True),
+        _ResetMode(S.RESET_MODE_RESET_IA, True, 0x03, True),
+        _ResetMode(S.RESET_MODE_RESET_AP, True, 0x04, True),
+        _ResetMode(S.RESET_MODE_RESET_PARAM, True, 0x05, True),
+        _ResetMode(S.RESET_MODE_RESET_LINKS, True, 0x06, True),
+        _ResetMode(S.RESET_MODE_FACTORY_RESET_NO_IA, True, 0x07, True),
+        _ResetMode(S.RESET_MODE_ERASE_APP_DATA, True, 0x08, True),
     ]
 
 
@@ -85,7 +86,6 @@ class ConfigurePanel:
         self._address_buffer: str = ""
         self._buffer_device_id: int | None = None
         self._reset_mode_index: int = 0
-        self._reset_channel: int = 0
 
     def render(self) -> None:
         devices = self._get_devices()
@@ -243,14 +243,6 @@ class ConfigurePanel:
         )
         selected = modes[self._reset_mode_index]
 
-        if selected.channel_scopable:
-            imgui.same_line()
-            imgui.set_next_item_width(60)
-            _, self._reset_channel = imgui.input_int(
-                S.CONFIGURE_RESET_CHANNEL, self._reset_channel
-            )
-            self._reset_channel = max(0, min(255, self._reset_channel))
-
         button_size = imgui.ImVec2(110, 0)
         imgui.same_line()
         avail = imgui.get_content_region_avail().x
@@ -292,16 +284,11 @@ class ConfigurePanel:
 
     def _do_restart(self, device: Device, mode: _ResetMode) -> None:
         if self._on_restart_device is not None:
-            # Several Erase Codes fix the Channel Number to 00h (KNX v02.01.02
-            # - Management Procedures 03.05.02 - §3.7.1.2.3.1, Table 4) - a
-            # stale value from a previously selected, channel-scopable mode
-            # must not leak into one of those.
-            channel_number = self._reset_channel if mode.channel_scopable else 0
             self._on_restart_device(
                 device,
                 RestartRequest(
                     master_reset=mode.master_reset,
                     erase_code=mode.erase_code,
-                    channel_number=channel_number,
+                    channel_number=0,
                 ),
             )

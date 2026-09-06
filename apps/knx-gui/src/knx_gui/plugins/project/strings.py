@@ -78,10 +78,6 @@ class ProjectStrings:
         return _("Reset Device")
 
     @property
-    def CONFIGURE_RESET_CHANNEL(self) -> str:
-        return _("Channel")
-
-    @property
     def BTN_RESET(self) -> str:
         return _("Reset")
 
