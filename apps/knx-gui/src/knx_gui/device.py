@@ -157,6 +157,7 @@ class Device:
     name: str
     app: Application
     individual_address: str
+    hardware2program_ref_id: str | None = None
     com_objects: list[ComObject] = field(default_factory=list[ComObject])
     parameter_instance_refs: list[ParameterInstanceRef] = field(
         default_factory=list, repr=False, compare=False

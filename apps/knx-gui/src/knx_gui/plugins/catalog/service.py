@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from xknxmono.catalog import ManufacturerInfo, ProductSummary
+    from xknxmono.catalog import HardwareInfo, ManufacturerInfo, ProductSummary
     from xknxmono.product import Application
 
 
@@ -41,6 +41,11 @@ class CatalogService:
 
     def get_manufacturer(self, manufacturer_id: str) -> ManufacturerInfo | None:
         return self._service.get_manufacturer(manufacturer_id)
+
+    def get_hardware_by_program(
+        self, hardware2program_ref_id: str
+    ) -> HardwareInfo | None:
+        return self._service.get_hardware_by_program(hardware2program_ref_id)
 
     def refresh(self) -> None:
         self._products = None

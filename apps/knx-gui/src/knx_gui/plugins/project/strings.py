@@ -38,6 +38,10 @@ class ProjectStrings:
         return _("Program Device")
 
     @property
+    def CONFIGURE_METADATA(self) -> str:
+        return _("Metadata")
+
+    @property
     def CONFIGURE_MANUFACTURER(self) -> str:
         return _("Manufacturer")
 
@@ -52,6 +56,102 @@ class ProjectStrings:
     @property
     def CONFIGURE_FIRMWARE(self) -> str:
         return _("Firmware")
+
+    @property
+    def CONFIGURE_MASK_VERSION(self) -> str:
+        return _("Mask Version")
+
+    @property
+    def CONFIGURE_PEI_TYPE(self) -> str:
+        return _("PEI Type")
+
+    @property
+    def CONFIGURE_APPLICATION_NUMBER(self) -> str:
+        return _("Application Number")
+
+    @property
+    def CONFIGURE_APPLICATION_VERSION(self) -> str:
+        return _("Application Version")
+
+    @property
+    def CONFIGURE_PROGRAM_TYPE(self) -> str:
+        return _("Program Type")
+
+    @property
+    def CONFIGURE_LOAD_PROCEDURE_STYLE(self) -> str:
+        return _("Load Procedure Style")
+
+    @property
+    def CONFIGURE_LINKABLE(self) -> str:
+        return _("Linkable")
+
+    @property
+    def CONFIGURE_DYNAMIC_TABLE_MANAGEMENT(self) -> str:
+        return _("Dynamic Table Management")
+
+    @property
+    def CONFIGURE_SECURE_ENABLED(self) -> str:
+        return _("Secure Enabled")
+
+    @property
+    def CONFIGURE_ADDITIONAL_ADDRESSES(self) -> str:
+        return _("Additional Addresses")
+
+    @property
+    def CONFIGURE_DESCRIPTION(self) -> str:
+        return _("Description")
+
+    @property
+    def CONFIGURE_ORIGINAL_MANUFACTURER(self) -> str:
+        return _("Original Manufacturer")
+
+    @property
+    def CONFIGURE_ORDER_NUMBER(self) -> str:
+        return _("Order Number")
+
+    @property
+    def CONFIGURE_SERIAL_NUMBER(self) -> str:
+        return _("Serial Number")
+
+    @property
+    def CONFIGURE_BUS_CURRENT(self) -> str:
+        return _("Bus Current")
+
+    @property
+    def CONFIGURE_RAIL_MOUNTED(self) -> str:
+        return _("Rail Mounted")
+
+    @property
+    def CONFIGURE_WIDTH(self) -> str:
+        return _("Width")
+
+    @property
+    def CONFIGURE_ROLE(self) -> str:
+        return _("Role")
+
+    @property
+    def ROLE_COUPLER(self) -> str:
+        return _("Coupler")
+
+    @property
+    def ROLE_POWER_SUPPLY(self) -> str:
+        return _("Power Supply")
+
+    @property
+    def ROLE_IP_ENABLED(self) -> str:
+        return _("IP-enabled")
+
+    @property
+    def ROLE_END_DEVICE(self) -> str:
+        return _("End Device")
+
+    @property
+    def YES(self) -> str:
+        return _("Yes")
+
+    @property
+    def NO(self) -> str:
+        return _("No")
 
     @property
     def CONFIGURE_PARAMETERS(self) -> str:

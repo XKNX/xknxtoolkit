@@ -15,7 +15,7 @@ from knx_gui.widgets import (
 from xknxmono.project.core.addressing import format_ia, parse_ia
 
 if TYPE_CHECKING:
-    from xknxmono.catalog import ManufacturerInfo
+    from xknxmono.catalog import HardwareInfo, ManufacturerInfo
 
 # KNX v01.03.02 - Data Link Layer General - §1.4.2, Figure 2: Individual
 # Address is a 16 bit value, Octet 0 = 4 bit Area + 4 bit Line, Octet 1 =
@@ -85,6 +85,7 @@ class ConfigurePanel:
         open_memory_preview: Callable[[Device], None] | None = None,
         on_restart_device: Callable[[Device, RestartRequest], None] | None = None,
         get_manufacturer: Callable[[str], "ManufacturerInfo | None"] = lambda _: None,
+        get_hardware: Callable[[str], "HardwareInfo | None"] = lambda _: None,
     ) -> None:
         self._get_devices = get_devices
         self._get_selected_device = get_selected_device
@@ -96,6 +97,7 @@ class ConfigurePanel:
         self._open_memory_preview = open_memory_preview
         self._on_restart_device = on_restart_device
         self._get_manufacturer = get_manufacturer
+        self._get_hardware = get_hardware
         self._com_flags_table = ComFlagsTable(set_flag)
         self._name_buffer: str = ""
         self._ia_area: str = ""
@@ -192,17 +194,9 @@ class ConfigurePanel:
             self._open_memory_preview(device)
 
         if imgui.collapsing_header(
-            S.CONFIGURE_MANUFACTURER, imgui.TreeNodeFlags_.default_open
+            S.CONFIGURE_METADATA, imgui.TreeNodeFlags_.default_open
         ):
-            manufacturer = self._get_manufacturer(device.app.manufacturer_id)
-            self._render_label_with_id(
-                S.CONFIGURE_MANUFACTURER,
-                device.app.manufacturer_id,
-                manufacturer.name if manufacturer else None,
-            )
-            self._render_label_with_id(
-                S.CONFIGURE_APPLICATION, device.app.id, device.app.name
-            )
+            self._render_metadata_section(device)
 
         if self._on_restart_device is not None and imgui.collapsing_header(
             S.CONFIGURE_RESET_SECTION
@@ -274,6 +268,93 @@ class ConfigurePanel:
             imgui.text_disabled(f"({id_})")
         else:
             imgui.text(id_)
+
+    def _render_label_value(self, label: str, value: str) -> None:
+        imgui.text_disabled(label)
+        imgui.same_line(120.0)
+        imgui.text(value)
+
+    def _yes_no(self, value: bool) -> str:
+        return S.YES if value else S.NO
+
+    def _render_metadata_section(self, device: Device) -> None:
+        app = device.app
+        program = app.program
+
+        manufacturer = self._get_manufacturer(app.manufacturer_id)
+        self._render_label_with_id(
+            S.CONFIGURE_MANUFACTURER,
+            app.manufacturer_id,
+            manufacturer.name if manufacturer else None,
+        )
+        self._render_label_with_id(S.CONFIGURE_APPLICATION, app.id, app.name)
+
+        self._render_label_value(S.CONFIGURE_MASK_VERSION, program.mask_version)
+        self._render_label_value(S.CONFIGURE_PEI_TYPE, str(program.pei_type))
+        self._render_label_value(
+            S.CONFIGURE_APPLICATION_NUMBER, str(program.application_number)
+        )
+        self._render_label_value(
+            S.CONFIGURE_APPLICATION_VERSION, str(program.application_version)
+        )
+        self._render_label_value(S.CONFIGURE_PROGRAM_TYPE, program.program_type.value)
+        self._render_label_value(
+            S.CONFIGURE_LOAD_PROCEDURE_STYLE, program.load_procedure_style.value
+        )
+        self._render_label_value(S.CONFIGURE_LINKABLE, self._yes_no(program.linkable))
+        self._render_label_value(
+            S.CONFIGURE_DYNAMIC_TABLE_MANAGEMENT,
+            self._yes_no(program.dynamic_table_management),
+        )
+        self._render_label_value(
+            S.CONFIGURE_SECURE_ENABLED, self._yes_no(program.is_secure_enabled)
+        )
+        if program.additional_addresses_count:
+            self._render_label_value(
+                S.CONFIGURE_ADDITIONAL_ADDRESSES,
+                str(program.additional_addresses_count),
+            )
+        if program.visible_description:
+            self._render_label_value(
+                S.CONFIGURE_DESCRIPTION, program.visible_description
+            )
+        if program.original_manufacturer:
+            self._render_label_value(
+                S.CONFIGURE_ORIGINAL_MANUFACTURER, program.original_manufacturer
+            )
+
+        if not device.hardware2program_ref_id:
+            return
+        hardware = self._get_hardware(device.hardware2program_ref_id)
+        if hardware is None:
+            return
+
+        self._render_label_with_id(S.CONFIGURE_HARDWARE, hardware.id, hardware.name)
+        if hardware.order_number:
+            self._render_label_value(S.CONFIGURE_ORDER_NUMBER, hardware.order_number)
+        if hardware.serial_number:
+            self._render_label_value(S.CONFIGURE_SERIAL_NUMBER, hardware.serial_number)
+        if hardware.bus_current is not None:
+            self._render_label_value(
+                S.CONFIGURE_BUS_CURRENT, f"{hardware.bus_current:g} mA"
+            )
+        if hardware.is_rail_mounted is not None:
+            self._render_label_value(
+                S.CONFIGURE_RAIL_MOUNTED, self._yes_no(hardware.is_rail_mounted)
+            )
+        if hardware.width_mm is not None:
+            self._render_label_value(S.CONFIGURE_WIDTH, f"{hardware.width_mm:g} mm")
+
+        roles: list[str] = []
+        if hardware.is_coupler:
+            roles.append(S.ROLE_COUPLER)
+        if hardware.is_power_supply:
+            roles.append(S.ROLE_POWER_SUPPLY)
+        if hardware.is_ip_enabled:
+            roles.append(S.ROLE_IP_ENABLED)
+        self._render_label_value(
+            S.CONFIGURE_ROLE, ", ".join(roles) if roles else S.ROLE_END_DEVICE
+        )
 
     def _sync_address_buffers(self, address: str) -> None:
         """Split an "area.line.device" address into the three segment buffers."""

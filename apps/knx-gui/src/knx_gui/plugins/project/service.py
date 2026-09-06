@@ -260,6 +260,7 @@ class ProjectService:
             name=row.name,
             app=app,
             individual_address=ia,
+            hardware2program_ref_id=row.hardware2program_ref_id,
             parameter_instance_refs=pirs,
             module_instances=mis,
             com_object_instance_refs=coirs,
