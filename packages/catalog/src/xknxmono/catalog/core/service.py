@@ -32,7 +32,11 @@ from xknxmono.catalog.core.hardware import (
     get_hardware_program,
     list_hardware,
 )
-from xknxmono.catalog.core.manufacturers import get_manufacturer, list_manufacturers
+from xknxmono.catalog.core.manufacturers import (
+    ManufacturerInfo,
+    get_manufacturer,
+    list_manufacturers,
+)
 from xknxmono.catalog.core.products import ProductSummary, list_products
 from xknxmono.catalog.core.upload import upload_knxprod
 from xknxmono.catalog.db import knxprod_dir_for, make_engine
@@ -65,7 +69,7 @@ class CatalogService:
         with Session(self._engine) as db:
             return list_manufacturers(db)
 
-    def get_manufacturer(self, manufacturer_id: str) -> Manufacturer | None:
+    def get_manufacturer(self, manufacturer_id: str) -> ManufacturerInfo | None:
         with Session(self._engine) as db:
             return get_manufacturer(db, manufacturer_id)
 
