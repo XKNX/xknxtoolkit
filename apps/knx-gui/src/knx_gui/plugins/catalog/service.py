@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from xknxmono.catalog import ProductSummary
+    from xknxmono.catalog import ManufacturerInfo, ProductSummary
     from xknxmono.product import Application
 
 
@@ -39,10 +39,8 @@ class CatalogService:
     def get_application(self, application_id: str) -> Application | None:
         return self._service.get_application(application_id)
 
-    def get_manufacturer_name(self, manufacturer_id: str) -> str | None:
-        """The manufacturer's self-declared name, or None if not in the catalog."""
-        manufacturer = self._service.get_manufacturer(manufacturer_id)
-        return manufacturer.name if manufacturer else None
+    def get_manufacturer(self, manufacturer_id: str) -> ManufacturerInfo | None:
+        return self._service.get_manufacturer(manufacturer_id)
 
     def refresh(self) -> None:
         self._products = None
