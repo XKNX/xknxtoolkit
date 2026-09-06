@@ -8,8 +8,17 @@ from knx_gui.plugins.project.strings import S
 from knx_gui.widgets import (
     ComFlagsTable,
     count_parameters,
+    render_bounded_numeric_segment,
     render_ui_tree,
 )
+from xknxmono.project.core.addressing import format_ia, parse_ia
+
+# KNX v01.03.02 - Data Link Layer General - §1.4.2, Figure 2: Individual
+# Address is a 16 bit value, Octet 0 = 4 bit Area + 4 bit Line, Octet 1 =
+# the full 8 bit Device Address.
+_MAX_AREA = 15
+_MAX_LINE = 15
+_MAX_DEVICE = 255
 
 
 @dataclass(frozen=True)
@@ -83,7 +92,9 @@ class ConfigurePanel:
         self._on_restart_device = on_restart_device
         self._com_flags_table = ComFlagsTable(set_flag)
         self._name_buffer: str = ""
-        self._address_buffer: str = ""
+        self._ia_area: str = ""
+        self._ia_line: str = ""
+        self._ia_device: str = ""
         self._buffer_device_id: int | None = None
         self._reset_mode_index: int = 0
 
@@ -118,7 +129,7 @@ class ConfigurePanel:
 
         if self._buffer_device_id != device.node_id:
             self._name_buffer = device.name
-            self._address_buffer = device.individual_address
+            self._sync_address_buffers(device.individual_address)
             self._buffer_device_id = device.node_id
 
         imgui.align_text_to_frame_padding()
@@ -134,17 +145,34 @@ class ConfigurePanel:
         imgui.align_text_to_frame_padding()
         imgui.text_disabled(S.CONFIGURE_INDIVIDUAL_ADDRESS)
         imgui.same_line(120.0)
-        imgui.set_next_item_width(-1)
-        _, self._address_buffer = imgui.input_text(
-            "##individual_address", self._address_buffer
+
+        area = render_bounded_numeric_segment("##ia_area", self._ia_area, 2, _MAX_AREA)
+        self._ia_area = area.value
+        self._render_address_separator()
+
+        if area.advance:
+            imgui.set_keyboard_focus_here()
+        line = render_bounded_numeric_segment("##ia_line", self._ia_line, 2, _MAX_LINE)
+        self._ia_line = line.value
+        self._render_address_separator()
+
+        if line.advance:
+            imgui.set_keyboard_focus_here()
+        dev = render_bounded_numeric_segment(
+            "##ia_device", self._ia_device, 3, _MAX_DEVICE
         )
-        if imgui.is_item_deactivated_after_edit():
-            self._on_individual_address_change(device, self._address_buffer)
-        if (
-            not imgui.is_item_active()
-            and self._address_buffer != device.individual_address
+        self._ia_device = dev.value
+
+        if area.deactivated or line.deactivated or dev.deactivated:
+            self._commit_address(device)
+        # Re-sync if the address changed from outside this widget (undo,
+        # drag-to-a-new-line, a successful "Program Device") while none of
+        # the three segments is being edited right now.
+        elif (
+            not (area.active or line.active or dev.active)
+            and self._assembled_address() != device.individual_address
         ):
-            self._address_buffer = device.individual_address
+            self._sync_address_buffers(device.individual_address)
 
         if self._on_program_device is not None:
             enabled = bool(device.individual_address)
@@ -229,6 +257,44 @@ class ConfigurePanel:
         imgui.text_disabled(label)
         imgui.same_line(120.0)
         imgui.text(value)
+
+    def _sync_address_buffers(self, address: str) -> None:
+        """Split an "area.line.device" address into the three segment buffers."""
+        if address:
+            try:
+                area, line, device_octet = parse_ia(address)
+            except ValueError:
+                pass
+            else:
+                self._ia_area = str(area)
+                self._ia_line = str(line)
+                self._ia_device = str(device_octet)
+                return
+        self._ia_area = ""
+        self._ia_line = ""
+        self._ia_device = ""
+
+    def _assembled_address(self) -> str:
+        """The address the three segment buffers currently spell out, or "" if incomplete."""
+        if self._ia_area and self._ia_line and self._ia_device:
+            return format_ia(
+                int(self._ia_area), int(self._ia_line), int(self._ia_device)
+            )
+        return ""
+
+    def _render_address_separator(self) -> None:
+        imgui.same_line(0, 2)
+        imgui.align_text_to_frame_padding()
+        imgui.text(".")
+        imgui.same_line(0, 2)
+
+    def _commit_address(self, device: Device) -> None:
+        new_address = self._assembled_address()
+        # 0.0.0 is the reserved "unassigned device" placeholder (KNX v01.03.02
+        # - Data Link Layer General - §1.4.2: routers use Device Address 0,
+        # other devices 1-255) - not a value a configured device should hold.
+        if new_address and new_address != "0.0.0":
+            self._on_individual_address_change(device, new_address)
 
     def _render_restart_controls(self, device: Device) -> None:
         modes = _reset_modes()

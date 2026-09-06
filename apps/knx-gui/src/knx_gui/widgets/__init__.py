@@ -7,13 +7,19 @@ from knx_gui.widgets.parameter_widgets import (
     render_param_widget,
     render_ui_tree,
 )
+from knx_gui.widgets.segmented_input import (
+    SegmentResult,
+    render_bounded_numeric_segment,
+)
 
 __all__ = [
     "ComFlagsTable",
     "EnumPopup",
     "EnumPopupRequest",
     "HexView",
+    "SegmentResult",
     "count_parameters",
+    "render_bounded_numeric_segment",
     "render_param_widget",
     "render_ui_tree",
 ]
