@@ -39,5 +39,10 @@ class CatalogService:
     def get_application(self, application_id: str) -> Application | None:
         return self._service.get_application(application_id)
 
+    def get_manufacturer_name(self, manufacturer_id: str) -> str | None:
+        """The manufacturer's self-declared name, or None if not in the catalog."""
+        manufacturer = self._service.get_manufacturer(manufacturer_id)
+        return manufacturer.name if manufacturer else None
+
     def refresh(self) -> None:
         self._products = None

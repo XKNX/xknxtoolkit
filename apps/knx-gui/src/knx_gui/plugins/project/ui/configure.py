@@ -80,6 +80,7 @@ class ConfigurePanel:
         on_program_device: Callable[[Device], None] | None = None,
         open_memory_preview: Callable[[Device], None] | None = None,
         on_restart_device: Callable[[Device, RestartRequest], None] | None = None,
+        get_manufacturer_name: Callable[[str], str | None] = lambda _: None,
     ) -> None:
         self._get_devices = get_devices
         self._get_selected_device = get_selected_device
@@ -90,6 +91,7 @@ class ConfigurePanel:
         self._on_program_device = on_program_device
         self._open_memory_preview = open_memory_preview
         self._on_restart_device = on_restart_device
+        self._get_manufacturer_name = get_manufacturer_name
         self._com_flags_table = ComFlagsTable(set_flag)
         self._name_buffer: str = ""
         self._ia_area: str = ""
@@ -188,10 +190,13 @@ class ConfigurePanel:
         if imgui.collapsing_header(
             S.CONFIGURE_MANUFACTURER, imgui.TreeNodeFlags_.default_open
         ):
-            self._render_label_value(
-                S.CONFIGURE_MANUFACTURER, device.app.manufacturer_id
+            manufacturer_name = self._get_manufacturer_name(device.app.manufacturer_id)
+            self._render_label_with_id(
+                S.CONFIGURE_MANUFACTURER, device.app.manufacturer_id, manufacturer_name
             )
-            self._render_label_value(S.CONFIGURE_APPLICATION, device.app.id)
+            self._render_label_with_id(
+                S.CONFIGURE_APPLICATION, device.app.id, device.app.name
+            )
 
         if self._on_restart_device is not None and imgui.collapsing_header(
             S.CONFIGURE_RESET_SECTION
@@ -253,10 +258,16 @@ class ConfigurePanel:
                             imgui.end_table()
                         imgui.tree_pop()
 
-    def _render_label_value(self, label: str, value: str) -> None:
+    def _render_label_with_id(self, label: str, id_: str, name: str | None) -> None:
+        """Render "label: id", or "label: name (id)" with the id greyed out via text_disabled."""
         imgui.text_disabled(label)
         imgui.same_line(120.0)
-        imgui.text(value)
+        if name and name != id_:
+            imgui.text(name)
+            imgui.same_line()
+            imgui.text_disabled(f"({id_})")
+        else:
+            imgui.text(id_)
 
     def _sync_address_buffers(self, address: str) -> None:
         """Split an "area.line.device" address into the three segment buffers."""

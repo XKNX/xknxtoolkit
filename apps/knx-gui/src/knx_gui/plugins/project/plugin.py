@@ -57,6 +57,7 @@ class ProjectPlugin:
             on_program_device=api.connection.assign_individual_address_for_device,
             open_memory_preview=self._memory_preview.open,
             on_restart_device=self._handle_restart_device,
+            get_manufacturer_name=api.catalog.get_manufacturer_name,
         )
 
         self._history_panel = HistoryPanel(
