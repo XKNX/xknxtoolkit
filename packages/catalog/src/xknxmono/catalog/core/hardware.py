@@ -255,7 +255,7 @@ def get_hardware_by_program(
         .options(selectinload(HardwareProgram.hardware))
         .where(HardwareProgram.id == hardware2program_ref_id)
     ).first()
-    if program is None or program.hardware is None:
+    if program is None:
         return None
     hardware = program.hardware
     return HardwareInfo(
