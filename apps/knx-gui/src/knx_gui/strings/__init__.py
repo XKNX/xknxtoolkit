@@ -65,6 +65,10 @@ class BaseStrings:
         return _("Stop")
 
     @property
+    def IMAGE_PLACEHOLDER(self) -> str:
+        return _("(image)")
+
+    @property
     def FILE_DIALOG_ALL_FILES(self) -> str:
         return _("All files")
 

@@ -170,6 +170,10 @@ class ProjectStrings:
         return _("Com Flags ({count})")
 
     @property
+    def TOOLTIP_LOCKED(self) -> str:
+        return _("{name} (locked)")
+
+    @property
     def CONFIGURE_LOAD_PROCEDURES(self) -> str:
         return _("Load Procedures ({count})")
 

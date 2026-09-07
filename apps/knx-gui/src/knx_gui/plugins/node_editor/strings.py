@@ -34,10 +34,6 @@ class NodeEditorStrings(BaseStrings):
         return _("(modified)")
 
     @property
-    def NODE_IMAGE_PLACEHOLDER(self) -> str:
-        return _("(image)")
-
-    @property
     def NODE_COM_FLAGS(self) -> str:
         return _("Com Flags")
 
@@ -84,10 +80,6 @@ class NodeEditorStrings(BaseStrings):
     @property
     def BTN_REMOVE_LINKS(self) -> str:
         return _("Remove Links")
-
-    @property
-    def TOOLTIP_LOCKED(self) -> str:
-        return _("{name} (locked)")
 
 
 S = NodeEditorStrings()
