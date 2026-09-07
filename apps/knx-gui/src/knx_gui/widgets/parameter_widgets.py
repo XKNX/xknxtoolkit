@@ -121,6 +121,17 @@ def render_ui_tree(
     popup_request: EnumPopupRequest | None = None
     tabs = [n for n in nodes if isinstance(n, UiTab)]
     if tabs:
+        # A tab bar's own "ideal" width (every tab at its natural, unshrunk width)
+        # still counts towards the window's content size even though the tab bar
+        # itself renders fine - self-clipped, with scroll arrows - once tabs don't
+        # fit. Containing it in a child window of the actually available width stops
+        # that ideal width from forcing the whole panel wider than its docked size;
+        # auto_resize_y keeps the child (and the panel's own scroll) sized to content.
+        imgui.begin_child(
+            f"##tabs_{device.node_id}_container",
+            imgui.ImVec2(imgui.get_content_region_avail().x, 0),
+            imgui.ChildFlags_.auto_resize_y,
+        )
         if imgui.begin_tab_bar(f"##tabs_{device.node_id}"):
             for tab in tabs:
                 label = tab.text or tab.name or tab.id or "Tab"
@@ -136,6 +147,7 @@ def render_ui_tree(
                         popup_request = req
                     imgui.end_tab_item()
             imgui.end_tab_bar()
+        imgui.end_child()
     else:
         req = _render_children(
             device,
