@@ -30,6 +30,7 @@ _LAZY: dict[str, tuple[str, str]] = {
     "CatalogSectionNode": (".core.catalog_sections", "CatalogSectionNode"),
     "CatalogService": (".core.service", "CatalogService"),
     "HardwareFilters": (".core.hardware", "HardwareFilters"),
+    "HardwareInfo": (".core.hardware", "HardwareInfo"),
     "ManufacturerInfo": (".core.manufacturers", "ManufacturerInfo"),
     "ProductSummary": (".core.products", "ProductSummary"),
     "build_catalog_tree": (".core.catalog_sections", "build_catalog_tree"),
@@ -41,6 +42,7 @@ _LAZY: dict[str, tuple[str, str]] = {
     ),
     "get_application_xml": (".core.applications", "get_application_xml"),
     "get_hardware": (".core.hardware", "get_hardware"),
+    "get_hardware_by_program": (".core.hardware", "get_hardware_by_program"),
     "get_hardware_program": (".core.hardware", "get_hardware_program"),
     "get_manufacturer": (".core.manufacturers", "get_manufacturer"),
     "list_applications": (".core.applications", "list_applications"),
@@ -59,6 +61,7 @@ __all__ = [
     "CatalogSectionNode",
     "CatalogService",
     "HardwareFilters",
+    "HardwareInfo",
     "ManufacturerInfo",
     "ProductSummary",
     "build_catalog_tree",
@@ -68,6 +71,7 @@ __all__ = [
     "get_application_detail_by_id",
     "get_application_xml",
     "get_hardware",
+    "get_hardware_by_program",
     "get_hardware_program",
     "get_manufacturer",
     "knxprod_dir_for",
@@ -96,7 +100,9 @@ if TYPE_CHECKING:
     )
     from .core.hardware import (
         HardwareFilters,
+        HardwareInfo,
         get_hardware,
+        get_hardware_by_program,
         get_hardware_program,
         list_hardware,
     )

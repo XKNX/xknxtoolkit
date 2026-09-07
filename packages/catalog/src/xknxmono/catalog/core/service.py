@@ -28,7 +28,9 @@ from xknxmono.catalog.core.catalog_sections import (
 )
 from xknxmono.catalog.core.hardware import (
     HardwareFilters,
+    HardwareInfo,
     get_hardware,
+    get_hardware_by_program,
     get_hardware_program,
     list_hardware,
 )
@@ -90,6 +92,12 @@ class CatalogService:
     ) -> HardwareProgram | None:
         with Session(self._engine) as db:
             return get_hardware_program(db, hardware_id, program_id)
+
+    def get_hardware_by_program(
+        self, hardware2program_ref_id: str
+    ) -> HardwareInfo | None:
+        with Session(self._engine) as db:
+            return get_hardware_by_program(db, hardware2program_ref_id)
 
     def get_application_xml(self, program_id: str) -> tuple[bytes, str] | None:
         with Session(self._engine) as db:

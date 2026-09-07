@@ -35,7 +35,9 @@ _LAZY: dict[str, tuple[str, str]] = {
     "collect_section_ids": (".catalog_sections", "collect_section_ids"),
     "list_catalog_sections": (".catalog_sections", "list_catalog_sections"),
     "HardwareFilters": (".hardware", "HardwareFilters"),
+    "HardwareInfo": (".hardware", "HardwareInfo"),
     "get_hardware": (".hardware", "get_hardware"),
+    "get_hardware_by_program": (".hardware", "get_hardware_by_program"),
     "get_hardware_program": (".hardware", "get_hardware_program"),
     "list_hardware": (".hardware", "list_hardware"),
     "ManufacturerInfo": (".manufacturers", "ManufacturerInfo"),
@@ -52,6 +54,7 @@ __all__ = [
     "CatalogSectionNode",
     "CatalogService",
     "HardwareFilters",
+    "HardwareInfo",
     "ManufacturerInfo",
     "ProductSummary",
     "build_catalog_tree",
@@ -60,6 +63,7 @@ __all__ = [
     "get_application_detail_by_id",
     "get_application_xml",
     "get_hardware",
+    "get_hardware_by_program",
     "get_hardware_program",
     "get_manufacturer",
     "list_applications",
@@ -86,7 +90,9 @@ if TYPE_CHECKING:
     )
     from .hardware import (
         HardwareFilters,
+        HardwareInfo,
         get_hardware,
+        get_hardware_by_program,
         get_hardware_program,
         list_hardware,
     )

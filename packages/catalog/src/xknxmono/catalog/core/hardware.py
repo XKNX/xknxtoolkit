@@ -2,6 +2,7 @@
 
 import datetime
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -203,3 +204,70 @@ def get_hardware_program(
             HardwareProgram.hardware_id == hardware_id,
         )
     ).first()
+
+
+@dataclass(frozen=True)
+class HardwareInfo:
+    """A hardware item's data, detached from the database session that read it.
+
+    Snapshotting the scalar columns into a plain dataclass (rather than
+    returning the ORM row) avoids ``DetachedInstanceError`` if a caller
+    reaches for something after the session that read it has closed - see
+    :class:`~xknxmono.catalog.core.manufacturers.ManufacturerInfo` for the
+    same pattern.
+    """
+
+    id: str
+    name: str | None
+    order_number: str | None
+    serial_number: str | None
+    version_number: int | None
+    bus_current: float | None
+    is_rail_mounted: bool | None
+    width_mm: float | None
+    is_coupler: bool | None
+    is_power_supply: bool | None
+    is_ip_enabled: bool | None
+
+
+def get_hardware_by_program(
+    db: Session, hardware2program_ref_id: str
+) -> HardwareInfo | None:
+    """Return the hardware item a Hardware2Program entry belongs to.
+
+    A project device only knows its ``hardware2program_ref_id`` (the
+    Hardware2Program/``HardwareProgram`` row it was instantiated from), not
+    the underlying hardware item's own ID - this resolves the join via the
+    ``HardwareProgram.hardware`` relationship (see :func:`get_hardware_program`
+    for the same relationship used the other way round).
+
+    Args:
+      db: An active SQLAlchemy session.
+      hardware2program_ref_id: The Hardware2Program entry's primary-key
+        identifier (``HardwareProgram.id``).
+
+    Returns:
+      A :class:`HardwareInfo` snapshot, or ``None`` if no such
+      Hardware2Program entry exists.
+    """
+    program = db.scalars(
+        select(HardwareProgram)
+        .options(selectinload(HardwareProgram.hardware))
+        .where(HardwareProgram.id == hardware2program_ref_id)
+    ).first()
+    if program is None:
+        return None
+    hardware = program.hardware
+    return HardwareInfo(
+        id=hardware.id,
+        name=hardware.name,
+        order_number=hardware.order_number,
+        serial_number=hardware.serial_number,
+        version_number=hardware.version_number,
+        bus_current=hardware.bus_current,
+        is_rail_mounted=hardware.is_rail_mounted,
+        width_mm=hardware.width_mm,
+        is_coupler=hardware.is_coupler,
+        is_power_supply=hardware.is_power_supply,
+        is_ip_enabled=hardware.is_ip_enabled,
+    )
