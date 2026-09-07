@@ -7,11 +7,26 @@ Before making changes, read these docs:
 
 ## Commands
 
-- Run tests: `uv run pytest src/knx_gui/plugins/network/tests/ -v` (the only plugin with its own tests right now; the root `uv run pytest` only covers `packages/`, not `apps/`)
+- Run tests: `uv run pytest src/knx_gui/plugins/network/tests/ -v` and `uv run pytest src/knx_gui/testing/tests/ -v` (the two spots with their own tests right now; the root `uv run pytest` only covers `packages/`, not `apps/`)
 - Run GUI: `uv run python -m knx_gui.main`
 - Generate demo project: `uv run generate-demo`
 - Generate catalog from knxprod: `uv run generate-catalog [files...]`
 - Use `uv run` for all Python commands (not manual venv activation)
+
+## UI testing / agentic development (Dear ImGui Test Engine)
+
+`src/knx_gui/testing/harness.py` drives the *real* `KnxGuiApp` (same panels, docking, menus as production — `knx_gui.main.build_runner_params` is shared between them) under [Dear ImGui Test Engine](https://github.com/ocornut/imgui_test_engine), via `imgui_bundle`'s bindings (`imgui.test_engine`, `imgui_bundle.immapp.testing`). It can click, type, move the mouse, scroll, and capture real PNG screenshots of the running app — use it instead of asking a human for a screenshot when diagnosing a layout bug.
+
+- `build_app(catalog_path=..., project_path=...)` → `AppHandle` — defaults to the demo catalog/project already in this repo (`demo.xknxcatalog` / `demo.xknx`).
+- `run_ui_test(test_function, app_handle=...)` — runs `test_function(ctx: imgui.test_engine.TestContext)` against it, then exits. `ctx` has the full Test Engine API: `item_click`/`item_open`, `mouse_move`/`mouse_click`/`mouse_drag_with_delta`, `key_chars`, `scroll_to_*`, `get_window_by_ref` (inspect `.scroll_max`, `.content_size`, `.size`, etc. for a real window), and more.
+- `capture(ctx, path, window=...)` — screenshot helper (creates the parent dir).
+- For a *focused* test of one panel (bypassing the full app and other plugins — see `testing/tests/test_configure_panel.py` for the pattern), build the panel directly and drive `imgui_bundle.immapp.testing.run(gui_function, test_function)` yourself.
+
+For a throwaway diagnostic during a session (not a checked-in test), write a short script importing `knx_gui.testing.harness` and run it with `uv run python <script>.py` — it can monkeypatch functions before importing the app to isolate which code path causes a symptom (see git history around the "Parameters tab bar" overflow bug for a worked example: bisecting by disabling one render function at a time, each in its own process, comparing `window.scroll_max`).
+
+Needs a real display (it briefly opens an actual window) — that's why these tests aren't part of the root `uv run pytest`, matching the `network` plugin's tests.
+
+**Licensing**: Dear ImGui Test Engine has its own license, separate from Dear ImGui itself — free for individuals, education, open-source and small business use; paid for larger businesses (see [its LICENSE.txt](https://github.com/ocornut/imgui_test_engine/blob/main/imgui_test_engine/LICENSE.txt)). It's a dev-only dependency: `use_imgui_test_engine` is only ever turned on inside `knx_gui.testing.harness`, never in the production entry point (`knx_gui.main.main`).
 
 ## Plugin architecture
 

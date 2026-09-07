@@ -70,6 +70,14 @@ class KnxGuiApp:
             self._logger_plugin,
         ]
 
+    @property
+    def catalog(self) -> CatalogService:
+        return self._catalog_service
+
+    @property
+    def project(self) -> ProjectService:
+        return self._project_service
+
     def setup(self) -> None:
         self._node_editor_plugin.setup()
         self._cat_plugin.on_load()
@@ -99,7 +107,8 @@ class KnxGuiApp:
     def _do_new_project(self, path: str) -> None:
         self._project_service.new(Path(path))
 
-    def _do_open_project(self, path: str) -> None:
+    def open_project(self, path: str) -> None:
+        """Open a project file. Public: also used by knx_gui.testing.harness."""
         self._project_service.open(Path(path))
 
     def _undo(self) -> None:
@@ -131,7 +140,7 @@ class KnxGuiApp:
             result = self._open_project_dialog.result()
             self._open_project_dialog = None
             if result:
-                self._do_open_project(result[0])
+                self.open_project(result[0])
 
     def _handle_shortcuts(self) -> None:
         io = imgui.get_io()
@@ -281,16 +290,12 @@ def main() -> None:
     _main()
 
 
-def _main() -> None:
-    set_locale(_detect_locale())
+def build_runner_params(app: KnxGuiApp) -> hello_imgui.RunnerParams:
+    """Wire `app`'s panels/menus/docking into a RunnerParams.
 
-    catalog_path = Path(__file__).parent.parent.parent / "demo.xknxcatalog"
-    app = KnxGuiApp(catalog_path)
-
-    demo_path = Path(__file__).parent.parent.parent / "demo.xknx"
-    if demo_path.exists():
-        app._do_open_project(str(demo_path))
-
+    Factored out of `_main()` so `knx_gui.testing.harness` can drive the exact
+    same app wiring under Dear ImGui Test Engine, instead of a reimplementation.
+    """
     runner_params = hello_imgui.RunnerParams()
     runner_params.app_window_params.window_title = S.APP_TITLE
     runner_params.app_window_params.window_geometry.size = (1280, 720)
@@ -318,6 +323,20 @@ def _main() -> None:
     runner_params.callbacks.before_exit = app.shutdown
     runner_params.callbacks.post_render_dockable_windows = app.render_overlays
 
+    return runner_params
+
+
+def _main() -> None:
+    set_locale(_detect_locale())
+
+    catalog_path = Path(__file__).parent.parent.parent / "demo.xknxcatalog"
+    app = KnxGuiApp(catalog_path)
+
+    demo_path = Path(__file__).parent.parent.parent / "demo.xknx"
+    if demo_path.exists():
+        app.open_project(str(demo_path))
+
+    runner_params = build_runner_params(app)
     hello_imgui.run(runner_params)
 
 
