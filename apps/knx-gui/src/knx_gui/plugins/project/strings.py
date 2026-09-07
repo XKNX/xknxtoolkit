@@ -30,6 +30,10 @@ class ProjectStrings:
         return _("Name")
 
     @property
+    def CONFIGURE_ID(self) -> str:
+        return _("ID")
+
+    @property
     def CONFIGURE_INDIVIDUAL_ADDRESS(self) -> str:
         return _("Individual Address")
 

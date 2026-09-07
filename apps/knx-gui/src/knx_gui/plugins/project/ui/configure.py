@@ -24,6 +24,9 @@ _MAX_AREA = 15
 _MAX_LINE = 15
 _MAX_DEVICE = 255
 
+# Extra breathing room after a metadata label's own text, before its value column.
+_COLUMN_PADDING = 24.0
+
 
 @dataclass(frozen=True)
 class _ResetMode:
@@ -260,75 +263,116 @@ class ConfigurePanel:
                             imgui.end_table()
                         imgui.tree_pop()
 
-    def _render_label_value(self, label: str, value: str) -> None:
-        imgui.text_disabled(label)
-        imgui.same_line(120.0)
-        imgui.text(value)
+    def _clip_text(self, text: str, max_width: float) -> str:
+        """Truncate `text` with an ellipsis so it fits `max_width`, or return it unchanged."""
+        if imgui.calc_text_size(text).x <= max_width:
+            return text
+        if max_width <= 0:
+            return ""
+        ellipsis = "..."
+        lo, hi = 0, len(text)
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if imgui.calc_text_size(text[:mid] + ellipsis).x <= max_width:
+                lo = mid
+            else:
+                hi = mid - 1
+        return text[:lo] + ellipsis
 
-    def _render_label_with_id(self, label: str, id_: str, name: str | None) -> None:
-        """Render "label: id", or "label: name (id)" with the id greyed out via text_disabled."""
-        if not name or name == id_:
-            self._render_label_value(label, id_)
-            return
-        imgui.text_disabled(label)
-        imgui.same_line(120.0)
-        imgui.text(name)
-        imgui.same_line()
-        imgui.text_disabled(f"({id_})")
+    def _render_clipped(self, value: str) -> None:
+        """Render `value` clipped to the space left on the current line, with a hover
+        tooltip showing the full text if it had to be clipped."""
+        display = self._clip_text(value, imgui.get_content_region_avail().x)
+        imgui.text(display)
+        if display != value and imgui.is_item_hovered():
+            imgui.set_tooltip(value)
 
-    def _render_fields(self, fields: list[tuple[str, str | None]]) -> None:
+    def _render_label_value(self, label: str, value: str, column: float) -> None:
+        imgui.text_disabled(label)
+        imgui.same_line(column)
+        self._render_clipped(value)
+
+    def _render_section_title(self, title: str) -> None:
+        imgui.text(title)
+
+    def _render_name_and_id(
+        self, label: str, name: str | None, id_: str, column: float
+    ) -> None:
+        """Render "label: name" and "ID: id" as two full-width rows, each independently
+        clipped - or just "ID: id" if there's no separate name."""
+        if name and name != id_:
+            self._render_label_value(label, name, column)
+        self._render_label_value(S.CONFIGURE_ID, id_, column)
+
+    def _render_fields(
+        self, fields: list[tuple[str, str | None]], column: float
+    ) -> None:
         """Render each (label, value) pair, skipping any with no value to show."""
         for label, value in fields:
             if value:
-                self._render_label_value(label, value)
+                self._render_label_value(label, value, column)
+
+    def _label_column(self, labels: list[str]) -> float:
+        """The x-position for values so every label in `labels` fits without collision.
+
+        `same_line(x)`'s x is measured from the window's own left edge, not from the
+        current line's start - so it ignores indent. Every caller renders this column
+        one `imgui.indent()` level in, so the label itself (which *does* shift right
+        with indent) needs that indent added back on top of its own width, or the
+        value can land on top of the label's tail.
+
+        Not capped against the available width: `labels` is a small, fixed set of UI
+        strings, so this is naturally bounded (unlike the value side, which is
+        arbitrary data and is clipped independently in `_render_clipped`) - a cap here
+        previously clamped the column *below* a label's own width in a narrow panel,
+        which guaranteed the collision it was meant to prevent.
+        """
+        widest = max((imgui.calc_text_size(label).x for label in labels), default=0.0)
+        indent = imgui.get_style().indent_spacing
+        return widest + indent + _COLUMN_PADDING
 
     def _render_metadata_section(self, device: Device) -> None:
         app = device.app
         program = app.program
+        hardware = device.hardware
 
         manufacturer = self._get_manufacturer(app.manufacturer_id)
-        self._render_label_with_id(
-            S.CONFIGURE_MANUFACTURER,
-            app.manufacturer_id,
-            manufacturer.name if manufacturer else None,
-        )
-        self._render_label_with_id(S.CONFIGURE_APPLICATION, app.id, app.name)
 
-        self._render_fields(
-            [
-                (S.CONFIGURE_MASK_VERSION, program.mask_version),
-                (S.CONFIGURE_PEI_TYPE, str(program.pei_type)),
-                (S.CONFIGURE_APPLICATION_NUMBER, str(program.application_number)),
-                (S.CONFIGURE_APPLICATION_VERSION, str(program.application_version)),
-                (S.CONFIGURE_PROGRAM_TYPE, program.program_type.value),
-                (
-                    S.CONFIGURE_LOAD_PROCEDURE_STYLE,
-                    program.load_procedure_style.value,
-                ),
-                (S.CONFIGURE_LINKABLE, _yes_no(program.linkable)),
-                (
-                    S.CONFIGURE_DYNAMIC_TABLE_MANAGEMENT,
-                    _yes_no(program.dynamic_table_management),
-                ),
-                (S.CONFIGURE_SECURE_ENABLED, _yes_no(program.is_secure_enabled)),
-                (
-                    S.CONFIGURE_ADDITIONAL_ADDRESSES,
-                    str(program.additional_addresses_count)
-                    if program.additional_addresses_count
-                    else None,
-                ),
-                (S.CONFIGURE_DESCRIPTION, program.visible_description),
-                (S.CONFIGURE_ORIGINAL_MANUFACTURER, program.original_manufacturer),
+        program_fields: list[tuple[str, str | None]] = [
+            (S.CONFIGURE_MASK_VERSION, program.mask_version),
+            (S.CONFIGURE_PEI_TYPE, str(program.pei_type)),
+            (S.CONFIGURE_APPLICATION_NUMBER, str(program.application_number)),
+            (S.CONFIGURE_APPLICATION_VERSION, str(program.application_version)),
+            (S.CONFIGURE_PROGRAM_TYPE, program.program_type.value),
+            (S.CONFIGURE_LOAD_PROCEDURE_STYLE, program.load_procedure_style.value),
+            (S.CONFIGURE_LINKABLE, _yes_no(program.linkable)),
+            (
+                S.CONFIGURE_DYNAMIC_TABLE_MANAGEMENT,
+                _yes_no(program.dynamic_table_management),
+            ),
+            (S.CONFIGURE_SECURE_ENABLED, _yes_no(program.is_secure_enabled)),
+            (
+                S.CONFIGURE_ADDITIONAL_ADDRESSES,
+                str(program.additional_addresses_count)
+                if program.additional_addresses_count
+                else None,
+            ),
+            (S.CONFIGURE_DESCRIPTION, program.visible_description),
+            (S.CONFIGURE_ORIGINAL_MANUFACTURER, program.original_manufacturer),
+        ]
+
+        hardware_fields: list[tuple[str, str | None]] = []
+        if hardware is not None:
+            roles = [
+                label
+                for flag, label in (
+                    (hardware.is_coupler, S.ROLE_COUPLER),
+                    (hardware.is_power_supply, S.ROLE_POWER_SUPPLY),
+                    (hardware.is_ip_enabled, S.ROLE_IP_ENABLED),
+                )
+                if flag
             ]
-        )
-
-        hardware = device.hardware
-        if hardware is None:
-            return
-
-        self._render_label_with_id(S.CONFIGURE_HARDWARE, hardware.id, hardware.name)
-        self._render_fields(
-            [
+            hardware_fields = [
                 (S.CONFIGURE_ORDER_NUMBER, hardware.order_number),
                 (S.CONFIGURE_SERIAL_NUMBER, hardware.serial_number),
                 (
@@ -355,21 +399,42 @@ class ConfigurePanel:
                     if hardware.width_mm is not None
                     else None,
                 ),
+                (
+                    S.CONFIGURE_ROLE,
+                    ", ".join(roles) if roles else S.ROLE_END_DEVICE,
+                ),
             ]
+
+        column = self._label_column(
+            [S.CONFIGURE_NAME, S.CONFIGURE_ID]
+            + [label for label, _ in program_fields]
+            + [label for label, _ in hardware_fields]
         )
 
-        roles = [
-            label
-            for flag, label in (
-                (hardware.is_coupler, S.ROLE_COUPLER),
-                (hardware.is_power_supply, S.ROLE_POWER_SUPPLY),
-                (hardware.is_ip_enabled, S.ROLE_IP_ENABLED),
-            )
-            if flag
-        ]
-        self._render_label_value(
-            S.CONFIGURE_ROLE, ", ".join(roles) if roles else S.ROLE_END_DEVICE
+        self._render_section_title(S.CONFIGURE_MANUFACTURER)
+        imgui.indent()
+        self._render_name_and_id(
+            S.CONFIGURE_NAME,
+            manufacturer.name if manufacturer else None,
+            app.manufacturer_id,
+            column,
         )
+        imgui.unindent()
+
+        self._render_section_title(S.CONFIGURE_APPLICATION)
+        imgui.indent()
+        self._render_name_and_id(S.CONFIGURE_NAME, app.name, app.id, column)
+        self._render_fields(program_fields, column)
+        imgui.unindent()
+
+        if hardware is not None:
+            self._render_section_title(S.CONFIGURE_HARDWARE)
+            imgui.indent()
+            self._render_name_and_id(
+                S.CONFIGURE_NAME, hardware.name, hardware.id, column
+            )
+            self._render_fields(hardware_fields, column)
+            imgui.unindent()
 
     def _sync_address_buffers(self, address: str) -> None:
         """Split an "area.line.device" address into the three segment buffers."""
