@@ -263,34 +263,17 @@ class ConfigurePanel:
                             imgui.end_table()
                         imgui.tree_pop()
 
-    def _clip_text(self, text: str, max_width: float) -> str:
-        """Truncate `text` with an ellipsis so it fits `max_width`, or return it unchanged."""
-        if imgui.calc_text_size(text).x <= max_width:
-            return text
-        if max_width <= 0:
-            return ""
-        ellipsis = "..."
-        lo, hi = 0, len(text)
-        while lo < hi:
-            mid = (lo + hi + 1) // 2
-            if imgui.calc_text_size(text[:mid] + ellipsis).x <= max_width:
-                lo = mid
-            else:
-                hi = mid - 1
-        return text[:lo] + ellipsis
-
-    def _render_clipped(self, value: str) -> None:
-        """Render `value` clipped to the space left on the current line, with a hover
-        tooltip showing the full text if it had to be clipped."""
-        display = self._clip_text(value, imgui.get_content_region_avail().x)
-        imgui.text(display)
-        if display != value and imgui.is_item_hovered():
-            imgui.set_tooltip(value)
+    def _render_wrapped(self, value: str) -> None:
+        """Render `value` word-wrapped to the space left on the current line."""
+        wrap_x = imgui.get_cursor_pos_x() + imgui.get_content_region_avail().x
+        imgui.push_text_wrap_pos(wrap_x)
+        imgui.text_unformatted(value)
+        imgui.pop_text_wrap_pos()
 
     def _render_label_value(self, label: str, value: str, column: float) -> None:
         imgui.text_disabled(label)
         imgui.same_line(column)
-        self._render_clipped(value)
+        self._render_wrapped(value)
 
     def _render_section_title(self, title: str) -> None:
         imgui.text(title)
@@ -299,7 +282,7 @@ class ConfigurePanel:
         self, label: str, name: str | None, id_: str, column: float
     ) -> None:
         """Render "label: name" and "ID: id" as two full-width rows, each independently
-        clipped - or just "ID: id" if there's no separate name."""
+        wrapped - or just "ID: id" if there's no separate name."""
         if name and name != id_:
             self._render_label_value(label, name, column)
         self._render_label_value(S.CONFIGURE_ID, id_, column)
@@ -323,7 +306,7 @@ class ConfigurePanel:
 
         Not capped against the available width: `labels` is a small, fixed set of UI
         strings, so this is naturally bounded (unlike the value side, which is
-        arbitrary data and is clipped independently in `_render_clipped`) - a cap here
+        arbitrary data and is wrapped independently in `_render_wrapped`) - a cap here
         previously clamped the column *below* a label's own width in a narrow panel,
         which guaranteed the collision it was meant to prevent.
         """
