@@ -40,7 +40,10 @@ class ConfigurePanel:
         on_individual_address_change: Callable[[Device, str], None],
         on_name_change: Callable[[Device, str], None],
         set_flag: Callable[[Device, str, str, bool], None],
-        on_program_device: Callable[[Device], None] | None = None,
+        # object, not None: the return value is discarded (fire-and-forget) here, but
+        # the real implementation (connection.service.assign_individual_address_for_device)
+        # returns a Future[Any] | None.
+        on_program_device: Callable[[Device], object] | None = None,
         open_memory_preview: Callable[[Device], None] | None = None,
         on_restart_device: Callable[[Device, RestartRequest], None] | None = None,
         get_manufacturer: Callable[[str], "ManufacturerInfo | None"] = lambda _: None,

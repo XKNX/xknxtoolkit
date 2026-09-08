@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from xknx.cemi import CEMIFrame, CEMIMessageCode
+from xknx.cemi.cemi_frame import CEMIFrame
+from xknx.cemi.const import CEMIMessageCode
 
 from knx_gui.knxip_tunnelling_gateway import GatewayState, TunnellingGateway
 from knx_gui.plugins.virtual.virtual_device import VirtualDevice

@@ -18,7 +18,7 @@ class LogRecord:
     level: str
     plugin: str
     event: str
-    payload: dict[str, str] = field(default_factory=dict)
+    payload: dict[str, str] = field(default_factory=dict[str, str])
 
     @property
     def timestamp_str(self) -> str:

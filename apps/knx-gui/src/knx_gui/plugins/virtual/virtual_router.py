@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Any
 
 from xknx import XKNX
-from xknx.cemi import CEMIFrame
+from xknx.cemi.cemi_frame import CEMIFrame
 from xknx.io import util
 from xknx.io.routing import Routing
 from xknx.knxip import DIB, DIBDeviceInformation, DIBSuppSVCFamilies

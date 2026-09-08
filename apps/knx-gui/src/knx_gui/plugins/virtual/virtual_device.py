@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from xknx.cemi import CEMIFrame, CEMILData, CEMIMessageCode
+from xknx.cemi.cemi_frame import CEMIFrame, CEMILData
+from xknx.cemi.const import CEMIMessageCode
 from xknx.telegram import Telegram
 from xknx.telegram.address import GroupAddress, IndividualAddress
 from xknx.telegram.apci import (

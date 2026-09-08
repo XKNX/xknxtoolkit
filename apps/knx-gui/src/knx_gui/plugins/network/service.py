@@ -3,7 +3,8 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from xknx.cemi import CEMIFrame, CEMILData, CEMIMessageCode
+from xknx.cemi.cemi_frame import CEMIFrame, CEMILData
+from xknx.cemi.const import CEMIMessageCode
 from xknx.telegram import Telegram
 
 from knx_gui.net import TelegramSource
@@ -113,8 +114,12 @@ class NetworkService:
                 data = frame.data
                 src_addr = str(data.src_addr)
                 dst_addr = str(data.dst_addr)
-                flags = data.flags
-                hops = (data.flags & 0x0070) >> 4
+                # CEMIFlags is a structured dataclass, not a raw control byte (as it
+                # used to be) - hop_count is held directly, and to_knx() re-encodes
+                # the rest for display (not necessarily byte-identical to what was
+                # received: see CEMIFlags.to_knx's own docstring on Frame Type).
+                flags = data.flags.to_knx()
+                hops = data.flags.hop_count
 
             reencoded = frame.to_knx()
             if reencoded != cemi_bytes:
