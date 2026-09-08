@@ -10,7 +10,9 @@ them explicitly:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from types import SimpleNamespace
+from typing import cast
 
 from imgui_bundle import imgui
 from imgui_bundle.immapp import testing as imgui_testing
@@ -29,12 +31,11 @@ from knx_gui.plugins.project.ui.components import (
     RestartSection,
     count_parameters,
 )
-from knx_gui.plugins.project.ui.configure import ConfigurePanel
+from knx_gui.testing.harness import TestContext as _TestContext
 
 # Aliased: pytest's default discovery tries to collect any name starting with "Test"
 # as a test class, which fails noisily for TestContext (it has an __init__).
-from knx_gui.testing.harness import AppHandle, build_app, find_device, run_ui_test
-from knx_gui.testing.harness import TestContext as _TestContext
+from knx_gui.testing.harness import build_app, run_ui_test
 
 # Matches the Configure panel's real docked size (see apps/knx-gui/XKNX_Toolkit.ini) -
 # the overflows these tests guard against only show up at that width, not a wide window.
@@ -42,39 +43,65 @@ _PANEL_SIZE = (417, 477)
 _WINDOW_SIZE = (600, 600)
 
 
-def _build_panel(app_handle: AppHandle, device: Device) -> ConfigurePanel:
-    """A bare ConfigurePanel wired to `app_handle`'s already-open project, showing
-    `device` - no KnxGuiApp rendering loop, no other plugins.
+def _fake_metadata_device() -> Device:
+    """A duck-typed Device stand-in carrying only what MetadataSection.render() reads
+    (device.app.program.*, device.app.manufacturer_id, device.hardware.*) - no
+    catalog, no project, no real Application/ApplicationProgram (those are
+    xsdata-generated dataclasses with their own required fields, not worth
+    constructing just to get a Device past its own __post_init__).
 
-    Deliberately bypasses the Node Editor plugin, whose own default selection
-    otherwise overrides ConfigurePanel's (confirmed empirically: driving
-    selection through the full running app leaves a different device selected
-    than the one just requested, because Node Editor syncs its own selection
-    back every frame).
+    Several fields are deliberately long (original_manufacturer, hardware.name) -
+    that's exactly the kind of content that widened the panel in the original bug,
+    so a synthetic worst-case is a more deterministic guard than hoping some demo
+    device happens to have wide enough content.
+
+    cast() tells pyright to trust this as a Device rather than loosening
+    MetadataSection.render()'s real signature, which should stay strict for actual
+    callers.
     """
-    catalog = app_handle.app.catalog
-    project = app_handle.app.project
-    project.selected_device = device
-
-    return ConfigurePanel(
-        get_devices=lambda: project.devices,
-        get_selected_device=lambda: project.selected_device,
-        set_selected_device=lambda d: setattr(project, "selected_device", d),
-        on_param_change=lambda d, p, v: None,
-        on_individual_address_change=lambda d, a: None,
-        on_name_change=lambda d, n: None,
-        set_flag=lambda d, c, f, v: None,
-        get_manufacturer=catalog.get_manufacturer,
+    program = SimpleNamespace(
+        mask_version="MASK0701",
+        pei_type=17,
+        application_number=1,
+        application_version=1,
+        program_type=SimpleNamespace(value="Application Program"),
+        load_procedure_style=SimpleNamespace(value="Overwriting Load Procedure"),
+        linkable=False,
+        dynamic_table_management=True,
+        is_secure_enabled=False,
+        additional_addresses_count=3,
+        visible_description="A moderately long description of what this program does",
+        original_manufacturer="A Very Long Original Equipment Manufacturer Name GmbH & Co. KG",
     )
+    app = SimpleNamespace(
+        program=program,
+        manufacturer_id="M-0083",
+        name="Test Application",
+        id="APP-0001",
+    )
+    hardware = SimpleNamespace(
+        is_coupler=False,
+        is_power_supply=True,
+        is_ip_enabled=False,
+        order_number="ORD-1234567890",
+        serial_number="SN-0987654321",
+        version_number=3,
+        bus_current=12.5,
+        is_rail_mounted=True,
+        width_mm=36.0,
+        name="Test Hardware Module With A Fairly Long Name",
+        id="HW-0001",
+    )
+    return cast(Device, SimpleNamespace(app=app, hardware=hardware))
 
 
-def _assert_no_horizontal_overflow(panel: ConfigurePanel) -> None:
+def _assert_no_horizontal_overflow(render: Callable[[], None]) -> None:
     result: dict[str, float] = {}
 
     def gui_function() -> None:
         imgui.set_next_window_size(imgui.ImVec2(*_PANEL_SIZE))
         imgui.begin("TestPanel")
-        panel.render()
+        render()
         imgui.end()
 
     def test_function(ctx: _TestContext) -> None:
@@ -96,20 +123,17 @@ def test_metadata_section_no_horizontal_overflow() -> None:
     """The Metadata section must not need horizontal scrolling at the docked panel width.
 
     General sanity guard: catches a column (or anything else in the section)
-    growing wide enough to force the whole panel wider than its docked size.
-    Uses a device with at most one parameter and no com objects, so no
-    Parameters tab bar renders - isolating the Metadata section's own layout
-    from `test_parameters_tab_bar_no_horizontal_overflow`'s concern. Does
-    *not* catch a purely local label/value collision that stays within the
-    window's width - see `test_label_column_leaves_room_for_its_own_widest_label`
-    for that.
+    growing wide enough to force the whole panel wider than its docked size. Renders
+    `MetadataSection` directly rather than through `ConfigurePanel`, so there's no
+    Parameters tab bar or Com Flags table in the frame to begin with - isolating the
+    Metadata section's own layout from `test_parameters_tab_bar_no_horizontal_overflow`'s
+    concern by construction, not by picking a device with few enough parameters. Does
+    *not* catch a purely local label/value collision that stays within the window's
+    width - see `test_label_column_leaves_room_for_its_own_widest_label` for that.
     """
-    app_handle = build_app()
-    device = find_device(
-        app_handle,
-        lambda d: count_parameters(d.get_ui()) <= 1 and not d.get_visible_com_objects(),
-    )
-    _assert_no_horizontal_overflow(_build_panel(app_handle, device))
+    device = _fake_metadata_device()
+    section = MetadataSection()
+    _assert_no_horizontal_overflow(lambda: section.render(device))
 
 
 def test_parameters_tab_bar_no_horizontal_overflow() -> None:
@@ -120,7 +144,7 @@ def test_parameters_tab_bar_no_horizontal_overflow() -> None:
     content size once tabs didn't fit, even though the tab bar itself
     rendered fine (self-clipped, with scroll arrows). Fixed by containing the
     tab bar in a child window sized to the actually available width (see
-    `render_ui_tree` in `knx_gui.widgets.parameter_widgets`).
+    `render_ui_tree` in `knx_gui.plugins.project.ui.components.parameters_section`).
 
     Runs the *full* app via `run_ui_test`, unlike the other tests here: a bare
     `imgui.begin()` window with a fixed size just grows to fit the tab bar's
@@ -128,10 +152,12 @@ def test_parameters_tab_bar_no_horizontal_overflow() -> None:
     all - confirmed empirically (`scroll_max.x` stayed 0 even with the bug
     reintroduced, in a bare window; it reached 909px in the real docked panel).
     Accepts whichever device the app selects by default rather than forcing a
-    specific one (the Node Editor's own selection overrides any explicit
-    choice - see `_build_panel`'s docstring), asserting it actually has
-    parameters so the test stays meaningful instead of silently passing
-    against an empty Parameters section.
+    specific one - the Node Editor's own selection overrides any explicit choice
+    made through the full running app (confirmed empirically: driving selection
+    this way leaves a different device selected than the one just requested,
+    because Node Editor syncs its own selection back every frame) - asserting it
+    actually has parameters so the test stays meaningful instead of silently
+    passing against an empty Parameters section.
     """
     app_handle = build_app()
     result: dict[str, float] = {}
@@ -216,6 +242,14 @@ def test_label_column_leaves_room_for_its_own_widest_label() -> None:
     assert result["column"] >= result["indent"] + result["widest"]
 
 
+def _fake_restart_device() -> Device:
+    """RestartSection.render() only reads device.individual_address (to enable the
+    Reset button) and device.name (in the confirmation popup's text) - a real Device
+    would need a real Application, which needs a real ApplicationProgram, neither of
+    which this test cares about."""
+    return cast(Device, SimpleNamespace(individual_address="1.1.1", name="Test Device"))
+
+
 def test_restart_section_destructive_mode_requires_confirmation() -> None:
     """A destructive reset mode must not fire on the first click - `RestartSection`
     routes it through the "Confirm Reset" popup instead, and only a click inside
@@ -225,8 +259,7 @@ def test_restart_section_destructive_mode_requires_confirmation() -> None:
     trade-off with `_label_column`) rather than operating the mode combo, since the
     combo interaction itself isn't what this test is about.
     """
-    app_handle = build_app()
-    device = find_device(app_handle, lambda d: bool(d.individual_address))
+    device = _fake_restart_device()
     calls: list[RestartRequest] = []
     section = RestartSection(lambda _device, request: calls.append(request))
     section._reset_mode_index = 2  # pyright: ignore[reportPrivateUsage]  # Factory Reset - destructive
@@ -254,8 +287,7 @@ def test_restart_section_destructive_mode_requires_confirmation() -> None:
 def test_restart_section_non_destructive_mode_restarts_immediately() -> None:
     """A non-destructive mode (the default, Basic Restart) must call
     `on_restart_device` straight from the button click, with no confirmation popup."""
-    app_handle = build_app()
-    device = find_device(app_handle, lambda d: bool(d.individual_address))
+    device = _fake_restart_device()
     calls: list[RestartRequest] = []
     section = RestartSection(lambda _device, request: calls.append(request))
 
