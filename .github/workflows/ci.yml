@@ -14,7 +14,7 @@ jobs:
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           enable-cache: true
-      - run: uv sync
+      - run: uv sync --all-packages
       - run: uv run ruff check
       - run: uv run ruff format --check
 
@@ -26,7 +26,7 @@ jobs:
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           enable-cache: true
-      - run: uv sync
+      - run: uv sync --all-packages
       - run: uv run pyright
 
   test:
@@ -37,7 +37,7 @@ jobs:
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           enable-cache: true
-      - run: uv sync
+      - run: uv sync --all-packages
       - run: uv run pytest
       - name: Test knx-gui network plugin
         working-directory: apps/knx-gui
