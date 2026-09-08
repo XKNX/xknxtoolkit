@@ -1,9 +1,11 @@
 from datetime import UTC, datetime
 
 import pytest
-from xknx.dpt import DPTArray, DPTBinary
+from xknx.dpt.payload import DPTArray, DPTBinary
 from xknx.telegram import Telegram
+from xknx.telegram.address import GroupAddress, IndividualAddress
 from xknx.telegram.apci import (
+    APCI,
     ADCRead,
     ADCResponse,
     AuthorizeRequest,
@@ -45,8 +47,20 @@ from xknx.telegram.apci import (
 from knx_gui.plugins.network.records import TelegramRecord
 
 
-def make_telegram_record(source: str, dest: str, payload, sec: int) -> TelegramRecord:
-    t = Telegram(destination_address=dest, source_address=source, payload=payload)
+def make_telegram_record(
+    source: str, dest: str, payload: APCI, sec: int
+) -> TelegramRecord:
+    # dest is a group address in 3-level "M/M/S" notation, or an individual address
+    # in "A.L.D" notation (management telegrams address a device directly) - "/"
+    # only ever appears in the former.
+    destination: GroupAddress | IndividualAddress = (
+        GroupAddress(dest) if "/" in dest else IndividualAddress(dest)
+    )
+    t = Telegram(
+        destination_address=destination,
+        source_address=IndividualAddress(source),
+        payload=payload,
+    )
     ts = datetime(2026, 5, 12, 9, 15, sec, tzinfo=UTC)
     return TelegramRecord(telegram=t, timestamp=ts)
 
@@ -66,7 +80,10 @@ def mock_telegrams() -> list[TelegramRecord]:
         make_telegram_record("0.0.0", "0.0.0", IndividualAddressRead(), 3),
         make_telegram_record("1.1.99", "0.0.0", IndividualAddressResponse(), 3),
         make_telegram_record(
-            "0.0.0", "1.1.50", IndividualAddressWrite(address="1.1.60"), 4
+            "0.0.0",
+            "1.1.50",
+            IndividualAddressWrite(address=IndividualAddress("1.1.60")),
+            4,
         ),
         make_telegram_record(
             "0.0.0",
@@ -80,7 +97,8 @@ def mock_telegrams() -> list[TelegramRecord]:
             "1.1.50",
             "0.0.0",
             IndividualAddressSerialResponse(
-                serial=bytes([0x00, 0xFA, 0x12, 0x34, 0x56, 0x78]), address="1.1.50"
+                serial=bytes([0x00, 0xFA, 0x12, 0x34, 0x56, 0x78]),
+                address=IndividualAddress("1.1.50"),
             ),
             5,
         ),
@@ -88,7 +106,8 @@ def mock_telegrams() -> list[TelegramRecord]:
             "0.0.0",
             "1.1.50",
             IndividualAddressSerialWrite(
-                serial=bytes([0x00, 0xFA, 0x12, 0x34, 0x56, 0x78]), address="1.1.60"
+                serial=bytes([0x00, 0xFA, 0x12, 0x34, 0x56, 0x78]),
+                address=IndividualAddress("1.1.60"),
             ),
             6,
         ),

@@ -2,13 +2,13 @@
 
 from pathlib import Path
 
-from knx_gui.strings import create_translator
+from knx_gui.strings import BaseStrings, create_translator
 
 _locale_dir = Path(__file__).parent / "locales"
 _ = create_translator("project", _locale_dir)
 
 
-class ProjectStrings:
+class ProjectStrings(BaseStrings):
     @property
     def PANEL_DEVICES(self) -> str:
         return _("Devices")

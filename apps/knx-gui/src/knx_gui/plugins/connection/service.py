@@ -5,11 +5,15 @@ from collections.abc import Callable, Coroutine
 from concurrent.futures import Future
 from typing import TYPE_CHECKING, Any
 
-from xknx.cemi import CEMIFrame
-from xknx.management.procedures import (
-    dm_restart,
+from xknx.cemi.cemi_frame import CEMIFrame
+from xknx.management.procedures.device.dm_restart_r_co import dm_restart
+from xknx.management.procedures.network.nm_individual_address_read import (
     nm_individual_address_read,
+)
+from xknx.management.procedures.network.nm_individual_address_serial_number_write import (
     nm_individual_address_serial_number_write,
+)
+from xknx.management.procedures.network.nm_individual_address_write import (
     nm_individual_address_write,
 )
 
@@ -24,7 +28,7 @@ if TYPE_CHECKING:
 class ConnectionService:
     def __init__(self) -> None:
         self._log: Logger
-        self._raw_cemi_listeners: list[Callable[[bytes, TelegramSource], None]] = []
+        self._raw_cemi_listeners: list[Callable[[bytes, TelegramSource], object]] = []
         self._connected_listeners: list[Callable[[], None]] = []
         self._xknx: XKNX | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -33,7 +37,7 @@ class ConnectionService:
         self._log = log
 
     def add_raw_cemi_listener(
-        self, callback: Callable[[bytes, TelegramSource], None]
+        self, callback: Callable[[bytes, TelegramSource], object]
     ) -> None:
         self._raw_cemi_listeners.append(callback)
 

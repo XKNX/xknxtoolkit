@@ -14,7 +14,7 @@ jobs:
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           enable-cache: true
-      - run: uv sync
+      - run: uv sync --all-packages
       - run: uv run ruff check
       - run: uv run ruff format --check
 
@@ -26,22 +26,42 @@ jobs:
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           enable-cache: true
-      - run: uv sync
+      - run: uv sync --all-packages
       - run: uv run pyright
 
-  test:
-    name: Tests
+  unit-tests:
+    name: Unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           enable-cache: true
-      - run: uv sync
+      - run: uv sync --all-packages
       - run: uv run pytest
-      - name: Test knx-gui network plugin
+      - name: Test apps/knx-gui
         working-directory: apps/knx-gui
-        run: uv run pytest src/knx_gui/plugins/network/tests -v
+        # Excludes src/knx_gui/testing: those are the e2e tests, run separately below.
+        run: uv run pytest src/knx_gui --ignore=src/knx_gui/testing -v
+
+  e2e-tests:
+    name: E2E tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+      - run: uv sync --all-packages
+      - name: Test apps/knx-gui (Dear ImGui Test Engine)
+        working-directory: apps/knx-gui
+        # These drive the real app end-to-end and open a real (offscreen) GL window,
+        # so they need a display and a GL context - xvfb provides the former, mesa's
+        # llvmpipe the latter (software rendering; no GPU on this runner).
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0
+          xvfb-run -a uv run pytest src/knx_gui/testing -v
 
   build:
     name: Build packages

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from imgui_bundle import imgui
 from imgui_bundle import imgui_node_editor as ed
@@ -19,6 +22,12 @@ from knx_gui.device import (
 from knx_gui.dpt import DPT, DPTMatch, dpt_color, dpt_match
 from knx_gui.plugins.node_editor.strings import S
 from knx_gui.widgets import EnumPopup
+
+if TYPE_CHECKING:
+    # Only for type annotations - node_editor doesn't need a runtime dependency on
+    # project, and main.py imports node_editor before project (see
+    # knx_gui.plugins.project.ui.components for the same constraint elsewhere).
+    from knx_gui.plugins.project.service import Assignment, GroupAddress
 
 NODE_PADDING = 8.0
 HEADER_INSET = 1.0
@@ -63,8 +72,8 @@ class NodeEditorPanel:
     def __init__(
         self,
         get_devices: Callable[[], list[Device]],
-        get_group_addresses: Callable[[], list],
-        get_assignments_for_ga: Callable[[int], list],
+        get_group_addresses: Callable[[], list[GroupAddress]],
+        get_assignments_for_ga: Callable[[int], list[Assignment]],
         add_link: Callable[[int, int], int | None],
         remove_link: Callable[[int], None],
         on_param_change: Callable[[Device, str, str], None],
@@ -657,7 +666,7 @@ class NodeEditorPanel:
                     self._remove_link(link_id.id())
             ed.end_delete()
 
-    def _calc_ga_node_position(self, ga) -> imgui.ImVec2 | None:
+    def _calc_ga_node_position(self, ga: GroupAddress) -> imgui.ImVec2 | None:
         assignments = self._get_assignments_for_ga(ga.id)
         if not assignments:
             return None
@@ -696,7 +705,7 @@ class NodeEditorPanel:
 
         return imgui.ImVec2(total_x / count, total_y / count + y_offset)
 
-    def _render_ga_node(self, ga) -> None:
+    def _render_ga_node(self, ga: GroupAddress) -> None:
         node_id = GA_NODE_ID_OFFSET + ga.id
         in_pin_id = GA_PIN_ID_OFFSET + ga.id * 2
         out_pin_id = GA_PIN_ID_OFFSET + ga.id * 2 + 1
@@ -749,8 +758,8 @@ class NodeEditorPanel:
             if not assignments:
                 continue
 
-            sending_pins = []
-            receiving_pins = []
+            sending_pins: list[int] = []
+            receiving_pins: list[int] = []
             for assignment in assignments:
                 pins = self._co_db_id_to_pins.get(assignment.com_object_id)
                 if pins is None:

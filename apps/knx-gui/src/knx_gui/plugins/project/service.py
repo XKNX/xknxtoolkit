@@ -120,14 +120,14 @@ class _Line:
 
 
 @dataclass
-class _GroupAddress:
+class GroupAddress:
     id: int
     address: str
     name: str
 
 
 @dataclass
-class _Assignment:
+class Assignment:
     id: int
     com_object_id: int
     group_address_id: int
@@ -148,7 +148,7 @@ class ProjectService:
         self._devices_cache: list[Device] | None = None
         self._areas_cache: list[_Area] | None = None
         self._lines_cache: dict[int, list[_Line]] | None = None
-        self._ga_cache: list[_GroupAddress] | None = None
+        self._ga_cache: list[GroupAddress] | None = None
         self._cache_version: int = -1
         self._version: int = 0
         self._selected_node_id: int | None = None
@@ -359,32 +359,32 @@ class ProjectService:
     # --- group address reads ----------------------------------------------
 
     @property
-    def group_addresses(self) -> list[_GroupAddress]:
+    def group_addresses(self) -> list[GroupAddress]:
         if self._pid is None:
             return []
         if self._ga_cache is not None and self._cache_version == self._version:
             return self._ga_cache
         self._ga_cache = [
-            _GroupAddress(id=g.id, address=g.text, name=g.name)
+            GroupAddress(id=g.id, address=g.text, name=g.name)
             for g in self._svc.group_addresses(self._pid)
         ]
         self._cache_version = self._version
         return self._ga_cache
 
-    def get_group_address(self, ga_id: int) -> _GroupAddress | None:
+    def get_group_address(self, ga_id: int) -> GroupAddress | None:
         if self._pid is None:
             return None
         try:
             g = self._svc.group_address(self._pid, ga_id)
         except KeyError:
             return None
-        return _GroupAddress(id=g.id, address=g.text, name=g.name)
+        return GroupAddress(id=g.id, address=g.text, name=g.name)
 
-    def get_assignments_for_ga(self, ga_id: int) -> list[_Assignment]:
+    def get_assignments_for_ga(self, ga_id: int) -> list[Assignment]:
         if self._pid is None:
             return []
         return [
-            _Assignment(
+            Assignment(
                 id=link.id,
                 com_object_id=link.com_object_id,
                 group_address_id=link.group_address_id,

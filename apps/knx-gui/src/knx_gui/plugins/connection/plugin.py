@@ -282,7 +282,7 @@ class ConnectionPlugin:
                             f"  KNX Address: {self._gateway_info.individual_address}"
                         )
                     imgui.text(f"  Core Version: {self._gateway_info.core_version}")
-                    services = []
+                    services: list[str] = []
                     if self._gateway_info.supports_tunnelling:
                         services.append("Tunneling")
                     if self._gateway_info.supports_tunnelling_tcp:

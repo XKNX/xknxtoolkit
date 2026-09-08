@@ -5,7 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-uv sync                             # Install dependencies
+uv sync                             # Install dependencies (packages/* only - apps/knx-gui isn't
+                                     # a root dependency, so plain `uv sync` never installs it or
+                                     # imgui-bundle; use `uv sync --all-packages`, or run a command
+                                     # from inside apps/knx-gui, which lazily syncs it)
 uv run pytest                       # Run all package tests
 uv run pytest packages/models       # Run tests for a single package
 uv run ruff check                   # Lint

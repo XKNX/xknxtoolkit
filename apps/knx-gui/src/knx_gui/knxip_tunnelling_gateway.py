@@ -83,12 +83,14 @@ class _ClientProtocol(asyncio.Protocol):
         self._owner._client_connected(transport)  # type: ignore[arg-type]
 
     def data_received(self, data: bytes) -> None:
-        if self._owner._transport is self._transport:
-            self._owner._client_data_received(data)
+        # Deliberately reaching into TunnellingGateway's own privates - see the
+        # class docstring above, this shim exists only to cooperate with it.
+        if self._owner._transport is self._transport:  # pyright: ignore[reportPrivateUsage]
+            self._owner._client_data_received(data)  # pyright: ignore[reportPrivateUsage]
 
     def connection_lost(self, exc: Exception | None) -> None:
-        if self._owner._transport is self._transport:
-            self._owner._client_connection_lost(exc)
+        if self._owner._transport is self._transport:  # pyright: ignore[reportPrivateUsage]
+            self._owner._client_connection_lost(exc)  # pyright: ignore[reportPrivateUsage]
 
 
 class TunnellingGateway:
@@ -280,7 +282,7 @@ class TunnellingGateway:
                     )
 
             self._state = GatewayState.RUNNING
-            self._local_ips = [ip.ip for ip in util.get_local_ips()]
+            self._local_ips = [str(ip.ip) for ip in util.get_local_ips()]
             if self._logger:
                 self._logger.info(
                     "gateway running - add manually as an interface (TCP), "

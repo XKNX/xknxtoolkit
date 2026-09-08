@@ -5,17 +5,15 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from knx_gui.dpt import DPT
+from xknxmono.models.intermediate.com_object_instance_ref_t import (
+    ComObjectInstanceRef,
+)
+from xknxmono.models.intermediate.module_instance_t import ModuleInstance
+from xknxmono.models.intermediate.parameter_instance_ref_t import ParameterInstanceRef
 from xknxmono.product import Application
 
 if TYPE_CHECKING:
     from xknxmono.catalog import HardwareInfo
-    from xknxmono.models.intermediate.com_object_instance_ref_t import (
-        ComObjectInstanceRef,
-    )
-    from xknxmono.models.intermediate.module_instance_t import ModuleInstance
-    from xknxmono.models.intermediate.parameter_instance_ref_t import (
-        ParameterInstanceRef,
-    )
     from xknxmono.product.parser_v2.dynamic import DynamicUI
     from xknxmono.product.parser_v2.ui import UiComObject, UiNode
 
@@ -63,15 +61,6 @@ class ComObject:
     number: int = 0
     supported_dpts: list[DPT] = field(default_factory=list[DPT])
     db_id: int | None = None
-
-
-_co_id_counter = 0
-
-
-def _next_co_id() -> str:
-    global _co_id_counter
-    _co_id_counter += 1
-    return f"co_{_co_id_counter}"
 
 
 FLAG_LABELS = [
@@ -161,13 +150,13 @@ class Device:
     hardware: HardwareInfo | None = None
     com_objects: list[ComObject] = field(default_factory=list[ComObject])
     parameter_instance_refs: list[ParameterInstanceRef] = field(
-        default_factory=list, repr=False, compare=False
+        default_factory=list[ParameterInstanceRef], repr=False, compare=False
     )
     module_instances: list[ModuleInstance] = field(
-        default_factory=list, repr=False, compare=False
+        default_factory=list[ModuleInstance], repr=False, compare=False
     )
     com_object_instance_refs: list[ComObjectInstanceRef] = field(
-        default_factory=list, repr=False, compare=False
+        default_factory=list[ComObjectInstanceRef], repr=False, compare=False
     )
     _dynamic_ui: DynamicUI | None = field(
         default=None, repr=False, compare=False, init=False

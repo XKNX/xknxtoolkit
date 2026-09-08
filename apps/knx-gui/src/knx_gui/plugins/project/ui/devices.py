@@ -306,7 +306,7 @@ class DevicesPanel:
             lines = self._get_lines(area.id)
             area_lines[area.number] = {ln.number for ln in lines}
 
-        unassigned = []
+        unassigned: list[Device] = []
         for device in devices:
             if not device.individual_address:
                 unassigned.append(device)
