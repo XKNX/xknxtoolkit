@@ -42,6 +42,15 @@ jobs:
       - name: Test knx-gui network plugin
         working-directory: apps/knx-gui
         run: uv run pytest src/knx_gui/plugins/network/tests -v
+      - name: Test knx-gui Configure panel (Dear ImGui Test Engine)
+        working-directory: apps/knx-gui
+        # These open a real (offscreen) GL window, so they need a display and a GL
+        # context - xvfb provides the former, mesa's llvmpipe the latter (software
+        # rendering; no GPU on this runner).
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0
+          xvfb-run -a uv run pytest src/knx_gui/testing/tests -v
 
   build:
     name: Build packages

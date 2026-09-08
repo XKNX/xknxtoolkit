@@ -24,7 +24,7 @@ Before making changes, read these docs:
 
 For a throwaway diagnostic during a session (not a checked-in test), write a short script importing `knx_gui.testing.harness` and run it with `uv run python <script>.py` — it can monkeypatch functions before importing the app to isolate which code path causes a symptom (see git history around the "Parameters tab bar" overflow bug for a worked example: bisecting by disabling one render function at a time, each in its own process, comparing `window.scroll_max`).
 
-Needs a real display (it briefly opens an actual window) — that's why these tests aren't part of the root `uv run pytest`, matching the `network` plugin's tests.
+Needs a real display (it briefly opens an actual window) — that's why these tests aren't part of the root `uv run pytest`, matching the `network` plugin's tests. CI runs them under `xvfb-run` (virtual display + mesa's software GL) as a separate step in the `test` job — see `.github/workflows/ci.yml`.
 
 **Licensing**: Dear ImGui Test Engine has its own license, separate from Dear ImGui itself — free for individuals, education, open-source and small business use; paid for larger businesses (see [its LICENSE.txt](https://github.com/ocornut/imgui_test_engine/blob/main/imgui_test_engine/LICENSE.txt)). It's a dev-only dependency: `use_imgui_test_engine` is only ever turned on inside `knx_gui.testing.harness`, never in the production entry point (`knx_gui.main.main`).
 

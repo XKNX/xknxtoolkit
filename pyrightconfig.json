@@ -1,5 +1,6 @@
 {
   "include": [
+    "apps/knx-gui/src",
     "packages/catalog/src",
     "packages/keyring/src",
     "packages/models/src",
@@ -9,5 +10,6 @@
   "exclude": ["**/files", "**/intermediate"],
   "pythonVersion": "3.12",
   "typeCheckingMode": "strict",
-  "reportMissingTypeStubs": false
+  "reportMissingTypeStubs": false,
+  "reportMissingModuleSource": false
 }
