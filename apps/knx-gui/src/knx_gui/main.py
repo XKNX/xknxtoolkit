@@ -300,6 +300,17 @@ def build_runner_params(app: KnxGuiApp) -> hello_imgui.RunnerParams:
     runner_params.app_window_params.window_title = S.APP_TITLE
     runner_params.app_window_params.window_geometry.size = (1280, 720)
     runner_params.app_window_params.restore_previous_geometry = True
+    # Without this, a live OS resize drag blocks the render loop (the OS's own
+    # resize event loop doesn't hand control back until the drag ends), so the
+    # window just visually stretches its last frame instead of re-laying-out -
+    # this repaints during the drag instead. hello_imgui's own stub flags it as
+    # experimental/unsupported ("GotchaReentrantRepaint") - see
+    # https://github.com/pthom/hello_imgui/issues/112 - watch for reentrancy
+    # glitches (e.g. state changing mid-frame) if the freeze-on-resize is
+    # preferred to whatever this introduces.
+    runner_params.app_window_params.repaint_during_resize_gotcha_reentrant_repaint = (
+        True
+    )
     runner_params.fps_idling.enable_idling = False
 
     runner_params.imgui_window_params.default_imgui_window_type = (
