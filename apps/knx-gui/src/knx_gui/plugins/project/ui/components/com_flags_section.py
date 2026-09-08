@@ -1,3 +1,12 @@
+"""The Configure panel's Com Flags section: one row per visible communication
+object, one checkbox column per KNX flag (see `knx_gui.device.FLAG_LABELS`).
+
+See `knx_gui.plugins.project.ui.components` for why this lives here and not in
+`knx_gui.widgets`.
+"""
+
+from __future__ import annotations
+
 from collections.abc import Callable
 
 from imgui_bundle import imgui
@@ -7,7 +16,7 @@ from knx_gui.device import (
     ComObject,
     Device,
 )
-from knx_gui.plugins.node_editor.strings import S
+from knx_gui.plugins.project.strings import S
 
 
 class ComFlagsTable:
