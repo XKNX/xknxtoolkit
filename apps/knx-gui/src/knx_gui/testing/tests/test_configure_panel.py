@@ -14,7 +14,7 @@ from collections.abc import Callable
 from types import SimpleNamespace
 from typing import cast
 
-from imgui_bundle import imgui
+from imgui_bundle import hello_imgui, imgui
 from imgui_bundle.immapp import testing as imgui_testing
 
 # knx_gui.plugins.node_editor imports knx_gui.widgets before knx_gui.widgets finishes
@@ -29,13 +29,14 @@ from knx_gui.plugins.project.ui.components import (
     MetadataSection,
     RestartRequest,
     RestartSection,
-    count_parameters,
+    render_ui_tree,
 )
-from knx_gui.testing.harness import TestContext as _TestContext
 
 # Aliased: pytest's default discovery tries to collect any name starting with "Test"
 # as a test class, which fails noisily for TestContext (it has an __init__).
-from knx_gui.testing.harness import build_app, run_ui_test
+from knx_gui.testing.harness import TestContext as _TestContext
+from xknxmono.product.parser_v2.ui import UiNode, UiParameter, UiTab
+from xknxmono.product.parser_v2.ui.parameter import TextWidget
 
 # Matches the Configure panel's real docked size (see apps/knx-gui/XKNX_Toolkit.ini) -
 # the overflows these tests guard against only show up at that width, not a wide window.
@@ -136,6 +137,56 @@ def test_metadata_section_no_horizontal_overflow() -> None:
     _assert_no_horizontal_overflow(lambda: section.render(device))
 
 
+def _docked_window_runner_params(
+    render_fn: Callable[[], None],
+) -> hello_imgui.RunnerParams:
+    """A minimal RunnerParams with exactly one genuinely docked window - matching the
+    Configure panel's real dock (RightSpace, split off MainDockSpace to the right,
+    0.25 ratio) - and nothing else: no KnxGuiApp, no plugins, no catalog, no project.
+
+    Needed for dock-only layout bugs: a plain `imgui.begin()` window, even at a fixed
+    size, doesn't reproduce them. Confirmed empirically for the regression this backs
+    (`test_parameters_tab_bar_no_horizontal_overflow`) - `scroll_max.x` stayed 0 in a
+    bare fixed-size window with the bug's pre-fix code reintroduced, but reached 534px
+    in a window built this way, matching what the real docked panel showed (909px,
+    back when this was first diagnosed through the full app).
+    """
+    runner_params = hello_imgui.RunnerParams()
+    runner_params.app_window_params.window_geometry.size = _WINDOW_SIZE
+    runner_params.imgui_window_params.default_imgui_window_type = (
+        hello_imgui.DefaultImGuiWindowType.provide_full_screen_dock_space
+    )
+
+    split_right = hello_imgui.DockingSplit()
+    split_right.initial_dock = "MainDockSpace"
+    split_right.new_dock = "RightSpace"
+    split_right.direction = imgui.Dir.right
+    split_right.ratio = 0.25
+    runner_params.docking_params.docking_splits = [split_right]
+
+    window = hello_imgui.DockableWindow()
+    window.label = "Configure"
+    window.dock_space_name = "RightSpace"
+    window.gui_function = render_fn
+    runner_params.docking_params.dockable_windows = [window]
+
+    return runner_params
+
+
+def _fake_tabbed_ui(tab_count: int) -> list[UiNode]:
+    """`tab_count` UiTabs, each with one parameter - enough tabs at their natural
+    width to not fit RightSpace's ~150px (0.25 of the 600px test window)."""
+    tabs: list[UiNode] = []
+    for i in range(tab_count):
+        param = UiParameter(
+            ref_id=f"p{i}", label=f"Parameter {i}", value="0", widget=TextWidget()
+        )
+        tabs.append(
+            UiTab(children=(param,), id=f"tab{i}", name=f"Channel {i} Long Name")
+        )
+    return tabs
+
+
 def test_parameters_tab_bar_no_horizontal_overflow() -> None:
     """The Parameters tab bar must not need horizontal scrolling at the docked panel width.
 
@@ -146,21 +197,17 @@ def test_parameters_tab_bar_no_horizontal_overflow() -> None:
     tab bar in a child window sized to the actually available width (see
     `render_ui_tree` in `knx_gui.plugins.project.ui.components.parameters_section`).
 
-    Runs the *full* app via `run_ui_test`, unlike the other tests here: a bare
-    `imgui.begin()` window with a fixed size just grows to fit the tab bar's
-    content instead of needing to scroll, so it doesn't reproduce this bug at
-    all - confirmed empirically (`scroll_max.x` stayed 0 even with the bug
-    reintroduced, in a bare window; it reached 909px in the real docked panel).
-    Accepts whichever device the app selects by default rather than forcing a
-    specific one - the Node Editor's own selection overrides any explicit choice
-    made through the full running app (confirmed empirically: driving selection
-    this way leaves a different device selected than the one just requested,
-    because Node Editor syncs its own selection back every frame) - asserting it
-    actually has parameters so the test stays meaningful instead of silently
-    passing against an empty Parameters section.
+    Builds a genuinely docked window via `_docked_window_runner_params` rather than
+    the full app - see its docstring for why a plain fixed-size window can't stand in
+    for one here - with enough synthetic tabs to force the overflow deterministically,
+    instead of depending on whichever device the demo project happens to default-select.
     """
-    app_handle = build_app()
+    device = cast(Device, SimpleNamespace(node_id=1))
+    tabs = _fake_tabbed_ui(8)
     result: dict[str, float] = {}
+
+    def render_fn() -> None:
+        render_ui_tree(device, tabs, lambda d, p, v: None)
 
     def test_function(ctx: _TestContext) -> None:
         ctx.set_ref("//Configure")
@@ -169,14 +216,15 @@ def test_parameters_tab_bar_no_horizontal_overflow() -> None:
         # scroll/layout to settle before scroll_max is final.
         ctx.yield_()
         ctx.yield_()
-        device = app_handle.app.project.selected_device
-        assert device is not None and count_parameters(device.get_ui()) > 0, (
-            "expected the app to default-select a device with parameters"
-        )
         window = ctx.get_window_by_ref("//Configure")
         result["scroll_max_x"] = window.scroll_max.x
 
-    run_ui_test(test_function, app_handle=app_handle)
+    imgui_testing.run(
+        gui_function=lambda: None,
+        test_function=test_function,
+        runner_params=_docked_window_runner_params(render_fn),
+        exit_after_test=True,
+    )
 
     assert result["scroll_max_x"] == 0.0
 
