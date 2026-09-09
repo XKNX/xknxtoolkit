@@ -23,7 +23,6 @@ See `knx_gui.plugins.project.ui.components` for why this lives here and not in
 
 from __future__ import annotations
 
-import time
 from collections.abc import Callable
 from concurrent.futures import Future
 from dataclasses import dataclass
@@ -38,10 +37,11 @@ _SERIAL_HEX_LENGTH = 12  # 6 bytes, KNX serial number width
 _ERROR_COLOR = imgui.ImVec4(0.85, 0.35, 0.35, 1.0)
 _WARNING_COLOR = imgui.ImVec4(0.9, 0.5, 0.3, 1.0)
 _SUCCESS_COLOR = imgui.ImVec4(0.45, 0.75, 0.45, 1.0)
-_LOG_HEIGHT = 90.0
+_CHECKLIST_MARK_COLUMN = 20.0
 
 _Step = Literal["find_device", "mode"]
 _Status = Literal["idle", "running", "success", "error"]
+_ItemStatus = Literal["done", "current", "failed", "skipped"]
 
 
 @dataclass(frozen=True)
@@ -77,9 +77,8 @@ class ProgramSection:
 
         self._status: _Status = "idle"
         self._error_message: str = ""
-        self._log: list[str] = []
-        self._scroll_log_to_bottom = False
-        self._log_open = False
+        self._checklist: list[tuple[str, _ItemStatus]] = []
+        self._ia_checklist_index: int | None = None
 
     def render(self, device: Device, serial_hex: str) -> str:
         """Returns `serial_hex`, or the value it was just edited to - Step 1 also
@@ -99,10 +98,21 @@ class ProgramSection:
     def _render_find_device(self, serial_hex: str) -> str:
         imgui.text(S.PROGRAM_STEP_FIND_DEVICE)
         imgui.indent()
-        if imgui.radio_button(S.PROGRAM_TRIGGER_BUTTON, not self._trigger_serial):
+
+        # Two big tappable cards rather than radio buttons - this is the one
+        # choice in the whole flow that's genuinely about the physical device
+        # in front of you, not just a setting, so it gets more visual weight.
+        # Buttons, not Selectables: a Selectable draws no visible boundary at
+        # all when unselected (confirmed via the harness) - just floating text,
+        # not a card. A Button always has a filled background, selected or not.
+        card_size = imgui.ImVec2(
+            (imgui.get_content_region_avail().x - imgui.get_style().item_spacing.x) / 2,
+            40,
+        )
+        if _trigger_card(S.PROGRAM_TRIGGER_BUTTON, not self._trigger_serial, card_size):
             self._trigger_serial = False
         imgui.same_line()
-        if imgui.radio_button(S.PROGRAM_TRIGGER_SERIAL, self._trigger_serial):
+        if _trigger_card(S.PROGRAM_TRIGGER_SERIAL, self._trigger_serial, card_size):
             self._trigger_serial = True
 
         if self._trigger_serial:
@@ -131,7 +141,6 @@ class ProgramSection:
         imgui.end_disabled()
         imgui.unindent()
         return serial_hex
-        imgui.unindent()
 
     # --- Step 2: Programming Mode -------------------------------------------
 
@@ -205,18 +214,28 @@ class ProgramSection:
 
         self._status = "running"
         self._error_message = ""
-        self._log = []
-        self._append_log(
-            S.PROGRAM_LOG_STARTED_SERIAL
-            if request.trigger == "serial"
-            else S.PROGRAM_LOG_STARTED_BUTTON
-        )
-        if request.program_individual_address:
-            self._append_log(
-                S.PROGRAM_LOG_WRITING_IA.format(address=device.individual_address)
+        self._checklist = [
+            (
+                S.PROGRAM_CHECKLIST_ADDRESS_SERIAL
+                if request.trigger == "serial"
+                else S.PROGRAM_CHECKLIST_ADDRESS_BUTTON,
+                "done",
             )
+        ]
+        if request.program_individual_address:
+            self._ia_checklist_index = len(self._checklist)
+            self._checklist.append(
+                (
+                    S.PROGRAM_CHECKLIST_WRITE_IA.format(
+                        address=device.individual_address
+                    ),
+                    "current",
+                )
+            )
+        else:
+            self._ia_checklist_index = None
         if request.program_group_addresses or request.program_parameters:
-            self._append_log(S.PROGRAM_LOG_GA_PARAMS_SKIPPED)
+            self._checklist.append((S.PROGRAM_CHECKLIST_GA_PARAMS, "skipped"))
 
         future = self._on_program(device, request)
         if future is None:
@@ -226,93 +245,73 @@ class ProgramSection:
 
     def _handle_future_done(self, future: Future[Any]) -> None:
         # Runs on the asyncio loop's thread (see ConnectionService.run_async),
-        # not the render thread - same append-from-a-callback pattern already
-        # used for restart results, no lock (list.append is fine under the GIL).
+        # not the render thread - same list-mutation-from-a-callback pattern
+        # already used for restart results, no lock (fine under the GIL).
         if future.cancelled():
             return
         exc = future.exception()
         self._finish(error=str(exc) if exc is not None else None)
 
     def _finish(self, error: str | None) -> None:
+        if self._ia_checklist_index is not None:
+            label, _ = self._checklist[self._ia_checklist_index]
+            self._checklist[self._ia_checklist_index] = (
+                label,
+                "failed" if error else "done",
+            )
         if error is None:
-            self._append_log(S.PROGRAM_LOG_IA_DONE)
             self._status = "success"
         else:
             self._error_message = error
             self._status = "error"
-            self._log_open = True  # don't make a failure's detail an extra click
-
-    def _append_log(self, message: str) -> None:
-        self._log.append(f"{time.strftime('%H:%M:%S')}  {message}")
-        self._scroll_log_to_bottom = True
 
     def _render_status(self, device: Device) -> None:
         imgui.text(S.BTN_PROGRAM_DEVICE + f": {device.name}")
         imgui.spacing()
 
-        self._render_banner()
-        if self._log_open:
-            self._render_log_box()
+        for label, item_status in self._checklist:
+            self._render_checklist_item(label, item_status)
+
+        if self._status == "error":
+            imgui.spacing()
+            _wrapped_error_box(S.PROGRAM_STATUS_ERROR.format(error=self._error_message))
 
         if self._status != "running":
             imgui.spacing()
             if imgui.button(S.BTN_PROGRAM_ANOTHER):
                 self._status = "idle"
                 self._step = "find_device"
-                self._log_open = False
 
-    def _render_banner(self) -> None:
-        """A one-line-ish status, with a toggle for the log - not the log box
-        itself shown by default, which is what made the wizard's original result
-        view noisier than it needed to be (option B's mockup did this better)."""
-        if self._status == "error":
-            imgui.push_style_color(imgui.Col_.child_bg, (0.3, 0.12, 0.12, 1.0))
-            imgui.begin_child(
-                "##program_banner",
-                imgui.ImVec2(imgui.get_content_region_avail().x, 0),
-                imgui.ChildFlags_.borders | imgui.ChildFlags_.auto_resize_y,
-            )
-            _wrapped_text_colored(
-                _ERROR_COLOR, S.PROGRAM_STATUS_ERROR.format(error=self._error_message)
-            )
-            self._render_log_toggle()
-            imgui.end_child()
-            imgui.pop_style_color()
-        elif self._status == "running":
-            imgui.text_disabled(S.PROGRAM_STATUS_RUNNING)
-            self._render_log_toggle()
+    def _render_checklist_item(self, label: str, item_status: _ItemStatus) -> None:
+        """Each line is its own scan-able unit - a mark, then the label wrapped to
+        whatever's left of the row - rather than a scrolling log of timestamped
+        text (option A's original treatment; B's mockup read cleaner for this).
+
+        Marks are plain ASCII, not check/cross Unicode glyphs (confirmed via the
+        harness: hello_imgui's default font has no glyphs for those - renders
+        tofu boxes instead - and nothing else in this app relies on non-ASCII
+        symbol glyphs either).
+        """
+        start_x = imgui.get_cursor_pos_x()
+        if item_status == "done":
+            imgui.text_colored(_SUCCESS_COLOR, "[x]")
+        elif item_status == "failed":
+            imgui.text_colored(_ERROR_COLOR, "[!]")
+        elif item_status == "skipped":
+            imgui.text_disabled("[-]")
         else:
-            imgui.text_colored(_SUCCESS_COLOR, S.PROGRAM_STATUS_SUCCESS)
-            self._render_log_toggle()
+            imgui.text_disabled("[.]")
 
-    def _render_log_toggle(self) -> None:
-        label = S.PROGRAM_LOG_HIDE if self._log_open else S.PROGRAM_LOG_SHOW
-        width = imgui.calc_text_size(label).x + imgui.get_style().frame_padding.x * 2
-        avail = imgui.get_content_region_avail().x
-        if avail > width:
-            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + avail - width)
-        if imgui.small_button(label):
-            self._log_open = not self._log_open
-
-    def _render_log_box(self) -> None:
-        imgui.begin_child(
-            "##program_log",
-            imgui.ImVec2(imgui.get_content_region_avail().x, _LOG_HEIGHT),
-            imgui.ChildFlags_.borders,
-        )
+        imgui.same_line(start_x + _CHECKLIST_MARK_COLUMN)
         wrap_x = imgui.get_cursor_pos_x() + imgui.get_content_region_avail().x
-        for line in self._log:
-            imgui.push_text_wrap_pos(wrap_x)
-            imgui.text_unformatted(line)
-            imgui.pop_text_wrap_pos()
-        # Once, whenever a line was just appended (including the final one, on
-        # the same frame the operation resolves) - not every frame, or manually
-        # scrolling up to read earlier lines while still "running" would be
-        # impossible.
-        if self._scroll_log_to_bottom:
-            imgui.set_scroll_here_y(1.0)
-            self._scroll_log_to_bottom = False
-        imgui.end_child()
+        imgui.push_text_wrap_pos(wrap_x)
+        if item_status == "skipped":
+            imgui.text_disabled(label)
+        elif item_status == "failed":
+            imgui.text_colored(_ERROR_COLOR, label)
+        else:
+            imgui.text_unformatted(label)
+        imgui.pop_text_wrap_pos()
 
 
 def _parse_serial(serial_hex: str) -> bytes | None:
@@ -334,8 +333,27 @@ def _wrapped_text_disabled(text: str) -> None:
     imgui.pop_text_wrap_pos()
 
 
-def _wrapped_text_colored(color: imgui.ImVec4, text: str) -> None:
+def _trigger_card(label: str, selected: bool, size: imgui.ImVec2) -> bool:
+    if selected:
+        imgui.push_style_color(imgui.Col_.button, (0.18, 0.45, 0.85, 1.0))
+        imgui.push_style_color(imgui.Col_.button_hovered, (0.22, 0.5, 0.9, 1.0))
+        imgui.push_style_color(imgui.Col_.button_active, (0.15, 0.4, 0.8, 1.0))
+    clicked = imgui.button(label, size)
+    if selected:
+        imgui.pop_style_color(3)
+    return clicked
+
+
+def _wrapped_error_box(text: str) -> None:
+    imgui.push_style_color(imgui.Col_.child_bg, (0.3, 0.12, 0.12, 1.0))
+    imgui.begin_child(
+        "##program_error",
+        imgui.ImVec2(imgui.get_content_region_avail().x, 0),
+        imgui.ChildFlags_.borders | imgui.ChildFlags_.auto_resize_y,
+    )
     wrap_x = imgui.get_cursor_pos_x() + imgui.get_content_region_avail().x
     imgui.push_text_wrap_pos(wrap_x)
-    imgui.text_colored(color, text)
+    imgui.text_colored(_ERROR_COLOR, text)
     imgui.pop_text_wrap_pos()
+    imgui.end_child()
+    imgui.pop_style_color()

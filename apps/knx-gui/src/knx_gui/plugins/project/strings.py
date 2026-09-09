@@ -132,48 +132,28 @@ class ProjectStrings(BaseStrings):
         return _("Start Over")
 
     @property
-    def PROGRAM_LOG_STARTED_BUTTON(self) -> str:
-        return _("Started - waiting for a device in programming mode")
+    def PROGRAM_CHECKLIST_ADDRESS_BUTTON(self) -> str:
+        return _("Waiting for a device in programming mode")
 
     @property
-    def PROGRAM_LOG_STARTED_SERIAL(self) -> str:
-        return _("Started - addressing device by serial number")
+    def PROGRAM_CHECKLIST_ADDRESS_SERIAL(self) -> str:
+        return _("Addressing device by serial number")
 
     @property
-    def PROGRAM_LOG_WRITING_IA(self) -> str:
-        return _("Writing Individual Address {address}...")
+    def PROGRAM_CHECKLIST_WRITE_IA(self) -> str:
+        return _("Write Individual Address {address}")
 
     @property
-    def PROGRAM_LOG_IA_DONE(self) -> str:
-        return _("Individual Address programmed")
-
-    @property
-    def PROGRAM_LOG_GA_PARAMS_SKIPPED(self) -> str:
-        return _("Group Addresses / Parameters requested but not implemented - skipped")
+    def PROGRAM_CHECKLIST_GA_PARAMS(self) -> str:
+        return _("Group Addresses / Parameters - not implemented yet")
 
     @property
     def PROGRAM_LOG_NOT_CONNECTED(self) -> str:
         return _("Not connected - nothing was sent")
 
     @property
-    def PROGRAM_STATUS_RUNNING(self) -> str:
-        return _("Programming...")
-
-    @property
-    def PROGRAM_STATUS_SUCCESS(self) -> str:
-        return _("Done.")
-
-    @property
     def PROGRAM_STATUS_ERROR(self) -> str:
         return _("Failed: {error}")
-
-    @property
-    def PROGRAM_LOG_SHOW(self) -> str:
-        return _("Show log")
-
-    @property
-    def PROGRAM_LOG_HIDE(self) -> str:
-        return _("Hide log")
 
     @property
     def CONFIGURE_METADATA(self) -> str:
