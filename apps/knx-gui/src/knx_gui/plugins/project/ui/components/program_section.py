@@ -105,10 +105,16 @@ class ProgramSection:
         # Buttons, not Selectables: a Selectable draws no visible boundary at
         # all when unselected (confirmed via the harness) - just floating text,
         # not a card. A Button always has a filled background, selected or not.
-        card_size = imgui.ImVec2(
-            (imgui.get_content_region_avail().x - imgui.get_style().item_spacing.x) / 2,
-            40,
-        )
+        card_height = 40.0
+        spacing = imgui.get_style().item_spacing.x
+        avail = imgui.get_content_region_avail().x
+        # 85px still fits ~9-10 hex chars before it scrolls internally while
+        # typing - narrower than that starts crowding "Programming Button"
+        # (122px of text alone) out of its own card.
+        field_width = 85.0 if self._trigger_serial else 0.0
+        gaps = spacing * (3 if self._trigger_serial else 1)
+        card_size = imgui.ImVec2((avail - gaps - field_width) / 2, card_height)
+
         if _trigger_card(S.PROGRAM_TRIGGER_BUTTON, not self._trigger_serial, card_size):
             self._trigger_serial = False
         imgui.same_line()
@@ -116,7 +122,12 @@ class ProgramSection:
             self._trigger_serial = True
 
         if self._trigger_serial:
-            imgui.set_next_item_width(130)
+            imgui.same_line()
+            # Vertically center against the (taller) cards on this same line.
+            imgui.set_cursor_pos_y(
+                imgui.get_cursor_pos_y() + (card_height - imgui.get_frame_height()) / 2
+            )
+            imgui.set_next_item_width(field_width)
             _, serial_hex = imgui.input_text(
                 "##program_serial", serial_hex, imgui.InputTextFlags_.chars_hexadecimal
             )
@@ -294,7 +305,7 @@ class ProgramSection:
         """
         start_x = imgui.get_cursor_pos_x()
         if item_status == "done":
-            imgui.text_colored(_SUCCESS_COLOR, "[x]")
+            imgui.text_colored(_SUCCESS_COLOR, "[+]")
         elif item_status == "failed":
             imgui.text_colored(_ERROR_COLOR, "[!]")
         elif item_status == "skipped":
