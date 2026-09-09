@@ -156,12 +156,24 @@ class ProjectStrings(BaseStrings):
         return _("Not connected - nothing was sent")
 
     @property
+    def PROGRAM_STATUS_RUNNING(self) -> str:
+        return _("Programming...")
+
+    @property
     def PROGRAM_STATUS_SUCCESS(self) -> str:
         return _("Done.")
 
     @property
     def PROGRAM_STATUS_ERROR(self) -> str:
         return _("Failed: {error}")
+
+    @property
+    def PROGRAM_LOG_SHOW(self) -> str:
+        return _("Show log")
+
+    @property
+    def PROGRAM_LOG_HIDE(self) -> str:
+        return _("Hide log")
 
     @property
     def CONFIGURE_METADATA(self) -> str:

@@ -79,6 +79,7 @@ class ProgramSection:
         self._error_message: str = ""
         self._log: list[str] = []
         self._scroll_log_to_bottom = False
+        self._log_open = False
 
     def render(self, device: Device, serial_hex: str) -> str:
         """Returns `serial_hex`, or the value it was just edited to - Step 1 also
@@ -239,6 +240,7 @@ class ProgramSection:
         else:
             self._error_message = error
             self._status = "error"
+            self._log_open = True  # don't make a failure's detail an extra click
 
     def _append_log(self, message: str) -> None:
         self._log.append(f"{time.strftime('%H:%M:%S')}  {message}")
@@ -246,7 +248,53 @@ class ProgramSection:
 
     def _render_status(self, device: Device) -> None:
         imgui.text(S.BTN_PROGRAM_DEVICE + f": {device.name}")
+        imgui.spacing()
 
+        self._render_banner()
+        if self._log_open:
+            self._render_log_box()
+
+        if self._status != "running":
+            imgui.spacing()
+            if imgui.button(S.BTN_PROGRAM_ANOTHER):
+                self._status = "idle"
+                self._step = "find_device"
+                self._log_open = False
+
+    def _render_banner(self) -> None:
+        """A one-line-ish status, with a toggle for the log - not the log box
+        itself shown by default, which is what made the wizard's original result
+        view noisier than it needed to be (option B's mockup did this better)."""
+        if self._status == "error":
+            imgui.push_style_color(imgui.Col_.child_bg, (0.3, 0.12, 0.12, 1.0))
+            imgui.begin_child(
+                "##program_banner",
+                imgui.ImVec2(imgui.get_content_region_avail().x, 0),
+                imgui.ChildFlags_.borders | imgui.ChildFlags_.auto_resize_y,
+            )
+            _wrapped_text_colored(
+                _ERROR_COLOR, S.PROGRAM_STATUS_ERROR.format(error=self._error_message)
+            )
+            self._render_log_toggle()
+            imgui.end_child()
+            imgui.pop_style_color()
+        elif self._status == "running":
+            imgui.text_disabled(S.PROGRAM_STATUS_RUNNING)
+            self._render_log_toggle()
+        else:
+            imgui.text_colored(_SUCCESS_COLOR, S.PROGRAM_STATUS_SUCCESS)
+            self._render_log_toggle()
+
+    def _render_log_toggle(self) -> None:
+        label = S.PROGRAM_LOG_HIDE if self._log_open else S.PROGRAM_LOG_SHOW
+        width = imgui.calc_text_size(label).x + imgui.get_style().frame_padding.x * 2
+        avail = imgui.get_content_region_avail().x
+        if avail > width:
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + avail - width)
+        if imgui.small_button(label):
+            self._log_open = not self._log_open
+
+    def _render_log_box(self) -> None:
         imgui.begin_child(
             "##program_log",
             imgui.ImVec2(imgui.get_content_region_avail().x, _LOG_HEIGHT),
@@ -265,27 +313,6 @@ class ProgramSection:
             imgui.set_scroll_here_y(1.0)
             self._scroll_log_to_bottom = False
         imgui.end_child()
-
-        if self._status == "success":
-            imgui.text_colored(_SUCCESS_COLOR, S.PROGRAM_STATUS_SUCCESS)
-        elif self._status == "error":
-            imgui.push_style_color(imgui.Col_.child_bg, (0.3, 0.12, 0.12, 1.0))
-            imgui.begin_child(
-                "##program_error",
-                imgui.ImVec2(imgui.get_content_region_avail().x, 0),
-                imgui.ChildFlags_.borders | imgui.ChildFlags_.auto_resize_y,
-            )
-            _wrapped_text_colored(
-                _ERROR_COLOR, S.PROGRAM_STATUS_ERROR.format(error=self._error_message)
-            )
-            imgui.end_child()
-            imgui.pop_style_color()
-
-        if self._status != "running":
-            imgui.spacing()
-            if imgui.button(S.BTN_PROGRAM_ANOTHER):
-                self._status = "idle"
-                self._step = "find_device"
 
 
 def _parse_serial(serial_hex: str) -> bytes | None:
