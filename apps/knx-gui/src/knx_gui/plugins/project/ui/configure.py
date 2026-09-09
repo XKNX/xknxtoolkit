@@ -175,7 +175,9 @@ class ConfigurePanel:
         if self._program_section is not None and imgui.collapsing_header(
             S.BTN_PROGRAM_DEVICE, imgui.TreeNodeFlags_.default_open
         ):
-            self._program_section.render(device, self._serial_buffer)
+            self._serial_buffer = self._program_section.render(
+                device, self._serial_buffer
+            )
 
         if self._restart_section is not None and imgui.collapsing_header(
             S.CONFIGURE_RESET_SECTION

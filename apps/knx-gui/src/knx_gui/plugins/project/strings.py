@@ -72,8 +72,8 @@ class ProjectStrings(BaseStrings):
     @property
     def PROGRAM_TRIGGER_HELP_SERIAL(self) -> str:
         return _(
-            "Programs the device identified by the serial number above - no "
-            "button press needed, and safe with other devices on the bus."
+            "Programs the device with this serial number - no button press "
+            "needed, and safe with other devices on the bus."
         )
 
     @property
@@ -82,7 +82,7 @@ class ProjectStrings(BaseStrings):
 
     @property
     def PROGRAM_SERIAL_MISSING(self) -> str:
-        return _("Enter a serial number above")
+        return _("Enter a serial number")
 
     @property
     def BTN_NEXT(self) -> str:

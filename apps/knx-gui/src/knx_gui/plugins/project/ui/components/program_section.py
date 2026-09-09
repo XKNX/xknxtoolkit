@@ -80,19 +80,22 @@ class ProgramSection:
         self._log: list[str] = []
         self._scroll_log_to_bottom = False
 
-    def render(self, device: Device, serial_hex: str) -> None:
+    def render(self, device: Device, serial_hex: str) -> str:
+        """Returns `serial_hex`, or the value it was just edited to - Step 1 also
+        offers an inline field for it, alongside the one under Individual Address
+        in the panel's header; both edit the same buffer, owned by the caller."""
         if self._status != "idle":
             self._render_status(device)
-            return
+            return serial_hex
 
         if self._step == "find_device":
-            self._render_find_device(serial_hex)
-        else:
-            self._render_mode(device, serial_hex)
+            return self._render_find_device(serial_hex)
+        self._render_mode(device, serial_hex)
+        return serial_hex
 
     # --- Step 1: Find Device -----------------------------------------------
 
-    def _render_find_device(self, serial_hex: str) -> None:
+    def _render_find_device(self, serial_hex: str) -> str:
         imgui.text(S.PROGRAM_STEP_FIND_DEVICE)
         imgui.indent()
         if imgui.radio_button(S.PROGRAM_TRIGGER_BUTTON, not self._trigger_serial):
@@ -100,6 +103,12 @@ class ProgramSection:
         imgui.same_line()
         if imgui.radio_button(S.PROGRAM_TRIGGER_SERIAL, self._trigger_serial):
             self._trigger_serial = True
+
+        if self._trigger_serial:
+            imgui.set_next_item_width(130)
+            _, serial_hex = imgui.input_text(
+                "##program_serial", serial_hex, imgui.InputTextFlags_.chars_hexadecimal
+            )
 
         help_text = (
             S.PROGRAM_TRIGGER_HELP_SERIAL
@@ -119,6 +128,8 @@ class ProgramSection:
         if imgui.button(S.BTN_NEXT, imgui.ImVec2(100, 0)):
             self._step = "mode"
         imgui.end_disabled()
+        imgui.unindent()
+        return serial_hex
         imgui.unindent()
 
     # --- Step 2: Programming Mode -------------------------------------------
