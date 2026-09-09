@@ -26,6 +26,10 @@ from knx_gui.plugins.project.ui.components.parameters_section import (
     count_parameters,
     render_ui_tree,
 )
+from knx_gui.plugins.project.ui.components.program_section import (
+    ProgramRequest,
+    ProgramSection,
+)
 from knx_gui.plugins.project.ui.components.restart_section import (
     RestartRequest,
     RestartSection,
@@ -35,6 +39,8 @@ __all__ = [
     "ComFlagsTable",
     "LoadProceduresSection",
     "MetadataSection",
+    "ProgramRequest",
+    "ProgramSection",
     "RestartRequest",
     "RestartSection",
     "count_parameters",

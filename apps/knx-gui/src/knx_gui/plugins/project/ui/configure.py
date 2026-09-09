@@ -1,5 +1,6 @@
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from concurrent.futures import Future
+from typing import TYPE_CHECKING, Any
 
 from imgui_bundle import imgui
 
@@ -9,6 +10,8 @@ from knx_gui.plugins.project.ui.components import (
     ComFlagsTable,
     LoadProceduresSection,
     MetadataSection,
+    ProgramRequest,
+    ProgramSection,
     RestartRequest,
     RestartSection,
     count_parameters,
@@ -20,7 +23,7 @@ from xknxmono.project.core.addressing import format_ia, parse_ia
 if TYPE_CHECKING:
     from xknxmono.catalog import ManufacturerInfo
 
-__all__ = ["ConfigurePanel", "RestartRequest"]
+__all__ = ["ConfigurePanel", "ProgramRequest", "RestartRequest"]
 
 # KNX v01.03.02 - Data Link Layer General - §1.4.2, Figure 2: Individual
 # Address is a 16 bit value, Octet 0 = 4 bit Area + 4 bit Line, Octet 1 =
@@ -40,10 +43,9 @@ class ConfigurePanel:
         on_individual_address_change: Callable[[Device, str], None],
         on_name_change: Callable[[Device, str], None],
         set_flag: Callable[[Device, str, str, bool], None],
-        # object, not None: the return value is discarded (fire-and-forget) here, but
-        # the real implementation (connection.service.assign_individual_address_for_device)
-        # returns a Future[Any] | None.
-        on_program_device: Callable[[Device], object] | None = None,
+        on_program_device: (
+            Callable[[Device, ProgramRequest], "Future[Any] | None"] | None
+        ) = None,
         open_memory_preview: Callable[[Device], None] | None = None,
         on_restart_device: Callable[[Device, RestartRequest], None] | None = None,
         get_manufacturer: Callable[[str], "ManufacturerInfo | None"] = lambda _: None,
@@ -54,10 +56,12 @@ class ConfigurePanel:
         self._on_param_change = on_param_change
         self._on_individual_address_change = on_individual_address_change
         self._on_name_change = on_name_change
-        self._on_program_device = on_program_device
         self._open_memory_preview = open_memory_preview
         self._metadata_section = MetadataSection(get_manufacturer)
         self._com_flags_table = ComFlagsTable(set_flag)
+        self._program_section = (
+            ProgramSection(on_program_device) if on_program_device is not None else None
+        )
         self._restart_section = (
             RestartSection(on_restart_device) if on_restart_device is not None else None
         )
@@ -66,6 +70,7 @@ class ConfigurePanel:
         self._ia_area: str = ""
         self._ia_line: str = ""
         self._ia_device: str = ""
+        self._serial_buffer: str = ""
         self._buffer_device_id: int | None = None
 
     def render(self) -> None:
@@ -100,6 +105,9 @@ class ConfigurePanel:
         if self._buffer_device_id != device.node_id:
             self._name_buffer = device.name
             self._sync_address_buffers(device.individual_address)
+            # Not loaded from anywhere: the project model has no field for this yet,
+            # so it's a per-session scratch pad, not a persisted device property.
+            self._serial_buffer = ""
             self._buffer_device_id = device.node_id
 
         imgui.align_text_to_frame_padding()
@@ -136,21 +144,25 @@ class ConfigurePanel:
         if area.deactivated or line.deactivated or dev.deactivated:
             self._commit_address(device)
         # Re-sync if the address changed from outside this widget (undo,
-        # drag-to-a-new-line, a successful "Program Device") while none of
-        # the three segments is being edited right now.
+        # drag-to-a-new-line, a successful Individual Address programming) while
+        # none of the three segments is being edited right now.
         elif (
             not (area.active or line.active or dev.active)
             and self._assembled_address() != device.individual_address
         ):
             self._sync_address_buffers(device.individual_address)
 
-        if self._on_program_device is not None:
-            enabled = bool(device.individual_address)
-            imgui.begin_disabled(not enabled)
-            if imgui.button(S.BTN_PROGRAM_DEVICE):
-                self._on_program_device(device)
-            imgui.end_disabled()
-            imgui.same_line()
+        # Ephemeral (see the buffer reset above) - only meaningful while the
+        # Program Device section's "Serial Number" trigger is in use.
+        imgui.align_text_to_frame_padding()
+        imgui.text_disabled(S.CONFIGURE_SERIAL_NUMBER)
+        imgui.same_line(120.0)
+        # Fixed, not -1: a serial is always exactly 12 hex chars, no reason to
+        # claim the panel's full width like Name/Individual Address do.
+        imgui.set_next_item_width(130)
+        _, self._serial_buffer = imgui.input_text(
+            "##serial", self._serial_buffer, imgui.InputTextFlags_.chars_hexadecimal
+        )
 
         if self._open_memory_preview is not None and imgui.button(S.BTN_PREVIEW_MEMORY):
             self._open_memory_preview(device)
@@ -159,6 +171,11 @@ class ConfigurePanel:
             S.CONFIGURE_METADATA, imgui.TreeNodeFlags_.default_open
         ):
             self._metadata_section.render(device)
+
+        if self._program_section is not None and imgui.collapsing_header(
+            S.BTN_PROGRAM_DEVICE, imgui.TreeNodeFlags_.default_open
+        ):
+            self._program_section.render(device, self._serial_buffer)
 
         if self._restart_section is not None and imgui.collapsing_header(
             S.CONFIGURE_RESET_SECTION
