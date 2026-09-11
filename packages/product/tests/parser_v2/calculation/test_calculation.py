@@ -5,6 +5,7 @@ another, as declared in a KNX product's ParameterCalculation blocks.
 
 from __future__ import annotations
 
+import dukpy
 import pytest
 
 from xknxmono.models.intermediate import (
@@ -16,6 +17,7 @@ from xknxmono.models.intermediate import (
 )
 from xknxmono.product.parser_v2.calculation import evaluate_lr, evaluate_rl
 from xknxmono.product.parser_v2.calculation._js import (
+    _read_js_var,  # pyright: ignore[reportPrivateUsage]
     eval_inline,
     eval_named_func,
 )
@@ -197,3 +199,19 @@ def test_evaluate_rl_named_func() -> None:
     )
     result = evaluate_rl(calc, {"pct": "100"}, script=script)
     assert result == {"raw": "200"}
+
+
+# --- _js._read_js_var -------------------------------------------------------
+
+
+def test_read_js_var_undeclared_identifier_returns_none() -> None:
+    interp = dukpy.JSInterpreter()
+    assert _read_js_var(interp, "undeclaredVar") is None
+
+
+def test_eval_inline_output_name_that_is_also_an_input_is_not_redeclared() -> None:
+    # "x" is both an input and an output name, so eval_inline's own-declaration
+    # loop must skip it (it was already declared via the inputs loop) rather than
+    # re-declaring it with `var x;`, which would reset it to undefined.
+    result = eval_inline("x = x + 1;", {"x": "5"}, ["x"])
+    assert result == {"x": "6"}

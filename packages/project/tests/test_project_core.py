@@ -390,6 +390,14 @@ def test_history_and_jump_to(tmp_path: Path):
     assert [e.reverted for e in svc.history(pid)] == [True, True, False]
     assert svc.can_redo(pid)
 
+    # jump forward again, past the point undo left the cursor at
+    latest_event = entries[0].id
+    svc.jump_to(pid, latest_event)
+    assert svc.cursor(pid) == latest_event
+    assert len(svc.group_addresses(pid)) == 1
+    assert [e.reverted for e in svc.history(pid)] == [False, False, False]
+    assert not svc.can_redo(pid)
+
 
 def test_ga_format_parse_round_trip():
     cases = {

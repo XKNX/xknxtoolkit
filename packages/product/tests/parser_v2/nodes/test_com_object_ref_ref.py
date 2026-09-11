@@ -93,6 +93,22 @@ class TestComObjectRefRefNodeBasic:
         assert isinstance(co, UiComObject)
         assert co.dpt_codes == ("5.0",)
 
+    def test_dpt_codes_skips_malformed_token(self):
+        node = ComObjectRefRefNode(
+            _ELEM, _cor(), _co(datapoint_type=["NotADpt", "DPT-1"])
+        )
+        co = node.eval(EvalContext(GlobalState()))[0]
+        assert isinstance(co, UiComObject)
+        assert co.dpt_codes == ("1.0",)
+
+    def test_dpt_codes_skips_non_numeric_major(self):
+        node = ComObjectRefRefNode(
+            _ELEM, _cor(), _co(datapoint_type=["DPT-x", "DPT-1"])
+        )
+        co = node.eval(EvalContext(GlobalState()))[0]
+        assert isinstance(co, UiComObject)
+        assert co.dpt_codes == ("1.0",)
+
 
 class TestFlags:
     def test_flags_from_base(self):

@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import pytest
 
-from xknxmono.models import VersionError, detect_version, load_xml, serialize_xml
+from xknxmono.models import (
+    VersionError,
+    detect_version,
+    get_model_class,
+    load_xml,
+    serialize_xml,
+)
 from xknxmono.models.files import v23
 
 MINIMAL_KNX_XML = b"""\
@@ -20,6 +26,11 @@ def test_detect_version():
 def test_detect_version_error():
     with pytest.raises(VersionError):
         detect_version(b"<Invalid/>")
+
+
+def test_get_model_class_unsupported_version_raises():
+    with pytest.raises(VersionError, match="Unsupported KNX version"):
+        get_model_class("99")
 
 
 def test_load_xml_auto_version():
