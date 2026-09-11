@@ -5,6 +5,16 @@ on:
     branches: [master]
   pull_request:
 
+# Read natively by the `coverage` CLI - every `coverage run`/`combine`/
+# `report`/`xml` invocation below picks up [tool.coverage.run]/[report] from
+# the root pyproject.toml without needing a repeated --rcfile flag. Needed at
+# all because coverage.py's own config discovery, unlike pytest's, doesn't
+# walk up parent directories - from apps/knx-gui it would otherwise silently
+# pick up that directory's own (coverage-config-less) pyproject.toml instead
+# - confirmed empirically.
+env:
+  COVERAGE_RCFILE: ${{ github.workspace }}/pyproject.toml
+
 jobs:
   lint:
     name: Lint (ruff)
@@ -38,26 +48,18 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --all-packages
-      # Both `coverage run` calls below name the root pyproject.toml explicitly
-      # via --rcfile: coverage.py's config discovery only looks in the current
-      # directory, so the apps/knx-gui one (cwd for the second call) would
-      # otherwise pick up that directory's own (coverage-config-less)
-      # pyproject.toml instead and silently drop [tool.coverage.run]'s
-      # parallel = true - confirmed empirically. --source is an absolute
-      # ($GITHUB_WORKSPACE-anchored) path in both, and parallel = true gives
-      # each a uniquely-suffixed .coverage.* data file - see the "coverage"
-      # job, which combines these with e2e-tests' into one report. Plain
+      # --source is an absolute ($GITHUB_WORKSPACE-anchored) path in both
+      # calls below, and [tool.coverage.run] parallel = true gives each a
+      # uniquely-suffixed .coverage.* data file - see the "coverage" job,
+      # which combines these with e2e-tests' into one report. Plain
       # `pytest --cov=...` was tried first and does *not* honor parallel the
-      # same way `coverage run` does - also confirmed empirically.
-      - run: |
-          uv run coverage run --rcfile="$GITHUB_WORKSPACE/pyproject.toml" \
-            --source="$GITHUB_WORKSPACE/packages" -m pytest
+      # same way `coverage run` does - confirmed empirically.
+      - run: uv run coverage run --source="$GITHUB_WORKSPACE/packages" -m pytest
       - name: Test apps/knx-gui
         working-directory: apps/knx-gui
         # Excludes src/knx_gui/testing: those are the e2e tests, run separately below.
         run: |
-          uv run coverage run --rcfile="$GITHUB_WORKSPACE/pyproject.toml" \
-            --source="$GITHUB_WORKSPACE/apps/knx-gui/src/knx_gui" \
+          uv run coverage run --source="$GITHUB_WORKSPACE/apps/knx-gui/src/knx_gui" \
             -m pytest src/knx_gui --ignore=src/knx_gui/testing -v
       # `coverage combine <dir>` (in the "coverage" job) does not recurse into
       # subdirectories - confirmed empirically - so both .coverage.* sets are
@@ -95,9 +97,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0
-          xvfb-run -a uv run coverage run --rcfile="$GITHUB_WORKSPACE/pyproject.toml" \
-            --source="$GITHUB_WORKSPACE/apps/knx-gui/src/knx_gui" \
-            -m pytest src/knx_gui/testing -v
+          xvfb-run -a uv run coverage run \
+            --source="$GITHUB_WORKSPACE/apps/knx-gui/src/knx_gui" -m pytest src/knx_gui/testing -v
       # See unit-tests' "Collect coverage data" step for why this directory
       # is $GITHUB_WORKSPACE-anchored rather than apps/knx-gui-relative.
       - name: Collect coverage data
@@ -122,7 +123,12 @@ jobs:
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           enable-cache: true
-      - run: uv sync --all-packages
+      # This job only ever reads already-collected coverage data and the
+      # source files checkout already provides - it never imports packages/
+      # or apps/knx-gui, so --no-install-workspace skips installing any of
+      # them (imgui-bundle, sqlalchemy, ... included) - confirmed empirically
+      # that `coverage combine`/`report`/`xml` work fine without them.
+      - run: uv sync --all-packages --no-install-workspace
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: coverage-data-*
@@ -132,11 +138,12 @@ jobs:
       # data file already agrees on file paths, so this combines packages/
       # and apps/knx-gui/ coverage from all three test runs into one dataset
       # - no [tool.coverage.paths] remapping needed.
-      - run: uv run coverage combine --rcfile=pyproject.toml coverage-data
-      - run: uv run coverage report --rcfile=pyproject.toml
-      - run: uv run coverage xml --rcfile=pyproject.toml
-      - name: Add to job summary
-        run: uv run coverage report --rcfile=pyproject.toml --format=markdown >> "$GITHUB_STEP_SUMMARY"
+      - run: uv run coverage combine coverage-data
+      - run: uv run coverage xml
+      # Markdown to both the log and the job summary in one pass, rather than
+      # a separate plain-text `coverage report` re-computing the same thing.
+      - name: Report and add to job summary
+        run: uv run coverage report --format=markdown | tee "$GITHUB_STEP_SUMMARY"
       # Decrease gate (codecov/project, codecov/patch) and the PR diff comment
       # are configured in codecov.yml and posted by Codecov itself once it
       # receives this upload - nothing else to wire up on this side. The

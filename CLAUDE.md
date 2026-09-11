@@ -23,17 +23,23 @@ cd packages/models/src && uvx --from "xsdata[cli]" xsdata generate --config ../.
 
 CI's "coverage" job combines packages/, apps/knx-gui unit-test and apps/knx-gui
 e2e-test coverage into one report (see `.github/workflows/ci.yml`). To reproduce
-locally, `--rcfile` must be given explicitly for any command run from inside
-`apps/knx-gui` — coverage.py's config discovery doesn't walk up parent
-directories the way pytest's does, so it would otherwise silently pick up that
-directory's own (coverage-config-less) `pyproject.toml` instead of the root one:
+locally, set `COVERAGE_RCFILE` once (coverage.py reads it natively) rather than
+passing `--rcfile` to every command — its config discovery doesn't walk up
+parent directories the way pytest's does, so a command run from inside
+`apps/knx-gui` would otherwise silently pick up that directory's own
+(coverage-config-less) `pyproject.toml` instead of the root one. Likewise
+`--source` is an absolute, repo-root-anchored path in every invocation, same as
+CI, so the data collected from `apps/knx-gui` (a different cwd) can still be
+combined without `[tool.coverage.paths]` remapping:
 
 ```bash
-uv run coverage run --rcfile=pyproject.toml --source=packages -m pytest
+export ROOT="$(pwd)"
+export COVERAGE_RCFILE="$ROOT/pyproject.toml"
+uv run coverage run --source="$ROOT/packages" -m pytest
 cd apps/knx-gui
-uv run coverage run --rcfile=../../pyproject.toml --source=src/knx_gui -m pytest src/knx_gui --ignore=src/knx_gui/testing
-uv run coverage run --rcfile=../../pyproject.toml --source=src/knx_gui -m pytest src/knx_gui/testing
-cd ../..
+uv run coverage run --source="$ROOT/apps/knx-gui/src/knx_gui" -m pytest src/knx_gui --ignore=src/knx_gui/testing
+uv run coverage run --source="$ROOT/apps/knx-gui/src/knx_gui" -m pytest src/knx_gui/testing
+cd "$ROOT"
 uv run coverage combine . apps/knx-gui   # merges the three parallel .coverage.* data files -
                                           # combine only looks in the given directories, not
                                           # recursively, hence listing both explicitly
