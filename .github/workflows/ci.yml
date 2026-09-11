@@ -134,14 +134,9 @@ jobs:
       # - no [tool.coverage.paths] remapping needed.
       - run: uv run coverage combine --rcfile=pyproject.toml coverage-data
       - run: uv run coverage report --rcfile=pyproject.toml
-      - run: uv run coverage html --rcfile=pyproject.toml
       - run: uv run coverage xml --rcfile=pyproject.toml
       - name: Add to job summary
         run: uv run coverage report --rcfile=pyproject.toml --format=markdown >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: coverage-html-report
-          path: htmlcov/
       # Decrease gate (codecov/project, codecov/patch) and the PR diff comment
       # are configured in codecov.yml and posted by Codecov itself once it
       # receives this upload - nothing else to wire up on this side. The
