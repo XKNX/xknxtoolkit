@@ -1,4 +1,8 @@
-from knx_gui.plugins.project.ui.configure import ConfigurePanel, RestartRequest
+from knx_gui.plugins.project.ui.configure import (
+    ConfigurePanel,
+    ProgramRequest,
+    RestartRequest,
+)
 from knx_gui.plugins.project.ui.devices import DevicesPanel
 from knx_gui.plugins.project.ui.history import HistoryEntry, HistoryPanel
 
@@ -7,5 +11,6 @@ __all__ = [
     "DevicesPanel",
     "HistoryEntry",
     "HistoryPanel",
+    "ProgramRequest",
     "RestartRequest",
 ]

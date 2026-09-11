@@ -42,6 +42,120 @@ class ProjectStrings(BaseStrings):
         return _("Program Device")
 
     @property
+    def PROGRAM_STEP_FIND_DEVICE(self) -> str:
+        return _("1. Find Device")
+
+    @property
+    def PROGRAM_STEP_MODE(self) -> str:
+        return _("2. Programming Mode")
+
+    @property
+    def PROGRAM_TRIGGER_HEADER(self) -> str:
+        return _("Trigger")
+
+    @property
+    def PROGRAM_TRIGGER_BUTTON(self) -> str:
+        return _("Programming Button")
+
+    @property
+    def PROGRAM_TRIGGER_SERIAL(self) -> str:
+        return _("Serial Number")
+
+    @property
+    def PROGRAM_TRIGGER_HELP_BUTTON(self) -> str:
+        return _(
+            "Press the programming button on the device, then click Program - "
+            "its LED lights up while it's in programming mode. Only one device "
+            "on the bus should be in programming mode at a time."
+        )
+
+    @property
+    def PROGRAM_TRIGGER_HELP_SERIAL(self) -> str:
+        return _(
+            "Programs the device with this serial number - no button press "
+            "needed, and safe with other devices on the bus."
+        )
+
+    @property
+    def PROGRAM_SERIAL_INVALID(self) -> str:
+        return _("Serial number must be 12 hex characters (6 bytes)")
+
+    @property
+    def PROGRAM_SERIAL_MISSING(self) -> str:
+        return _("Enter a serial number")
+
+    @property
+    def BTN_NEXT(self) -> str:
+        return _("Next")
+
+    @property
+    def BTN_BACK(self) -> str:
+        return _("Back")
+
+    @property
+    def PROGRAM_SCOPE_HEADER(self) -> str:
+        return _("Scope")
+
+    @property
+    def PROGRAM_SCOPE_FULL(self) -> str:
+        return _("Full")
+
+    @property
+    def PROGRAM_SCOPE_PARTIAL(self) -> str:
+        return _("Partial")
+
+    @property
+    def PROGRAM_SCOPE_GROUP_ADDRESSES(self) -> str:
+        return _("Group Addresses")
+
+    @property
+    def PROGRAM_SCOPE_PARAMETERS(self) -> str:
+        return _("Parameters")
+
+    @property
+    def PROGRAM_SCOPE_NONE_SELECTED(self) -> str:
+        return _("Select at least one part to program")
+
+    @property
+    def PROGRAM_NOT_YET_SUPPORTED(self) -> str:
+        return _(
+            "Group Addresses and Parameters download aren't implemented yet - "
+            "only Individual Address programming actually runs on the bus."
+        )
+
+    @property
+    def BTN_PROGRAM(self) -> str:
+        return _("Program")
+
+    @property
+    def BTN_PROGRAM_ANOTHER(self) -> str:
+        return _("Start Over")
+
+    @property
+    def PROGRAM_CHECKLIST_ADDRESS_BUTTON(self) -> str:
+        return _("Waiting for a device in programming mode")
+
+    @property
+    def PROGRAM_CHECKLIST_ADDRESS_SERIAL(self) -> str:
+        return _("Addressing device by serial number")
+
+    @property
+    def PROGRAM_CHECKLIST_WRITE_IA(self) -> str:
+        return _("Write Individual Address {address}")
+
+    @property
+    def PROGRAM_CHECKLIST_GA_PARAMS(self) -> str:
+        return _("Group Addresses / Parameters - not implemented yet")
+
+    @property
+    def PROGRAM_LOG_NOT_CONNECTED(self) -> str:
+        return _("Not connected - nothing was sent")
+
+    @property
+    def PROGRAM_STATUS_ERROR(self) -> str:
+        return _("Failed: {error}")
+
+    @property
     def CONFIGURE_METADATA(self) -> str:
         return _("Metadata")
 

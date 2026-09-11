@@ -1,5 +1,6 @@
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from concurrent.futures import Future
+from typing import TYPE_CHECKING, Any
 
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.project.strings import S
@@ -7,6 +8,7 @@ from knx_gui.plugins.project.ui import (
     ConfigurePanel,
     DevicesPanel,
     HistoryPanel,
+    ProgramRequest,
     RestartRequest,
 )
 from knx_gui.plugins.project.ui.devices import Area, Line
@@ -26,7 +28,8 @@ class ProjectPlugin:
     ) -> None:
         self._api = api
         self._get_selected_node_ids = get_selected_node_ids
-        api.project.set_logger(Logger(api.log, "project"))
+        self._log = Logger(api.log, "project")
+        api.project.set_logger(self._log)
 
         self._memory_preview = MemoryPreviewWindow(
             get_devices=lambda: api.project.devices
@@ -54,7 +57,7 @@ class ProjectPlugin:
             on_individual_address_change=self._handle_individual_address_change,
             on_name_change=self._handle_name_change,
             set_flag=self._handle_flag_change,
-            on_program_device=api.connection.assign_individual_address_for_device,
+            on_program_device=self._handle_program_device,
             open_memory_preview=self._memory_preview.open,
             on_restart_device=self._handle_restart_device,
             get_manufacturer=api.catalog.get_manufacturer,
@@ -170,6 +173,37 @@ class ProjectPlugin:
         if old_name != new_name:
             device.name = new_name
             self._api.project.set_device_name(device.node_id, old_name, new_name)
+
+    def _handle_program_device(
+        self, device: "Device", request: ProgramRequest
+    ) -> "Future[Any] | None":
+        # Group Addresses / Parameters download isn't implemented anywhere yet -
+        # no ConnectionService method exists to drive it. Surfaced here rather
+        # than left silent, since ProgramSection lets a user select it.
+        if request.program_group_addresses or request.program_parameters:
+            self._log.warning(
+                "Group Addresses / Parameters download requested but not "
+                "implemented yet - only Individual Address was programmed",
+                device=device.name,
+                group_addresses=request.program_group_addresses,
+                parameters=request.program_parameters,
+            )
+
+        if not request.program_individual_address:
+            # Nothing left to actually do - a real (already-resolved) Future
+            # rather than None, so ProgramSection reports success instead of
+            # mistaking "nothing requested" for "not connected" (None is what
+            # assign_individual_address*() returns specifically for that).
+            done: Future[Any] = Future()
+            done.set_result(None)
+            return done
+
+        if request.trigger == "serial":
+            assert request.serial is not None  # ProgramSection validates this
+            return self._api.connection.assign_individual_address_by_serial(
+                request.serial, device.individual_address
+            )
+        return self._api.connection.assign_individual_address_for_device(device)
 
     def _handle_restart_device(self, device: "Device", request: RestartRequest) -> None:
         self._api.connection.restart_device(
