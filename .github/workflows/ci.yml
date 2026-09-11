@@ -135,12 +135,25 @@ jobs:
       - run: uv run coverage combine --rcfile=pyproject.toml coverage-data
       - run: uv run coverage report --rcfile=pyproject.toml
       - run: uv run coverage html --rcfile=pyproject.toml
+      - run: uv run coverage xml --rcfile=pyproject.toml
       - name: Add to job summary
         run: uv run coverage report --rcfile=pyproject.toml --format=markdown >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-html-report
           path: htmlcov/
+      # Decrease gate (codecov/project, codecov/patch) and the PR diff comment
+      # are configured in codecov.yml and posted by Codecov itself once it
+      # receives this upload - nothing else to wire up on this side. Needs the
+      # Codecov GitHub App installed on the repo (github.com/apps/codecov) -
+      # not something a workflow run can do - so this step is harmless but a
+      # no-op until that's done. fail_ci_if_error is deliberately false: an
+      # upload problem on Codecov's end (or the App not being installed yet)
+      # shouldn't turn every PR's CI red over a reporting step.
+      - uses: codecov/codecov-action@a99c28d3f0da835de33ff2feb2e15691c7b9641f # v7
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
 
   build:
     name: Build packages

@@ -1,5 +1,7 @@
 # XKNX Toolkit
 
+[![codecov](https://codecov.io/gh/XKNX/xknxtoolkit/branch/master/graph/badge.svg)](https://codecov.io/gh/XKNX/xknxtoolkit)
+
 > [!WARNING]
 > **Alpha, experimental software.** XKNX Toolkit is not intended for end users and comes with no stability or safety guarantees — expect breaking changes, rough edges, and bugs. It's mostly useful for developers experimenting with the [xknx](https://github.com/XKNX/xknx) library. It cannot program devices, and no support is offered to end users. Contributions are welcome. Large parts of this project were built using LLMs.
 
