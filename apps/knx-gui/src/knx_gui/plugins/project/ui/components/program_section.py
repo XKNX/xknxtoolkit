@@ -1,21 +1,7 @@
-"""The Configure panel's Program Device section: how to address the device for
-programming (via its programming button, or by serial number) and what to program
-(Individual Address / Group Addresses / Parameters, as a Full or Partial download).
-
-KNX v02.01.02 - Management Procedures 03.05.02 distinguishes these as separate
-Network Management procedures: NM_IndividualAddress_Write (§2.3) requires the
-device to be in programming mode (button pressed) and addresses it via broadcast,
-while NM_IndividualAddress_SerialNumber_Write (§2.5) addresses one specific device
-by its serial number without needing programming mode or risking collision with
-other devices on the bus. Both only ever assign the Individual Address - once a
-device has one, everything else (Group Addresses, Parameters/the application
-program) is downloaded point-to-point via its Individual Address, independent of
-which trigger was used to get it there in the first place.
-
-Presented as a small two-step flow rather than one flat form, since "how do I
-find/address the device" and "what do I actually want to program" are genuinely
-different decisions - Find Device only matters for the addressing step above, and
-is irrelevant once the device already has an address you're just reprogramming.
+"""The Configure panel's Program Device section: address the device (via its
+programming button, or by serial number - KNX Management Procedures 03.05.02
+§2.3/§2.5) and choose what to program. Both triggers only ever assign the
+Individual Address; see `ProgramRequest` for Group Addresses/Parameters.
 
 See `knx_gui.plugins.project.ui.components` for why this lives here and not in
 `knx_gui.widgets`.
@@ -37,7 +23,12 @@ _SERIAL_HEX_LENGTH = 12  # 6 bytes, KNX serial number width
 _ERROR_COLOR = imgui.ImVec4(0.85, 0.35, 0.35, 1.0)
 _WARNING_COLOR = imgui.ImVec4(0.9, 0.5, 0.3, 1.0)
 _SUCCESS_COLOR = imgui.ImVec4(0.45, 0.75, 0.45, 1.0)
+_ERROR_BG_COLOR = imgui.ImVec4(0.3, 0.12, 0.12, 1.0)
+_CARD_SELECTED_COLOR = imgui.ImVec4(0.18, 0.45, 0.85, 1.0)
+_CARD_SELECTED_HOVERED_COLOR = imgui.ImVec4(0.22, 0.5, 0.9, 1.0)
+_CARD_SELECTED_ACTIVE_COLOR = imgui.ImVec4(0.15, 0.4, 0.8, 1.0)
 _CHECKLIST_MARK_COLUMN = 20.0
+_ACTION_BUTTON_SIZE = imgui.ImVec2(100, 0)
 
 _Step = Literal["find_device", "mode"]
 _Status = Literal["idle", "running", "success", "error"]
@@ -46,15 +37,9 @@ _ItemStatus = Literal["done", "current", "failed", "skipped"]
 
 @dataclass(frozen=True)
 class ProgramRequest:
-    """One programming request. `serial` is only meaningful (and only ever set)
-    when `trigger == "serial"`.
-
-    `program_group_addresses` and `program_parameters` describe the requested
-    scope, same as `program_individual_address` - but see `ProgramSection`'s own
-    docstring: nothing downloads either of those yet, only Individual Address
-    actually runs on the bus. They're real fields (not dropped) so a caller can
-    already log/surface "this would have also downloaded X" ahead of that landing.
-    """
+    """One programming request. `serial` is only set when `trigger == "serial"`.
+    `program_group_addresses`/`program_parameters` are carried through even
+    though nothing downloads them yet, so a caller can log/surface that gap."""
 
     trigger: str  # "button" | "serial"
     serial: bytes | None
@@ -99,18 +84,13 @@ class ProgramSection:
         imgui.text(S.PROGRAM_STEP_FIND_DEVICE)
         imgui.indent()
 
-        # Two big tappable cards rather than radio buttons - this is the one
-        # choice in the whole flow that's genuinely about the physical device
-        # in front of you, not just a setting, so it gets more visual weight.
-        # Buttons, not Selectables: a Selectable draws no visible boundary at
-        # all when unselected (confirmed via the harness) - just floating text,
-        # not a card. A Button always has a filled background, selected or not.
+        # Buttons, not Selectables - a Selectable has no visible boundary when
+        # unselected (confirmed via the harness).
         card_height = 40.0
         spacing = imgui.get_style().item_spacing.x
         avail = imgui.get_content_region_avail().x
-        # 85px still fits ~9-10 hex chars before it scrolls internally while
-        # typing - narrower than that starts crowding "Programming Button"
-        # (122px of text alone) out of its own card.
+        # 85px fits ~10 hex chars without crowding "Programming Button" out of
+        # its own card.
         field_width = 85.0 if self._trigger_serial else 0.0
         gaps = spacing * (3 if self._trigger_serial else 1)
         card_size = imgui.ImVec2((avail - gaps - field_width) / 2, card_height)
@@ -147,7 +127,7 @@ class ProgramSection:
 
         imgui.spacing()
         imgui.begin_disabled(not can_advance)
-        if imgui.button(S.BTN_NEXT, imgui.ImVec2(100, 0)):
+        if imgui.button(S.BTN_NEXT, _ACTION_BUTTON_SIZE):
             self._step = "mode"
         imgui.end_disabled()
         imgui.unindent()
@@ -193,11 +173,11 @@ class ProgramSection:
             imgui.text_colored(_WARNING_COLOR, S.PROGRAM_SCOPE_NONE_SELECTED)
 
         imgui.spacing()
-        if imgui.button(S.BTN_BACK, imgui.ImVec2(100, 0)):
+        if imgui.button(S.BTN_BACK, _ACTION_BUTTON_SIZE):
             self._step = "find_device"
         imgui.same_line()
         imgui.begin_disabled(scope_empty)
-        if imgui.button(S.BTN_PROGRAM, imgui.ImVec2(100, 0)):
+        if imgui.button(S.BTN_PROGRAM, _ACTION_BUTTON_SIZE):
             self._start(device, serial_hex)
         imgui.end_disabled()
         imgui.unindent()
@@ -294,15 +274,8 @@ class ProgramSection:
                 self._step = "find_device"
 
     def _render_checklist_item(self, label: str, item_status: _ItemStatus) -> None:
-        """Each line is its own scan-able unit - a mark, then the label wrapped to
-        whatever's left of the row - rather than a scrolling log of timestamped
-        text (option A's original treatment; B's mockup read cleaner for this).
-
-        Marks are plain ASCII, not check/cross Unicode glyphs (confirmed via the
-        harness: hello_imgui's default font has no glyphs for those - renders
-        tofu boxes instead - and nothing else in this app relies on non-ASCII
-        symbol glyphs either).
-        """
+        """ASCII marks, not check/cross glyphs - the default font has no glyphs
+        for those (confirmed via the harness: renders as tofu boxes)."""
         start_x = imgui.get_cursor_pos_x()
         if item_status == "done":
             imgui.text_colored(_SUCCESS_COLOR, "[+]")
@@ -346,9 +319,9 @@ def _wrapped_text_disabled(text: str) -> None:
 
 def _trigger_card(label: str, selected: bool, size: imgui.ImVec2) -> bool:
     if selected:
-        imgui.push_style_color(imgui.Col_.button, (0.18, 0.45, 0.85, 1.0))
-        imgui.push_style_color(imgui.Col_.button_hovered, (0.22, 0.5, 0.9, 1.0))
-        imgui.push_style_color(imgui.Col_.button_active, (0.15, 0.4, 0.8, 1.0))
+        imgui.push_style_color(imgui.Col_.button, _CARD_SELECTED_COLOR)
+        imgui.push_style_color(imgui.Col_.button_hovered, _CARD_SELECTED_HOVERED_COLOR)
+        imgui.push_style_color(imgui.Col_.button_active, _CARD_SELECTED_ACTIVE_COLOR)
     clicked = imgui.button(label, size)
     if selected:
         imgui.pop_style_color(3)
@@ -356,7 +329,7 @@ def _trigger_card(label: str, selected: bool, size: imgui.ImVec2) -> bool:
 
 
 def _wrapped_error_box(text: str) -> None:
-    imgui.push_style_color(imgui.Col_.child_bg, (0.3, 0.12, 0.12, 1.0))
+    imgui.push_style_color(imgui.Col_.child_bg, _ERROR_BG_COLOR)
     imgui.begin_child(
         "##program_error",
         imgui.ImVec2(imgui.get_content_region_avail().x, 0),

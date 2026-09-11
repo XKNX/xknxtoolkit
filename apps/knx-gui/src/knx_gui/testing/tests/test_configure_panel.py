@@ -11,6 +11,7 @@ them explicitly:
 from __future__ import annotations
 
 from collections.abc import Callable
+from concurrent.futures import Future
 from types import SimpleNamespace
 from typing import cast
 
@@ -24,9 +25,12 @@ from imgui_bundle.immapp import testing as imgui_testing
 # so this also satisfies ruff's import ordering - no noqa needed.)
 import knx_gui.main  # noqa: F401 # pyright: ignore[reportUnusedImport]
 from knx_gui.device import Device
+from knx_gui.plugins.project.strings import S
 from knx_gui.plugins.project.ui.components import (
     LoadProceduresSection,
     MetadataSection,
+    ProgramRequest,
+    ProgramSection,
     RestartRequest,
     RestartSection,
     render_ui_tree,
@@ -391,3 +395,181 @@ def test_load_procedures_section_renders_each_procedures_steps() -> None:
         ctx.yield_()
 
     imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+
+def _fake_program_device() -> Device:
+    """`ProgramSection.render()` only reads `device.individual_address` (for the
+    checklist's "Write Individual Address" line) and `device.name` (the status
+    header) - no real Application/ApplicationProgram needed."""
+    return cast(Device, SimpleNamespace(individual_address="1.1.4", name="Test Device"))
+
+
+def _run_program_section(
+    section: ProgramSection,
+    device: Device,
+    test_function: Callable[[_TestContext], None],
+) -> None:
+    """Owns the `serial_hex` buffer across frames the way `ConfigurePanel` does -
+    `render()` returns it back since Step 1 can edit it inline."""
+    serial = ""
+
+    def gui_function() -> None:
+        nonlocal serial
+        imgui.begin("TestPanel")
+        serial = section.render(device, serial)
+        imgui.end()
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+
+def test_program_section_button_trigger_advances_to_mode_step() -> None:
+    """The default trigger (Programming Button) needs no input, so Next must be
+    enabled immediately - regression guard for `can_advance`'s gating logic."""
+    device = _fake_program_device()
+    section = ProgramSection(lambda _device, _request: None)
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.BTN_NEXT)
+        ctx.yield_()
+
+    _run_program_section(section, device, test_function)
+
+    assert section._step == "mode"  # pyright: ignore[reportPrivateUsage]
+
+
+def test_program_section_serial_trigger_blocks_advance_until_valid() -> None:
+    """Next must stay disabled (so clicking it is a no-op) while the Serial Number
+    trigger's field is empty - `_parse_serial` requires exactly 12 hex chars."""
+    device = _fake_program_device()
+    section = ProgramSection(lambda _device, _request: None)
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.PROGRAM_TRIGGER_SERIAL)
+        ctx.yield_()
+        ctx.item_click(S.BTN_NEXT)
+        ctx.yield_()
+
+    _run_program_section(section, device, test_function)
+
+    assert section._step == "find_device"  # pyright: ignore[reportPrivateUsage]
+
+
+def test_program_section_reports_request_and_marks_checklist_done_on_success() -> None:
+    """A full click-through (button trigger, default Full scope) must call
+    `on_program` with the request it displayed, and a successful `Future` must
+    flip the Individual Address checklist entry from "current" to "done"."""
+    device = _fake_program_device()
+    calls: list[ProgramRequest] = []
+    future: Future[None] = Future()
+
+    def on_program(_device: Device, request: ProgramRequest) -> Future[None] | None:
+        calls.append(request)
+        return future
+
+    section = ProgramSection(on_program)
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.BTN_NEXT)
+        ctx.yield_()
+        ctx.item_click(S.BTN_PROGRAM)
+        ctx.yield_()
+
+    _run_program_section(section, device, test_function)
+
+    assert calls == [
+        ProgramRequest(
+            trigger="button",
+            serial=None,
+            program_individual_address=True,
+            program_group_addresses=True,
+            program_parameters=True,
+        )
+    ]
+    assert section._status == "running"  # pyright: ignore[reportPrivateUsage]
+
+    future.set_result(None)
+
+    assert section._status == "success"  # pyright: ignore[reportPrivateUsage]
+    ia_index = section._ia_checklist_index  # pyright: ignore[reportPrivateUsage]
+    assert ia_index is not None
+    _, ia_item_status = section._checklist[ia_index]  # pyright: ignore[reportPrivateUsage]
+    assert ia_item_status == "done"
+
+
+def test_program_section_marks_checklist_failed_on_future_error() -> None:
+    """A `Future` that resolves with an exception must flip the Individual Address
+    checklist entry to "failed" and surface the exception text as the error."""
+    device = _fake_program_device()
+    future: Future[None] = Future()
+    section = ProgramSection(lambda _device, _request: future)
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.BTN_NEXT)
+        ctx.yield_()
+        ctx.item_click(S.BTN_PROGRAM)
+        ctx.yield_()
+
+    _run_program_section(section, device, test_function)
+
+    future.set_exception(TimeoutError("no ack from device"))
+
+    assert section._status == "error"  # pyright: ignore[reportPrivateUsage]
+    assert section._error_message == "no ack from device"  # pyright: ignore[reportPrivateUsage]
+    ia_index = section._ia_checklist_index  # pyright: ignore[reportPrivateUsage]
+    assert ia_index is not None
+    _, ia_item_status = section._checklist[ia_index]  # pyright: ignore[reportPrivateUsage]
+    assert ia_item_status == "failed"
+
+
+def test_program_section_reports_not_connected_when_on_program_returns_none() -> None:
+    """`on_program` returning `None` (the "not connected" contract - see
+    `ConnectionService.assign_individual_address_for_device`) must show an error
+    immediately, with no `Future` to wait on."""
+    device = _fake_program_device()
+    section = ProgramSection(lambda _device, _request: None)
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.BTN_NEXT)
+        ctx.yield_()
+        ctx.item_click(S.BTN_PROGRAM)
+        ctx.yield_()
+
+    _run_program_section(section, device, test_function)
+
+    assert section._status == "error"  # pyright: ignore[reportPrivateUsage]
+    assert section._error_message == S.PROGRAM_LOG_NOT_CONNECTED  # pyright: ignore[reportPrivateUsage]
+
+
+def test_program_section_no_horizontal_overflow() -> None:
+    """Step 1's two-card-plus-inline-serial-field layout must not need horizontal
+    scrolling at the docked panel width."""
+    device = _fake_program_device()
+    section = ProgramSection(lambda _device, _request: None)
+    result: dict[str, float] = {}
+
+    def gui_function() -> None:
+        imgui.set_next_window_size(imgui.ImVec2(*_PANEL_SIZE))
+        imgui.begin("TestPanel")
+        section.render(device, "")
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.yield_()
+        window = ctx.get_window_by_ref("//TestPanel")
+        result["scroll_max_x"] = window.scroll_max.x
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    assert result["scroll_max_x"] == 0.0
