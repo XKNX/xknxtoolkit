@@ -1,0 +1,14 @@
+# See CLAUDE.md's "Coverage" section for the reasoning behind these settings.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 0%
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "diff, flags, files"
+  require_changes: false

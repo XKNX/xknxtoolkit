@@ -26,6 +26,25 @@ dev = [
 testpaths = ["packages"]
 asyncio_mode = "auto"
 
+# See CLAUDE.md's "Coverage" section for how this ties into CI.
+[tool.coverage.run]
+branch = true
+parallel = true
+omit = [
+    "*/files/*",
+    "*/intermediate/*",
+    "*/tests/*",
+    "*/testing/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+skip_covered = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+]
+
 [tool.uv.workspace]
 members = ["packages/*", "apps/*"]
 

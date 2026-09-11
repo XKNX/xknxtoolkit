@@ -25,6 +25,9 @@ venv/
 
 .pytest_cache/
 .coverage
+.coverage.*
+coverage-data/
+coverage.xml
 htmlcov/
 .mypy_cache/
 .ruff_cache/

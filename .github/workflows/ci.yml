@@ -5,6 +5,11 @@ on:
     branches: [master]
   pull_request:
 
+# See CLAUDE.md's "Coverage" section for why this env var (not a repeated
+# --rcfile flag) and the other coverage-specific choices below are needed.
+env:
+  COVERAGE_RCFILE: ${{ github.workspace }}/pyproject.toml
+
 jobs:
   lint:
     name: Lint (ruff)
@@ -38,11 +43,24 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --all-packages
-      - run: uv run pytest
+      - run: uv run coverage run --source="$GITHUB_WORKSPACE/packages" -m pytest
       - name: Test apps/knx-gui
         working-directory: apps/knx-gui
         # Excludes src/knx_gui/testing: those are the e2e tests, run separately below.
-        run: uv run pytest src/knx_gui --ignore=src/knx_gui/testing -v
+        run: |
+          uv run coverage run --source="$GITHUB_WORKSPACE/apps/knx-gui/src/knx_gui" \
+            -m pytest src/knx_gui --ignore=src/knx_gui/testing -v
+      - name: Collect coverage data
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/coverage-data"
+          mv .coverage.* apps/knx-gui/.coverage.* "$GITHUB_WORKSPACE/coverage-data/"
+      - name: Upload coverage data
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: coverage-data-unit-tests
+          path: coverage-data/
+          include-hidden-files: true
+          if-no-files-found: error
 
   e2e-tests:
     name: E2E tests
@@ -61,7 +79,46 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0
-          xvfb-run -a uv run pytest src/knx_gui/testing -v
+          xvfb-run -a uv run coverage run \
+            --source="$GITHUB_WORKSPACE/apps/knx-gui/src/knx_gui" -m pytest src/knx_gui/testing -v
+      - name: Collect coverage data
+        working-directory: apps/knx-gui
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/coverage-data"
+          mv .coverage.* "$GITHUB_WORKSPACE/coverage-data/"
+      - name: Upload coverage data
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: coverage-data-e2e-tests
+          path: coverage-data/
+          include-hidden-files: true
+          if-no-files-found: error
+
+  coverage:
+    name: Coverage report
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+      - run: uv sync --all-packages --no-install-workspace
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: coverage-data-*
+          path: coverage-data
+          merge-multiple: true
+      - run: uv run coverage combine coverage-data
+      - run: uv run coverage xml
+      - name: Report and add to job summary
+        run: uv run coverage report --format=markdown | tee "$GITHUB_STEP_SUMMARY"
+      # Needs a CODECOV_TOKEN secret to actually upload - see CLAUDE.md.
+      - uses: codecov/codecov-action@a99c28d3f0da835de33ff2feb2e15691c7b9641f # v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: false
 
   build:
     name: Build packages
