@@ -26,6 +26,31 @@ dev = [
 testpaths = ["packages"]
 asyncio_mode = "auto"
 
+# CI runs three separate pytest invocations (root packages, apps/knx-gui unit
+# tests, apps/knx-gui e2e tests) from two different working directories, then
+# combines their coverage data into one report - see .github/workflows/ci.yml's
+# "coverage" job. `--cov` is always passed an absolute (`$GITHUB_WORKSPACE`-
+# anchored) path so the same file is recorded identically regardless of which
+# job/cwd measured it, which is what makes `coverage combine` line them up
+# without any [tool.coverage.paths] remapping.
+[tool.coverage.run]
+branch = true
+parallel = true
+omit = [
+    "*/files/*",
+    "*/intermediate/*",
+    "*/tests/*",
+    "*/testing/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+skip_covered = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+]
+
 [tool.uv.workspace]
 members = ["packages/*", "apps/*"]
 

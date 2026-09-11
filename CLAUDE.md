@@ -19,6 +19,27 @@ uv run pyright                      # Type check (strict mode)
 cd packages/models/src && uvx --from "xsdata[cli]" xsdata generate --config ../.xsdata.xml xknxmono/models/schemas/
 ```
 
+### Coverage
+
+CI's "coverage" job combines packages/, apps/knx-gui unit-test and apps/knx-gui
+e2e-test coverage into one report (see `.github/workflows/ci.yml`). To reproduce
+locally, `--rcfile` must be given explicitly for any command run from inside
+`apps/knx-gui` — coverage.py's config discovery doesn't walk up parent
+directories the way pytest's does, so it would otherwise silently pick up that
+directory's own (coverage-config-less) `pyproject.toml` instead of the root one:
+
+```bash
+uv run coverage run --rcfile=pyproject.toml --source=packages -m pytest
+cd apps/knx-gui
+uv run coverage run --rcfile=../../pyproject.toml --source=src/knx_gui -m pytest src/knx_gui --ignore=src/knx_gui/testing
+uv run coverage run --rcfile=../../pyproject.toml --source=src/knx_gui -m pytest src/knx_gui/testing
+cd ../..
+uv run coverage combine . apps/knx-gui   # merges the three parallel .coverage.* data files -
+                                          # combine only looks in the given directories, not
+                                          # recursively, hence listing both explicitly
+uv run coverage report    # or `coverage html` for a browsable report in htmlcov/
+```
+
 All Python commands must use `uv run` — do not activate the venv manually.
 
 ## Architecture
