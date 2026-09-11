@@ -29,6 +29,7 @@ _CARD_SELECTED_HOVERED_COLOR = imgui.ImVec4(0.22, 0.5, 0.9, 1.0)
 _CARD_SELECTED_ACTIVE_COLOR = imgui.ImVec4(0.15, 0.4, 0.8, 1.0)
 _CHECKLIST_MARK_COLUMN = 20.0
 _ACTION_BUTTON_SIZE = imgui.ImVec2(100, 0)
+_SERIAL_FIELD_WIDTH = 85.0
 
 _Step = Literal["find_device", "mode"]
 _Status = Literal["idle", "running", "success", "error"]
@@ -89,28 +90,13 @@ class ProgramSection:
         card_height = 40.0
         spacing = imgui.get_style().item_spacing.x
         avail = imgui.get_content_region_avail().x
-        # 85px fits ~10 hex chars without crowding "Programming Button" out of
-        # its own card.
-        field_width = 85.0 if self._trigger_serial else 0.0
-        gaps = spacing * (3 if self._trigger_serial else 1)
-        card_size = imgui.ImVec2((avail - gaps - field_width) / 2, card_height)
+        card_size = imgui.ImVec2((avail - spacing) / 2, card_height)
 
         if _trigger_card(S.PROGRAM_TRIGGER_BUTTON, not self._trigger_serial, card_size):
             self._trigger_serial = False
         imgui.same_line()
         if _trigger_card(S.PROGRAM_TRIGGER_SERIAL, self._trigger_serial, card_size):
             self._trigger_serial = True
-
-        if self._trigger_serial:
-            imgui.same_line()
-            # Vertically center against the (taller) cards on this same line.
-            imgui.set_cursor_pos_y(
-                imgui.get_cursor_pos_y() + (card_height - imgui.get_frame_height()) / 2
-            )
-            imgui.set_next_item_width(field_width)
-            _, serial_hex = imgui.input_text(
-                "##program_serial", serial_hex, imgui.InputTextFlags_.chars_hexadecimal
-            )
 
         help_text = (
             S.PROGRAM_TRIGGER_HELP_SERIAL
@@ -126,6 +112,16 @@ class ProgramSection:
             imgui.text_colored(_WARNING_COLOR, msg)
 
         imgui.spacing()
+        if self._trigger_serial:
+            imgui.set_next_item_width(_SERIAL_FIELD_WIDTH)
+            _, serial_hex = imgui.input_text(
+                "##program_serial",
+                serial_hex,
+                flags=imgui.InputTextFlags_.chars_hexadecimal
+                | imgui.InputTextFlags_.callback_edit,
+                callback=_limit_serial_length,
+            )
+            imgui.same_line()
         imgui.begin_disabled(not can_advance)
         if imgui.button(S.BTN_NEXT, _ACTION_BUTTON_SIZE):
             self._step = "mode"
@@ -296,6 +292,17 @@ class ProgramSection:
         else:
             imgui.text_unformatted(label)
         imgui.pop_text_wrap_pos()
+
+
+def _limit_serial_length(data: imgui.InputTextCallbackData) -> int:
+    """A focused input_text() keeps its own internal edit buffer and ignores
+    the string passed back in on later frames (see `segmented_input.py`), so
+    the 12-char cap has to be enforced here, live, rather than by truncating
+    the returned value."""
+    text = str(data.buf)[: data.buf_text_len]
+    if len(text) > _SERIAL_HEX_LENGTH:
+        data.delete_chars(_SERIAL_HEX_LENGTH, len(text) - _SERIAL_HEX_LENGTH)
+    return 0
 
 
 def _parse_serial(serial_hex: str) -> bytes | None:

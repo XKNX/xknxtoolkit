@@ -35,6 +35,9 @@ from knx_gui.plugins.project.ui.components import (
     RestartSection,
     render_ui_tree,
 )
+from knx_gui.plugins.project.ui.components.program_section import (
+    _limit_serial_length,  # pyright: ignore[reportPrivateUsage]
+)
 
 # Aliased: pytest's default discovery tries to collect any name starting with "Test"
 # as a test class, which fails noisily for TestContext (it has an __init__).
@@ -408,9 +411,10 @@ def _run_program_section(
     section: ProgramSection,
     device: Device,
     test_function: Callable[[_TestContext], None],
-) -> None:
+) -> str:
     """Owns the `serial_hex` buffer across frames the way `ConfigurePanel` does -
-    `render()` returns it back since Step 1 can edit it inline."""
+    `render()` returns it back since Step 1 can edit it inline. Returns the
+    buffer's final value once the test finishes."""
     serial = ""
 
     def gui_function() -> None:
@@ -420,6 +424,7 @@ def _run_program_section(
         imgui.end()
 
     imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+    return serial
 
 
 def test_program_section_button_trigger_advances_to_mode_step() -> None:
@@ -456,6 +461,83 @@ def test_program_section_serial_trigger_blocks_advance_until_valid() -> None:
     _run_program_section(section, device, test_function)
 
     assert section._step == "find_device"  # pyright: ignore[reportPrivateUsage]
+
+
+def test_program_section_serial_field_caps_at_twelve_hex_chars() -> None:
+    """End-to-end: typing 16 hex characters through the real Step 1 flow
+    (trigger card -> field) must leave `render()` returning only the first
+    12 - confirms `_render_find_device` actually wires its field up to the
+    capping callback, not just that the callback itself works in isolation
+    (see `test_limit_serial_length_callback_caps_the_live_buffer` for that)."""
+    device = _fake_program_device()
+    section = ProgramSection(lambda _device, _request: None)
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.PROGRAM_TRIGGER_SERIAL)
+        ctx.yield_()
+        ctx.item_click("##program_serial")
+        for ch in "00FA1234567890AB":  # 16 hex chars, only 12 fit
+            ctx.key_chars(ch)
+        ctx.yield_()
+
+    serial = _run_program_section(section, device, test_function)
+
+    assert serial == "00FA12345678"
+
+
+def test_limit_serial_length_callback_caps_the_live_buffer() -> None:
+    """`_limit_serial_length` must cap Dear ImGui's *own* edit buffer as the
+    user types, not just the string a caller reads back afterward - a
+    focused `input_text()` keeps its own buffer and ignores whatever value
+    is passed back in on later frames (confirmed via the harness: a naive
+    "trim the string `render()` returns" approach never shrinks what's
+    actually displayed while typing, even though - misleadingly - the value
+    an external caller eventually reads still comes out correctly capped,
+    since that caller's own trim re-applies every frame regardless of what
+    Dear ImGui does internally).
+
+    Exercises the callback through a real `input_text()` rather than
+    `ProgramSection` directly, so the assertion is about the callback's own
+    contract; types one character per frame (not one batched `key_chars`
+    call, which Dear ImGui treats as a single paste-like edit and so never
+    exercises the multi-frame "still focused" case at all).
+    """
+    observed_lengths: list[int] = []
+
+    def spy(data: imgui.InputTextCallbackData) -> int:
+        _limit_serial_length(data)
+        observed_lengths.append(data.buf_text_len)
+        return 0
+
+    value = ""
+
+    def gui_function() -> None:
+        nonlocal value
+        imgui.begin("TestPanel")
+        _, value = imgui.input_text(
+            "##serial",
+            value,
+            flags=imgui.InputTextFlags_.chars_hexadecimal
+            | imgui.InputTextFlags_.callback_edit,
+            callback=spy,
+        )
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click("##serial")
+        for ch in "00FA1234567890AB":  # 16 hex chars, only 12 fit
+            ctx.key_chars(ch)
+        ctx.yield_()
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    assert observed_lengths, "callback never fired - test isn't exercising typing"
+    assert max(observed_lengths) == 12
+    assert value == "00FA12345678"
 
 
 def test_program_section_reports_request_and_marks_checklist_done_on_success() -> None:
