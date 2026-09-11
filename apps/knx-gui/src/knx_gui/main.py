@@ -18,6 +18,7 @@ from knx_gui.plugins.network import NetworkPlugin
 from knx_gui.plugins.node_editor import NodeEditorPlugin
 from knx_gui.plugins.project import ProjectPlugin, ProjectService
 from knx_gui.plugins.proxy import ProxyPlugin
+from knx_gui.plugins.tasks import TaskService, TasksPlugin
 from knx_gui.plugins.virtual import VirtualPlugin
 from knx_gui.strings import S, set_locale
 from xknxmono.product.errors import ArchiveError
@@ -35,6 +36,7 @@ class KnxGuiApp:
         self._project_service = ProjectService(self._catalog_service)
         self._connection_service = ConnectionService()
         self._log_service = LogService()
+        self._task_service = TaskService()
 
         self._plugin_api = PluginAPI(
             api_version=API_VERSION,
@@ -42,6 +44,7 @@ class KnxGuiApp:
             catalog=self._catalog_service,
             connection=self._connection_service,
             log=self._log_service,
+            tasks=self._task_service,
         )
 
         self._catalog_plugin = CatalogPlugin(self._plugin_api)
@@ -54,6 +57,7 @@ class KnxGuiApp:
             self._plugin_api,
             get_selected_node_ids=self._node_editor_plugin.get_selected_node_ids,
         )
+        self._tasks_plugin = TasksPlugin(self._plugin_api)
 
         self._log = Logger(self._log_service, "app")
         self._cat_plugin = CatPlugin(self._plugin_api)
@@ -67,6 +71,7 @@ class KnxGuiApp:
             self._virtual_plugin,
             self._node_editor_plugin,
             self._project_plugin,
+            self._tasks_plugin,
             self._logger_plugin,
         ]
 
@@ -154,19 +159,25 @@ class KnxGuiApp:
 
     def _load_knxprod(self, path: str) -> None:
         self._log.info("loading knxprod", path=path)
+        task_id = self._task_service.add(f"Loading {Path(path).name}")
         try:
             added = self._catalog_service.import_knxprod(Path(path))
             if added:
                 self._log.info("added applications to catalog", count=len(added))
             else:
                 self._log.info("no new applications", path=path)
+            self._task_service.remove(task_id)
         except ArchiveError as e:
             self._log.error("archive error", path=path, error=str(e))
+            self._task_service.update(task_id, status="error", detail=str(e))
         except (OSError, ValueError) as e:
             self._log.error("import error", path=path, error=f"{type(e).__name__}: {e}")
+            self._task_service.update(task_id, status="error", detail=str(e))
 
     def gui_status_bar(self) -> None:
         self._connection_plugin.render_status_indicator()
+        imgui.same_line()
+        self._tasks_plugin.render_status_indicator()
 
     def gui_menu(self) -> None:
         if imgui.begin_menu(S.MENU_FILE):

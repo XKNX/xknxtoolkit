@@ -200,18 +200,27 @@ class ProjectPlugin:
 
         if request.trigger == "serial":
             assert request.serial is not None  # ProgramSection validates this
-            return self._api.connection.assign_individual_address_by_serial(
+            future = self._api.connection.assign_individual_address_by_serial(
                 request.serial, device.individual_address
             )
-        return self._api.connection.assign_individual_address_for_device(device)
+        else:
+            future = self._api.connection.assign_individual_address_for_device(device)
+
+        if future is not None:
+            self._api.tasks.track(
+                f"Programming {device.individual_address} · {device.name}", future
+            )
+        return future
 
     def _handle_restart_device(self, device: "Device", request: RestartRequest) -> None:
-        self._api.connection.restart_device(
+        future = self._api.connection.restart_device(
             device.individual_address,
             master_reset=request.master_reset,
             erase_code=request.erase_code,
             channel_number=request.channel_number,
         )
+        if future is not None:
+            self._api.tasks.track(f"Restarting {device.name}", future)
 
     def _handle_flag_change(
         self, device: "Device", co_id: str, flag_name: str, new_value: bool

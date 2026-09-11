@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from knx_gui.plugins.connection.service import ConnectionService
     from knx_gui.plugins.logger.service import LogService
     from knx_gui.plugins.project.service import ProjectService
+    from knx_gui.plugins.tasks.service import TaskService
 
 API_VERSION = 1
 
@@ -17,3 +18,4 @@ class PluginAPI:
     catalog: "CatalogService"
     connection: "ConnectionService"
     log: "LogService"
+    tasks: "TaskService"
