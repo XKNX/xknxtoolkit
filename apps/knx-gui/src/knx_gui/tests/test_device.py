@@ -23,7 +23,6 @@ from knx_gui.device import (
     generate_rows,
 )
 from knx_gui.dpt import DPT_UNKNOWN
-
 from xknxmono.product import Application
 from xknxmono.product.parser_v2.ui import UiComObject, UiNode, UiParameterBlock, UiTab
 
