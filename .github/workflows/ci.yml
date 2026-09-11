@@ -144,14 +144,20 @@ jobs:
           path: htmlcov/
       # Decrease gate (codecov/project, codecov/patch) and the PR diff comment
       # are configured in codecov.yml and posted by Codecov itself once it
-      # receives this upload - nothing else to wire up on this side. Needs the
-      # Codecov GitHub App installed on the repo (github.com/apps/codecov) -
-      # not something a workflow run can do - so this step is harmless but a
-      # no-op until that's done. fail_ci_if_error is deliberately false: an
-      # upload problem on Codecov's end (or the App not being installed yet)
-      # shouldn't turn every PR's CI red over a reporting step.
+      # receives this upload - nothing else to wire up on this side. The
+      # Codecov GitHub App is already installed org-wide (from xknx/xknx), so
+      # it reaches this repo automatically - confirmed empirically: without a
+      # token, the upload got as far as "Token required because branch is
+      # protected" (Codecov's own per-repo policy - GitHub itself reports no
+      # branch protection on master) rather than failing to find the repo at
+      # all. Needs a CODECOV_TOKEN secret (from codecov.io's repo settings for
+      # xknxtoolkit) added here for uploads to actually go through - not
+      # something a workflow run can do. fail_ci_if_error is deliberately
+      # false: an upload problem on Codecov's end (or the token not being set
+      # yet) shouldn't turn every PR's CI red over a reporting step.
       - uses: codecov/codecov-action@a99c28d3f0da835de33ff2feb2e15691c7b9641f # v7
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           fail_ci_if_error: false
 
