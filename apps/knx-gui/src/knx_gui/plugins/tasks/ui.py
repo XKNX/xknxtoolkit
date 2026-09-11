@@ -1,13 +1,5 @@
-"""Bottom status bar widget for background tasks (`plugins.tasks.service`) -
-a pulsing dot + current task + active/queued/error counts, centered in the
-status bar, click for the full list. No background, border or pill shape -
-matches the plain-text style of the connection indicator beside it rather
-than standing out as its own chip, and reuses that same indicator's pulsing-
-dot animation rather than a spinner. Shows a dim "Idle" dot rather than
-disappearing when there's nothing to show - same reasoning as the connection
-indicator always showing something (Disconnected/Connecting/...) instead of
-going blank; an empty status bar reads as broken, not as "nothing to report".
-"""
+"""Bottom status bar widget for background tasks - see apps/knx-gui/CLAUDE.md's
+"Tasks plugin" section for the design."""
 
 from __future__ import annotations
 
@@ -38,15 +30,14 @@ class TaskStatusWidget:
         errors = [t for t in tasks if t.status == "error"]
 
         if tasks:
-            # tasks() already orders running before queued before error, and
-            # `tasks` is non-empty here, so one of these three is too.
+            # tasks() orders running before queued before error.
             current = running[0] if running else errors[0] if errors else queued[0]
             status: TaskStatus | None = current.status
             label = _truncate(current.label)
             counts: str | None = _counts_text(running, queued, errors)
         else:
             status = None
-            label = "Idle"
+            label = "No active tasks"
             counts = None
 
         content_w = _DOT_SIZE + _ICON_GAP + imgui.calc_text_size(label).x
@@ -57,16 +48,10 @@ class TaskStatusWidget:
                 + _DIVIDER_GAP
                 + imgui.calc_text_size(counts).x
             )
-        # Centered in the whole status bar, not just the space left after the
-        # connection indicator - but never so far left it overlaps it.
         window_w = imgui.get_window_size().x
         centered_x = (window_w - content_w) / 2
         imgui.set_cursor_pos_x(max(centered_x, imgui.get_cursor_pos_x()))
 
-        # No fill, no border, no rounding: a plain, invisible click target -
-        # still registered as a single item in the parent (per hello_imgui/
-        # Dear ImGui), so is_item_clicked() below works on the whole row
-        # without any manual hit-testing.
         imgui.push_style_color(imgui.Col_.child_bg, imgui.ImVec4(0, 0, 0, 0))
         imgui.push_style_var(imgui.StyleVar_.window_padding, imgui.ImVec2(0, 0))
         imgui.begin_child(
@@ -99,9 +84,6 @@ class TaskStatusWidget:
     def _render_popup(
         self, running: list[Task], queued: list[Task], errors: list[Task]
     ) -> None:
-        # No "Active"/"Queued"/"Errors" headings - each row's own dot color
-        # (blue/dim/red, from _dot_for_status()) already says which group it's
-        # in; a blank line is enough to keep the groups visually apart.
         groups = [running, queued, errors]
         first = True
         for group in groups:
@@ -126,11 +108,8 @@ def _render_task_row(task: Task) -> None:
 
 
 def _dot_for_status(status: TaskStatus | None) -> None:
-    """One dot per task status - blue and pulsing while running (same
-    animation as `ConnectionPlugin.render_status_indicator`'s CONNECTED dot,
-    via the shared `render_pulsing_dot`), dim and steady while queued or idle
-    (`None`) - nothing happening yet - red and steady on error (nothing in
-    flight, just needs attention)."""
+    """Blue + pulsing while running, red + steady on error, dim + steady
+    otherwise (queued or `None` for idle)."""
     cursor = imgui.get_cursor_screen_pos()
     text_height = imgui.get_text_line_height()
     center = imgui.ImVec2(cursor.x + _DOT_SIZE / 2, cursor.y + text_height / 2)

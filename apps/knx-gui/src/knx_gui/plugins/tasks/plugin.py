@@ -1,9 +1,6 @@
-"""Lifecycle wrapper for the tasks feature - owns the status bar widget and
-gives `main.py` a `render_status_indicator()` to call alongside
-`ConnectionPlugin`'s, matching how every other plugin is wired in rather than
-`main.py` holding a raw `TaskStatusWidget` itself. No panels: the task list
-only ever shows in the status bar's own popup, never a dockable window.
-"""
+"""Lifecycle wrapper for the tasks feature - see apps/knx-gui/CLAUDE.md's
+"Tasks plugin" section for the design. No panels: the task list only ever
+shows in the status bar's own popup."""
 
 from __future__ import annotations
 
