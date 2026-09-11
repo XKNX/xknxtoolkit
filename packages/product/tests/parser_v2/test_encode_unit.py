@@ -477,14 +477,7 @@ def test_writes_starts_empty() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _encode_value (exercised via encode_to_memory for the Number/Text branches,
-# following the existing convention of only importing the public API - except
-# for ParameterTypeTypeFloat, which has no size_in_bit field of its own, so
-# encode_to_memory/encode_to_properties's `getattr(tc, "size_in_bit", None)`
-# lookup can never resolve one for it and the float branch is unreachable
-# through any public entry point. Confirmed by inspecting the generated
-# dataclass, not assumed. _encode_value is called directly for that branch,
-# as it's the only way to exercise it at all.
+# _encode_value
 # ---------------------------------------------------------------------------
 
 
