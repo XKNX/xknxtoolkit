@@ -8,6 +8,7 @@ from knx_gui.widgets.segmented_input import (
     SegmentResult,
     render_bounded_numeric_segment,
 )
+from knx_gui.widgets.status_dot import render_pulsing_dot
 
 __all__ = [
     "EnumPopup",
@@ -16,4 +17,5 @@ __all__ = [
     "SegmentResult",
     "render_bounded_numeric_segment",
     "render_param_widget",
+    "render_pulsing_dot",
 ]

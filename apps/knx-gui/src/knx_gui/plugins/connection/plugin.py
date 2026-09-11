@@ -1,5 +1,4 @@
 import asyncio
-import math
 import threading
 from collections.abc import Coroutine
 from enum import Enum
@@ -16,6 +15,7 @@ from knx_gui.color import color_u32
 from knx_gui.plugins.base import Logger, PanelDefinition, PluginAPI
 from knx_gui.plugins.connection.interface import ObservableKNXIPInterfaceThreaded
 from knx_gui.plugins.connection.strings import S
+from knx_gui.widgets import render_pulsing_dot
 
 
 class ConnectionState(Enum):
@@ -234,12 +234,7 @@ class ConnectionPlugin:
         center = imgui.ImVec2(cursor.x + 5, cursor.y + text_height / 2)
 
         if self._state == ConnectionState.CONNECTED:
-            pulse = 0.5 + 0.5 * math.sin(imgui.get_time() * 3.0)
-            alpha = 0.4 + 0.6 * pulse
-            draw_list.add_circle_filled(center, 4, color_u32(0.2, 0.8, 0.3, alpha))
-            draw_list.add_circle_filled(
-                center, 4 + pulse * 3, color_u32(0.2, 0.8, 0.3, 0.15 * (1 - pulse))
-            )
+            render_pulsing_dot(imgui.ImVec4(0.2, 0.8, 0.3, 1.0), center=center)
             imgui.dummy(imgui.ImVec2(12, 0))
             imgui.same_line()
             imgui.text(S.STATUS_CONNECTED.format(ip=self._connection_target))

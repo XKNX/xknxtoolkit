@@ -41,6 +41,46 @@ Plugins are instantiated and wired directly in `main.py::KnxGuiApp.__init__` (me
 
 Plugins that need to interact (e.g. `proxy` relaying CEMI frames to/from the real KNX connection) only do so through a shared service on `PluginAPI`, never by holding a reference to another plugin instance directly.
 
+## Tasks plugin (background work / status bar)
+
+`plugins/tasks/` tracks background work (loading a knxprod, programming or
+restarting a device) for the status bar pill (`TaskStatusWidget`, rendered via
+`TasksPlugin.render_status_indicator()` from `main.py::gui_status_bar`
+alongside `ConnectionPlugin`'s). Design decisions worth knowing before
+touching it:
+
+- **No progress percentage.** A task is `queued`, `running` (shown with a
+  pulsing dot - the only feedback while it's in flight) or `error` (stays
+  until dismissed). There's deliberately no `done` status - `TaskService.track()`
+  removes a task outright on success rather than leaving a badge nobody needs
+  to read once it's over.
+- **Immediate-mode, no subscribe/notify**, like the rest of this app -
+  `TaskService.tasks()` is just called every frame; nothing pushes.
+- **`track(label, future)`** is the preferred way to add a task backed by a
+  `Future`: it resolves itself via `future.add_done_callback`, which fires on
+  whichever thread the future completes on (see `ConnectionService.run_async`)
+  - same no-lock, plain-mutation pattern already used for restart/program
+  results in the Configure panel. Use `add`/`update`/`remove` directly only
+  for work that isn't `Future`-backed.
+- **The pulsing dot** (`widgets/status_dot.py::render_pulsing_dot`) is shared
+  with `ConnectionPlugin`'s CONNECTED indicator - both used to hand-animate
+  this before it was extracted here. It only draws into the current draw list
+  at a given center; the caller reserves layout space itself (`imgui.dummy`),
+  since how much room to reserve varies per caller.
+- **The status bar pill has no background/border/pill shape** - plain text
+  matching the connection indicator beside it, not a standing-out chip - and
+  shows a dim "No active tasks" dot rather than disappearing when there's nothing to
+  report, for the same reason the connection indicator always shows something
+  rather than going blank: an empty status bar reads as broken.
+- It's wrapped in an invisible, unstyled `begin_child` purely so the whole
+  pill is one clickable item (`is_item_clicked()` right after it) without
+  manual hit-testing - per hello_imgui/Dear ImGui, `BeginChild` registers
+  itself as a regular item in the parent window.
+- It's horizontally centered across the *whole* status bar, not just the
+  space left after the connection indicator - clamped so it never overlaps it.
+- The popup list drops "Active"/"Queued"/"Errors" headings - each row's own
+  dot color already says which group it's in.
+
 ## Conventions
 
 - All user-facing strings must be defined in each plugin's `strings.py` (or `src/knx_gui/strings.py` for app-wide strings) for i18n support
