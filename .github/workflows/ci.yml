@@ -5,13 +5,8 @@ on:
     branches: [master]
   pull_request:
 
-# Read natively by the `coverage` CLI - every `coverage run`/`combine`/
-# `report`/`xml` invocation below picks up [tool.coverage.run]/[report] from
-# the root pyproject.toml without needing a repeated --rcfile flag. Needed at
-# all because coverage.py's own config discovery, unlike pytest's, doesn't
-# walk up parent directories - from apps/knx-gui it would otherwise silently
-# pick up that directory's own (coverage-config-less) pyproject.toml instead
-# - confirmed empirically.
+# See CLAUDE.md's "Coverage" section for why this env var (not a repeated
+# --rcfile flag) and the other coverage-specific choices below are needed.
 env:
   COVERAGE_RCFILE: ${{ github.workspace }}/pyproject.toml
 
@@ -48,12 +43,6 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --all-packages
-      # --source is an absolute ($GITHUB_WORKSPACE-anchored) path in both
-      # calls below, and [tool.coverage.run] parallel = true gives each a
-      # uniquely-suffixed .coverage.* data file - see the "coverage" job,
-      # which combines these with e2e-tests' into one report. Plain
-      # `pytest --cov=...` was tried first and does *not* honor parallel the
-      # same way `coverage run` does - confirmed empirically.
       - run: uv run coverage run --source="$GITHUB_WORKSPACE/packages" -m pytest
       - name: Test apps/knx-gui
         working-directory: apps/knx-gui
@@ -61,13 +50,6 @@ jobs:
         run: |
           uv run coverage run --source="$GITHUB_WORKSPACE/apps/knx-gui/src/knx_gui" \
             -m pytest src/knx_gui --ignore=src/knx_gui/testing -v
-      # `coverage combine <dir>` (in the "coverage" job) does not recurse into
-      # subdirectories - confirmed empirically - so both .coverage.* sets are
-      # flattened into one directory here before upload, rather than relying
-      # on download-artifact's merge-multiple to flatten apps/knx-gui/'s nesting.
-      # The directory lives outside packages/ and apps/ deliberately: either
-      # would match a [tool.uv.workspace] members glob and break `uv run` in
-      # every step after it - confirmed empirically.
       - name: Collect coverage data
         run: |
           mkdir -p "$GITHUB_WORKSPACE/coverage-data"
@@ -99,8 +81,6 @@ jobs:
           sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0
           xvfb-run -a uv run coverage run \
             --source="$GITHUB_WORKSPACE/apps/knx-gui/src/knx_gui" -m pytest src/knx_gui/testing -v
-      # See unit-tests' "Collect coverage data" step for why this directory
-      # is $GITHUB_WORKSPACE-anchored rather than apps/knx-gui-relative.
       - name: Collect coverage data
         working-directory: apps/knx-gui
         run: |
@@ -123,40 +103,17 @@ jobs:
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           enable-cache: true
-      # This job only ever reads already-collected coverage data and the
-      # source files checkout already provides - it never imports packages/
-      # or apps/knx-gui, so --no-install-workspace skips installing any of
-      # them (imgui-bundle, sqlalchemy, ... included) - confirmed empirically
-      # that `coverage combine`/`report`/`xml` work fine without them.
       - run: uv sync --all-packages --no-install-workspace
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: coverage-data-*
           path: coverage-data
           merge-multiple: true
-      # Absolute --source paths (see unit-tests/e2e-tests above) mean every
-      # data file already agrees on file paths, so this combines packages/
-      # and apps/knx-gui/ coverage from all three test runs into one dataset
-      # - no [tool.coverage.paths] remapping needed.
       - run: uv run coverage combine coverage-data
       - run: uv run coverage xml
-      # Markdown to both the log and the job summary in one pass, rather than
-      # a separate plain-text `coverage report` re-computing the same thing.
       - name: Report and add to job summary
         run: uv run coverage report --format=markdown | tee "$GITHUB_STEP_SUMMARY"
-      # Decrease gate (codecov/project, codecov/patch) and the PR diff comment
-      # are configured in codecov.yml and posted by Codecov itself once it
-      # receives this upload - nothing else to wire up on this side. The
-      # Codecov GitHub App is already installed org-wide (from xknx/xknx), so
-      # it reaches this repo automatically - confirmed empirically: without a
-      # token, the upload got as far as "Token required because branch is
-      # protected" (Codecov's own per-repo policy - GitHub itself reports no
-      # branch protection on master) rather than failing to find the repo at
-      # all. Needs a CODECOV_TOKEN secret (from codecov.io's repo settings for
-      # xknxtoolkit) added here for uploads to actually go through - not
-      # something a workflow run can do. fail_ci_if_error is deliberately
-      # false: an upload problem on Codecov's end (or the token not being set
-      # yet) shouldn't turn every PR's CI red over a reporting step.
+      # Needs a CODECOV_TOKEN secret to actually upload - see CLAUDE.md.
       - uses: codecov/codecov-action@a99c28d3f0da835de33ff2feb2e15691c7b9641f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

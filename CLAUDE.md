@@ -46,6 +46,37 @@ uv run coverage combine . apps/knx-gui   # merges the three parallel .coverage.*
 uv run coverage report    # or `coverage html` for a browsable report in htmlcov/
 ```
 
+Other choices behind the CI setup (`.github/workflows/ci.yml`), each confirmed by actually
+running the pipeline rather than assumed from the docs:
+
+- `coverage run`, not `pytest --cov=...`: the latter does not honor `[tool.coverage.run]`'s
+  `parallel = true` the same way, so the three runs' data files would collide instead of
+  getting the unique suffixes `combine` needs.
+- The `unit-tests`/`e2e-tests` jobs collect their `.coverage.*` files into a
+  `$GITHUB_WORKSPACE/coverage-data/` directory before uploading them as artifacts, rather than
+  leaving them where they land (`combine <dir>` isn't recursive, so an apps/knx-gui-nested
+  file would otherwise be silently skipped) - and that directory is workspace-root-anchored
+  rather than `apps/knx-gui`-relative, because `../coverage-data` from there resolves to
+  `apps/coverage-data`, which matches the `apps/*` `[tool.uv.workspace]` members glob and
+  breaks `uv run` in every later step.
+- The "coverage" job syncs with `--no-install-workspace`: it only ever reads already-collected
+  coverage data and the source files `actions/checkout` already provides - it never imports
+  `packages/` or `apps/knx-gui` - so installing either (`imgui-bundle`, `sqlalchemy`, `xknx`, ...)
+  is pure overhead there.
+
+**Codecov**: the coverage job uploads `coverage.xml` to Codecov, which posts two status checks
+on every PR (configured in `codecov.yml`) - `project` fails the PR if overall coverage drops
+versus the base branch (`target: auto` compares against the base commit itself, so it isn't a
+fixed number that needs bumping by hand), and `patch` (coverage of just the changed lines) is
+informational-only, since a one-line fix in an otherwise-uncovered file shouldn't be gated on
+covering that whole file. The Codecov GitHub App is already installed org-wide (from
+`xknx/xknx` already using it) and reaches this repo automatically, but uploads still need a
+`CODECOV_TOKEN` repository secret (from codecov.io's settings for xknxtoolkit) - without one,
+Codecov rejects the upload ("Token required because branch is protected", its own per-repo
+policy, unrelated to GitHub's own branch protection). `fail_ci_if_error: false` is deliberate:
+a problem on Codecov's end, or the token not being set, shouldn't turn every PR's CI red over
+a reporting step.
+
 All Python commands must use `uv run` — do not activate the venv manually.
 
 ## Architecture

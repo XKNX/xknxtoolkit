@@ -1,17 +1,10 @@
+# See CLAUDE.md's "Coverage" section for the reasoning behind these settings.
 coverage:
   status:
-    # Fails the PR check if overall coverage drops versus the base branch -
-    # the "did coverage decrease" gate. threshold: 0% means any decrease
-    # fails; auto compares against the base commit's own coverage rather
-    # than a fixed number, so it tracks wherever the project's coverage
-    # actually is instead of needing to be bumped by hand over time.
     project:
       default:
         target: auto
         threshold: 0%
-    # Coverage of the lines a PR actually touches - informational only, not
-    # a blocking check: a PR fixing one line in an otherwise-uncovered file
-    # shouldn't be gated on covering the whole file.
     patch:
       default:
         informational: true
