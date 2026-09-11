@@ -11,6 +11,7 @@ from xknxmono.project.core.addressing import (
     parse_ia,
     ranges_for,
 )
+from xknxmono.project.core.events import deserialize_event
 
 PRODUCT = "M-0001_H-x-1_P-1"
 
@@ -558,6 +559,216 @@ def test_set_individual_address_unknown_line(tmp_path: Path):
     dev = svc.add_device(pid, seg, PRODUCT, address=1, name="D")
     with pytest.raises(KeyError, match=r"No line 3\.4"):
         svc.set_individual_address(pid, dev, "3.4.5")
+
+
+def test_rename_line_and_undo(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    area = svc.create_area(pid, 0, 1, "Area")
+    line = svc.create_line(pid, area, 1, "Old")
+    assert svc.topology(pid, 0).areas[1].lines[0].name == "Old"
+
+    svc.rename_line(pid, line, "New")
+    assert svc.topology(pid, 0).areas[1].lines[0].name == "New"
+
+    svc.undo(pid)
+    assert svc.topology(pid, 0).areas[1].lines[0].name == "Old"
+
+
+def test_add_installation_undo_redo(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    idx = svc.add_installation(pid, "Second")
+    assert [i.index for i in svc.installations(pid)] == [0, idx]
+
+    svc.undo(pid)
+    assert [i.index for i in svc.installations(pid)] == [0]
+
+    svc.redo(pid)
+    assert [i.index for i in svc.installations(pid)] == [0, idx]
+
+
+def test_create_area_line_segment_undo_redo(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    area = svc.create_area(pid, 0, 1, "Area")
+    line = svc.create_line(pid, area, 1, "Line")
+    seg = svc.add_segment(pid, line, name="Seg")
+
+    svc.undo(pid)  # add_segment
+    svc.undo(pid)  # create_line
+    svc.undo(pid)  # create_area
+    assert [a.address for a in svc.topology(pid, 0).areas] == [0]
+
+    svc.redo(pid)  # create_area
+    svc.redo(pid)  # create_line
+    svc.redo(pid)  # add_segment
+    topo = svc.topology(pid, 0)
+    assert [a.address for a in topo.areas] == [0, 1]
+    assert topo.areas[1].lines[0].id == line
+    # create_line auto-creates a default segment, so add_segment's row is the second one
+    assert seg in [s.id for s in topo.areas[1].lines[0].segments]
+
+
+def test_add_device_with_extras_undo_redo(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    seg = _backbone_segment(svc, pid)
+    dev = svc.add_device(
+        pid,
+        seg,
+        PRODUCT,
+        address=1,
+        name="D",
+        parameters=[("P-1", "5")],
+        com_objects=[("O-1_R-1", None)],
+        module_instances=[("M-100_MI-1", "M-100")],
+    )
+    before = svc.devices(pid)[0]
+    assert [p.ref_id for p in before.parameters] == ["P-1"]
+    assert [c.ref_id for c in before.com_objects] == ["O-1_R-1"]
+
+    svc.undo(pid)
+    assert svc.devices(pid) == []
+
+    svc.redo(pid)
+    after = svc.devices(pid)[0]
+    assert after.id == dev
+    assert [p.ref_id for p in after.parameters] == ["P-1"]
+    assert [c.ref_id for c in after.com_objects] == ["O-1_R-1"]
+
+
+def test_create_group_address_undo_redo(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    ga = svc.create_group_address(pid, 0, 1, "GA")
+    assert [g.id for g in svc.group_addresses(pid)] == [ga]
+
+    svc.undo(pid)
+    assert svc.group_addresses(pid) == []
+
+    svc.redo(pid)
+    assert [g.id for g in svc.group_addresses(pid)] == [ga]
+
+
+def test_link_com_object_undo_redo(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    seg = _backbone_segment(svc, pid)
+    svc.add_device(
+        pid, seg, PRODUCT, address=1, name="D", com_objects=[("O-1_R-1", None)]
+    )
+    co = svc.devices(pid)[0].com_objects[0].id
+    ga = svc.create_group_address(pid, 0, 1, "GA")
+
+    link = svc.link_com_object(pid, co, ga)
+    assert [ln.group_address_id for ln in svc.devices(pid)[0].com_objects[0].links] == [
+        ga
+    ]
+
+    svc.undo(pid)
+    assert svc.devices(pid)[0].com_objects[0].links == []
+
+    svc.redo(pid)
+    links = svc.devices(pid)[0].com_objects[0].links
+    assert [ln.id for ln in links] == [link]
+
+
+def test_set_com_object_sending_undo(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    seg = _backbone_segment(svc, pid)
+    svc.add_device(
+        pid, seg, PRODUCT, address=1, name="D", com_objects=[("O-1_R-1", None)]
+    )
+    co = svc.devices(pid)[0].com_objects[0].id
+    ga1 = svc.create_group_address(pid, 0, 1, "GA1")
+    ga2 = svc.create_group_address(pid, 0, 2, "GA2")
+    link1 = svc.link_com_object(pid, co, ga1, sending=True)
+    svc.link_com_object(pid, co, ga2)
+
+    def sending_link_id() -> int:
+        links = svc.devices(pid)[0].com_objects[0].links
+        return next(ln.id for ln in links if ln.is_sending)
+
+    assert sending_link_id() == link1
+
+    svc.set_com_object_sending(
+        pid,
+        next(
+            ln.id
+            for ln in svc.devices(pid)[0].com_objects[0].links
+            if not ln.is_sending
+        ),
+    )
+    assert sending_link_id() != link1
+
+    svc.undo(pid)
+    assert sending_link_id() == link1
+
+
+def test_set_group_address_datapoint_type_undo(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    ga = svc.create_group_address(pid, 0, 1, "GA")
+
+    svc.set_group_address_datapoint_type(pid, ga, "1.001")
+    assert svc.group_addresses(pid)[0].datapoint_type == "1.001"
+
+    svc.undo(pid)
+    assert svc.group_addresses(pid)[0].datapoint_type is None
+
+
+def test_remove_line_segment_group_address_com_object_undo(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    area = svc.create_area(pid, 0, 1, "Area")
+    line = svc.create_line(pid, area, 1, "Line")
+    seg = svc.add_segment(pid, line)
+    dev = svc.add_device(
+        pid, seg, PRODUCT, address=1, name="D", com_objects=[("O-1_R-1", None)]
+    )
+    co = svc.devices(pid)[0].com_objects[0].id
+    ga = svc.create_group_address(pid, 0, 1, "GA")
+    link = svc.link_com_object(pid, co, ga)
+
+    svc.unlink_com_object(pid, link)
+    assert svc.devices(pid)[0].com_objects[0].links == []
+    svc.undo(pid)
+    assert [ln.id for ln in svc.devices(pid)[0].com_objects[0].links] == [link]
+
+    svc.remove_group_address(pid, ga)
+    assert svc.group_addresses(pid) == []
+    svc.undo(pid)
+    assert [g.id for g in svc.group_addresses(pid)] == [ga]
+
+    svc.remove_device(pid, dev)
+    assert svc.devices(pid) == []
+    svc.undo(pid)
+    assert [d.id for d in svc.devices(pid)] == [dev]
+
+    svc.remove_segment(pid, seg)
+    # create_line auto-creates a default segment, which remains after removing `seg`
+    assert seg not in [s.id for s in svc.topology(pid, 0).areas[1].lines[0].segments]
+    svc.undo(pid)
+    assert seg in [s.id for s in svc.topology(pid, 0).areas[1].lines[0].segments]
+
+    svc.remove_line(pid, line)
+    assert svc.topology(pid, 0).areas[1].lines == []
+    svc.undo(pid)
+    assert [ln.id for ln in svc.topology(pid, 0).areas[1].lines] == [line]
+
+
+def test_deserialize_event_unknown_type_raises():
+    with pytest.raises(ValueError, match="Unknown event type"):
+        deserialize_event("NoSuchEvent", {})
+
+
+def test_create_group_address_reusing_existing_ranges_undo(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    ga1 = svc.create_group_address(pid, 0, 1, "GA1")  # creates main+middle ranges
+    ga2 = svc.create_group_address(pid, 0, 2, "GA2")  # same ranges -> reused
+    assert [g.id for g in svc.group_addresses(pid)] == [ga1, ga2]
+
+    svc.undo(pid)  # undoing GA2 must only remove GA2, not the reused ranges
+    assert [g.id for g in svc.group_addresses(pid)] == [ga1]
+
+
+def test_set_com_object_sending_unknown_link_is_a_no_op(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    svc.set_com_object_sending(pid, 999999)  # no such link -> apply() no-ops
+    svc.undo(pid)  # never captured -> revert() no-ops too
 
 
 def test_multiple_concurrent_projects(tmp_path: Path):
