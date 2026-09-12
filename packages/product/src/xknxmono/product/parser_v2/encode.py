@@ -31,6 +31,9 @@ from xknxmono.models.intermediate.module_def_static_t_parameters_union_property 
     ModuleDefStaticParametersUnionProperty,
 )
 from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
+from xknxmono.models.intermediate.parameter_type_t_type_color import (
+    ParameterTypeTypeColor,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_float import (
     ParameterTypeTypeFloat,
 )
@@ -45,6 +48,12 @@ from xknxmono.models.intermediate.parameter_type_t_type_restriction import (
 )
 from xknxmono.models.intermediate.parameter_type_t_type_text import (
     ParameterTypeTypeText,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_time import (
+    ParameterTypeTypeTime,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_time_unit import (
+    ParameterTypeTypeTimeUnit,
 )
 from xknxmono.models.intermediate.property_parameter_t import PropertyParameter
 from xknxmono.models.intermediate.property_union_t import PropertyUnion
@@ -62,6 +71,7 @@ class MemWrite(NamedTuple):
     param_id: str
     parameter_type: str
     value: str
+    union_size_in_bit: int | None = None
 
 
 class PropWrite(NamedTuple):
@@ -73,6 +83,7 @@ class PropWrite(NamedTuple):
     param_id: str
     parameter_type: str
     value: str
+    union_size_in_bit: int | None = None
 
 
 class Writes:
@@ -98,6 +109,45 @@ def _write_bits(
             buf[pos // 8] |= bit_mask
         else:
             buf[pos // 8] &= ~bit_mask
+
+
+_SIMPLE_TIME_UNITS = frozenset(
+    {
+        ParameterTypeTypeTimeUnit.HOURS,
+        ParameterTypeTypeTimeUnit.MINUTES,
+        ParameterTypeTypeTimeUnit.SECONDS,
+        ParameterTypeTypeTimeUnit.HUNDRED_MILLISECONDS,
+        ParameterTypeTypeTimeUnit.TEN_MILLISECONDS,
+        ParameterTypeTypeTimeUnit.MILLISECONDS,
+    }
+)
+
+_FLOAT_ENCODING_SIZE_IN_BIT = {
+    ParameterTypeTypeFloatEncoding.DPT_9: 16,
+    ParameterTypeTypeFloatEncoding.IEEE_754_SINGLE: 32,
+    ParameterTypeTypeFloatEncoding.IEEE_754_DOUBLE: 64,
+}
+
+
+def _size_in_bit(tc: object) -> int | None:
+    """Bit-width of a parameter type's encoded value.
+
+    ParameterTypeTypeFloat has no size_in_bit field of its own - the encoding itself
+    fixes the width (DPT 9 is 2 bytes, IEEE-754 single/double are 4/8) - so it's derived
+    from .encoding here instead. Every other type carries size_in_bit directly.
+    """
+    if isinstance(tc, ParameterTypeTypeFloat):
+        return _FLOAT_ENCODING_SIZE_IN_BIT.get(tc.encoding)
+    return getattr(tc, "size_in_bit", None)
+
+
+def _write_size_in_bit(w: MemWrite | PropWrite, tc: object) -> int | None:
+    """Bit-width for one write: the parameter type's own size, or - for a type that
+    doesn't carry one (e.g. Color) - the enclosing union's declared width, which is
+    the only place such a type's size is recorded.
+    """
+    size = _size_in_bit(tc)
+    return size if size is not None else w.union_size_in_bit
 
 
 def _encode_value(str_value: str, size_in_bit: int, tc: object) -> int | None:
@@ -138,6 +188,24 @@ def _encode_value(str_value: str, size_in_bit: int, tc: object) -> int | None:
             result = (result << 8) | b
         return result
 
+    if isinstance(tc, ParameterTypeTypeTime):
+        if tc.unit not in _SIMPLE_TIME_UNITS:
+            # Packed variants (e.g. days/hours/minutes/seconds in one value) split the
+            # value across multiple bit fields - that layout isn't implemented yet.
+            return None
+        try:
+            v = int(str_value)
+        except (ValueError, TypeError):
+            return None
+        return v & ((1 << size_in_bit) - 1)
+
+    if isinstance(tc, ParameterTypeTypeColor):
+        try:
+            v = int(str_value.lstrip("#"), 16)
+        except (ValueError, TypeError):
+            return None
+        return v & ((1 << size_in_bit) - 1)
+
     return None
 
 
@@ -154,8 +222,12 @@ def resolve_param_values(idx: ApplicationIndexer, state: GlobalState) -> dict[st
         if state_val is None:
             continue
         param = idx.parameters.get(pr.ref_id)
-        if param is not None:
-            overrides[param.id] = state_val
+        if param is None:
+            raise EncodingError(
+                f"ParameterRef {pr_id!r} has an override but its target parameter "
+                f"{pr.ref_id!r} does not exist"
+            )
+        overrides[param.id] = state_val
     return overrides
 
 
@@ -174,10 +246,18 @@ def _build_instance_overrides(
     overrides: dict[str, str] = {}
     for pr_id, value in ms.param_ref_id_to_value.items():
         pr = idx.parameter_refs.get(pr_id)
-        if pr is not None:
-            param = idx.parameters.get(pr.ref_id)
-            if param is not None:
-                overrides[param.id] = value
+        if pr is None:
+            raise EncodingError(
+                f"Module instance {ms.module_instance_id!r} has an override for "
+                f"unknown ParameterRef {pr_id!r}"
+            )
+        param = idx.parameters.get(pr.ref_id)
+        if param is None:
+            raise EncodingError(
+                f"ParameterRef {pr_id!r} has an override but its target parameter "
+                f"{pr.ref_id!r} does not exist"
+            )
+        overrides[param.id] = value
     return overrides
 
 
@@ -186,6 +266,10 @@ def _pick_union_param(
     overrides: dict[str, str],
     location: str,
 ) -> tuple[UnionParameter, str] | None:
+    """Return the active override, or the default alternative, or None if neither is
+    set - real product data ships unions with no explicit default (relying on none of
+    their alternatives being written), so having neither is valid and simply means
+    there's nothing to write for this union."""
     active = [up for up in parameters if up.id in overrides]
     assert len(active) <= 1, (
         f"union at {location} has {len(active)} active alternatives: "
@@ -221,17 +305,21 @@ def _collect_param(
     if isinstance(choice, ModuleDefStaticParametersParameterMemory):
         assert ms is not None
         base = _resolve_base(choice.base_offset, ms)
-        if base is not None:
-            out.mem.append(
-                MemWrite(
-                    choice.code_segment,
-                    base + choice.offset,
-                    choice.bit_offset,
-                    item.id,
-                    item.parameter_type,
-                    value,
-                )
+        if base is None:
+            raise EncodingError(
+                f"module instance {ms.module_instance_id!r} could not resolve base "
+                f"offset {choice.base_offset!r} for parameter {item.id!r}"
             )
+        out.mem.append(
+            MemWrite(
+                choice.code_segment,
+                base + choice.offset,
+                choice.bit_offset,
+                item.id,
+                item.parameter_type,
+                value,
+            )
+        )
     elif isinstance(choice, MemoryParameter):
         out.mem.append(
             MemWrite(
@@ -248,20 +336,24 @@ def _collect_param(
         bo = _resolve_base(choice.base_offset, ms)
         bi = _resolve_base(choice.base_index, ms)
         boc = _resolve_base(choice.base_occurrence, ms)
-        if bo is not None and bi is not None and boc is not None:
-            obj_idx = (choice.object_index or 0) + bi if bi else choice.object_index
-            out.prop.append(
-                PropWrite(
-                    obj_idx,
-                    choice.property_id,
-                    choice.occurrence + boc,
-                    bo + choice.offset,
-                    choice.bit_offset,
-                    item.id,
-                    item.parameter_type,
-                    value,
-                )
+        if bo is None or bi is None or boc is None:
+            raise EncodingError(
+                f"module instance {ms.module_instance_id!r} could not resolve a base "
+                f"offset/index/occurrence for parameter {item.id!r}"
             )
+        obj_idx = (choice.object_index or 0) + bi if bi else choice.object_index
+        out.prop.append(
+            PropWrite(
+                obj_idx,
+                choice.property_id,
+                choice.occurrence + boc,
+                bo + choice.offset,
+                choice.bit_offset,
+                item.id,
+                item.parameter_type,
+                value,
+            )
+        )
     elif isinstance(choice, PropertyParameter):
         out.prop.append(
             PropWrite(
@@ -286,29 +378,35 @@ def _collect_union(
 ) -> None:
     choice = item.choice
     if choice is None:
-        return
+        member_ids = ", ".join(up.id for up in item.parameter) or "<no members>"
+        raise EncodingError(f"union with members [{member_ids}] has no destination")
     # Check subclasses before parents (module types extend their top-level counterparts)
     if isinstance(choice, ModuleDefStaticParametersUnionMemory):
         assert ms is not None
         base = _resolve_base(choice.base_offset, ms)
-        if base is not None:
-            picked = _pick_union_param(
-                item.parameter,
-                overrides,
-                f"{choice.code_segment}+{base + choice.offset}",
+        if base is None:
+            raise EncodingError(
+                f"module instance {ms.module_instance_id!r} could not resolve base "
+                f"offset {choice.base_offset!r} for union at {choice.code_segment!r}"
             )
-            if picked is not None:
-                up, value = picked
-                out.mem.append(
-                    MemWrite(
-                        choice.code_segment,
-                        base + choice.offset + up.offset,
-                        choice.bit_offset + up.bit_offset,
-                        up.id,
-                        up.parameter_type,
-                        value,
-                    )
+        picked = _pick_union_param(
+            item.parameter,
+            overrides,
+            f"{choice.code_segment}+{base + choice.offset}",
+        )
+        if picked is not None:
+            up, value = picked
+            out.mem.append(
+                MemWrite(
+                    choice.code_segment,
+                    base + choice.offset + up.offset,
+                    choice.bit_offset + up.bit_offset,
+                    up.id,
+                    up.parameter_type,
+                    value,
+                    item.size_in_bit,
                 )
+            )
     elif isinstance(choice, MemoryUnion):
         picked = _pick_union_param(
             item.parameter, overrides, f"{choice.code_segment}+{choice.offset}"
@@ -323,6 +421,7 @@ def _collect_union(
                     up.id,
                     up.parameter_type,
                     value,
+                    item.size_in_bit,
                 )
             )
     elif isinstance(choice, ModuleDefStaticParametersUnionProperty):
@@ -330,27 +429,32 @@ def _collect_union(
         bo = _resolve_base(choice.base_offset, ms)
         bi = _resolve_base(choice.base_index, ms)
         boc = _resolve_base(choice.base_occurrence, ms)
-        if bo is not None and bi is not None and boc is not None:
-            obj_idx = (choice.object_index or 0) + bi if bi else choice.object_index
-            picked = _pick_union_param(
-                item.parameter,
-                overrides,
-                f"prop_id={choice.property_id}+{bo + choice.offset}",
+        if bo is None or bi is None or boc is None:
+            raise EncodingError(
+                f"module instance {ms.module_instance_id!r} could not resolve a base "
+                f"offset/index/occurrence for union at property {choice.property_id!r}"
             )
-            if picked is not None:
-                up, value = picked
-                out.prop.append(
-                    PropWrite(
-                        obj_idx,
-                        choice.property_id,
-                        choice.occurrence + boc,
-                        bo + choice.offset + up.offset,
-                        choice.bit_offset + up.bit_offset,
-                        up.id,
-                        up.parameter_type,
-                        value,
-                    )
+        obj_idx = (choice.object_index or 0) + bi if bi else choice.object_index
+        picked = _pick_union_param(
+            item.parameter,
+            overrides,
+            f"prop_id={choice.property_id}+{bo + choice.offset}",
+        )
+        if picked is not None:
+            up, value = picked
+            out.prop.append(
+                PropWrite(
+                    obj_idx,
+                    choice.property_id,
+                    choice.occurrence + boc,
+                    bo + choice.offset + up.offset,
+                    choice.bit_offset + up.bit_offset,
+                    up.id,
+                    up.parameter_type,
+                    value,
+                    item.size_in_bit,
                 )
+            )
     else:
         assert isinstance(choice, PropertyUnion)
         picked = _pick_union_param(
@@ -368,6 +472,7 @@ def _collect_union(
                     up.id,
                     up.parameter_type,
                     value,
+                    item.size_in_bit,
                 )
             )
 
@@ -375,16 +480,24 @@ def _collect_union(
 def _collect_module_writes(
     ms: ModuleState, idx: ApplicationIndexer, out: Writes
 ) -> None:
-    if ms.ref_id is not None:
-        md = idx.module_defs.get(ms.ref_id)
-        if md is not None and md.static.parameters is not None:
-            instance_overrides = _build_instance_overrides(ms, idx)
-            for item in md.static.parameters.choice:
-                if isinstance(item, ModuleDefStaticParametersParameter):
-                    _collect_param(item, instance_overrides, ms, out)
-                else:
-                    assert isinstance(item, ModuleDefStaticParametersUnion)
-                    _collect_union(item, instance_overrides, ms, out)
+    if ms.ref_id is None:
+        raise EncodingError(
+            f"module instance {ms.module_instance_id!r} has no module def reference"
+        )
+    md = idx.module_defs.get(ms.ref_id)
+    if md is None:
+        raise EncodingError(
+            f"module instance {ms.module_instance_id!r} references unknown module "
+            f"def {ms.ref_id!r}"
+        )
+    if md.static.parameters is not None:
+        instance_overrides = _build_instance_overrides(ms, idx)
+        for item in md.static.parameters.choice:
+            if isinstance(item, ModuleDefStaticParametersParameter):
+                _collect_param(item, instance_overrides, ms, out)
+            else:
+                assert isinstance(item, ModuleDefStaticParametersUnion)
+                _collect_union(item, instance_overrides, ms, out)
     for child in ms.module_children():
         _collect_module_writes(child, idx, out)
 
@@ -430,18 +543,26 @@ def encode_to_memory(
     for w in writes.mem:
         buf = bufs.get(w.seg_id)
         if buf is None:
-            continue
+            raise EncodingError(
+                f"parameter {w.param_id!r} writes to unknown code segment {w.seg_id!r}"
+            )
         pt = idx.parameter_types.get(w.parameter_type)
         if pt is None:
-            continue
+            raise EncodingError(
+                f"parameter {w.param_id!r} has unknown parameter type "
+                f"{w.parameter_type!r}"
+            )
         tc = pt.choice
-        size_in_bit = getattr(tc, "size_in_bit", None)
+        size_in_bit = _write_size_in_bit(w, tc)
         if size_in_bit is None:
-            continue
+            raise EncodingError(
+                f"parameter type {w.parameter_type!r} (used by {w.param_id!r}) has "
+                f"no size_in_bit"
+            )
         encoded = _encode_value(w.value, size_in_bit, tc)
         if encoded is None:
             raise EncodingError(
-                f"Parameter {w.param_id!r} value {w.value!r} could not be encoded "
+                f"parameter {w.param_id!r} value {w.value!r} could not be encoded "
                 f"for type {w.parameter_type!r}"
             )
         _write_bits(buf, w.offset, w.bit_offset, size_in_bit, encoded)
@@ -462,13 +583,21 @@ def build_memory_param_map(
     for w in writes.mem:
         seg_map = maps.get(w.seg_id)
         if seg_map is None:
-            continue
+            raise EncodingError(
+                f"parameter {w.param_id!r} writes to unknown code segment {w.seg_id!r}"
+            )
         pt = idx.parameter_types.get(w.parameter_type)
         if pt is None:
-            continue
-        size = getattr(pt.choice, "size_in_bit", None)
+            raise EncodingError(
+                f"parameter {w.param_id!r} has unknown parameter type "
+                f"{w.parameter_type!r}"
+            )
+        size = _write_size_in_bit(w, pt.choice)
         if not size:
-            continue
+            raise EncodingError(
+                f"parameter type {w.parameter_type!r} (used by {w.param_id!r}) has "
+                f"no size_in_bit"
+            )
         start_bit = w.offset * 8 + w.bit_offset
         end_bit = start_bit + size - 1
         for b in range(start_bit // 8, end_bit // 8 + 1):
@@ -493,15 +622,21 @@ def encode_to_properties(
     for w in writes.prop:
         pt = idx.parameter_types.get(w.parameter_type)
         if pt is None:
-            continue
+            raise EncodingError(
+                f"parameter {w.param_id!r} has unknown parameter type "
+                f"{w.parameter_type!r}"
+            )
         tc = pt.choice
-        size_in_bit = getattr(tc, "size_in_bit", None)
+        size_in_bit = _write_size_in_bit(w, tc)
         if not size_in_bit:
-            continue
+            raise EncodingError(
+                f"parameter type {w.parameter_type!r} (used by {w.param_id!r}) has "
+                f"no size_in_bit"
+            )
         encoded = _encode_value(w.value, size_in_bit, tc)
         if encoded is None:
             raise EncodingError(
-                f"Parameter {w.param_id!r} value {w.value!r} could not be encoded "
+                f"parameter {w.param_id!r} value {w.value!r} could not be encoded "
                 f"for type {w.parameter_type!r}"
             )
         key: PropertyKey = (w.object_index, w.property_id, w.occurrence)
@@ -527,10 +662,16 @@ def build_property_param_map(
     for w in writes.prop:
         pt = idx.parameter_types.get(w.parameter_type)
         if pt is None:
-            continue
-        size = getattr(pt.choice, "size_in_bit", None)
+            raise EncodingError(
+                f"parameter {w.param_id!r} has unknown parameter type "
+                f"{w.parameter_type!r}"
+            )
+        size = _write_size_in_bit(w, pt.choice)
         if not size:
-            continue
+            raise EncodingError(
+                f"parameter type {w.parameter_type!r} (used by {w.param_id!r}) has "
+                f"no size_in_bit"
+            )
         key: PropertyKey = (w.object_index, w.property_id, w.occurrence)
         byte_map = maps.setdefault(key, {})
         start_bit = w.offset * 8 + w.bit_offset

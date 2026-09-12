@@ -32,7 +32,7 @@ class ProjectPlugin:
         api.project.set_logger(self._log)
 
         self._memory_preview = MemoryPreviewWindow(
-            get_devices=lambda: api.project.devices
+            get_devices=lambda: api.project.devices, log=self._log
         )
 
         self._devices_panel = DevicesPanel(
