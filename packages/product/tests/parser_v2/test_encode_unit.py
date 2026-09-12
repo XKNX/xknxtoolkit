@@ -15,6 +15,9 @@ from xknxmono.models.intermediate.application_program_static_t_code import (
 from xknxmono.models.intermediate.application_program_static_t_code_absolute_segment import (
     ApplicationProgramStaticCodeAbsoluteSegment,
 )
+from xknxmono.models.intermediate.application_program_static_t_parameter_refs import (
+    ApplicationProgramStaticParameterRefs,
+)
 from xknxmono.models.intermediate.application_program_static_t_parameter_types import (
     ApplicationProgramStaticParameterTypes,
 )
@@ -27,6 +30,9 @@ from xknxmono.models.intermediate.application_program_static_t_parameters_parame
 from xknxmono.models.intermediate.application_program_static_t_parameters_union import (
     ApplicationProgramStaticParametersUnion,
 )
+from xknxmono.models.intermediate.application_program_t_module_defs import (
+    ApplicationProgramModuleDefs,
+)
 from xknxmono.models.intermediate.application_program_type_t import (
     ApplicationProgramType,
 )
@@ -34,12 +40,46 @@ from xknxmono.models.intermediate.io_tpoint_parameter_t import IoPointParameter
 from xknxmono.models.intermediate.load_procedure_style_t import LoadProcedureStyle
 from xknxmono.models.intermediate.memory_parameter_t import MemoryParameter
 from xknxmono.models.intermediate.memory_union_t import MemoryUnion
+from xknxmono.models.intermediate.module_def_static_t import ModuleDefStatic
+from xknxmono.models.intermediate.module_def_static_t_parameters import (
+    ModuleDefStaticParameters,
+)
+from xknxmono.models.intermediate.module_def_static_t_parameters_parameter import (
+    ModuleDefStaticParametersParameter,
+)
+from xknxmono.models.intermediate.module_def_static_t_parameters_parameter_memory import (
+    ModuleDefStaticParametersParameterMemory,
+)
+from xknxmono.models.intermediate.module_def_static_t_parameters_parameter_property import (
+    ModuleDefStaticParametersParameterProperty,
+)
+from xknxmono.models.intermediate.module_def_static_t_parameters_union import (
+    ModuleDefStaticParametersUnion,
+)
+from xknxmono.models.intermediate.module_def_static_t_parameters_union_memory import (
+    ModuleDefStaticParametersUnionMemory,
+)
+from xknxmono.models.intermediate.module_def_static_t_parameters_union_property import (
+    ModuleDefStaticParametersUnionProperty,
+)
+from xknxmono.models.intermediate.module_def_t import ModuleDef
+from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
+from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 from xknxmono.models.intermediate.parameter_type_t import ParameterType
+from xknxmono.models.intermediate.parameter_type_t_type_float import (
+    ParameterTypeTypeFloat,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_float_encoding import (
+    ParameterTypeTypeFloatEncoding,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_number import (
     ParameterTypeTypeNumber,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_number_type import (
     ParameterTypeTypeNumberType,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_text import (
+    ParameterTypeTypeText,
 )
 from xknxmono.models.intermediate.property_parameter_t import PropertyParameter
 from xknxmono.models.intermediate.property_union_t import PropertyUnion
@@ -47,10 +87,15 @@ from xknxmono.models.intermediate.union_parameter_t import UnionParameter
 from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.encode import (
     Writes,
+    _encode_value,  # pyright: ignore[reportPrivateUsage]
+    build_memory_param_map,
+    build_property_param_map,
     collect_writes,
     encode_to_memory,
     encode_to_properties,
+    resolve_param_values,
 )
+from xknxmono.product.parser_v2.state import GlobalState
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -114,6 +159,9 @@ def _app(
     seg_size: int = 8,
     seg_data: bytes | None = None,
     pt_size: int = 8,
+    extra_param_types: list[ParameterType] | None = None,
+    module_defs: list[ModuleDef] | None = None,
+    parameter_refs: list[ParameterRef] | None = None,
 ) -> tuple[ApplicationProgram, ApplicationIndexer]:
     app = ApplicationProgram(
         id="APP",
@@ -132,12 +180,57 @@ def _app(
                 absolute_segment=[_segment(seg_size, seg_data)]
             ),
             parameter_types=ApplicationProgramStaticParameterTypes(
-                parameter_type=[_param_type(pt_size)]
+                parameter_type=[_param_type(pt_size), *(extra_param_types or [])]
             ),
             parameters=ApplicationProgramStaticParameters(choice=params),
+            parameter_refs=(
+                ApplicationProgramStaticParameterRefs(parameter_ref=parameter_refs)
+                if parameter_refs is not None
+                else None
+            ),
+        ),
+        module_defs=(
+            ApplicationProgramModuleDefs(module_def=module_defs)
+            if module_defs is not None
+            else None
         ),
     )
     return app, ApplicationIndexer(app)
+
+
+def _module_param(
+    param_id: str,
+    choice: ModuleDefStaticParametersParameterMemory
+    | ModuleDefStaticParametersParameterProperty
+    | None,
+    value: str = "0",
+    base_value: str | None = None,
+) -> ModuleDefStaticParametersParameter:
+    return ModuleDefStaticParametersParameter(
+        id=param_id,
+        name="",
+        text="",
+        parameter_type=_PT_ID,
+        value=value,
+        choice=choice,
+        base_value=base_value,
+    )
+
+
+def _module_def(
+    md_id: str,
+    params: list[ModuleDefStaticParametersParameter | ModuleDefStaticParametersUnion]
+    | None,
+) -> ModuleDef:
+    return ModuleDef(
+        id=md_id,
+        name="",
+        static=ModuleDefStatic(
+            parameters=(
+                ModuleDefStaticParameters(choice=params) if params is not None else None
+            )
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -381,3 +474,724 @@ def test_writes_starts_empty() -> None:
     w = Writes()
     assert w.mem == []
     assert w.prop == []
+
+
+# ---------------------------------------------------------------------------
+# _encode_value
+# ---------------------------------------------------------------------------
+
+
+def test_encode_number_non_numeric_value_is_skipped() -> None:
+    app, idx = _app(
+        [_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))]
+    )
+    mem = encode_to_memory(app, idx, {"P1": "not-a-number"})
+    assert mem[_SEG_ID][0] == 0
+
+
+def _float_tc(encoding: ParameterTypeTypeFloatEncoding) -> ParameterTypeTypeFloat:
+    return ParameterTypeTypeFloat(
+        encoding=encoding, min_inclusive=-1e10, max_inclusive=1e10
+    )
+
+
+def test_encode_value_float_dpt9() -> None:
+    tc = _float_tc(ParameterTypeTypeFloatEncoding.DPT_9)
+    assert _encode_value("1.0", 16, tc) == 0x0064
+
+
+def test_encode_value_float_ieee754_single() -> None:
+    tc = _float_tc(ParameterTypeTypeFloatEncoding.IEEE_754_SINGLE)
+    assert _encode_value("1.0", 32, tc) == 0x3F800000
+
+
+def test_encode_value_float_ieee754_double() -> None:
+    tc = _float_tc(ParameterTypeTypeFloatEncoding.IEEE_754_DOUBLE)
+    assert _encode_value("1.0", 64, tc) == 0x3FF0000000000000
+
+
+def test_encode_value_float_non_numeric_value_returns_none() -> None:
+    tc = _float_tc(ParameterTypeTypeFloatEncoding.DPT_9)
+    assert _encode_value("not-a-float", 16, tc) is None
+
+
+def test_encode_value_float_dpt9_shifts_mantissa_when_out_of_range() -> None:
+    tc = _float_tc(ParameterTypeTypeFloatEncoding.DPT_9)
+    assert _encode_value("100.0", 16, tc) == 0x1CE2
+
+
+def test_encode_value_float_dpt9_returns_none_when_exponent_overflows() -> None:
+    tc = _float_tc(ParameterTypeTypeFloatEncoding.DPT_9)
+    assert _encode_value("1000000000.0", 16, tc) is None
+
+
+def test_encode_value_unhandled_type_choice_returns_none() -> None:
+    assert _encode_value("1", 8, object()) is None
+
+
+def test_encode_text() -> None:
+    pt = ParameterType(
+        id="PT_TEXT", name="T", choice=ParameterTypeTypeText(size_in_bit=16)
+    )
+    p = ApplicationProgramStaticParametersParameter(
+        id="P1",
+        name="",
+        text="",
+        parameter_type="PT_TEXT",
+        value="",
+        choice=MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0),
+    )
+    app, idx = _app([p], extra_param_types=[pt])
+    mem = encode_to_memory(app, idx, {"P1": "AB"})
+    assert mem[_SEG_ID][0:2] == b"AB"
+
+
+# ---------------------------------------------------------------------------
+# resolve_param_values
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_param_values_resolves_via_parameter_ref() -> None:
+    p = _param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))
+    _app_ignored, idx = _app([p], parameter_refs=[ParameterRef(id="PR1", ref_id="P1")])
+    state = GlobalState(values={"PR1": "9"})
+    overrides = resolve_param_values(idx, state)
+    assert overrides == {"P1": "9"}
+
+
+def test_resolve_param_values_skips_dangling_ref() -> None:
+    _app_ignored, idx = _app(
+        [], parameter_refs=[ParameterRef(id="PR1", ref_id="NO_SUCH_PARAM")]
+    )
+    state = GlobalState(values={"PR1": "9"})
+    overrides = resolve_param_values(idx, state)
+    assert overrides == {}
+
+
+# ---------------------------------------------------------------------------
+# Module-level collect_writes (via module state tree + module_defs)
+# ---------------------------------------------------------------------------
+
+
+def test_module_memory_param_with_base_value_shift() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            _module_param(
+                "MP1",
+                ModuleDefStaticParametersParameterMemory(
+                    code_segment=_SEG_ID, offset=0, bit_offset=0
+                ),
+                value="10",
+                base_value="ARG1",
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    ms = state.module_child(
+        "M1", ref_id="MD1", arguments={"ARG1": ModuleNumericArg(ref_id="ARG1", value=5)}
+    )
+    assert ms is not None
+    w = collect_writes(app, idx, {}, state)
+    assert len(w.mem) == 1
+    assert w.mem[0].value == "15"  # base value 10 + resolved arg 5
+
+
+def test_module_base_value_arg_missing_leaves_value_unshifted() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            _module_param(
+                "MP1",
+                ModuleDefStaticParametersParameterMemory(
+                    code_segment=_SEG_ID, offset=0, bit_offset=0
+                ),
+                value="10",
+                base_value="ARG1",
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    state.module_child("M1", ref_id="MD1")  # no ARG1 in arguments
+    w = collect_writes(app, idx, {}, state)
+    assert w.mem[0].value == "10"
+
+
+def test_module_memory_param_base_offset_none_defaults_to_zero() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            _module_param(
+                "MP1",
+                ModuleDefStaticParametersParameterMemory(
+                    code_segment=_SEG_ID, offset=3, bit_offset=0, base_offset=None
+                ),
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    state.module_child("M1", ref_id="MD1")
+    w = collect_writes(app, idx, {}, state)
+    assert w.mem[0].offset == 3
+
+
+def test_module_memory_param_base_offset_unresolvable_is_skipped() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            _module_param(
+                "MP1",
+                ModuleDefStaticParametersParameterMemory(
+                    code_segment=_SEG_ID, offset=0, bit_offset=0, base_offset="ARG1"
+                ),
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    state.module_child("M1", ref_id="MD1")  # ARG1 not in arguments -> unresolvable
+    w = collect_writes(app, idx, {}, state)
+    assert w.mem == []
+
+
+def test_module_property_param() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            _module_param(
+                "MP1",
+                ModuleDefStaticParametersParameterProperty(
+                    object_index=1,
+                    occurrence=0,
+                    property_id=50,
+                    offset=0,
+                    bit_offset=0,
+                    base_offset="BO",
+                    base_index="BI",
+                    base_occurrence="BOC",
+                ),
+                value="7",
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    state.module_child(
+        "M1",
+        ref_id="MD1",
+        arguments={
+            "BO": ModuleNumericArg(ref_id="BO", value=2),
+            "BI": ModuleNumericArg(ref_id="BI", value=3),
+            "BOC": ModuleNumericArg(ref_id="BOC", value=1),
+        },
+    )
+    w = collect_writes(app, idx, {}, state)
+    assert len(w.prop) == 1
+    pw = w.prop[0]
+    assert pw.object_index == 4  # object_index(1) + base_index(3)
+    assert pw.occurrence == 1  # 0 + base_occurrence(1)
+    assert pw.offset == 2  # 0 + base_offset(2)
+    assert pw.value == "7"
+
+
+def test_module_property_param_base_unresolvable_is_skipped() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            _module_param(
+                "MP1",
+                ModuleDefStaticParametersParameterProperty(
+                    object_index=1,
+                    occurrence=0,
+                    property_id=50,
+                    offset=0,
+                    bit_offset=0,
+                    base_offset="BO",
+                    base_index=None,
+                    base_occurrence=None,
+                ),
+                value="7",
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    state.module_child("M1", ref_id="MD1")  # BO not in arguments -> unresolvable
+    w = collect_writes(app, idx, {}, state)
+    assert w.prop == []
+
+
+def test_module_memory_union_default() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            ModuleDefStaticParametersUnion(
+                choice=ModuleDefStaticParametersUnionMemory(
+                    code_segment=_SEG_ID, offset=0, bit_offset=0
+                ),
+                size_in_bit=8,
+                parameter=[
+                    _union_param("U1", 0, "10", default=True),
+                    _union_param("U2", 0, "20"),
+                ],
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    state.module_child("M1", ref_id="MD1")
+    w = collect_writes(app, idx, {}, state)
+    assert len(w.mem) == 1
+    assert w.mem[0].param_id == "U1"
+
+
+def test_module_memory_union_base_offset_unresolvable_is_skipped() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            ModuleDefStaticParametersUnion(
+                choice=ModuleDefStaticParametersUnionMemory(
+                    code_segment=_SEG_ID, offset=0, bit_offset=0, base_offset="ARG1"
+                ),
+                size_in_bit=8,
+                parameter=[_union_param("U1", 0, "10", default=True)],
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    state.module_child("M1", ref_id="MD1")
+    w = collect_writes(app, idx, {}, state)
+    assert w.mem == []
+
+
+def test_module_property_union() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            ModuleDefStaticParametersUnion(
+                choice=ModuleDefStaticParametersUnionProperty(
+                    object_index=0,
+                    occurrence=0,
+                    property_id=10,
+                    offset=0,
+                    bit_offset=0,
+                ),
+                size_in_bit=8,
+                parameter=[_union_param("U1", 0, "3", default=True)],
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    state.module_child("M1", ref_id="MD1")
+    w = collect_writes(app, idx, {}, state)
+    assert len(w.prop) == 1
+    assert w.prop[0].param_id == "U1"
+
+
+def test_module_property_union_base_unresolvable_is_skipped() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            ModuleDefStaticParametersUnion(
+                choice=ModuleDefStaticParametersUnionProperty(
+                    object_index=0,
+                    occurrence=0,
+                    property_id=10,
+                    offset=0,
+                    bit_offset=0,
+                    base_offset="BO",
+                ),
+                size_in_bit=8,
+                parameter=[_union_param("U1", 0, "3", default=True)],
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    state.module_child("M1", ref_id="MD1")  # BO not in arguments -> unresolvable
+    w = collect_writes(app, idx, {}, state)
+    assert w.prop == []
+
+
+def test_module_property_union_no_active_or_default_is_skipped() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            ModuleDefStaticParametersUnion(
+                choice=ModuleDefStaticParametersUnionProperty(
+                    object_index=0, occurrence=0, property_id=10, offset=0, bit_offset=0
+                ),
+                size_in_bit=8,
+                parameter=[_union_param("U1", 0, "3")],  # no default
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    state.module_child("M1", ref_id="MD1")
+    w = collect_writes(app, idx, {}, state)
+    assert w.prop == []
+
+
+def test_app_level_property_union_no_active_or_default_is_skipped() -> None:
+    union = ApplicationProgramStaticParametersUnion(
+        choice=PropertyUnion(
+            object_index=0, property_id=10, occurrence=0, offset=0, bit_offset=0
+        ),
+        size_in_bit=8,
+        parameter=[_union_param("U1", 0, "3")],  # no default, no override
+    )
+    app, idx = _app([union])
+    w = collect_writes(app, idx, {})
+    assert w.prop == []
+
+
+def test_module_state_without_ref_id_contributes_nothing() -> None:
+    app, idx = _app([])
+    state = GlobalState()
+    ms = state.module_child("M1")  # no ref_id
+    assert ms.ref_id is None
+    w = collect_writes(app, idx, {}, state)
+    assert w.mem == [] and w.prop == []
+
+
+def test_module_state_with_unknown_ref_id_contributes_nothing() -> None:
+    app, idx = _app([])
+    state = GlobalState()
+    state.module_child("M1", ref_id="NO_SUCH_MODULE_DEF")
+    w = collect_writes(app, idx, {}, state)
+    assert w.mem == [] and w.prop == []
+
+
+def test_module_def_without_parameters_contributes_nothing() -> None:
+    md = _module_def("MD1", None)
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    state.module_child("M1", ref_id="MD1")
+    w = collect_writes(app, idx, {}, state)
+    assert w.mem == [] and w.prop == []
+
+
+def test_nested_submodule_writes_are_collected() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            _module_param(
+                "MP1",
+                ModuleDefStaticParametersParameterMemory(
+                    code_segment=_SEG_ID, offset=0, bit_offset=0
+                ),
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])
+    state = GlobalState()
+    parent = state.module_child("PARENT", ref_id=None)
+    parent.module_child("CHILD", ref_id="MD1")
+    w = collect_writes(app, idx, {}, state)
+    assert len(w.mem) == 1
+    assert w.mem[0].param_id == "MP1"
+
+
+def test_module_instance_overrides_resolve_to_parameter_via_ref() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            _module_param(
+                "MP1",
+                ModuleDefStaticParametersParameterMemory(
+                    code_segment=_SEG_ID, offset=0, bit_offset=0
+                ),
+                value="0",
+            )
+        ],
+    )
+    app, idx = _app(
+        [], module_defs=[md], parameter_refs=[ParameterRef(id="PR1", ref_id="MP1")]
+    )
+    state = GlobalState()
+    ms = state.module_child("M1", ref_id="MD1")
+    ms.param_ref_id_to_value["PR1"] = "42"
+    w = collect_writes(app, idx, {}, state)
+    assert w.mem[0].value == "42"
+
+
+def test_module_instance_override_unknown_parameter_ref_is_skipped() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            _module_param(
+                "MP1",
+                ModuleDefStaticParametersParameterMemory(
+                    code_segment=_SEG_ID, offset=0, bit_offset=0
+                ),
+                value="0",
+            )
+        ],
+    )
+    app, idx = _app([], module_defs=[md])  # no parameter_refs registered at all
+    state = GlobalState()
+    ms = state.module_child("M1", ref_id="MD1")
+    ms.param_ref_id_to_value["PR_UNKNOWN"] = "42"
+    w = collect_writes(app, idx, {}, state)
+    assert w.mem[0].value == "0"  # override ignored, static default used
+
+
+def test_module_instance_override_dangling_parameter_ref_is_skipped() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            _module_param(
+                "MP1",
+                ModuleDefStaticParametersParameterMemory(
+                    code_segment=_SEG_ID, offset=0, bit_offset=0
+                ),
+                value="0",
+            )
+        ],
+    )
+    app, idx = _app(
+        [],
+        module_defs=[md],
+        parameter_refs=[ParameterRef(id="PR1", ref_id="NO_SUCH_PARAM")],
+    )
+    state = GlobalState()
+    ms = state.module_child("M1", ref_id="MD1")
+    ms.param_ref_id_to_value["PR1"] = "42"
+    w = collect_writes(app, idx, {}, state)
+    assert w.mem[0].value == "0"  # override ignored, static default used
+
+
+def test_union_choice_none_contributes_nothing() -> None:
+    union = ApplicationProgramStaticParametersUnion(
+        choice=None,
+        size_in_bit=8,
+        parameter=[_union_param("U1", 0, "1", default=True)],
+    )
+    app, idx = _app([union])
+    w = collect_writes(app, idx, {})
+    assert w.mem == [] and w.prop == []
+
+
+# ---------------------------------------------------------------------------
+# collect_writes: no static parameters at all
+# ---------------------------------------------------------------------------
+
+
+def test_collect_writes_with_no_static_parameters() -> None:
+    app, idx = _app([])
+    app_no_params = ApplicationProgram(
+        id="APP",
+        name="",
+        application_number=1,
+        application_version=1,
+        program_type=app.program_type,
+        mask_version="BV20",
+        load_procedure_style=app.load_procedure_style,
+        pei_type=0,
+        default_language="en",
+        dynamic_table_management=False,
+        linkable=False,
+        static=ApplicationProgramStatic(
+            code=app.static.code,
+            parameter_types=app.static.parameter_types,
+            parameters=None,
+        ),
+    )
+    w = collect_writes(app_no_params, idx, {})
+    assert w.mem == [] and w.prop == []
+
+
+# ---------------------------------------------------------------------------
+# encode_to_memory / build_memory_param_map: unresolvable writes
+# ---------------------------------------------------------------------------
+
+
+def test_encode_to_memory_write_to_unknown_segment_is_skipped() -> None:
+    p = _param(
+        "P1", MemoryParameter(code_segment="NO_SUCH_SEG", offset=0, bit_offset=0)
+    )
+    app, idx = _app([p])
+    mem = encode_to_memory(app, idx, {"P1": "1"})
+    assert mem[_SEG_ID][0] == 0
+
+
+def test_encode_to_memory_write_with_unknown_parameter_type_is_skipped() -> None:
+    p = ApplicationProgramStaticParametersParameter(
+        id="P1",
+        name="",
+        text="",
+        parameter_type="NO_SUCH_PT",
+        value="1",
+        choice=MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0),
+    )
+    app, idx = _app([p])
+    mem = encode_to_memory(app, idx, {})
+    assert mem[_SEG_ID][0] == 0
+
+
+def test_build_memory_param_map_basic() -> None:
+    p = _param("P1", MemoryParameter(code_segment=_SEG_ID, offset=2, bit_offset=0))
+    app, idx = _app([p])
+    pmap = build_memory_param_map(app, idx, {"P1": "9"})
+    assert pmap[_SEG_ID][2] == ("P1", "9")
+
+
+def test_build_memory_param_map_unknown_segment_is_skipped() -> None:
+    p = _param(
+        "P1", MemoryParameter(code_segment="NO_SUCH_SEG", offset=0, bit_offset=0)
+    )
+    app, idx = _app([p])
+    pmap = build_memory_param_map(app, idx, {"P1": "1"})
+    assert pmap == {_SEG_ID: {}}
+
+
+def test_build_memory_param_map_unknown_parameter_type_is_skipped() -> None:
+    p = ApplicationProgramStaticParametersParameter(
+        id="P1",
+        name="",
+        text="",
+        parameter_type="NO_SUCH_PT",
+        value="1",
+        choice=MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0),
+    )
+    app, idx = _app([p])
+    pmap = build_memory_param_map(app, idx, {})
+    assert pmap == {_SEG_ID: {}}
+
+
+# ---------------------------------------------------------------------------
+# encode_to_properties / build_property_param_map
+# ---------------------------------------------------------------------------
+
+
+def test_encode_to_properties_unknown_parameter_type_is_skipped() -> None:
+    p = ApplicationProgramStaticParametersParameter(
+        id="P1",
+        name="",
+        text="",
+        parameter_type="NO_SUCH_PT",
+        value="1",
+        choice=PropertyParameter(
+            object_index=0, property_id=1, occurrence=0, offset=0, bit_offset=0
+        ),
+    )
+    app, idx = _app([p])
+    assert encode_to_properties(app, idx, {}) == {}
+
+
+def test_encode_to_properties_zero_size_type_is_skipped() -> None:
+    pt = ParameterType(
+        id="PT_ZERO",
+        name="Z",
+        choice=ParameterTypeTypeNumber(
+            size_in_bit=0,
+            type_value=ParameterTypeTypeNumberType.UNSIGNED_INT,
+            min_inclusive=0,
+            max_inclusive=0,
+        ),
+    )
+    p = ApplicationProgramStaticParametersParameter(
+        id="P1",
+        name="",
+        text="",
+        parameter_type="PT_ZERO",
+        value="1",
+        choice=PropertyParameter(
+            object_index=0, property_id=1, occurrence=0, offset=0, bit_offset=0
+        ),
+    )
+    app, idx = _app([p], extra_param_types=[pt])
+    assert encode_to_properties(app, idx, {}) == {}
+
+
+def test_encode_to_properties_non_numeric_value_is_skipped() -> None:
+    p = _param(
+        "P1",
+        PropertyParameter(
+            object_index=0, property_id=1, occurrence=0, offset=0, bit_offset=0
+        ),
+    )
+    app, idx = _app([p])
+    assert encode_to_properties(app, idx, {"P1": "not-a-number"}) == {}
+
+
+def test_encode_to_properties_second_write_within_existing_buffer_size() -> None:
+    # P1 writes at offset 1 (needs a 2-byte buffer); P2 writes at offset 0
+    # (needs only a 1-byte buffer) into the same key - the buffer is already
+    # big enough, so the extend branch must not run.
+    p1 = _param(
+        "P1",
+        PropertyParameter(
+            object_index=0, property_id=5, occurrence=0, offset=1, bit_offset=0
+        ),
+    )
+    p2 = _param(
+        "P2",
+        PropertyParameter(
+            object_index=0, property_id=5, occurrence=0, offset=0, bit_offset=0
+        ),
+    )
+    app, idx = _app([p1, p2])
+    props = encode_to_properties(app, idx, {"P1": "11", "P2": "22"})
+    key = (0, 5, 0)
+    assert props[key][0] == 22
+    assert props[key][1] == 11
+
+
+def test_build_property_param_map_basic() -> None:
+    p = _param(
+        "P1",
+        PropertyParameter(
+            object_index=0, property_id=1, occurrence=0, offset=0, bit_offset=0
+        ),
+        value="5",
+    )
+    app, idx = _app([p])
+    pmap = build_property_param_map(app, idx, {})
+    assert pmap[(0, 1, 0)][0] == ("P1", "5")
+
+
+def test_build_property_param_map_unknown_parameter_type_is_skipped() -> None:
+    p = ApplicationProgramStaticParametersParameter(
+        id="P1",
+        name="",
+        text="",
+        parameter_type="NO_SUCH_PT",
+        value="1",
+        choice=PropertyParameter(
+            object_index=0, property_id=1, occurrence=0, offset=0, bit_offset=0
+        ),
+    )
+    app, idx = _app([p])
+    assert build_property_param_map(app, idx, {}) == {}
+
+
+def test_build_property_param_map_zero_size_type_is_skipped() -> None:
+    pt = ParameterType(
+        id="PT_ZERO",
+        name="Z",
+        choice=ParameterTypeTypeNumber(
+            size_in_bit=0,
+            type_value=ParameterTypeTypeNumberType.UNSIGNED_INT,
+            min_inclusive=0,
+            max_inclusive=0,
+        ),
+    )
+    p = ApplicationProgramStaticParametersParameter(
+        id="P1",
+        name="",
+        text="",
+        parameter_type="PT_ZERO",
+        value="1",
+        choice=PropertyParameter(
+            object_index=0, property_id=1, occurrence=0, offset=0, bit_offset=0
+        ),
+    )
+    app, idx = _app([p], extra_param_types=[pt])
+    assert build_property_param_map(app, idx, {}) == {}
