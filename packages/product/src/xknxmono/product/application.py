@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from xknxmono.models import detect_version
 
 from .data import to_ir
+from .errors import ParseError
 
 if TYPE_CHECKING:
     from xknxmono.models.intermediate.application_program_static_t_code import (
@@ -67,10 +68,14 @@ class Application:
 
 def _programs(knx: Knx) -> Iterator[ApplicationProgram]:
     if knx.manufacturer_data is None:
-        return
+        raise ParseError("application XML has no ManufacturerData section")
     for manufacturer in knx.manufacturer_data.manufacturer:
-        if manufacturer.application_programs is not None:
-            yield from manufacturer.application_programs.application_program
+        if manufacturer.application_programs is None:
+            raise ParseError(
+                f"manufacturer {manufacturer.ref_id!r} has no ApplicationPrograms "
+                f"section in an application XML"
+            )
+        yield from manufacturer.application_programs.application_program
 
 
 def parse_application_xml(xml_bytes: bytes, manufacturer_id: str) -> list[Application]:

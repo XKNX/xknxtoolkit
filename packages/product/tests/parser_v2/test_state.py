@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
+import pytest
+
 from xknxmono.models.intermediate import (
     ComObjectInstanceRef,
     ModuleInstance,
@@ -17,6 +19,7 @@ from xknxmono.models.intermediate.module_def_t_arguments_argument import (
     ModuleDefArgumentsArgument,
 )
 from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
+from xknxmono.product.errors import EncodingError
 from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.state import (
     GlobalState,
@@ -32,7 +35,9 @@ from xknxmono.product.parser_v2.state import (
 
 def test_compute_arg_defaults_none_container_returns_empty() -> None:
     assert (
-        compute_arg_defaults(None, [ModuleTextArg(ref_id="A1", id="a1", value="x")])
+        compute_arg_defaults(
+            None, [ModuleTextArg(ref_id="A1", id="a1", value="x")], "MD1"
+        )
         == {}
     )
 
@@ -42,19 +47,21 @@ def test_compute_arg_defaults_matches_text_arg() -> None:
         argument=[ModuleDefArgumentsArgument(id="A1", name="Width")]
     )
     result = compute_arg_defaults(
-        mod_def_args, [ModuleTextArg(ref_id="A1", id="a1", value="10cm")]
+        mod_def_args, [ModuleTextArg(ref_id="A1", id="a1", value="10cm")], "MD1"
     )
     assert result == {"Width": "10cm"}
 
 
-def test_compute_arg_defaults_skips_unmatched_ref_id() -> None:
+def test_compute_arg_defaults_raises_on_unmatched_ref_id() -> None:
     mod_def_args = ModuleDefArguments(
         argument=[ModuleDefArgumentsArgument(id="A1", name="Width")]
     )
-    result = compute_arg_defaults(
-        mod_def_args, [ModuleTextArg(ref_id="NO_SUCH_ARG", id="a1", value="10cm")]
-    )
-    assert result == {}
+    with pytest.raises(EncodingError, match="NO_SUCH_ARG"):
+        compute_arg_defaults(
+            mod_def_args,
+            [ModuleTextArg(ref_id="NO_SUCH_ARG", id="a1", value="10cm")],
+            "MD1",
+        )
 
 
 def test_compute_arg_defaults_skips_non_text_args() -> None:
@@ -62,7 +69,7 @@ def test_compute_arg_defaults_skips_non_text_args() -> None:
         argument=[ModuleDefArgumentsArgument(id="A1", name="Width")]
     )
     numeric = ModuleNumericArg(ref_id="A1", value=5)
-    result = compute_arg_defaults(mod_def_args, [numeric])
+    result = compute_arg_defaults(mod_def_args, [numeric], "MD1")
     assert result == {}
 
 

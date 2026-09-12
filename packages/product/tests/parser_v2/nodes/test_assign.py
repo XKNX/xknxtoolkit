@@ -1,4 +1,7 @@
+import pytest
+
 from xknxmono.models.intermediate import Assign
+from xknxmono.product.errors import EncodingError
 from xknxmono.product.parser_v2.nodes import (
     AssignNode,
     ChooseWhenNode,
@@ -73,8 +76,8 @@ class TestAssignNode:
         result = collection.eval(EvalContext(GlobalState()))
         assert result == [UiSeparator(id="leaf", text=None)]
 
-    def test_assign_no_op_when_both_value_and_source_are_none(self):
+    def test_assign_raises_when_both_value_and_source_are_none(self):
         node = AssignNode(Assign(target_param_ref_ref=_REF_TARGET))
         state = GlobalState()
-        node.eval(EvalContext(state))
-        assert state.parameter_instance_refs() == {}
+        with pytest.raises(EncodingError, match=_REF_TARGET):
+            node.eval(EvalContext(state))

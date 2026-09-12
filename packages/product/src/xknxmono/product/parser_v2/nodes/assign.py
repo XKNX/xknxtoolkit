@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from xknxmono.models.intermediate import Assign
 
+from ...errors import EncodingError
 from ..context import EvalContext
 from ..ui import UiNode
 from .base import DynamicNode
@@ -20,4 +21,9 @@ class AssignNode(DynamicNode):
             value = ctx.get(self._elem.source_param_ref_ref)
             if value is not None:
                 ctx.set(self._elem.target_param_ref_ref, value)
+        else:
+            raise EncodingError(
+                f"Assign to {self._elem.target_param_ref_ref!r} has neither a value "
+                f"nor a source to assign from"
+            )
         return []
