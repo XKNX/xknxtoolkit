@@ -9,11 +9,12 @@ from xknxmono.models.intermediate import (
 )
 from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
 
+from ..errors import EncodingError
 from .application_indexer import ApplicationIndexer
 
 
 def compute_arg_defaults(
-    mod_def_arguments: object, instance_args: list[ModuleArg]
+    mod_def_arguments: object, instance_args: list[ModuleArg], module_def_id: str
 ) -> dict[str, str]:
     """Return {arg_name: value} for all text args in a module instance."""
     result: dict[str, str] = {}
@@ -23,8 +24,12 @@ def compute_arg_defaults(
     for arg in instance_args:
         if isinstance(arg, ModuleTextArg):
             arg_def = arg_def_by_id.get(arg.ref_id)
-            if arg_def is not None:
-                result[arg_def.name] = arg.value
+            if arg_def is None:
+                raise EncodingError(
+                    f"module def {module_def_id!r} has a text arg override for "
+                    f"unknown argument {arg.ref_id!r}"
+                )
+            result[arg_def.name] = arg.value
     return result
 
 

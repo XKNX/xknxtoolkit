@@ -1,9 +1,12 @@
-"""Unit tests for parse_catalog_xml: a manufacturer without a Catalog section is skipped,
+"""Unit tests for parse_catalog_xml: a manufacturer without a Catalog section raises,
 and multiple top-level sections (across one or more manufacturers) are all walked."""
 
 from __future__ import annotations
 
+import pytest
+
 from xknxmono.product.catalog import parse_catalog_xml
+from xknxmono.product.errors import ParseError
 
 _NO_CATALOG_XML = b"""\
 <?xml version="1.0" encoding="utf-8"?>
@@ -35,14 +38,14 @@ _TWO_TOP_LEVEL_SECTIONS_XML = b"""\
 """
 
 
-def test_no_manufacturer_data_yields_no_sections() -> None:
-    doc = parse_catalog_xml(_NO_MANUFACTURER_DATA_XML)
-    assert doc.sections == {}
+def test_no_manufacturer_data_raises() -> None:
+    with pytest.raises(ParseError):
+        parse_catalog_xml(_NO_MANUFACTURER_DATA_XML)
 
 
-def test_manufacturer_without_catalog_yields_no_sections() -> None:
-    doc = parse_catalog_xml(_NO_CATALOG_XML)
-    assert doc.sections == {}
+def test_manufacturer_without_catalog_raises() -> None:
+    with pytest.raises(ParseError, match="M-0008"):
+        parse_catalog_xml(_NO_CATALOG_XML)
 
 
 def test_multiple_top_level_sections_are_all_walked() -> None:
