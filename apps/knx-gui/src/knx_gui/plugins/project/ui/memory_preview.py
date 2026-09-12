@@ -5,13 +5,16 @@ from pathlib import Path
 from imgui_bundle import imgui
 
 from knx_gui.device import Device
+from knx_gui.plugins.base import Logger
 from knx_gui.plugins.project.strings import S
 from knx_gui.widgets import HexView
+from xknxmono.product.errors import EncodingError
 
 
 class MemoryPreviewWindow:
-    def __init__(self, get_devices: Callable[[], list[Device]]) -> None:
+    def __init__(self, get_devices: Callable[[], list[Device]], log: Logger) -> None:
         self._get_devices = get_devices
+        self._log = log
         self._device: Device | None = None
         self._show: bool = False
         self._segments: dict[str, bytes] = {}
@@ -23,6 +26,7 @@ class MemoryPreviewWindow:
         self._ref_data: dict[str, bytes] = {}
         self._ref_path_buf: str = ""
         self._ref_seg_id: str | None = None
+        self._last_encode_error: str | None = None
 
     def open(self, device: Device) -> None:
         self._device = device
@@ -38,9 +42,18 @@ class MemoryPreviewWindow:
             self._device = devices[0]
 
         device = self._device
-        self._segments = device.encode_to_memory()
-        self._base_addrs = device.get_segment_base_addrs()
-        self._param_maps = device.get_memory_param_map()
+        try:
+            self._segments = device.encode_to_memory()
+            self._base_addrs = device.get_segment_base_addrs()
+            self._param_maps = device.get_memory_param_map()
+        except EncodingError as e:
+            if str(e) != self._last_encode_error:
+                self._last_encode_error = str(e)
+                self._log.error(
+                    "memory_preview_encode_failed", device=device.name, error=str(e)
+                )
+            return
+        self._last_encode_error = None
 
         imgui.set_next_window_size(imgui.ImVec2(760, 540), imgui.Cond_.first_use_ever)
         opened, p_open = imgui.begin(S.CONFIGURE_MEMORY_PREVIEW, self._show)
