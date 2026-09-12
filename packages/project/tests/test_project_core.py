@@ -771,6 +771,95 @@ def test_set_com_object_sending_unknown_link_is_a_no_op(tmp_path: Path):
     svc.undo(pid)  # never captured -> revert() no-ops too
 
 
+def test_open_path_with_no_project_row_raises(tmp_path: Path):
+    svc = ProjectService()
+    with pytest.raises(ValueError, match="not a project"):
+        svc.open(tmp_path / "empty.xknx")  # never created -> schema exists, no rows
+
+
+def test_move_device_without_address_skips_uniqueness_check(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    backbone = _backbone_segment(svc, pid)
+    area = svc.create_area(pid, 0, 1, "Area")
+    svc.create_line(pid, area, 0, "Line")
+    other = svc.topology(pid, 0).areas[1].lines[0].segments[0].id
+
+    dev = svc.add_device(pid, backbone, PRODUCT, address=5, name="D")
+    svc.move_device(pid, dev, other, None)  # no address -> no clash possible
+    moved = svc.devices(pid)[0]
+    assert moved.segment_id == other
+    assert moved.address is None
+
+
+def test_device_unknown_id_raises(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    with pytest.raises(KeyError, match="No device with id"):
+        svc.device(pid, 999999)
+
+
+def test_group_address_unknown_id_raises(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    with pytest.raises(KeyError, match="No group address with id"):
+        svc.group_address(pid, 999999)
+
+
+def test_next_free_group_address_exhausted_raises(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    with pytest.raises(ValueError, match="no free group address"):
+        svc.next_free_group_address(pid, 0, start=0x10000)
+
+
+def test_individual_address_unknown_device_raises(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    with pytest.raises(KeyError, match="No device with id"):
+        svc.individual_address(pid, 999999)
+
+
+def test_next_free_individual_address_unknown_line_raises(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    with pytest.raises(KeyError, match="No line with id"):
+        svc.next_free_individual_address(pid, 999999)
+
+
+def test_next_free_individual_address_exhausted_raises(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    seg = _backbone_segment(svc, pid)
+    for octet in range(1, 256):
+        svc.add_device(pid, seg, PRODUCT, address=octet, name=f"D{octet}")
+    with pytest.raises(ValueError, match="no free individual address"):
+        svc.next_free_individual_address(pid, svc.topology(pid, 0).areas[0].lines[0].id)
+
+
+def test_set_individual_address_unknown_device_raises(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    with pytest.raises(KeyError, match="No device with id"):
+        svc.set_individual_address(pid, 999999, "1.1.1")
+
+
+def test_installation_unknown_index_raises(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    with pytest.raises(KeyError, match="No installation with index"):
+        svc.topology(pid, 99)
+
+
+def test_first_segment_no_segment_raises(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    area = svc.create_area(pid, 0, 1, "Area")
+    svc.create_line(pid, area, 1, "Line")
+    seg = svc.topology(pid, 0).areas[1].lines[0].segments[0].id
+    svc.remove_segment(pid, seg)  # line now has zero segments
+
+    dev = svc.add_device(pid, _backbone_segment(svc, pid), PRODUCT, address=1, name="D")
+    with pytest.raises(KeyError, match=r"Line \d+ has no segment"):
+        svc.set_individual_address(pid, dev, "1.1.5")
+
+
+def test_check_unique_address_unknown_segment_raises(tmp_path: Path):
+    svc, pid = _new(tmp_path)
+    with pytest.raises(KeyError, match="No segment with id"):
+        svc.add_device(pid, 999999, PRODUCT, address=1, name="D")
+
+
 def test_multiple_concurrent_projects(tmp_path: Path):
     svc = ProjectService()
     a = svc.create(tmp_path / "a.xknxproj", "P-000A")
