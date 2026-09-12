@@ -17,6 +17,12 @@ from xknxmono.models.intermediate.application_program_static_t_code import (
 from xknxmono.models.intermediate.application_program_static_t_code_absolute_segment import (
     ApplicationProgramStaticCodeAbsoluteSegment,
 )
+from xknxmono.models.intermediate.application_program_static_t_options import (
+    ApplicationProgramStaticOptions,
+)
+from xknxmono.models.intermediate.application_program_static_t_options_parameter_byte_order import (
+    ApplicationProgramStaticOptionsParameterByteOrder,
+)
 from xknxmono.models.intermediate.application_program_static_t_parameter_refs import (
     ApplicationProgramStaticParameterRefs,
 )
@@ -74,17 +80,35 @@ from xknxmono.models.intermediate.parameter_type_t_type_color import (
 from xknxmono.models.intermediate.parameter_type_t_type_color_space import (
     ParameterTypeTypeColorSpace,
 )
+from xknxmono.models.intermediate.parameter_type_t_type_date import (
+    ParameterTypeTypeDate,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_date_encoding import (
+    ParameterTypeTypeDateEncoding,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_float import (
     ParameterTypeTypeFloat,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_float_encoding import (
     ParameterTypeTypeFloatEncoding,
 )
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress import (
+    ParameterTypeTypeIpaddress,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress_address_type import (
+    ParameterTypeTypeIpaddressAddressType,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress_version import (
+    ParameterTypeTypeIpaddressVersion,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_number import (
     ParameterTypeTypeNumber,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_number_type import (
     ParameterTypeTypeNumberType,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_raw_data import (
+    ParameterTypeTypeRawData,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_text import (
     ParameterTypeTypeText,
@@ -103,6 +127,7 @@ from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.encode import (
     Writes,
     _encode_value,  # pyright: ignore[reportPrivateUsage]
+    _size_in_bit,  # pyright: ignore[reportPrivateUsage]
     build_memory_param_map,
     build_property_param_map,
     collect_writes,
@@ -181,6 +206,7 @@ def _app(
     extra_param_types: list[ParameterType] | None = None,
     module_defs: list[ModuleDef] | None = None,
     parameter_refs: list[ParameterRef] | None = None,
+    options: ApplicationProgramStaticOptions | None = None,
 ) -> tuple[ApplicationProgram, ApplicationIndexer]:
     app = ApplicationProgram(
         id="APP",
@@ -207,6 +233,7 @@ def _app(
                 if parameter_refs is not None
                 else None
             ),
+            options=options,
         ),
         module_defs=(
             ApplicationProgramModuleDefs(module_def=module_defs)
@@ -428,6 +455,42 @@ def test_encode_to_memory_sub_byte() -> None:
     assert mem[_SEG_ID][0] == 0x03  # bits 4-7 = 0b0011
 
 
+def test_encode_to_memory_big_endian_is_default() -> None:
+    app, idx = _app(
+        [_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))],
+        pt_size=16,
+    )
+    mem = encode_to_memory(app, idx, {"P1": "4660"})  # 0x1234
+    assert mem[_SEG_ID][0:2] == bytes([0x12, 0x34])
+
+
+def test_encode_to_memory_little_endian_reverses_multi_byte_number() -> None:
+    app, idx = _app(
+        [_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))],
+        pt_size=16,
+        options=ApplicationProgramStaticOptions(
+            parameter_byte_order=(
+                ApplicationProgramStaticOptionsParameterByteOrder.LITTLE_ENDIAN
+            )
+        ),
+    )
+    mem = encode_to_memory(app, idx, {"P1": "4660"})  # 0x1234
+    assert mem[_SEG_ID][0:2] == bytes([0x34, 0x12])
+
+
+def test_encode_to_memory_little_endian_does_not_reverse_single_byte() -> None:
+    app, idx = _app(
+        [_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))],
+        options=ApplicationProgramStaticOptions(
+            parameter_byte_order=(
+                ApplicationProgramStaticOptionsParameterByteOrder.LITTLE_ENDIAN
+            )
+        ),
+    )
+    mem = encode_to_memory(app, idx, {"P1": "255"})
+    assert mem[_SEG_ID][0] == 255
+
+
 # ---------------------------------------------------------------------------
 # encode_to_properties
 # ---------------------------------------------------------------------------
@@ -594,6 +657,105 @@ def test_encode_value_color_rgb() -> None:
 def test_encode_value_color_non_hex_value_returns_none() -> None:
     tc = ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGB)
     assert _encode_value("not-a-color", 24, tc) is None
+
+
+def test_encode_value_color_rgbw() -> None:
+    tc = ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGBW)
+    assert _encode_value("#1A2B3C4D", 32, tc) == 0x1A2B3C4D
+
+
+def test_encode_value_color_hsv_from_pure_red() -> None:
+    tc = ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.HSV)
+    # Pure red -> hue 0, full saturation and value.
+    assert _encode_value("#FF0000", 24, tc) == 0x00FFFF
+
+
+def test_encode_value_color_too_short_returns_none() -> None:
+    tc = ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGB)
+    assert _encode_value("#1A2B", 24, tc) is None
+
+
+def test_encode_value_date() -> None:
+    tc = ParameterTypeTypeDate(encoding=ParameterTypeTypeDateEncoding.DPT_11)
+    assert _encode_value("2024-03-05", 24, tc) == (5 << 16) | (3 << 8) | 24
+
+
+def test_encode_value_date_hides_year_when_not_displayed() -> None:
+    tc = ParameterTypeTypeDate(
+        encoding=ParameterTypeTypeDateEncoding.DPT_11, display_the_year=False
+    )
+    assert _encode_value("2024-03-05", 24, tc) == (5 << 16) | (3 << 8)
+
+
+def test_encode_value_date_invalid_format_returns_none() -> None:
+    tc = ParameterTypeTypeDate(encoding=ParameterTypeTypeDateEncoding.DPT_11)
+    assert _encode_value("not-a-date", 24, tc) is None
+
+
+def test_encode_value_ipaddress_v4() -> None:
+    tc = ParameterTypeTypeIpaddress(
+        address_type=ParameterTypeTypeIpaddressAddressType.HOST_ADDRESS
+    )
+    assert _encode_value("192.168.1.10", 32, tc) == 0xC0A8010A
+
+
+def test_encode_value_ipaddress_invalid_returns_none() -> None:
+    tc = ParameterTypeTypeIpaddress(
+        address_type=ParameterTypeTypeIpaddressAddressType.HOST_ADDRESS
+    )
+    assert _encode_value("not-an-address", 32, tc) is None
+
+
+def test_encode_value_raw_data() -> None:
+    tc = ParameterTypeTypeRawData(max_size=4)
+    assert _encode_value("DEADBEEF", 32, tc) == 0xDEADBEEF
+
+
+def test_encode_value_raw_data_pads_short_input() -> None:
+    tc = ParameterTypeTypeRawData(max_size=4)
+    assert _encode_value("AB", 32, tc) == 0xAB000000
+
+
+def test_encode_value_raw_data_invalid_hex_returns_none() -> None:
+    tc = ParameterTypeTypeRawData(max_size=4)
+    assert _encode_value("not-hex", 32, tc) is None
+
+
+def test_size_in_bit_date() -> None:
+    tc = ParameterTypeTypeDate(encoding=ParameterTypeTypeDateEncoding.DPT_11)
+    assert _size_in_bit(tc) == 24
+
+
+def test_size_in_bit_ipaddress_v4_and_v6() -> None:
+    v4 = ParameterTypeTypeIpaddress(
+        address_type=ParameterTypeTypeIpaddressAddressType.HOST_ADDRESS,
+        version=ParameterTypeTypeIpaddressVersion.IPV4,
+    )
+    v6 = ParameterTypeTypeIpaddress(
+        address_type=ParameterTypeTypeIpaddressAddressType.HOST_ADDRESS,
+        version=ParameterTypeTypeIpaddressVersion.IPV6,
+    )
+    assert _size_in_bit(v4) == 32
+    assert _size_in_bit(v6) == 128
+
+
+def test_size_in_bit_color_rgb_rgbw_hsv() -> None:
+    assert (
+        _size_in_bit(ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGB))
+        == 24
+    )
+    assert (
+        _size_in_bit(ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGBW))
+        == 32
+    )
+    assert (
+        _size_in_bit(ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.HSV))
+        == 24
+    )
+
+
+def test_size_in_bit_raw_data_uses_max_size() -> None:
+    assert _size_in_bit(ParameterTypeTypeRawData(max_size=10)) == 80
 
 
 def test_encode_value_unhandled_type_choice_returns_none() -> None:

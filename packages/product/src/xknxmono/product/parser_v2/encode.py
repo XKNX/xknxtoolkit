@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import ipaddress
 import struct
 from typing import NamedTuple
 
 from xknxmono.models.intermediate import ApplicationProgram
+from xknxmono.models.intermediate.application_program_static_t_options_parameter_byte_order import (
+    ApplicationProgramStaticOptionsParameterByteOrder,
+)
 from xknxmono.models.intermediate.application_program_static_t_parameters_parameter import (
     ApplicationProgramStaticParametersParameter,
 )
@@ -34,14 +38,29 @@ from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
 from xknxmono.models.intermediate.parameter_type_t_type_color import (
     ParameterTypeTypeColor,
 )
+from xknxmono.models.intermediate.parameter_type_t_type_color_space import (
+    ParameterTypeTypeColorSpace,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_date import (
+    ParameterTypeTypeDate,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_float import (
     ParameterTypeTypeFloat,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_float_encoding import (
     ParameterTypeTypeFloatEncoding,
 )
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress import (
+    ParameterTypeTypeIpaddress,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress_version import (
+    ParameterTypeTypeIpaddressVersion,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_number import (
     ParameterTypeTypeNumber,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_raw_data import (
+    ParameterTypeTypeRawData,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_restriction import (
     ParameterTypeTypeRestriction,
@@ -128,84 +147,248 @@ _FLOAT_ENCODING_SIZE_IN_BIT = {
     ParameterTypeTypeFloatEncoding.IEEE_754_DOUBLE: 64,
 }
 
+_DATE_SIZE_IN_BIT = (
+    24  # DPT 11: day/month/year octets - the only Date encoding there is
+)
+
+_IPADDRESS_SIZE_IN_BIT = {
+    ParameterTypeTypeIpaddressVersion.IPV4: 32,
+    ParameterTypeTypeIpaddressVersion.IPV6: 128,
+}
+
+_COLOR_SIZE_IN_BIT = {
+    ParameterTypeTypeColorSpace.RGB: 24,
+    ParameterTypeTypeColorSpace.RGBW: 32,
+    ParameterTypeTypeColorSpace.HSV: 24,
+}
+
 
 def _size_in_bit(tc: object) -> int | None:
     """Bit-width of a parameter type's encoded value.
 
-    ParameterTypeTypeFloat has no size_in_bit field of its own - the encoding itself
-    fixes the width (DPT 9 is 2 bytes, IEEE-754 single/double are 4/8) - so it's derived
-    from .encoding here instead. Every other type carries size_in_bit directly.
+    Several types have no size_in_bit field of their own because their encoding fixes
+    the width: Float (DPT 9 is 2 bytes, IEEE-754 single/double are 4/8), Date (DPT 11
+    is always 3 bytes), IP address (4 bytes for IPv4, 16 for IPv6) and Color (3 bytes
+    for RGB/HSV, 4 for RGBW). RawData carries its width as max_size (bytes), not bits.
+    Every other type carries size_in_bit directly.
     """
     if isinstance(tc, ParameterTypeTypeFloat):
         return _FLOAT_ENCODING_SIZE_IN_BIT.get(tc.encoding)
+    if isinstance(tc, ParameterTypeTypeDate):
+        return _DATE_SIZE_IN_BIT
+    if isinstance(tc, ParameterTypeTypeIpaddress):
+        return _IPADDRESS_SIZE_IN_BIT.get(tc.version)
+    if isinstance(tc, ParameterTypeTypeColor):
+        return _COLOR_SIZE_IN_BIT.get(tc.space)
+    if isinstance(tc, ParameterTypeTypeRawData):
+        return tc.max_size * 8
     return getattr(tc, "size_in_bit", None)
 
 
 def _write_size_in_bit(w: MemWrite | PropWrite, tc: object) -> int | None:
     """Bit-width for one write: the parameter type's own size, or - for a type that
-    doesn't carry one (e.g. Color) - the enclosing union's declared width, which is
-    the only place such a type's size is recorded.
+    doesn't carry one - the enclosing union's declared width, which is the only place
+    such a type's size is recorded.
     """
     size = _size_in_bit(tc)
     return size if size is not None else w.union_size_in_bit
 
 
-def _encode_value(str_value: str, size_in_bit: int, tc: object) -> int | None:
-    if isinstance(tc, (ParameterTypeTypeNumber, ParameterTypeTypeRestriction)):
-        try:
-            v = int(str_value)
-        except (ValueError, TypeError):
-            return None
-        return v & ((1 << size_in_bit) - 1)
+def _program_little_endian(app: ApplicationProgram) -> bool:
+    """Whether the application program encodes multi-octet numeric values little-endian.
 
-    if isinstance(tc, ParameterTypeTypeFloat):
-        try:
-            f = float(str_value)
-        except (ValueError, TypeError):
+    Read from the static section's ParameterByteOrder option (defaults to big-endian
+    when the option, or the whole Options section, is absent).
+    """
+    options = app.static.options
+    return (
+        options is not None
+        and options.parameter_byte_order
+        == ApplicationProgramStaticOptionsParameterByteOrder.LITTLE_ENDIAN
+    )
+
+
+def _apply_byte_order(
+    value: int | None, size_in_bit: int, little_endian: bool
+) -> int | None:
+    """Reverse the octet order of a byte-aligned, multi-octet numeric value.
+
+    Only plain numeric encodings (Number/Restriction/Float/Time) are byte-order
+    sensitive - a program's ParameterByteOrder option governs how a single number is
+    split across octets. Text, Date, IP address, Color and RawData are structured
+    byte sequences where each octet's position is fixed by the type itself, not by
+    program-wide byte order, so this is never applied to them.
+    """
+    if value is None or not little_endian or size_in_bit < 16 or size_in_bit % 8 != 0:
+        return value
+    n = size_in_bit // 8
+    return int.from_bytes(value.to_bytes(n, "big")[::-1], "big")
+
+
+def _encode_number(str_value: str, size_in_bit: int) -> int | None:
+    """Signed/unsigned integer, masked to size_in_bit (two's complement)."""
+    try:
+        v = int(str_value)
+    except (ValueError, TypeError):
+        return None
+    return v & ((1 << size_in_bit) - 1)
+
+
+def _encode_restriction(str_value: str, size_in_bit: int) -> int | None:
+    """Enumeration value of a restricted parameter type, encoded as a plain integer."""
+    return _encode_number(str_value, size_in_bit)
+
+
+def _encode_float(
+    str_value: str, size_in_bit: int, tc: ParameterTypeTypeFloat
+) -> int | None:
+    try:
+        f = float(str_value)
+    except (ValueError, TypeError):
+        return None
+    if tc.encoding == ParameterTypeTypeFloatEncoding.DPT_9:
+        mantissa = round(f * 100)
+        exp = 0
+        while mantissa < -2048 or mantissa > 2047:
+            mantissa >>= 1
+            exp += 1
+        if exp > 15:
             return None
-        if tc.encoding == ParameterTypeTypeFloatEncoding.DPT_9:
-            mantissa = round(f * 100)
-            exp = 0
-            while mantissa < -2048 or mantissa > 2047:
-                mantissa >>= 1
-                exp += 1
-            if exp > 15:
-                return None
-            sign = 1 if mantissa < 0 else 0
-            return (sign << 15) | (exp << 11) | (mantissa & 0x7FF)
-        if tc.encoding == ParameterTypeTypeFloatEncoding.IEEE_754_SINGLE:
-            return struct.unpack(">I", struct.pack(">f", f))[0]
-        if tc.encoding == ParameterTypeTypeFloatEncoding.IEEE_754_DOUBLE:
-            return struct.unpack(">Q", struct.pack(">d", f))[0]
+        sign = 1 if mantissa < 0 else 0
+        return (sign << 15) | (exp << 11) | (mantissa & 0x7FF)
+    if tc.encoding == ParameterTypeTypeFloatEncoding.IEEE_754_SINGLE:
+        return struct.unpack(">I", struct.pack(">f", f))[0]
+    if tc.encoding == ParameterTypeTypeFloatEncoding.IEEE_754_DOUBLE:
+        return struct.unpack(">Q", struct.pack(">d", f))[0]
+    return None
+
+
+def _encode_text(str_value: str, size_in_bit: int) -> int:
+    """Code-page (Latin-1) text, truncated and zero-padded to the field width."""
+    encoded = str_value.encode("latin-1", errors="replace")
+    n_bytes = size_in_bit // 8
+    padded = encoded[:n_bytes].ljust(n_bytes, b"\x00")
+    return int.from_bytes(padded, "big")
+
+
+def _encode_time(
+    str_value: str, size_in_bit: int, tc: ParameterTypeTypeTime
+) -> int | None:
+    """Duration as a plain integer count of the type's configured unit.
+
+    Packed variants (e.g. days/hours/minutes/seconds sharing one value) split the
+    value across multiple bit fields - that layout isn't implemented, so they're left
+    unencodable rather than guessed at.
+    """
+    if tc.unit not in _SIMPLE_TIME_UNITS:
+        return None
+    return _encode_number(str_value, size_in_bit)
+
+
+def _encode_date(str_value: str, tc: ParameterTypeTypeDate) -> int | None:
+    """KNX date (DPT 11): 3 octets day, month, year mod 100 (value "YYYY-MM-DD").
+
+    When the type does not display the year, the year octet is written as zero.
+    """
+    parts = str_value.split("-")
+    if len(parts) != 3:
+        return None
+    try:
+        year, month, day = (int(p) for p in parts)
+    except ValueError:
+        return None
+    year_octet = 0 if not tc.display_the_year else year % 100
+    return (day << 16) | (month << 8) | year_octet
+
+
+def _encode_ipaddress(str_value: str) -> int | None:
+    """IPv4/IPv6 address string to its network-order octets, as an integer."""
+    try:
+        return int(ipaddress.ip_address(str_value))
+    except ValueError:
         return None
 
+
+def _rgb_to_hsv(r: int, g: int, b: int) -> tuple[int, int, int]:
+    """Convert an 8-bit RGB triple to an 8-bit-per-component KNX HSV triple."""
+    low = min(r, g, b)
+    high = max(r, g, b)
+    if low == high:
+        hue = 0.0
+    elif high == r:
+        hue = 60.0 * (g - b) / (high - low)
+    elif high == g:
+        hue = 60.0 * (2.0 + (b - r) / (high - low))
+    else:
+        hue = 60.0 * (4.0 + (r - g) / (high - low))
+    hue %= 360.0
+    saturation = 0 if high == 0 else round(255.0 * (high - low) / high)
+    return round(255.0 * hue / 360.0), saturation, high
+
+
+def _encode_color(str_value: str, tc: ParameterTypeTypeColor) -> int | None:
+    """Color from a "#RRGGBB"/"#RRGGBBWW" hex string, per the type's color space.
+
+    RGB and RGBW are stored verbatim (3 or 4 octets); HSV is converted from the same
+    hex RGB input, since that's the only value format the UI's color picker produces.
+    """
+    try:
+        raw = bytes.fromhex(str_value.lstrip("#"))
+    except ValueError:
+        return None
+    if tc.space == ParameterTypeTypeColorSpace.RGBW:
+        if len(raw) < 4:
+            return None
+        return int.from_bytes(raw[:4], "big")
+    if len(raw) < 3:
+        return None
+    r, g, b = raw[0], raw[1], raw[2]
+    if tc.space == ParameterTypeTypeColorSpace.HSV:
+        h, s, v = _rgb_to_hsv(r, g, b)
+        return (h << 16) | (s << 8) | v
+    return (r << 16) | (g << 8) | b
+
+
+def _encode_raw_data(str_value: str, size_in_bit: int) -> int | None:
+    """Raw octets from a hex string, truncated/zero-padded to the field width."""
+    try:
+        data = bytes.fromhex(str_value)
+    except ValueError:
+        return None
+    n_bytes = size_in_bit // 8
+    padded = data[:n_bytes].ljust(n_bytes, b"\x00")
+    return int.from_bytes(padded, "big")
+
+
+def _encode_value(
+    str_value: str, size_in_bit: int, tc: object, *, little_endian: bool = False
+) -> int | None:
+    if isinstance(tc, ParameterTypeTypeNumber):
+        return _apply_byte_order(
+            _encode_number(str_value, size_in_bit), size_in_bit, little_endian
+        )
+    if isinstance(tc, ParameterTypeTypeRestriction):
+        return _apply_byte_order(
+            _encode_restriction(str_value, size_in_bit), size_in_bit, little_endian
+        )
+    if isinstance(tc, ParameterTypeTypeFloat):
+        return _apply_byte_order(
+            _encode_float(str_value, size_in_bit, tc), size_in_bit, little_endian
+        )
     if isinstance(tc, ParameterTypeTypeText):
-        encoded = str_value.encode("latin-1", errors="replace")
-        n_bytes = size_in_bit // 8
-        padded = encoded[:n_bytes].ljust(n_bytes, b"\x00")
-        result = 0
-        for b in padded:
-            result = (result << 8) | b
-        return result
-
+        return _encode_text(str_value, size_in_bit)
     if isinstance(tc, ParameterTypeTypeTime):
-        if tc.unit not in _SIMPLE_TIME_UNITS:
-            # Packed variants (e.g. days/hours/minutes/seconds in one value) split the
-            # value across multiple bit fields - that layout isn't implemented yet.
-            return None
-        try:
-            v = int(str_value)
-        except (ValueError, TypeError):
-            return None
-        return v & ((1 << size_in_bit) - 1)
-
+        return _apply_byte_order(
+            _encode_time(str_value, size_in_bit, tc), size_in_bit, little_endian
+        )
     if isinstance(tc, ParameterTypeTypeColor):
-        try:
-            v = int(str_value.lstrip("#"), 16)
-        except (ValueError, TypeError):
-            return None
-        return v & ((1 << size_in_bit) - 1)
-
+        return _encode_color(str_value, tc)
+    if isinstance(tc, ParameterTypeTypeDate):
+        return _encode_date(str_value, tc)
+    if isinstance(tc, ParameterTypeTypeIpaddress):
+        return _encode_ipaddress(str_value)
+    if isinstance(tc, ParameterTypeTypeRawData):
+        return _encode_raw_data(str_value, size_in_bit)
     return None
 
 
@@ -536,6 +719,7 @@ def encode_to_memory(
     Bit layout: bit_offset=0 is the MSB of each byte; values stored big-endian.
     """
     writes = collect_writes(app, idx, overrides, state)
+    little_endian = _program_little_endian(app)
     bufs: dict[str, bytearray] = {
         seg_id: bytearray(seg.data) if seg.data else bytearray(seg.size)
         for seg_id, seg in idx.code_segments.items()
@@ -559,7 +743,7 @@ def encode_to_memory(
                 f"parameter type {w.parameter_type!r} (used by {w.param_id!r}) has "
                 f"no size_in_bit"
             )
-        encoded = _encode_value(w.value, size_in_bit, tc)
+        encoded = _encode_value(w.value, size_in_bit, tc, little_endian=little_endian)
         if encoded is None:
             raise EncodingError(
                 f"parameter {w.param_id!r} value {w.value!r} could not be encoded "
@@ -618,6 +802,7 @@ def encode_to_properties(
     Buffers are sized dynamically to fit all writes.
     """
     writes = collect_writes(app, idx, overrides, state)
+    little_endian = _program_little_endian(app)
     bufs: dict[PropertyKey, bytearray] = {}
     for w in writes.prop:
         pt = idx.parameter_types.get(w.parameter_type)
@@ -633,7 +818,7 @@ def encode_to_properties(
                 f"parameter type {w.parameter_type!r} (used by {w.param_id!r}) has "
                 f"no size_in_bit"
             )
-        encoded = _encode_value(w.value, size_in_bit, tc)
+        encoded = _encode_value(w.value, size_in_bit, tc, little_endian=little_endian)
         if encoded is None:
             raise EncodingError(
                 f"parameter {w.param_id!r} value {w.value!r} could not be encoded "
