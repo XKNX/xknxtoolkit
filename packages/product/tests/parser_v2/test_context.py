@@ -1,10 +1,37 @@
+import pytest
+
 from xknxmono.models.intermediate import (
+    ApplicationProgram,
     ModuleArg,
     ModuleInstance,
     ModuleNumericArg,
     ParameterInstanceRef,
 )
+from xknxmono.models.intermediate.allocator_t import Allocator as IrAllocator
+from xknxmono.models.intermediate.application_program_static_t import (
+    ApplicationProgramStatic,
+)
+from xknxmono.models.intermediate.application_program_t_module_defs import (
+    ApplicationProgramModuleDefs,
+)
+from xknxmono.models.intermediate.application_program_type_t import (
+    ApplicationProgramType,
+)
+from xknxmono.models.intermediate.load_procedure_style_t import LoadProcedureStyle
+from xknxmono.models.intermediate.module_def_static_t import ModuleDefStatic
+from xknxmono.models.intermediate.module_def_static_t_allocators import (
+    ModuleDefStaticAllocators,
+)
+from xknxmono.models.intermediate.module_def_t import ModuleDef
+from xknxmono.models.intermediate.module_def_t_arguments import ModuleDefArguments
+from xknxmono.models.intermediate.module_def_t_arguments_argument import (
+    ModuleDefArgumentsArgument,
+)
+from xknxmono.models.intermediate.module_def_t_arguments_argument_alignment import (
+    ModuleDefArgumentsArgumentAlignment,
+)
 from xknxmono.product.parser_v2.allocator import Allocator
+from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.nodes import (
     ChooseWhenNode,
     DynamicNode,
@@ -314,3 +341,71 @@ class TestSetInstanceRef:
         state = GlobalState()
         state.set_instance_ref(_QUALIFIED_REF, "5")
         assert state.param_ref_id_to_value[_QUALIFIED_REF] == "5"
+
+
+def _indexer_with_allocator(
+    def_id: str, alloc_id: str, arg_id: str
+) -> ApplicationIndexer:
+    md = ModuleDef(
+        id=def_id,
+        name="",
+        static=ModuleDefStatic(
+            allocators=ModuleDefStaticAllocators(
+                allocator=[
+                    IrAllocator(id=alloc_id, name="", start=100, max_inclusive=199)
+                ]
+            )
+        ),
+        arguments=ModuleDefArguments(
+            argument=[
+                ModuleDefArgumentsArgument(
+                    id=arg_id,
+                    name="",
+                    allocates=10,
+                    alignment=ModuleDefArgumentsArgumentAlignment.VALUE_1,
+                )
+            ]
+        ),
+    )
+    app = ApplicationProgram(
+        id="APP",
+        name="",
+        application_number=1,
+        application_version=1,
+        program_type=ApplicationProgramType.APPLICATION_PROGRAM,
+        mask_version="BV20",
+        load_procedure_style=LoadProcedureStyle.DEFAULT_PROCEDURE,
+        pei_type=0,
+        default_language="en",
+        dynamic_table_management=False,
+        linkable=False,
+        static=ApplicationProgramStatic(),
+        module_defs=ApplicationProgramModuleDefs(module_def=[md]),
+    )
+    return ApplicationIndexer(app)
+
+
+class TestEvalContextAllocate:
+    def test_allocate_without_indexer_raises(self):
+        ctx = EvalContext(GlobalState())
+        with pytest.raises(RuntimeError, match="requires an ApplicationIndexer"):
+            ctx.allocate("MD1", "L-1", "A-1")
+
+    def test_allocate_returns_start_address_on_first_call(self):
+        idx = _indexer_with_allocator("MD1", "L-1", "A-1")
+        ctx = EvalContext(GlobalState(), idx=idx)
+        assert ctx.allocate("MD1", "L-1", "A-1") == 100
+
+    def test_allocate_advances_position_on_subsequent_calls(self):
+        idx = _indexer_with_allocator("MD1", "L-1", "A-1")
+        ctx = EvalContext(GlobalState(), idx=idx)
+        assert ctx.allocate("MD1", "L-1", "A-1") == 100
+        assert ctx.allocate("MD1", "L-1", "A-1") == 110
+
+
+class TestEvalContextRepeatIdx:
+    def test_default_repeat_idx_is_one(self):
+        assert EvalContext(GlobalState()).repeat_idx == 1
+
+    def test_repeat_ctx_sets_repeat_idx(self):
+        assert EvalContext(GlobalState()).repeat_ctx(5).repeat_idx == 5
