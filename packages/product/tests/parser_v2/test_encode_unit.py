@@ -562,13 +562,13 @@ def test_resolve_param_values_resolves_via_parameter_ref() -> None:
     assert overrides == {"P1": "9"}
 
 
-def test_resolve_param_values_skips_dangling_ref() -> None:
+def test_resolve_param_values_dangling_ref_raises() -> None:
     _app_ignored, idx = _app(
         [], parameter_refs=[ParameterRef(id="PR1", ref_id="NO_SUCH_PARAM")]
     )
     state = GlobalState(values={"PR1": "9"})
-    overrides = resolve_param_values(idx, state)
-    assert overrides == {}
+    with pytest.raises(EncodingError, match="PR1"):
+        resolve_param_values(idx, state)
 
 
 # ---------------------------------------------------------------------------
@@ -641,7 +641,7 @@ def test_module_memory_param_base_offset_none_defaults_to_zero() -> None:
     assert w.mem[0].offset == 3
 
 
-def test_module_memory_param_base_offset_unresolvable_is_skipped() -> None:
+def test_module_memory_param_base_offset_unresolvable_raises() -> None:
     md = _module_def(
         "MD1",
         [
@@ -656,8 +656,8 @@ def test_module_memory_param_base_offset_unresolvable_is_skipped() -> None:
     app, idx = _app([], module_defs=[md])
     state = GlobalState()
     state.module_child("M1", ref_id="MD1")  # ARG1 not in arguments -> unresolvable
-    w = collect_writes(app, idx, {}, state)
-    assert w.mem == []
+    with pytest.raises(EncodingError, match="MP1"):
+        collect_writes(app, idx, {}, state)
 
 
 def test_module_property_param() -> None:
@@ -700,7 +700,7 @@ def test_module_property_param() -> None:
     assert pw.value == "7"
 
 
-def test_module_property_param_base_unresolvable_is_skipped() -> None:
+def test_module_property_param_base_unresolvable_raises() -> None:
     md = _module_def(
         "MD1",
         [
@@ -723,8 +723,8 @@ def test_module_property_param_base_unresolvable_is_skipped() -> None:
     app, idx = _app([], module_defs=[md])
     state = GlobalState()
     state.module_child("M1", ref_id="MD1")  # BO not in arguments -> unresolvable
-    w = collect_writes(app, idx, {}, state)
-    assert w.prop == []
+    with pytest.raises(EncodingError, match="MP1"):
+        collect_writes(app, idx, {}, state)
 
 
 def test_module_memory_union_default() -> None:
@@ -751,7 +751,7 @@ def test_module_memory_union_default() -> None:
     assert w.mem[0].param_id == "U1"
 
 
-def test_module_memory_union_base_offset_unresolvable_is_skipped() -> None:
+def test_module_memory_union_base_offset_unresolvable_raises() -> None:
     md = _module_def(
         "MD1",
         [
@@ -767,8 +767,8 @@ def test_module_memory_union_base_offset_unresolvable_is_skipped() -> None:
     app, idx = _app([], module_defs=[md])
     state = GlobalState()
     state.module_child("M1", ref_id="MD1")
-    w = collect_writes(app, idx, {}, state)
-    assert w.mem == []
+    with pytest.raises(EncodingError, match=_SEG_ID):
+        collect_writes(app, idx, {}, state)
 
 
 def test_module_property_union() -> None:
@@ -796,7 +796,7 @@ def test_module_property_union() -> None:
     assert w.prop[0].param_id == "U1"
 
 
-def test_module_property_union_base_unresolvable_is_skipped() -> None:
+def test_module_property_union_base_unresolvable_raises() -> None:
     md = _module_def(
         "MD1",
         [
@@ -817,11 +817,13 @@ def test_module_property_union_base_unresolvable_is_skipped() -> None:
     app, idx = _app([], module_defs=[md])
     state = GlobalState()
     state.module_child("M1", ref_id="MD1")  # BO not in arguments -> unresolvable
-    w = collect_writes(app, idx, {}, state)
-    assert w.prop == []
+    with pytest.raises(EncodingError, match="property 10"):
+        collect_writes(app, idx, {}, state)
 
 
-def test_module_property_union_no_active_or_default_is_skipped() -> None:
+def test_module_property_union_no_active_or_default_contributes_nothing() -> None:
+    # Real product data ships unions with no explicit default when none of their
+    # alternatives are meant to be written by default - this is valid, not corruption.
     md = _module_def(
         "MD1",
         [
@@ -841,7 +843,7 @@ def test_module_property_union_no_active_or_default_is_skipped() -> None:
     assert w.prop == []
 
 
-def test_app_level_property_union_no_active_or_default_is_skipped() -> None:
+def test_app_level_property_union_no_active_or_default_contributes_nothing() -> None:
     union = ApplicationProgramStaticParametersUnion(
         choice=PropertyUnion(
             object_index=0, property_id=10, occurrence=0, offset=0, bit_offset=0
@@ -854,21 +856,21 @@ def test_app_level_property_union_no_active_or_default_is_skipped() -> None:
     assert w.prop == []
 
 
-def test_module_state_without_ref_id_contributes_nothing() -> None:
+def test_module_state_without_ref_id_raises() -> None:
     app, idx = _app([])
     state = GlobalState()
     ms = state.module_child("M1")  # no ref_id
     assert ms.ref_id is None
-    w = collect_writes(app, idx, {}, state)
-    assert w.mem == [] and w.prop == []
+    with pytest.raises(EncodingError, match="no module def reference"):
+        collect_writes(app, idx, {}, state)
 
 
-def test_module_state_with_unknown_ref_id_contributes_nothing() -> None:
+def test_module_state_with_unknown_ref_id_raises() -> None:
     app, idx = _app([])
     state = GlobalState()
     state.module_child("M1", ref_id="NO_SUCH_MODULE_DEF")
-    w = collect_writes(app, idx, {}, state)
-    assert w.mem == [] and w.prop == []
+    with pytest.raises(EncodingError, match="NO_SUCH_MODULE_DEF"):
+        collect_writes(app, idx, {}, state)
 
 
 def test_module_def_without_parameters_contributes_nothing() -> None:
@@ -881,7 +883,8 @@ def test_module_def_without_parameters_contributes_nothing() -> None:
 
 
 def test_nested_submodule_writes_are_collected() -> None:
-    md = _module_def(
+    parent_md = _module_def("PARENT_MD", None)  # a wrapper with nothing of its own
+    child_md = _module_def(
         "MD1",
         [
             _module_param(
@@ -892,9 +895,9 @@ def test_nested_submodule_writes_are_collected() -> None:
             )
         ],
     )
-    app, idx = _app([], module_defs=[md])
+    app, idx = _app([], module_defs=[parent_md, child_md])
     state = GlobalState()
-    parent = state.module_child("PARENT", ref_id=None)
+    parent = state.module_child("PARENT", ref_id="PARENT_MD")
     parent.module_child("CHILD", ref_id="MD1")
     w = collect_writes(app, idx, {}, state)
     assert len(w.mem) == 1
@@ -924,7 +927,7 @@ def test_module_instance_overrides_resolve_to_parameter_via_ref() -> None:
     assert w.mem[0].value == "42"
 
 
-def test_module_instance_override_unknown_parameter_ref_is_skipped() -> None:
+def test_module_instance_override_unknown_parameter_ref_raises() -> None:
     md = _module_def(
         "MD1",
         [
@@ -941,11 +944,11 @@ def test_module_instance_override_unknown_parameter_ref_is_skipped() -> None:
     state = GlobalState()
     ms = state.module_child("M1", ref_id="MD1")
     ms.param_ref_id_to_value["PR_UNKNOWN"] = "42"
-    w = collect_writes(app, idx, {}, state)
-    assert w.mem[0].value == "0"  # override ignored, static default used
+    with pytest.raises(EncodingError, match="PR_UNKNOWN"):
+        collect_writes(app, idx, {}, state)
 
 
-def test_module_instance_override_dangling_parameter_ref_is_skipped() -> None:
+def test_module_instance_override_dangling_parameter_ref_raises() -> None:
     md = _module_def(
         "MD1",
         [
@@ -966,19 +969,19 @@ def test_module_instance_override_dangling_parameter_ref_is_skipped() -> None:
     state = GlobalState()
     ms = state.module_child("M1", ref_id="MD1")
     ms.param_ref_id_to_value["PR1"] = "42"
-    w = collect_writes(app, idx, {}, state)
-    assert w.mem[0].value == "0"  # override ignored, static default used
+    with pytest.raises(EncodingError, match="NO_SUCH_PARAM"):
+        collect_writes(app, idx, {}, state)
 
 
-def test_union_choice_none_contributes_nothing() -> None:
+def test_union_choice_none_raises() -> None:
     union = ApplicationProgramStaticParametersUnion(
         choice=None,
         size_in_bit=8,
         parameter=[_union_param("U1", 0, "1", default=True)],
     )
     app, idx = _app([union])
-    w = collect_writes(app, idx, {})
-    assert w.mem == [] and w.prop == []
+    with pytest.raises(EncodingError, match="U1"):
+        collect_writes(app, idx, {})
 
 
 # ---------------------------------------------------------------------------
@@ -1015,16 +1018,16 @@ def test_collect_writes_with_no_static_parameters() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_encode_to_memory_write_to_unknown_segment_is_skipped() -> None:
+def test_encode_to_memory_write_to_unknown_segment_raises() -> None:
     p = _param(
         "P1", MemoryParameter(code_segment="NO_SUCH_SEG", offset=0, bit_offset=0)
     )
     app, idx = _app([p])
-    mem = encode_to_memory(app, idx, {"P1": "1"})
-    assert mem[_SEG_ID][0] == 0
+    with pytest.raises(EncodingError, match="NO_SUCH_SEG"):
+        encode_to_memory(app, idx, {"P1": "1"})
 
 
-def test_encode_to_memory_write_with_unknown_parameter_type_is_skipped() -> None:
+def test_encode_to_memory_write_with_unknown_parameter_type_raises() -> None:
     p = ApplicationProgramStaticParametersParameter(
         id="P1",
         name="",
@@ -1034,8 +1037,8 @@ def test_encode_to_memory_write_with_unknown_parameter_type_is_skipped() -> None
         choice=MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0),
     )
     app, idx = _app([p])
-    mem = encode_to_memory(app, idx, {})
-    assert mem[_SEG_ID][0] == 0
+    with pytest.raises(EncodingError, match="NO_SUCH_PT"):
+        encode_to_memory(app, idx, {})
 
 
 def test_build_memory_param_map_basic() -> None:
@@ -1045,16 +1048,16 @@ def test_build_memory_param_map_basic() -> None:
     assert pmap[_SEG_ID][2] == ("P1", "9")
 
 
-def test_build_memory_param_map_unknown_segment_is_skipped() -> None:
+def test_build_memory_param_map_unknown_segment_raises() -> None:
     p = _param(
         "P1", MemoryParameter(code_segment="NO_SUCH_SEG", offset=0, bit_offset=0)
     )
     app, idx = _app([p])
-    pmap = build_memory_param_map(app, idx, {"P1": "1"})
-    assert pmap == {_SEG_ID: {}}
+    with pytest.raises(EncodingError, match="NO_SUCH_SEG"):
+        build_memory_param_map(app, idx, {"P1": "1"})
 
 
-def test_build_memory_param_map_unknown_parameter_type_is_skipped() -> None:
+def test_build_memory_param_map_unknown_parameter_type_raises() -> None:
     p = ApplicationProgramStaticParametersParameter(
         id="P1",
         name="",
@@ -1064,8 +1067,8 @@ def test_build_memory_param_map_unknown_parameter_type_is_skipped() -> None:
         choice=MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0),
     )
     app, idx = _app([p])
-    pmap = build_memory_param_map(app, idx, {})
-    assert pmap == {_SEG_ID: {}}
+    with pytest.raises(EncodingError, match="NO_SUCH_PT"):
+        build_memory_param_map(app, idx, {})
 
 
 # ---------------------------------------------------------------------------
@@ -1073,7 +1076,7 @@ def test_build_memory_param_map_unknown_parameter_type_is_skipped() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_encode_to_properties_unknown_parameter_type_is_skipped() -> None:
+def test_encode_to_properties_unknown_parameter_type_raises() -> None:
     p = ApplicationProgramStaticParametersParameter(
         id="P1",
         name="",
@@ -1085,10 +1088,11 @@ def test_encode_to_properties_unknown_parameter_type_is_skipped() -> None:
         ),
     )
     app, idx = _app([p])
-    assert encode_to_properties(app, idx, {}) == {}
+    with pytest.raises(EncodingError, match="NO_SUCH_PT"):
+        encode_to_properties(app, idx, {})
 
 
-def test_encode_to_properties_zero_size_type_is_skipped() -> None:
+def test_encode_to_properties_zero_size_type_raises() -> None:
     pt = ParameterType(
         id="PT_ZERO",
         name="Z",
@@ -1110,7 +1114,8 @@ def test_encode_to_properties_zero_size_type_is_skipped() -> None:
         ),
     )
     app, idx = _app([p], extra_param_types=[pt])
-    assert encode_to_properties(app, idx, {}) == {}
+    with pytest.raises(EncodingError, match="PT_ZERO"):
+        encode_to_properties(app, idx, {})
 
 
 def test_encode_to_properties_non_numeric_value_raises() -> None:
@@ -1161,7 +1166,7 @@ def test_build_property_param_map_basic() -> None:
     assert pmap[(0, 1, 0)][0] == ("P1", "5")
 
 
-def test_build_property_param_map_unknown_parameter_type_is_skipped() -> None:
+def test_build_property_param_map_unknown_parameter_type_raises() -> None:
     p = ApplicationProgramStaticParametersParameter(
         id="P1",
         name="",
@@ -1173,10 +1178,11 @@ def test_build_property_param_map_unknown_parameter_type_is_skipped() -> None:
         ),
     )
     app, idx = _app([p])
-    assert build_property_param_map(app, idx, {}) == {}
+    with pytest.raises(EncodingError, match="NO_SUCH_PT"):
+        build_property_param_map(app, idx, {})
 
 
-def test_build_property_param_map_zero_size_type_is_skipped() -> None:
+def test_build_property_param_map_zero_size_type_raises() -> None:
     pt = ParameterType(
         id="PT_ZERO",
         name="Z",
@@ -1198,4 +1204,5 @@ def test_build_property_param_map_zero_size_type_is_skipped() -> None:
         ),
     )
     app, idx = _app([p], extra_param_types=[pt])
-    assert build_property_param_map(app, idx, {}) == {}
+    with pytest.raises(EncodingError, match="PT_ZERO"):
+        build_property_param_map(app, idx, {})
