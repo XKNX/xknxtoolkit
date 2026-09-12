@@ -68,6 +68,12 @@ from xknxmono.models.intermediate.module_def_t import ModuleDef
 from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
 from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 from xknxmono.models.intermediate.parameter_type_t import ParameterType
+from xknxmono.models.intermediate.parameter_type_t_type_color import (
+    ParameterTypeTypeColor,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_color_space import (
+    ParameterTypeTypeColorSpace,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_float import (
     ParameterTypeTypeFloat,
 )
@@ -82,6 +88,12 @@ from xknxmono.models.intermediate.parameter_type_t_type_number_type import (
 )
 from xknxmono.models.intermediate.parameter_type_t_type_text import (
     ParameterTypeTypeText,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_time import (
+    ParameterTypeTypeTime,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_time_unit import (
+    ParameterTypeTypeTimeUnit,
 )
 from xknxmono.models.intermediate.property_parameter_t import PropertyParameter
 from xknxmono.models.intermediate.property_union_t import PropertyUnion
@@ -140,13 +152,17 @@ def _param(
 
 
 def _union_param(
-    param_id: str, offset: int, value: str, default: bool = False
+    param_id: str,
+    offset: int,
+    value: str,
+    default: bool = False,
+    parameter_type: str = _PT_ID,
 ) -> UnionParameter:
     return UnionParameter(
         id=param_id,
         name="",
         text="",
-        parameter_type=_PT_ID,
+        parameter_type=parameter_type,
         value=value,
         offset=offset,
         bit_offset=0,
@@ -305,6 +321,27 @@ def test_collect_mem_union_default() -> None:
     assert len(w.mem) == 1
     assert w.mem[0].param_id == "U1"
     assert w.mem[0].value == "10"
+
+
+def test_encode_to_memory_color_union_member_uses_union_declared_size() -> None:
+    # ParameterTypeTypeColor has no size_in_bit of its own - real product data (a Gira
+    # device) stores it as the sole member of a union whose own SizeInBit is the only
+    # place that width is recorded.
+    color_pt = ParameterType(
+        id="PT-COLOR",
+        name="Colour",
+        choice=ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGB),
+    )
+    union = ApplicationProgramStaticParametersUnion(
+        choice=MemoryUnion(code_segment=_SEG_ID, offset=0, bit_offset=0),
+        size_in_bit=24,
+        parameter=[
+            _union_param("U1", 0, "#1A2B3C", default=True, parameter_type="PT-COLOR")
+        ],
+    )
+    app, idx = _app([union], seg_size=4, extra_param_types=[color_pt])
+    mem = encode_to_memory(app, idx, {})
+    assert mem[_SEG_ID][:3] == bytes.fromhex("1A2B3C")
 
 
 def test_collect_mem_union_active_override() -> None:
@@ -526,6 +563,37 @@ def test_encode_value_float_dpt9_shifts_mantissa_when_out_of_range() -> None:
 def test_encode_value_float_dpt9_returns_none_when_exponent_overflows() -> None:
     tc = _float_tc(ParameterTypeTypeFloatEncoding.DPT_9)
     assert _encode_value("1000000000.0", 16, tc) is None
+
+
+def _time_tc(unit: ParameterTypeTypeTimeUnit) -> ParameterTypeTypeTime:
+    return ParameterTypeTypeTime(
+        size_in_bit=16, unit=unit, min_inclusive=0, max_inclusive=65535
+    )
+
+
+def test_encode_value_time_seconds() -> None:
+    tc = _time_tc(ParameterTypeTypeTimeUnit.SECONDS)
+    assert _encode_value("2", 16, tc) == 2
+
+
+def test_encode_value_time_non_numeric_value_returns_none() -> None:
+    tc = _time_tc(ParameterTypeTypeTimeUnit.SECONDS)
+    assert _encode_value("not-a-number", 16, tc) is None
+
+
+def test_encode_value_time_packed_unit_not_yet_supported() -> None:
+    tc = _time_tc(ParameterTypeTypeTimeUnit.PACKED_DAYS_HOURS_MINUTES_AND_SECONDS)
+    assert _encode_value("2", 16, tc) is None
+
+
+def test_encode_value_color_rgb() -> None:
+    tc = ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGB)
+    assert _encode_value("#1A2B3C", 24, tc) == 0x1A2B3C
+
+
+def test_encode_value_color_non_hex_value_returns_none() -> None:
+    tc = ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGB)
+    assert _encode_value("not-a-color", 24, tc) is None
 
 
 def test_encode_value_unhandled_type_choice_returns_none() -> None:

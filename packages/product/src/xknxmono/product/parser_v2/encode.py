@@ -31,6 +31,9 @@ from xknxmono.models.intermediate.module_def_static_t_parameters_union_property 
     ModuleDefStaticParametersUnionProperty,
 )
 from xknxmono.models.intermediate.module_t_numeric_arg import ModuleNumericArg
+from xknxmono.models.intermediate.parameter_type_t_type_color import (
+    ParameterTypeTypeColor,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_float import (
     ParameterTypeTypeFloat,
 )
@@ -45,6 +48,12 @@ from xknxmono.models.intermediate.parameter_type_t_type_restriction import (
 )
 from xknxmono.models.intermediate.parameter_type_t_type_text import (
     ParameterTypeTypeText,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_time import (
+    ParameterTypeTypeTime,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_time_unit import (
+    ParameterTypeTypeTimeUnit,
 )
 from xknxmono.models.intermediate.property_parameter_t import PropertyParameter
 from xknxmono.models.intermediate.property_union_t import PropertyUnion
@@ -62,6 +71,7 @@ class MemWrite(NamedTuple):
     param_id: str
     parameter_type: str
     value: str
+    union_size_in_bit: int | None = None
 
 
 class PropWrite(NamedTuple):
@@ -73,6 +83,7 @@ class PropWrite(NamedTuple):
     param_id: str
     parameter_type: str
     value: str
+    union_size_in_bit: int | None = None
 
 
 class Writes:
@@ -100,6 +111,17 @@ def _write_bits(
             buf[pos // 8] &= ~bit_mask
 
 
+_SIMPLE_TIME_UNITS = frozenset(
+    {
+        ParameterTypeTypeTimeUnit.HOURS,
+        ParameterTypeTypeTimeUnit.MINUTES,
+        ParameterTypeTypeTimeUnit.SECONDS,
+        ParameterTypeTypeTimeUnit.HUNDRED_MILLISECONDS,
+        ParameterTypeTypeTimeUnit.TEN_MILLISECONDS,
+        ParameterTypeTypeTimeUnit.MILLISECONDS,
+    }
+)
+
 _FLOAT_ENCODING_SIZE_IN_BIT = {
     ParameterTypeTypeFloatEncoding.DPT_9: 16,
     ParameterTypeTypeFloatEncoding.IEEE_754_SINGLE: 32,
@@ -117,6 +139,15 @@ def _size_in_bit(tc: object) -> int | None:
     if isinstance(tc, ParameterTypeTypeFloat):
         return _FLOAT_ENCODING_SIZE_IN_BIT.get(tc.encoding)
     return getattr(tc, "size_in_bit", None)
+
+
+def _write_size_in_bit(w: MemWrite | PropWrite, tc: object) -> int | None:
+    """Bit-width for one write: the parameter type's own size, or - for a type that
+    doesn't carry one (e.g. Color) - the enclosing union's declared width, which is
+    the only place such a type's size is recorded.
+    """
+    size = _size_in_bit(tc)
+    return size if size is not None else w.union_size_in_bit
 
 
 def _encode_value(str_value: str, size_in_bit: int, tc: object) -> int | None:
@@ -156,6 +187,24 @@ def _encode_value(str_value: str, size_in_bit: int, tc: object) -> int | None:
         for b in padded:
             result = (result << 8) | b
         return result
+
+    if isinstance(tc, ParameterTypeTypeTime):
+        if tc.unit not in _SIMPLE_TIME_UNITS:
+            # Packed variants (e.g. days/hours/minutes/seconds in one value) split the
+            # value across multiple bit fields - that layout isn't implemented yet.
+            return None
+        try:
+            v = int(str_value)
+        except (ValueError, TypeError):
+            return None
+        return v & ((1 << size_in_bit) - 1)
+
+    if isinstance(tc, ParameterTypeTypeColor):
+        try:
+            v = int(str_value.lstrip("#"), 16)
+        except (ValueError, TypeError):
+            return None
+        return v & ((1 << size_in_bit) - 1)
 
     return None
 
@@ -355,6 +404,7 @@ def _collect_union(
                     up.id,
                     up.parameter_type,
                     value,
+                    item.size_in_bit,
                 )
             )
     elif isinstance(choice, MemoryUnion):
@@ -371,6 +421,7 @@ def _collect_union(
                     up.id,
                     up.parameter_type,
                     value,
+                    item.size_in_bit,
                 )
             )
     elif isinstance(choice, ModuleDefStaticParametersUnionProperty):
@@ -401,6 +452,7 @@ def _collect_union(
                     up.id,
                     up.parameter_type,
                     value,
+                    item.size_in_bit,
                 )
             )
     else:
@@ -420,6 +472,7 @@ def _collect_union(
                     up.id,
                     up.parameter_type,
                     value,
+                    item.size_in_bit,
                 )
             )
 
@@ -500,7 +553,7 @@ def encode_to_memory(
                 f"{w.parameter_type!r}"
             )
         tc = pt.choice
-        size_in_bit = _size_in_bit(tc)
+        size_in_bit = _write_size_in_bit(w, tc)
         if size_in_bit is None:
             raise EncodingError(
                 f"parameter type {w.parameter_type!r} (used by {w.param_id!r}) has "
@@ -539,7 +592,7 @@ def build_memory_param_map(
                 f"parameter {w.param_id!r} has unknown parameter type "
                 f"{w.parameter_type!r}"
             )
-        size = _size_in_bit(pt.choice)
+        size = _write_size_in_bit(w, pt.choice)
         if not size:
             raise EncodingError(
                 f"parameter type {w.parameter_type!r} (used by {w.param_id!r}) has "
@@ -574,7 +627,7 @@ def encode_to_properties(
                 f"{w.parameter_type!r}"
             )
         tc = pt.choice
-        size_in_bit = _size_in_bit(tc)
+        size_in_bit = _write_size_in_bit(w, tc)
         if not size_in_bit:
             raise EncodingError(
                 f"parameter type {w.parameter_type!r} (used by {w.param_id!r}) has "
@@ -613,7 +666,7 @@ def build_property_param_map(
                 f"parameter {w.param_id!r} has unknown parameter type "
                 f"{w.parameter_type!r}"
             )
-        size = _size_in_bit(pt.choice)
+        size = _write_size_in_bit(w, pt.choice)
         if not size:
             raise EncodingError(
                 f"parameter type {w.parameter_type!r} (used by {w.param_id!r}) has "
