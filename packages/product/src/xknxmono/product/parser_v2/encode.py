@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import struct
+import warnings
 from typing import NamedTuple
 
 from xknxmono.models.intermediate import ApplicationProgram
@@ -50,6 +51,7 @@ from xknxmono.models.intermediate.property_parameter_t import PropertyParameter
 from xknxmono.models.intermediate.property_union_t import PropertyUnion
 from xknxmono.models.intermediate.union_parameter_t import UnionParameter
 
+from ..errors import ParameterEncodingWarning
 from .application_indexer import ApplicationIndexer
 from .state import GlobalState, ModuleState
 
@@ -439,6 +441,12 @@ def encode_to_memory(
             continue
         encoded = _encode_value(w.value, size_in_bit, tc)
         if encoded is None:
+            warnings.warn(
+                f"Parameter {w.param_id!r} value {w.value!r} could not be encoded "
+                f"for type {w.parameter_type!r} - left unwritten",
+                ParameterEncodingWarning,
+                stacklevel=2,
+            )
             continue
         _write_bits(buf, w.offset, w.bit_offset, size_in_bit, encoded)
     return {seg_id: bytes(buf) for seg_id, buf in bufs.items()}
@@ -496,6 +504,12 @@ def encode_to_properties(
             continue
         encoded = _encode_value(w.value, size_in_bit, tc)
         if encoded is None:
+            warnings.warn(
+                f"Parameter {w.param_id!r} value {w.value!r} could not be encoded "
+                f"for type {w.parameter_type!r} - left unwritten",
+                ParameterEncodingWarning,
+                stacklevel=2,
+            )
             continue
         key: PropertyKey = (w.object_index, w.property_id, w.occurrence)
         needed = w.offset + (w.bit_offset + size_in_bit + 7) // 8

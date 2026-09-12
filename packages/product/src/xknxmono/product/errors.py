@@ -8,3 +8,7 @@ class VersionError(Exception):
 
 class ParseError(Exception):
     """Raised when XML parsing fails."""
+
+
+class ParameterEncodingWarning(UserWarning):
+    """Warned when a parameter value cannot be encoded and is skipped rather than written."""

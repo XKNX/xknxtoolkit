@@ -5,6 +5,8 @@ All tests build minimal ApplicationProgram IR structures in-process — no fixtu
 
 from __future__ import annotations
 
+import pytest
+
 from xknxmono.models.intermediate import ApplicationProgram
 from xknxmono.models.intermediate.application_program_static_t import (
     ApplicationProgramStatic,
@@ -84,6 +86,7 @@ from xknxmono.models.intermediate.parameter_type_t_type_text import (
 from xknxmono.models.intermediate.property_parameter_t import PropertyParameter
 from xknxmono.models.intermediate.property_union_t import PropertyUnion
 from xknxmono.models.intermediate.union_parameter_t import UnionParameter
+from xknxmono.product.errors import ParameterEncodingWarning
 from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.encode import (
     Writes,
@@ -485,7 +488,8 @@ def test_encode_number_non_numeric_value_is_skipped() -> None:
     app, idx = _app(
         [_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))]
     )
-    mem = encode_to_memory(app, idx, {"P1": "not-a-number"})
+    with pytest.warns(ParameterEncodingWarning, match="P1"):
+        mem = encode_to_memory(app, idx, {"P1": "not-a-number"})
     assert mem[_SEG_ID][0] == 0
 
 
@@ -1118,7 +1122,8 @@ def test_encode_to_properties_non_numeric_value_is_skipped() -> None:
         ),
     )
     app, idx = _app([p])
-    assert encode_to_properties(app, idx, {"P1": "not-a-number"}) == {}
+    with pytest.warns(ParameterEncodingWarning, match="P1"):
+        assert encode_to_properties(app, idx, {"P1": "not-a-number"}) == {}
 
 
 def test_encode_to_properties_second_write_within_existing_buffer_size() -> None:
