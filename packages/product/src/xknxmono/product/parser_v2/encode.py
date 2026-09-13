@@ -586,7 +586,7 @@ def _is_target_active(
     it's always written, matching the case with no resolved dynamic state (scope=None)
     at all. Otherwise, it's active only if a ParameterRefRef targeting it was evaluated
     in this specific scope during the last traversal (marked directly via
-    EvalContext.mark_active_target - see ParameterRefRefNode.eval()).
+    EvalContext.mark_active_param - see ParameterRefRefNode.eval()).
     """
     if target_id not in idx.referenced_target_ids or scope is None:
         return True

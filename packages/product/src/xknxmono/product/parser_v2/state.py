@@ -131,22 +131,16 @@ class ParameterState:
     def get_text(self, ref_id: str) -> str | None:
         return self._text.get(ref_id)
 
-    def mark_active_param(self, ref_id: str) -> None:
+    def mark_active_param(self, ref_id: str, target_id: str) -> None:
+        """Mark a ParameterRef active, and the Parameter/UnionParameter id it targets.
+
+        ref_id is the ParameterRef's own id (used to prune stale override values in
+        trim_to_active()); target_id is what it ultimately targets (used to gate
+        whether that parameter should be encoded at all). Both are always known
+        together at the one call site that marks anything active (ParameterRefRefNode),
+        so there's one call instead of two independent ones to keep in sync.
+        """
         self._active_param_refs.add(ref_id)
-
-    def is_ref_active(self, ref_id: str) -> bool:
-        """Whether ref_id was marked active in *this* scope specifically (not children)
-        during the last traversal - used to gate encoding a parameter this ref targets.
-        """
-        return ref_id in self._active_param_refs
-
-    def mark_active_target(self, target_id: str) -> None:
-        """Mark a Parameter/UnionParameter id as reachable via an active ParameterRef.
-
-        Distinct from mark_active_param: that tracks the ParameterRef's own id (for
-        pruning stale override values), this tracks what it ultimately targets (for
-        gating whether that parameter should be encoded at all).
-        """
         self._active_targets.add(target_id)
 
     def is_target_active(self, target_id: str) -> bool:
