@@ -158,8 +158,11 @@ _IPADDRESS_SIZE_IN_BIT = {
 
 _COLOR_SIZE_IN_BIT = {
     ParameterTypeTypeColorSpace.RGB: 24,
+    # DPT 251.600 (the wire format) is actually 48 bits - 4 color octets, a reserved
+    # octet and a validity nibble. 32 here is the 4 plain color octets only; unverified
+    # against a real RGBW parameter, see _encode_color.
     ParameterTypeTypeColorSpace.RGBW: 32,
-    ParameterTypeTypeColorSpace.HSV: 24,
+    ParameterTypeTypeColorSpace.HSV: 24,  # no KNX DPT for HSV; see _rgb_to_hsv
 }
 
 
@@ -169,8 +172,9 @@ def _size_in_bit(tc: object) -> int | None:
     Several types have no size_in_bit field of their own because their encoding fixes
     the width: Float (DPT 9 is 2 bytes, IEEE-754 single/double are 4/8), Date (DPT 11
     is always 3 bytes), IP address (4 bytes for IPv4, 16 for IPv6) and Color (3 bytes
-    for RGB/HSV, 4 for RGBW). RawData carries its width as max_size (bytes), not bits.
-    Every other type carries size_in_bit directly.
+    for RGB/HSV, 4 for RGBW - see _COLOR_SIZE_IN_BIT for why RGBW's width in particular
+    is unverified). RawData carries its width as max_size (bytes), not bits. Every
+    other type carries size_in_bit directly.
     """
     if isinstance(tc, ParameterTypeTypeFloat):
         return _FLOAT_ENCODING_SIZE_IN_BIT.get(tc.encoding)
@@ -310,7 +314,13 @@ def _encode_ipaddress(str_value: str) -> int | None:
 
 
 def _rgb_to_hsv(r: int, g: int, b: int) -> tuple[int, int, int]:
-    """Convert an 8-bit RGB triple to an 8-bit-per-component KNX HSV triple."""
+    """Convert an 8-bit RGB triple to an 8-bit-per-component H/S/V triple.
+
+    There is no KNX DPT for HSV - unlike RGB (232.600) and RGBW (251.600), it isn't a
+    documented wire format at all, just a color space this codebase converts to on the
+    (unverified) assumption that an HSV-space color parameter stores three plain 8-bit
+    components in H, S, V order.
+    """
     low = min(r, g, b)
     high = max(r, g, b)
     if low == high:
@@ -329,8 +339,15 @@ def _rgb_to_hsv(r: int, g: int, b: int) -> tuple[int, int, int]:
 def _encode_color(str_value: str, tc: ParameterTypeTypeColor) -> int | None:
     """Color from a "#RRGGBB"/"#RRGGBBWW" hex string, per the type's color space.
 
-    RGB and RGBW are stored verbatim (3 or 4 octets); HSV is converted from the same
-    hex RGB input, since that's the only value format the UI's color picker produces.
+    RGB matches DPT 232.600 exactly (3 octets, R/G/B, confirmed against the standard
+    and against a real product's union declaring a 24-bit cell for it). RGBW here is
+    only the 4 raw R/G/B/W octets - DPT 251.600 is actually 6 octets (the same 4,
+    plus a reserved octet and a trailing 4-bit per-channel validity nibble), and
+    whether a stored *parameter* value mirrors that wire format or is genuinely just
+    the 4 plain octets is unverified; no real RGBW parameter has been seen yet to
+    settle it. HSV is converted from the same hex RGB input since that's the only
+    value format the UI's color picker produces - see _rgb_to_hsv for why that
+    conversion has nothing to verify against.
     """
     try:
         raw = bytes.fromhex(str_value.lstrip("#"))
