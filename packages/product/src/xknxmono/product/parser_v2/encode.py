@@ -531,7 +531,6 @@ def _pick_union_params(
     overrides: dict[str, str],
     idx: ApplicationIndexer,
     location: str,
-    ref_targets: dict[str, list[str]],
     scope: ParameterState | None,
 ) -> list[tuple[UnionParameter, str]]:
     """Return every simultaneously-active alternative, or the default alternative if
@@ -552,9 +551,7 @@ def _pick_union_params(
     active = [up for up in parameters if up.id in overrides]
     if not active:
         default_up = next((up for up in parameters if up.default_union_parameter), None)
-        if default_up is None or not _is_target_active(
-            default_up.id, ref_targets, scope
-        ):
+        if default_up is None or not _is_target_active(default_up.id, idx, scope):
             return []
         return [(default_up, default_up.value)]
 
@@ -578,17 +575,8 @@ def _pick_union_params(
     return [(up, overrides[up.id]) for up in active]
 
 
-def _build_ref_targets(idx: ApplicationIndexer) -> dict[str, list[str]]:
-    """Reverse of idx.parameter_refs: {target_id: [ParameterRef id, ...]} - every
-    ParameterRef that points at a given Parameter/UnionParameter id."""
-    targets: dict[str, list[str]] = {}
-    for pr_id, pr in idx.parameter_refs.items():
-        targets.setdefault(pr.ref_id, []).append(pr_id)
-    return targets
-
-
 def _is_target_active(
-    target_id: str, ref_targets: dict[str, list[str]], scope: ParameterState | None
+    target_id: str, idx: ApplicationIndexer, scope: ParameterState | None
 ) -> bool:
     """Whether target_id (a Parameter or UnionParameter id) should contribute to the
     download image right now.
@@ -596,13 +584,13 @@ def _is_target_active(
     A Parameter/UnionParameter with no ParameterRef pointing at it anywhere is never
     reachable through the dynamic tree at all, so activity gating doesn't apply to it -
     it's always written, matching the case with no resolved dynamic state (scope=None)
-    at all. Otherwise, it's active only if at least one of its ParameterRefs was marked
-    active in this specific scope during the last evaluation.
+    at all. Otherwise, it's active only if a ParameterRefRef targeting it was evaluated
+    in this specific scope during the last traversal (marked directly via
+    EvalContext.mark_active_target - see ParameterRefRefNode.eval()).
     """
-    pr_ids = ref_targets.get(target_id)
-    if pr_ids is None or scope is None:
+    if target_id not in idx.referenced_target_ids or scope is None:
         return True
-    return any(scope.is_ref_active(pr_id) for pr_id in pr_ids)
+    return scope.is_target_active(target_id)
 
 
 def _collect_param(
@@ -611,14 +599,14 @@ def _collect_param(
     overrides: dict[str, str],
     ms: ModuleState | None,
     out: Writes,
-    ref_targets: dict[str, list[str]],
+    idx: ApplicationIndexer,
     scope: ParameterState | None,
 ) -> None:
     # A parameter with no active ParameterRef doesn't contribute to the image at all -
     # not even at its static default - unless explicitly exempted (LegacyPatchAlways,
     # top-level parameters only).
     if not getattr(item, "legacy_patch_always", False) and not _is_target_active(
-        item.id, ref_targets, scope
+        item.id, idx, scope
     ):
         return
     choice = item.choice
@@ -707,7 +695,6 @@ def _collect_union(
     ms: ModuleState | None,
     idx: ApplicationIndexer,
     out: Writes,
-    ref_targets: dict[str, list[str]],
     scope: ParameterState | None,
 ) -> None:
     choice = item.choice
@@ -728,7 +715,6 @@ def _collect_union(
             overrides,
             idx,
             f"{choice.code_segment}+{base + choice.offset}",
-            ref_targets,
             scope,
         ):
             out.mem.append(
@@ -748,7 +734,6 @@ def _collect_union(
             overrides,
             idx,
             f"{choice.code_segment}+{choice.offset}",
-            ref_targets,
             scope,
         ):
             out.mem.append(
@@ -778,7 +763,6 @@ def _collect_union(
             overrides,
             idx,
             f"prop_id={choice.property_id}+{bo + choice.offset}",
-            ref_targets,
             scope,
         ):
             out.prop.append(
@@ -801,7 +785,6 @@ def _collect_union(
             overrides,
             idx,
             f"prop_id={choice.property_id}+{choice.offset}",
-            ref_targets,
             scope,
         ):
             out.prop.append(
@@ -823,7 +806,6 @@ def _collect_module_writes(
     ms: ModuleState,
     idx: ApplicationIndexer,
     out: Writes,
-    ref_targets: dict[str, list[str]],
 ) -> None:
     if ms.ref_id is None:
         raise EncodingError(
@@ -839,12 +821,12 @@ def _collect_module_writes(
         instance_overrides = _build_instance_overrides(ms, idx)
         for item in md.static.parameters.choice:
             if isinstance(item, ModuleDefStaticParametersParameter):
-                _collect_param(item, instance_overrides, ms, out, ref_targets, ms)
+                _collect_param(item, instance_overrides, ms, out, idx, ms)
             else:
                 assert isinstance(item, ModuleDefStaticParametersUnion)
-                _collect_union(item, instance_overrides, ms, idx, out, ref_targets, ms)
+                _collect_union(item, instance_overrides, ms, idx, out, ms)
     for child in ms.module_children():
-        _collect_module_writes(child, idx, out, ref_targets)
+        _collect_module_writes(child, idx, out)
 
 
 def collect_writes(
@@ -855,18 +837,17 @@ def collect_writes(
 ) -> Writes:
     """Collect all parameter writes into a Writes container (mem + prop), separated by destination type."""
     out = Writes()
-    ref_targets = _build_ref_targets(idx)
     s = app.static
     if s.parameters is not None:
         for item in s.parameters.choice:
             if isinstance(item, ApplicationProgramStaticParametersParameter):
-                _collect_param(item, overrides, None, out, ref_targets, state)
+                _collect_param(item, overrides, None, out, idx, state)
             else:
                 assert isinstance(item, ApplicationProgramStaticParametersUnion)
-                _collect_union(item, overrides, None, idx, out, ref_targets, state)
+                _collect_union(item, overrides, None, idx, out, state)
     if state is not None:
         for ms in state.module_children():
-            _collect_module_writes(ms, idx, out, ref_targets)
+            _collect_module_writes(ms, idx, out)
     return out
 
 

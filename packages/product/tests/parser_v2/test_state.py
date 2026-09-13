@@ -287,6 +287,31 @@ def test_module_state_active_param_refs_includes_children() -> None:
     assert child.qualify("SMD1_P-9_R-1") in result
 
 
+def test_is_ref_active_true_only_in_the_marking_scope() -> None:
+    root = GlobalState()
+    m1 = root.module_child("M1", ref_id="MD1")
+    m1.mark_active_param("PR1")
+    assert m1.is_ref_active("PR1") is True
+    assert m1.is_ref_active("PR2") is False
+    assert root.is_ref_active("PR1") is False  # not aggregated to the parent
+
+
+def test_is_target_active_true_only_in_the_marking_scope() -> None:
+    root = GlobalState()
+    m1 = root.module_child("M1", ref_id="MD1")
+    m1.mark_active_target("MP1")
+    assert m1.is_target_active("MP1") is True
+    assert m1.is_target_active("MP2") is False
+    assert root.is_target_active("MP1") is False  # not aggregated to the parent
+
+
+def test_reset_active_clears_active_targets() -> None:
+    state = GlobalState()
+    state.mark_active_target("P1")
+    state.reset_active()
+    assert state.is_target_active("P1") is False
+
+
 def test_module_state_active_com_object_refs_includes_children() -> None:
     root = GlobalState()
     m1 = root.module_child("M1", ref_id="MD1")

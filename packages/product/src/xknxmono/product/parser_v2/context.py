@@ -47,6 +47,9 @@ class EvalContext:
     def mark_active_param(self, ref_id: str) -> None:
         self._scope.mark_active_param(ref_id)
 
+    def mark_active_target(self, target_id: str) -> None:
+        self._scope.mark_active_target(target_id)
+
     def mark_active_com_object(self, ref_id: str) -> None:
         self._scope.mark_active_com_object(ref_id)
 

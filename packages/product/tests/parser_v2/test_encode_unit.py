@@ -489,7 +489,7 @@ def test_collect_param_active_ref_is_written() -> None:
     p = _param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))
     app, idx = _app([p], parameter_refs=[ParameterRef(id="PR1", ref_id="P1")])
     state = GlobalState()
-    state.mark_active_param("PR1")
+    state.mark_active_target("P1")  # what a real ParameterRefRef would mark
     w = collect_writes(app, idx, {}, state)
     assert len(w.mem) == 1
 
@@ -527,8 +527,8 @@ def test_collect_param_inactive_in_one_module_instance_but_active_in_another() -
     )
     state = GlobalState()
     active_instance = state.module_child("M1", ref_id="MD1")
-    active_instance.mark_active_param("PR1")
-    state.module_child("M2", ref_id="MD1")  # PR1 never marked active here
+    active_instance.mark_active_target("MP1")
+    state.module_child("M2", ref_id="MD1")  # MP1 never marked active here
     w = collect_writes(app, idx, {}, state)
     assert len(w.mem) == 1
 
@@ -1390,7 +1390,9 @@ def test_module_instance_overrides_resolve_to_parameter_via_ref() -> None:
     state = GlobalState()
     ms = state.module_child("M1", ref_id="MD1")
     ms.param_ref_id_to_value["PR1"] = "42"
-    ms.mark_active_param("PR1")  # a real evaluation would mark this via ParameterRefRef
+    # A real evaluation would mark both via ParameterRefRefNode.eval().
+    ms.mark_active_param("PR1")
+    ms.mark_active_target("MP1")
     w = collect_writes(app, idx, {}, state)
     assert w.mem[0].value == "42"
 

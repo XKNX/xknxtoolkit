@@ -29,6 +29,7 @@ class ParameterRefRefNode(DynamicNode):
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
         ctx.mark_active_param(self._elem.ref_id)
+        ctx.mark_active_target(self._param_ref.ref_id)
         access = (
             self._param_ref.access
             if self._param_ref.access is not None

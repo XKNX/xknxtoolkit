@@ -75,6 +75,7 @@ class ParameterState:
         "_active_com_object_refs",
         "_active_module_keys",
         "_active_param_refs",
+        "_active_targets",
         "_alloc_positions",
         "_children",
         "_com_obj_instance_refs",
@@ -95,6 +96,7 @@ class ParameterState:
         self._children: dict[str, ModuleState] = {}
         self._text: dict[str, str] = {}
         self._active_param_refs: set[str] = set()
+        self._active_targets: set[str] = set()
         self._active_module_keys: set[str] = set()
         self._active_com_object_refs: set[str] = set()
         self._alloc_positions: dict[str, int] = {}
@@ -138,6 +140,20 @@ class ParameterState:
         """
         return ref_id in self._active_param_refs
 
+    def mark_active_target(self, target_id: str) -> None:
+        """Mark a Parameter/UnionParameter id as reachable via an active ParameterRef.
+
+        Distinct from mark_active_param: that tracks the ParameterRef's own id (for
+        pruning stale override values), this tracks what it ultimately targets (for
+        gating whether that parameter should be encoded at all).
+        """
+        self._active_targets.add(target_id)
+
+    def is_target_active(self, target_id: str) -> bool:
+        """Whether target_id was marked active in *this* scope specifically (not
+        children) during the last traversal."""
+        return target_id in self._active_targets
+
     def mark_active_com_object(self, ref_id: str) -> None:
         self._active_com_object_refs.add(ref_id)
 
@@ -161,6 +177,7 @@ class ParameterState:
     def reset_active(self) -> None:
         """Clear active ref sets before a new traversal."""
         self._active_param_refs.clear()
+        self._active_targets.clear()
         self._active_module_keys.clear()
         self._active_com_object_refs.clear()
         self._alloc_positions.clear()
