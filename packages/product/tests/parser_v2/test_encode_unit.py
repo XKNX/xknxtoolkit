@@ -464,6 +464,88 @@ def test_collect_prop_union_default() -> None:
 
 
 # ---------------------------------------------------------------------------
+# collect_writes — activity gating
+# ---------------------------------------------------------------------------
+
+
+def test_collect_param_with_no_parameter_ref_is_always_written() -> None:
+    # No ParameterRef anywhere targets P1, so activity gating never applies to it.
+    p = _param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))
+    app, idx = _app([p])
+    state = GlobalState()
+    w = collect_writes(app, idx, {}, state)
+    assert len(w.mem) == 1
+
+
+def test_collect_param_inactive_ref_is_not_written() -> None:
+    p = _param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))
+    app, idx = _app([p], parameter_refs=[ParameterRef(id="PR1", ref_id="P1")])
+    state = GlobalState()  # PR1 never marked active
+    w = collect_writes(app, idx, {}, state)
+    assert len(w.mem) == 0
+
+
+def test_collect_param_active_ref_is_written() -> None:
+    p = _param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))
+    app, idx = _app([p], parameter_refs=[ParameterRef(id="PR1", ref_id="P1")])
+    state = GlobalState()
+    state.mark_active_param("PR1")
+    w = collect_writes(app, idx, {}, state)
+    assert len(w.mem) == 1
+
+
+def test_collect_param_legacy_patch_always_written_even_when_inactive() -> None:
+    p = ApplicationProgramStaticParametersParameter(
+        id="P1",
+        name="",
+        text="",
+        parameter_type=_PT_ID,
+        value="0",
+        choice=MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0),
+        legacy_patch_always=True,
+    )
+    app, idx = _app([p], parameter_refs=[ParameterRef(id="PR1", ref_id="P1")])
+    state = GlobalState()  # PR1 never marked active
+    w = collect_writes(app, idx, {}, state)
+    assert len(w.mem) == 1
+
+
+def test_collect_param_inactive_in_one_module_instance_but_active_in_another() -> None:
+    md = _module_def(
+        "MD1",
+        [
+            _module_param(
+                "MP1",
+                ModuleDefStaticParametersParameterMemory(
+                    code_segment=_SEG_ID, offset=0, bit_offset=0
+                ),
+            )
+        ],
+    )
+    app, idx = _app(
+        [], module_defs=[md], parameter_refs=[ParameterRef(id="PR1", ref_id="MP1")]
+    )
+    state = GlobalState()
+    active_instance = state.module_child("M1", ref_id="MD1")
+    active_instance.mark_active_param("PR1")
+    state.module_child("M2", ref_id="MD1")  # PR1 never marked active here
+    w = collect_writes(app, idx, {}, state)
+    assert len(w.mem) == 1
+
+
+def test_collect_mem_union_default_not_written_when_inactive() -> None:
+    union = ApplicationProgramStaticParametersUnion(
+        choice=MemoryUnion(code_segment=_SEG_ID, offset=0, bit_offset=0),
+        size_in_bit=8,
+        parameter=[_union_param("U1", 0, "10", default=True)],
+    )
+    app, idx = _app([union], parameter_refs=[ParameterRef(id="PR1", ref_id="U1")])
+    state = GlobalState()  # PR1 never marked active
+    w = collect_writes(app, idx, {}, state)
+    assert len(w.mem) == 0
+
+
+# ---------------------------------------------------------------------------
 # encode_to_memory
 # ---------------------------------------------------------------------------
 
@@ -1308,6 +1390,7 @@ def test_module_instance_overrides_resolve_to_parameter_via_ref() -> None:
     state = GlobalState()
     ms = state.module_child("M1", ref_id="MD1")
     ms.param_ref_id_to_value["PR1"] = "42"
+    ms.mark_active_param("PR1")  # a real evaluation would mark this via ParameterRefRef
     w = collect_writes(app, idx, {}, state)
     assert w.mem[0].value == "42"
 

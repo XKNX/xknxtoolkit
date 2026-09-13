@@ -132,6 +132,12 @@ class ParameterState:
     def mark_active_param(self, ref_id: str) -> None:
         self._active_param_refs.add(ref_id)
 
+    def is_ref_active(self, ref_id: str) -> bool:
+        """Whether ref_id was marked active in *this* scope specifically (not children)
+        during the last traversal - used to gate encoding a parameter this ref targets.
+        """
+        return ref_id in self._active_param_refs
+
     def mark_active_com_object(self, ref_id: str) -> None:
         self._active_com_object_refs.add(ref_id)
 
