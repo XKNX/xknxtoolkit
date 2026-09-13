@@ -31,7 +31,7 @@ class ApplicationIndexer:
         "parameter_refs",
         "parameter_types",
         "parameters",
-        "referenced_target_ids",
+        "referenced_parameter_ids",
         "script",
     )
 
@@ -53,8 +53,8 @@ class ApplicationIndexer:
                 self._index_module_def(md)
         # Every Parameter/UnionParameter id that at least one ParameterRef targets -
         # anything not in here has no dynamic-tree presence at all, so activity gating
-        # never applies to it (see encode.py's _is_target_active).
-        self.referenced_target_ids = frozenset(
+        # never applies to it (see encode.py's _is_parameter_active).
+        self.referenced_parameter_ids = frozenset(
             pr.ref_id for pr in self.parameter_refs.values()
         )
 

@@ -551,7 +551,7 @@ def _pick_union_params(
     active = [up for up in parameters if up.id in overrides]
     if not active:
         default_up = next((up for up in parameters if up.default_union_parameter), None)
-        if default_up is None or not _is_target_active(default_up.id, idx, scope):
+        if default_up is None or not _is_parameter_active(default_up.id, idx, scope):
             return []
         return [(default_up, default_up.value)]
 
@@ -575,10 +575,10 @@ def _pick_union_params(
     return [(up, overrides[up.id]) for up in active]
 
 
-def _is_target_active(
-    target_id: str, idx: ApplicationIndexer, scope: ParameterState | None
+def _is_parameter_active(
+    parameter_id: str, idx: ApplicationIndexer, scope: ParameterState | None
 ) -> bool:
-    """Whether target_id (a Parameter or UnionParameter id) should contribute to the
+    """Whether parameter_id (a Parameter or UnionParameter id) should contribute to the
     download image right now.
 
     A Parameter/UnionParameter with no ParameterRef pointing at it anywhere is never
@@ -588,9 +588,9 @@ def _is_target_active(
     in this specific scope during the last traversal (marked directly via
     EvalContext.mark_active_param - see ParameterRefRefNode.eval()).
     """
-    if target_id not in idx.referenced_target_ids or scope is None:
+    if parameter_id not in idx.referenced_parameter_ids or scope is None:
         return True
-    return scope.is_target_active(target_id)
+    return scope.is_parameter_active(parameter_id)
 
 
 def _collect_param(
@@ -605,7 +605,7 @@ def _collect_param(
     # A parameter with no active ParameterRef doesn't contribute to the image at all -
     # not even at its static default - unless explicitly exempted (LegacyPatchAlways,
     # top-level parameters only).
-    if not getattr(item, "legacy_patch_always", False) and not _is_target_active(
+    if not getattr(item, "legacy_patch_always", False) and not _is_parameter_active(
         item.id, idx, scope
     ):
         return

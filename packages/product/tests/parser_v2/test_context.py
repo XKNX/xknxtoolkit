@@ -49,7 +49,7 @@ class _ParamLeaf(DynamicNode):
         self._ref_id = ref_id
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
-        # target_id is irrelevant to what this stub is testing (Choose/When gating).
+        # parameter_id is irrelevant to what this stub is testing (Choose/When gating).
         ctx.mark_active_param(self._ref_id, self._ref_id)
         return []
 

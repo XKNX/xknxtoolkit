@@ -75,7 +75,7 @@ class ParameterState:
         "_active_com_object_refs",
         "_active_module_keys",
         "_active_param_refs",
-        "_active_targets",
+        "_active_parameter_ids",
         "_alloc_positions",
         "_children",
         "_com_obj_instance_refs",
@@ -96,7 +96,7 @@ class ParameterState:
         self._children: dict[str, ModuleState] = {}
         self._text: dict[str, str] = {}
         self._active_param_refs: set[str] = set()
-        self._active_targets: set[str] = set()
+        self._active_parameter_ids: set[str] = set()
         self._active_module_keys: set[str] = set()
         self._active_com_object_refs: set[str] = set()
         self._alloc_positions: dict[str, int] = {}
@@ -131,22 +131,22 @@ class ParameterState:
     def get_text(self, ref_id: str) -> str | None:
         return self._text.get(ref_id)
 
-    def mark_active_param(self, ref_id: str, target_id: str) -> None:
+    def mark_active_param(self, ref_id: str, parameter_id: str) -> None:
         """Mark a ParameterRef active, and the Parameter/UnionParameter id it targets.
 
         ref_id is the ParameterRef's own id (used to prune stale override values in
-        trim_to_active()); target_id is what it ultimately targets (used to gate
+        trim_to_active()); parameter_id is what it ultimately targets (used to gate
         whether that parameter should be encoded at all). Both are always known
         together at the one call site that marks anything active (ParameterRefRefNode),
         so there's one call instead of two independent ones to keep in sync.
         """
         self._active_param_refs.add(ref_id)
-        self._active_targets.add(target_id)
+        self._active_parameter_ids.add(parameter_id)
 
-    def is_target_active(self, target_id: str) -> bool:
-        """Whether target_id was marked active in *this* scope specifically (not
+    def is_parameter_active(self, parameter_id: str) -> bool:
+        """Whether parameter_id was marked active in *this* scope specifically (not
         children) during the last traversal."""
-        return target_id in self._active_targets
+        return parameter_id in self._active_parameter_ids
 
     def mark_active_com_object(self, ref_id: str) -> None:
         self._active_com_object_refs.add(ref_id)
@@ -171,7 +171,7 @@ class ParameterState:
     def reset_active(self) -> None:
         """Clear active ref sets before a new traversal."""
         self._active_param_refs.clear()
-        self._active_targets.clear()
+        self._active_parameter_ids.clear()
         self._active_module_keys.clear()
         self._active_com_object_refs.clear()
         self._alloc_positions.clear()
