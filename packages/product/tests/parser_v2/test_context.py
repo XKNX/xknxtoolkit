@@ -1,5 +1,3 @@
-import pytest
-
 from xknxmono.models.intermediate import (
     ApplicationProgram,
     ModuleArg,
@@ -10,6 +8,9 @@ from xknxmono.models.intermediate import (
 from xknxmono.models.intermediate.allocator_t import Allocator as IrAllocator
 from xknxmono.models.intermediate.application_program_static_t import (
     ApplicationProgramStatic,
+)
+from xknxmono.models.intermediate.application_program_static_t_parameter_refs import (
+    ApplicationProgramStaticParameterRefs,
 )
 from xknxmono.models.intermediate.application_program_t_module_defs import (
     ApplicationProgramModuleDefs,
@@ -30,6 +31,7 @@ from xknxmono.models.intermediate.module_def_t_arguments_argument import (
 from xknxmono.models.intermediate.module_def_t_arguments_argument_alignment import (
     ModuleDefArgumentsArgumentAlignment,
 )
+from xknxmono.models.intermediate.parameter_ref_t import ParameterRef as IrParameterRef
 from xknxmono.product.parser_v2.allocator import Allocator
 from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.nodes import (
@@ -49,8 +51,7 @@ class _ParamLeaf(DynamicNode):
         self._ref_id = ref_id
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
-        # parameter_id is irrelevant to what this stub is testing (Choose/When gating).
-        ctx.mark_active_param(self._ref_id, self._ref_id)
+        ctx.mark_active_param(self._ref_id)
         return []
 
 
@@ -96,9 +97,9 @@ class TestModuleStateArguments:
         ms = ModuleState(_MODULE_INSTANCE_ID, {_ARG_REF: _num_arg(_ARG_REF, 5)})
         assert ms.parameter_instance_refs() == {}
 
-    def test_args_not_visible_via_ctx_get(self):
+    def test_args_not_visible_via_ctx_get(self, idx: ApplicationIndexer):
         ms = ModuleState(_MODULE_INSTANCE_ID, {_ARG_REF: _num_arg(_ARG_REF, 5)})
-        assert EvalContext(ms).get(_ARG_REF) is None
+        assert EvalContext(ms, idx=idx).get(_ARG_REF) is None
 
     def test_as_module_instance_for_submodule_roundtrips_args(self):
         arg = _num_arg(_SM_ARG_REF, 9)
@@ -119,49 +120,81 @@ class TestModuleStateArguments:
 
 
 class TestEvalContext:
-    def test_get_returns_global_value(self):
-        ctx = EvalContext(GlobalState({_REF_MODE: "42"}))
+    def test_get_returns_global_value(self, idx: ApplicationIndexer):
+        ctx = EvalContext(GlobalState({_REF_MODE: "42"}), idx=idx)
         assert ctx.get(_REF_MODE) == "42"
 
-    def test_get_returns_none_for_missing_key(self):
-        ctx = EvalContext(GlobalState())
+    def test_get_returns_none_for_missing_key(self, idx: ApplicationIndexer):
+        ctx = EvalContext(GlobalState(), idx=idx)
         assert ctx.get(_REF_MODE) is None
 
-    def test_set_writes_to_global(self):
+    def test_set_writes_to_global(self, idx: ApplicationIndexer):
         state = GlobalState()
-        ctx = EvalContext(state)
+        ctx = EvalContext(state, idx=idx)
         ctx.set(_REF_TARGET, "99")
         assert state.parameter_instance_refs() == {_REF_TARGET: "99"}
 
-    def test_module_ctx_set_appears_in_parameter_instance_refs(self):
+    def test_module_ctx_set_appears_in_parameter_instance_refs(
+        self, idx: ApplicationIndexer
+    ):
         state = GlobalState()
-        mctx = EvalContext(state).module_ctx(_MODULE_ID)
+        mctx = EvalContext(state, idx=idx).module_ctx(_MODULE_ID)
         mctx.set(_LOCAL_REF, "5")
         assert state.parameter_instance_refs() == {_QUALIFIED_REF: "5"}
 
-    def test_repeat_ctx_sets_instance_idx_for_module(self):
+    def test_repeat_ctx_sets_instance_idx_for_module(self, idx: ApplicationIndexer):
         state = GlobalState()
-        mctx = EvalContext(state).repeat_ctx(3).module_ctx(_MODULE_ID)
+        mctx = EvalContext(state, idx=idx).repeat_ctx(3).module_ctx(_MODULE_ID)
         mctx.set(_LOCAL_REF, "5")
         expected_ref = f"{_BASE}_MD-1_M-C8_MI-3_P-96_R-F3"
         assert state.parameter_instance_refs() == {expected_ref: "5"}
 
-    def test_module_ctx_reads_initial_value(self):
+    def test_module_ctx_reads_initial_value(self, idx: ApplicationIndexer):
         state = GlobalState.from_project(
             [ParameterInstanceRef(ref_id=_QUALIFIED_REF, value="7")],
             [ModuleInstance(id=_MODULE_INSTANCE_ID, ref_id=_DEF_PREFIX)],
         )
-        mctx = EvalContext(state).module_ctx(_MODULE_ID)
+        mctx = EvalContext(state, idx=idx).module_ctx(_MODULE_ID)
         assert mctx.get(_LOCAL_REF) == "7"
 
-    def test_module_ctx_write_overwrites_initial_value(self):
+    def test_module_ctx_write_overwrites_initial_value(self, idx: ApplicationIndexer):
         state = GlobalState.from_project(
             [ParameterInstanceRef(ref_id=_QUALIFIED_REF, value="old")],
             [ModuleInstance(id=_MODULE_INSTANCE_ID, ref_id=_DEF_PREFIX)],
         )
-        mctx = EvalContext(state).module_ctx(_MODULE_ID)
+        mctx = EvalContext(state, idx=idx).module_ctx(_MODULE_ID)
         mctx.set(_LOCAL_REF, "new")
         assert mctx.get(_LOCAL_REF) == "new"
+
+
+def _indexer_with_param_refs(*ref_ids: str) -> ApplicationIndexer:
+    """An indexer whose ParameterRefs each target themselves - enough for
+    mark_active_param()'s ref_id -> parameter_id resolution, irrelevant to what these
+    tests are actually checking (Choose/When gating, trim_to_active pruning)."""
+    app = ApplicationProgram(
+        id="APP",
+        name="",
+        application_number=1,
+        application_version=1,
+        program_type=ApplicationProgramType.APPLICATION_PROGRAM,
+        mask_version="BV20",
+        load_procedure_style=LoadProcedureStyle.DEFAULT_PROCEDURE,
+        pei_type=0,
+        default_language="en",
+        dynamic_table_management=False,
+        linkable=False,
+        static=ApplicationProgramStatic(
+            parameter_refs=ApplicationProgramStaticParameterRefs(
+                parameter_ref=[
+                    IrParameterRef(id=ref_id, ref_id=ref_id) for ref_id in ref_ids
+                ]
+            )
+        ),
+    )
+    return ApplicationIndexer(app)
+
+
+_MARK_IDX = _indexer_with_param_refs(_REF_MODE, _REF_TARGET, _LOCAL_REF)
 
 
 class TestTrimToActive:
@@ -171,7 +204,7 @@ class TestTrimToActive:
         x_leaf = _ParamLeaf(_REF_TARGET)
         choose = ChooseWhenNode(_REF_MODE, {"1": [x_leaf]}, None)
 
-        ctx = EvalContext(state)
+        ctx = EvalContext(state, idx=_MARK_IDX)
         y_leaf.eval(ctx)
         choose.eval(ctx)
 
@@ -186,7 +219,7 @@ class TestTrimToActive:
         x_leaf = _ParamLeaf(_REF_TARGET)
         choose = ChooseWhenNode(_REF_MODE, {"1": [x_leaf]}, None)
 
-        ctx = EvalContext(state)
+        ctx = EvalContext(state, idx=_MARK_IDX)
         y_leaf.eval(ctx)
         choose.eval(ctx)
 
@@ -208,7 +241,7 @@ class TestTrimToActive:
         choose = ChooseWhenNode(_REF_MODE, {"1": [x_leaf]}, None)
 
         state.reset_active()
-        ctx = EvalContext(state)
+        ctx = EvalContext(state, idx=_MARK_IDX)
         y_leaf.eval(ctx)
         choose.eval(ctx)
         state.trim_to_active()
@@ -216,7 +249,7 @@ class TestTrimToActive:
 
         state.set(_REF_MODE, "2")
         state.reset_active()
-        ctx = EvalContext(state)
+        ctx = EvalContext(state, idx=_MARK_IDX)
         y_leaf.eval(ctx)
         choose.eval(ctx)
         state.trim_to_active()
@@ -229,7 +262,7 @@ class TestTrimToActive:
         choose = ChooseWhenNode(_REF_MODE, {"1": [x_leaf]}, None)
 
         state.reset_active()
-        ctx = EvalContext(state)
+        ctx = EvalContext(state, idx=_MARK_IDX)
         y_leaf.eval(ctx)
         choose.eval(ctx)
         state.trim_to_active()
@@ -243,7 +276,7 @@ class TestTrimToActive:
         choose = ChooseWhenNode(_REF_MODE, {"1": [x_leaf]}, None)
 
         state.reset_active()
-        ctx = EvalContext(state)
+        ctx = EvalContext(state, idx=_MARK_IDX)
         y_leaf.eval(ctx)
         choose.eval(ctx)
         state.trim_to_active()
@@ -387,11 +420,6 @@ def _indexer_with_allocator(
 
 
 class TestEvalContextAllocate:
-    def test_allocate_without_indexer_raises(self):
-        ctx = EvalContext(GlobalState())
-        with pytest.raises(RuntimeError, match="requires an ApplicationIndexer"):
-            ctx.allocate("MD1", "L-1", "A-1")
-
     def test_allocate_returns_start_address_on_first_call(self):
         idx = _indexer_with_allocator("MD1", "L-1", "A-1")
         ctx = EvalContext(GlobalState(), idx=idx)
@@ -405,8 +433,8 @@ class TestEvalContextAllocate:
 
 
 class TestEvalContextRepeatIdx:
-    def test_default_repeat_idx_is_one(self):
-        assert EvalContext(GlobalState()).repeat_idx == 1
+    def test_default_repeat_idx_is_one(self, idx: ApplicationIndexer):
+        assert EvalContext(GlobalState(), idx=idx).repeat_idx == 1
 
-    def test_repeat_ctx_sets_repeat_idx(self):
-        assert EvalContext(GlobalState()).repeat_ctx(5).repeat_idx == 5
+    def test_repeat_ctx_sets_repeat_idx(self, idx: ApplicationIndexer):
+        assert EvalContext(GlobalState(), idx=idx).repeat_ctx(5).repeat_idx == 5

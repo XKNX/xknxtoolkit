@@ -1,4 +1,5 @@
 from xknxmono.models.intermediate import Repeat
+from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.nodes import DynamicNode, EvalContext, GlobalState
 from xknxmono.product.parser_v2.nodes.repeat import RepeatNode
 from xknxmono.product.parser_v2.ui import UiNode
@@ -39,66 +40,75 @@ class IndexCapture(DynamicNode):
 
 
 class TestCount:
-    def test_static_count_returned_directly(self):
+    def test_static_count_returned_directly(self, idx: ApplicationIndexer):
         node = _repeat(count=3)
-        assert node._count(EvalContext(GlobalState())) == 3
+        assert node._count(EvalContext(GlobalState(), idx=idx)) == 3
 
-    def test_zero_count_with_no_param_returns_zero(self):
+    def test_zero_count_with_no_param_returns_zero(self, idx: ApplicationIndexer):
         node = _repeat(count=0)
-        assert node._count(EvalContext(GlobalState())) == 0
+        assert node._count(EvalContext(GlobalState(), idx=idx)) == 0
 
-    def test_dynamic_count_read_from_state(self):
+    def test_dynamic_count_read_from_state(self, idx: ApplicationIndexer):
         node = _repeat(count=0, param_ref_id=_PARAM_REF)
-        assert node._count(EvalContext(GlobalState({_PARAM_REF: "5"}))) == 5
+        assert node._count(EvalContext(GlobalState({_PARAM_REF: "5"}), idx=idx)) == 5
 
-    def test_dynamic_count_missing_param_returns_zero(self):
+    def test_dynamic_count_missing_param_returns_zero(self, idx: ApplicationIndexer):
         node = _repeat(count=0, param_ref_id=_PARAM_REF)
-        assert node._count(EvalContext(GlobalState())) == 0
+        assert node._count(EvalContext(GlobalState(), idx=idx)) == 0
 
-    def test_dynamic_count_non_integer_value_returns_zero(self):
+    def test_dynamic_count_non_integer_value_returns_zero(
+        self, idx: ApplicationIndexer
+    ):
         node = _repeat(count=0, param_ref_id=_PARAM_REF)
-        assert node._count(EvalContext(GlobalState({_PARAM_REF: "off"}))) == 0
+        assert node._count(EvalContext(GlobalState({_PARAM_REF: "off"}), idx=idx)) == 0
 
-    def test_static_count_takes_precedence_over_param(self):
+    def test_static_count_takes_precedence_over_param(self, idx: ApplicationIndexer):
         node = _repeat(count=2, param_ref_id=_PARAM_REF)
-        assert node._count(EvalContext(GlobalState({_PARAM_REF: "99"}))) == 2
+        assert node._count(EvalContext(GlobalState({_PARAM_REF: "99"}), idx=idx)) == 2
 
 
 class TestEval:
-    def test_zero_count_returns_empty(self):
+    def test_zero_count_returns_empty(self, idx: ApplicationIndexer):
         assert (
-            _repeat(count=0, children=[UiLeaf()]).eval(EvalContext(GlobalState())) == []
+            _repeat(count=0, children=[UiLeaf()]).eval(
+                EvalContext(GlobalState(), idx=idx)
+            )
+            == []
         )
 
-    def test_repeated_n_times(self):
-        result = _repeat(count=3, children=[UiLeaf()]).eval(EvalContext(GlobalState()))
+    def test_repeated_n_times(self, idx: ApplicationIndexer):
+        result = _repeat(count=3, children=[UiLeaf()]).eval(
+            EvalContext(GlobalState(), idx=idx)
+        )
         assert len(result) == 3
 
-    def test_none_children_filtered(self):
+    def test_none_children_filtered(self, idx: ApplicationIndexer):
         result = _repeat(count=2, children=[None, UiLeaf(), None]).eval(
-            EvalContext(GlobalState())
+            EvalContext(GlobalState(), idx=idx)
         )
         assert len(result) == 2
 
-    def test_multiple_children_all_included_per_iteration(self):
+    def test_multiple_children_all_included_per_iteration(
+        self, idx: ApplicationIndexer
+    ):
         result = _repeat(count=2, children=[UiLeaf(), UiLeaf()]).eval(
-            EvalContext(GlobalState())
+            EvalContext(GlobalState(), idx=idx)
         )
         assert len(result) == 4
 
-    def test_dynamic_count_drives_iterations(self):
+    def test_dynamic_count_drives_iterations(self, idx: ApplicationIndexer):
         state = GlobalState({_PARAM_REF: "4"})
         result = _repeat(count=0, param_ref_id=_PARAM_REF, children=[UiLeaf()]).eval(
-            EvalContext(state)
+            EvalContext(state, idx=idx)
         )
         assert len(result) == 4
 
-    def test_indices_start_at_one(self):
+    def test_indices_start_at_one(self, idx: ApplicationIndexer):
         capture = IndexCapture()
-        _repeat(count=3, children=[capture]).eval(EvalContext(GlobalState()))
+        _repeat(count=3, children=[capture]).eval(EvalContext(GlobalState(), idx=idx))
         assert capture.seen == [1, 2, 3]
 
-    def test_each_iteration_gets_own_repeat_ctx(self):
+    def test_each_iteration_gets_own_repeat_ctx(self, idx: ApplicationIndexer):
         capture = IndexCapture()
-        _repeat(count=4, children=[capture]).eval(EvalContext(GlobalState()))
+        _repeat(count=4, children=[capture]).eval(EvalContext(GlobalState(), idx=idx))
         assert capture.seen == [1, 2, 3, 4]

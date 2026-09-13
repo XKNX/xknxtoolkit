@@ -93,12 +93,14 @@ def test_resolved_base_returns_numeric_value() -> None:
     assert _resolved_base("A-1", args) == 7
 
 
-def test_resolve_arguments_base_value_chains_to_another_arg() -> None:
+def test_resolve_arguments_base_value_chains_to_another_arg(
+    idx: ApplicationIndexer,
+) -> None:
     args = {
         "A-1": ModuleNumericArg(ref_id="A-1", value=5),
         "A-2": ModuleNumericArg(ref_id="A-2", value=10, base_value="A-1"),
     }
-    ctx = EvalContext(GlobalState())
+    ctx = EvalContext(GlobalState(), idx=idx)
     resolved = _resolve_arguments(ctx, "MD1", args)
     assert resolved["A-2"].value == 15  # pyright: ignore[reportAttributeAccessIssue]
 
