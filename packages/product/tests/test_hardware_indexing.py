@@ -1,9 +1,12 @@
 """Unit test for hardware.py's module-level _hardware() generator that parse_hardware_xml
-drives - a manufacturer without a Hardware section is skipped, and every manufacturer's
+drives - a manufacturer without a Hardware section raises, and every manufacturer's
 hardware is yielded when there are several."""
 
 from __future__ import annotations
 
+import pytest
+
+from xknxmono.models.intermediate import ApplicationProgramRef, Hardware2Program
 from xknxmono.models.intermediate.hardware_t import Hardware as IrHardware
 from xknxmono.models.intermediate.knx import Knx
 from xknxmono.models.intermediate.manufacturer_data_t import ManufacturerData
@@ -13,7 +16,11 @@ from xknxmono.models.intermediate.manufacturer_data_t_manufacturer import (
 from xknxmono.models.intermediate.manufacturer_data_t_manufacturer_hardware import (
     ManufacturerDataManufacturerHardware,
 )
-from xknxmono.product.hardware import _hardware  # pyright: ignore[reportPrivateUsage]
+from xknxmono.product.errors import ParseError
+from xknxmono.product.hardware import (  # pyright: ignore[reportPrivateUsage]
+    _application_ref_ids,
+    _hardware,
+)
 
 
 def _hw(hw_id: str) -> IrHardware:
@@ -27,18 +34,20 @@ def _hw(hw_id: str) -> IrHardware:
     )
 
 
-def test_hardware_empty_when_no_manufacturer_data() -> None:
+def test_hardware_raises_when_no_manufacturer_data() -> None:
     knx = Knx(manufacturer_data=None)
-    assert list(_hardware(knx)) == []
+    with pytest.raises(ParseError):
+        list(_hardware(knx))
 
 
-def test_hardware_skips_manufacturer_without_hardware_section() -> None:
+def test_hardware_raises_when_manufacturer_has_no_hardware_section() -> None:
     knx = Knx(
         manufacturer_data=ManufacturerData(
             manufacturer=[ManufacturerDataManufacturer(ref_id="M-0008")]
         )
     )
-    assert list(_hardware(knx)) == []
+    with pytest.raises(ParseError, match="M-0008"):
+        list(_hardware(knx))
 
 
 def test_hardware_yields_across_multiple_manufacturers() -> None:
@@ -59,3 +68,22 @@ def test_hardware_yields_across_multiple_manufacturers() -> None:
         )
     )
     assert list(_hardware(knx)) == [hw1, hw2]
+
+
+def test_application_ref_ids_returns_ref_ids() -> None:
+    h2p = Hardware2Program(
+        id="H2P1",
+        application_program_ref=[
+            ApplicationProgramRef(ref_id="A1"),
+            ApplicationProgramRef(ref_id="A2"),
+        ],
+    )
+    assert _application_ref_ids(h2p) == ["A1", "A2"]
+
+
+def test_application_ref_ids_raises_on_empty_ref_id() -> None:
+    h2p = Hardware2Program(
+        id="H2P1", application_program_ref=[ApplicationProgramRef(ref_id="")]
+    )
+    with pytest.raises(ParseError, match="H2P1"):
+        _application_ref_ids(h2p)

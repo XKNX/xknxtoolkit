@@ -12,6 +12,7 @@ from pathlib import Path
 from .application import parse_application_xml
 from .archive import Archive
 from .catalog import parse_catalog_xml
+from .errors import ArchiveError
 from .hardware import parse_hardware_xml
 from .master import parse_master_xml
 from .registry import Registry
@@ -44,10 +45,15 @@ def load(source: str | bytes | Path) -> Registry:
 
         # Record program → application edges once every application is indexed.
         for program_id, program in registry.programs.items():
-            app_ids = [
-                a for a in program.application_ref_ids if a in registry.applications
-            ]
-            if app_ids:
-                registry.program_to_application[program_id] = app_ids
+            for a in program.application_ref_ids:
+                if a not in registry.applications:
+                    raise ArchiveError(
+                        f"program {program_id!r} references application {a!r}, which "
+                        f"is not bundled in this archive"
+                    )
+            if program.application_ref_ids:
+                registry.program_to_application[program_id] = list(
+                    program.application_ref_ids
+                )
 
     return registry

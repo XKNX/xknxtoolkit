@@ -3,6 +3,8 @@ _programs() generator that parse_application_xml drives."""
 
 from __future__ import annotations
 
+import pytest
+
 from xknxmono.models.intermediate import ApplicationProgram
 from xknxmono.models.intermediate.application_program_static_t import (
     ApplicationProgramStatic,
@@ -27,6 +29,7 @@ from xknxmono.product.application import (  # pyright: ignore[reportPrivateUsage
     Application,
     _programs,
 )
+from xknxmono.product.errors import ParseError
 
 
 def _program(prog_id: str = "APP1") -> ApplicationProgram:
@@ -81,13 +84,14 @@ def test_dynamic_ui_none_when_no_dynamic_section() -> None:
     assert app.dynamic_ui() is None
 
 
-def test_programs_skips_manufacturer_without_application_programs() -> None:
+def test_programs_raises_when_manufacturer_has_no_application_programs() -> None:
     knx = Knx(
         manufacturer_data=ManufacturerData(
             manufacturer=[ManufacturerDataManufacturer(ref_id="M-0008")]
         )
     )
-    assert list(_programs(knx)) == []
+    with pytest.raises(ParseError, match="M-0008"):
+        list(_programs(knx))
 
 
 def test_programs_yields_across_multiple_manufacturers() -> None:
@@ -114,6 +118,7 @@ def test_programs_yields_across_multiple_manufacturers() -> None:
     assert list(_programs(knx)) == [p1, p2]
 
 
-def test_programs_empty_when_no_manufacturer_data() -> None:
+def test_programs_raises_when_no_manufacturer_data() -> None:
     knx = Knx(manufacturer_data=None)
-    assert list(_programs(knx)) == []
+    with pytest.raises(ParseError):
+        list(_programs(knx))

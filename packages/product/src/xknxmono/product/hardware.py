@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from xknxmono.models import detect_version
 
 from .data import to_ir
+from .errors import ParseError
 
 if TYPE_CHECKING:
     from xknxmono.models import intermediate as ir
@@ -63,10 +64,24 @@ class HardwareDoc:
 
 def _hardware(knx: ir.Knx) -> Iterator[ir.Hardware]:
     if knx.manufacturer_data is None:
-        return
+        raise ParseError("hardware XML has no ManufacturerData section")
     for manufacturer in knx.manufacturer_data.manufacturer:
-        if manufacturer.hardware is not None:
-            yield from manufacturer.hardware.hardware
+        if manufacturer.hardware is None:
+            raise ParseError(
+                f"manufacturer {manufacturer.ref_id!r} has no Hardware section in a "
+                f"hardware XML"
+            )
+        yield from manufacturer.hardware.hardware
+
+
+def _application_ref_ids(h2p: ir.Hardware2Program) -> list[str]:
+    for ref in h2p.application_program_ref:
+        if not ref.ref_id:
+            raise ParseError(
+                f"hardware2program {h2p.id!r} has an ApplicationProgramRef with no "
+                f"RefId"
+            )
+    return [ref.ref_id for ref in h2p.application_program_ref]
 
 
 def parse_hardware_xml(xml_bytes: bytes) -> HardwareDoc:
@@ -97,9 +112,7 @@ def parse_hardware_xml(xml_bytes: bytes) -> HardwareDoc:
         hw_programs = {
             h2p.id: DeviceProgram(
                 id=h2p.id,
-                application_ref_ids=[
-                    ref.ref_id for ref in h2p.application_program_ref if ref.ref_id
-                ],
+                application_ref_ids=_application_ref_ids(h2p),
                 raw=h2p,
             )
             for h2p in (

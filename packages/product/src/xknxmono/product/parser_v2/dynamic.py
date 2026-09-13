@@ -172,7 +172,9 @@ class DynamicTreeBuilder:
             param_ref_defaults = compute_param_ref_defaults(
                 mod_def.static.parameter_refs if mod_def.static else None, self.idx
             )
-            arg_defaults = compute_arg_defaults(mod_def.arguments, list(elem.choice))
+            arg_defaults = compute_arg_defaults(
+                mod_def.arguments, list(elem.choice), ref_id
+            )
             return ModuleNode(
                 elem.id,
                 GenericCollectionNode(children),

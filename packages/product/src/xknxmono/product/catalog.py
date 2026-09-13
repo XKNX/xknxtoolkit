@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from xknxmono.models import detect_version
 
 from .data import to_ir
+from .errors import ParseError
 
 if TYPE_CHECKING:
     from xknxmono.models import intermediate as ir
@@ -74,11 +75,16 @@ def parse_catalog_xml(xml_bytes: bytes) -> CatalogDoc:
         for sub in section.catalog_section:
             walk(sub, section.id)
 
-    if knx.manufacturer_data is not None:
-        for manufacturer in knx.manufacturer_data.manufacturer:
-            if manufacturer.catalog is not None:
-                for section in manufacturer.catalog.catalog_section:
-                    walk(section, None)
+    if knx.manufacturer_data is None:
+        raise ParseError("catalog XML has no ManufacturerData section")
+    for manufacturer in knx.manufacturer_data.manufacturer:
+        if manufacturer.catalog is None:
+            raise ParseError(
+                f"manufacturer {manufacturer.ref_id!r} has no Catalog section in a "
+                f"catalog XML"
+            )
+        for section in manufacturer.catalog.catalog_section:
+            walk(section, None)
 
     return CatalogDoc(
         sections=sections,
