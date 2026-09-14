@@ -164,9 +164,6 @@ class ConfigurePanel:
             "##serial", self._serial_buffer, imgui.InputTextFlags_.chars_hexadecimal
         )
 
-        if self._open_memory_preview is not None and imgui.button(S.BTN_PREVIEW_MEMORY):
-            self._open_memory_preview(device)
-
         if imgui.collapsing_header(
             S.CONFIGURE_METADATA, imgui.TreeNodeFlags_.default_open
         ):
@@ -179,10 +176,16 @@ class ConfigurePanel:
                 device, self._serial_buffer
             )
 
-        if self._restart_section is not None and imgui.collapsing_header(
-            S.CONFIGURE_RESET_SECTION
-        ):
-            self._restart_section.render(device)
+        show_advanced_actions = (
+            self._open_memory_preview is not None or self._restart_section is not None
+        )
+        if show_advanced_actions and imgui.collapsing_header(S.CONFIGURE_RESET_SECTION):
+            if self._open_memory_preview is not None and imgui.button(
+                S.BTN_PREVIEW_MEMORY
+            ):
+                self._open_memory_preview(device)
+            if self._restart_section is not None:
+                self._restart_section.render(device)
 
         ui_nodes = device.get_ui()
         param_count = count_parameters(ui_nodes)
