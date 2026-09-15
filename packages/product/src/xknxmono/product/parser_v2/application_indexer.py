@@ -31,6 +31,7 @@ class ApplicationIndexer:
         "parameter_refs",
         "parameter_types",
         "parameters",
+        "referenced_parameter_ids",
         "script",
     )
 
@@ -50,6 +51,12 @@ class ApplicationIndexer:
         if app.module_defs is not None:
             for md in app.module_defs.module_def:
                 self._index_module_def(md)
+        # Every Parameter/UnionParameter id that at least one ParameterRef targets -
+        # anything not in here has no dynamic-tree presence at all, so activity gating
+        # never applies to it (see encode.py's _is_parameter_active).
+        self.referenced_parameter_ids = frozenset(
+            pr.ref_id for pr in self.parameter_refs.values()
+        )
 
     def _index_app(self, app: ApplicationProgram) -> None:
         s = app.static

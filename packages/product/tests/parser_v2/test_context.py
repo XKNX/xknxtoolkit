@@ -49,7 +49,8 @@ class _ParamLeaf(DynamicNode):
         self._ref_id = ref_id
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
-        ctx.mark_active_param(self._ref_id)
+        # parameter_id is irrelevant to what this stub is testing (Choose/When gating).
+        ctx.mark_active_param(self._ref_id, self._ref_id)
         return []
 
 
@@ -252,7 +253,7 @@ class TestTrimToActive:
     def test_active_param_refs_qualified_in_module_scope(self):
         state = GlobalState()
         ms = state.module_child(_MODULE_ID)
-        ms.mark_active_param(_LOCAL_REF)
+        ms.mark_active_param(_LOCAL_REF, _LOCAL_REF)
 
         assert state.active_param_refs() == {_QUALIFIED_REF}
 

@@ -44,8 +44,8 @@ class EvalContext:
     def get_text(self, ref_id: str) -> str | None:
         return self._scope.get_text(ref_id)
 
-    def mark_active_param(self, ref_id: str) -> None:
-        self._scope.mark_active_param(ref_id)
+    def mark_active_param(self, ref_id: str, parameter_id: str) -> None:
+        self._scope.mark_active_param(ref_id, parameter_id)
 
     def mark_active_com_object(self, ref_id: str) -> None:
         self._scope.mark_active_com_object(ref_id)
