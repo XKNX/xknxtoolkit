@@ -24,7 +24,7 @@ from imgui_bundle.immapp import testing as imgui_testing
 # app itself uses, side-stepping the circular import. (Sorts first alphabetically too,
 # so this also satisfies ruff's import ordering - no noqa needed.)
 import knx_gui.main  # noqa: F401 # pyright: ignore[reportUnusedImport]
-from knx_gui.device import Device
+from knx_gui.device import ComObject, Device
 from knx_gui.plugins.project.strings import S
 from knx_gui.plugins.project.ui.components import (
     LoadProceduresSection,
@@ -38,6 +38,7 @@ from knx_gui.plugins.project.ui.components import (
 from knx_gui.plugins.project.ui.components.program_section import (
     _limit_serial_length,  # pyright: ignore[reportPrivateUsage]
 )
+from knx_gui.plugins.project.ui.configure import ConfigurePanel
 
 # Aliased: pytest's default discovery tries to collect any name starting with "Test"
 # as a test class, which fails noisily for TestContext (it has an __init__).
@@ -359,6 +360,83 @@ def test_restart_section_non_destructive_mode_restarts_immediately() -> None:
     imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
 
     assert calls == [RestartRequest(master_reset=False, erase_code=0, channel_number=0)]
+
+
+def _fake_full_configure_device() -> Device:
+    """Enough surface for `ConfigurePanel.render()` to complete a full frame:
+    `MetadataSection` renders by default (open), so it needs the same app/hardware
+    shape as `_fake_metadata_device()`; `app.load_procedures=None` short-circuits the
+    Load Procedures section (covered separately above); `get_ui`/
+    `get_visible_com_objects` return empty so the Parameters/Com Flags sections have
+    nothing to render - none of that is what this test is about."""
+    program = SimpleNamespace(
+        mask_version="MASK0701",
+        pei_type=17,
+        application_number=1,
+        application_version=1,
+        program_type=SimpleNamespace(value="Application Program"),
+        load_procedure_style=SimpleNamespace(value="Overwriting Load Procedure"),
+        linkable=False,
+        dynamic_table_management=True,
+        is_secure_enabled=False,
+        additional_addresses_count=3,
+        visible_description="",
+        original_manufacturer="",
+    )
+    app = SimpleNamespace(
+        program=program,
+        manufacturer_id="M-0083",
+        name="Test Application",
+        id="APP-0001",
+        load_procedures=None,
+    )
+    return cast(
+        Device,
+        SimpleNamespace(
+            node_id=1,
+            name="Test Device",
+            individual_address="1.1.1",
+            app=app,
+            hardware=None,
+            get_ui=lambda: cast(list[UiNode], []),
+            get_visible_com_objects=lambda: cast(list[ComObject], []),
+        ),
+    )
+
+
+def test_advanced_actions_section_contains_preview_memory_button() -> None:
+    """ "Preview Memory" moved out of its old standalone spot above Metadata into the
+    Advanced Actions header, alongside Reset Device - regression guard that it's
+    still reachable there and still opens the preview for the selected device."""
+    device = _fake_full_configure_device()
+    opened: list[Device] = []
+    panel = ConfigurePanel(
+        get_devices=lambda: [device],
+        get_selected_device=lambda: device,
+        set_selected_device=lambda _device: None,
+        on_param_change=lambda _device, _ref_id, _value: None,
+        on_individual_address_change=lambda _device, _address: None,
+        on_name_change=lambda _device, _name: None,
+        set_flag=lambda _device, _co_id, _flag, _value: None,
+        open_memory_preview=opened.append,
+    )
+
+    def gui_function() -> None:
+        imgui.begin("TestPanel")
+        panel.render()
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_open(S.CONFIGURE_RESET_SECTION)
+        ctx.yield_()
+        ctx.item_click(S.BTN_PREVIEW_MEMORY)
+        ctx.yield_()
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    assert opened == [device]
 
 
 def test_load_procedures_section_renders_each_procedures_steps() -> None:
