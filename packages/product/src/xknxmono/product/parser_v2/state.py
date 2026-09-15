@@ -136,9 +136,9 @@ class ParameterState:
 
         ref_id is the ParameterRef's own id (used to prune stale override values in
         trim_to_active()); parameter_id is what it ultimately targets (used to gate
-        whether that parameter should be encoded at all). Both are always known
-        together at the one call site that marks anything active (ParameterRefRefNode),
-        so there's one call instead of two independent ones to keep in sync.
+        whether that parameter should be encoded at all). Callers resolve ref_id ->
+        parameter_id themselves (EvalContext.mark_active_param does this via the
+        indexer) and pass both here as one call, so there's nothing to keep in sync.
         """
         self._active_param_refs.add(ref_id)
         self._active_parameter_ids.add(parameter_id)

@@ -23,7 +23,8 @@ class EvalContext:
         self,
         scope: ParameterState,
         repeat_idx: int = 1,
-        idx: ApplicationIndexer | None = None,
+        *,
+        idx: ApplicationIndexer,
     ) -> None:
         self._scope = scope
         self._repeat_idx = repeat_idx
@@ -44,7 +45,8 @@ class EvalContext:
     def get_text(self, ref_id: str) -> str | None:
         return self._scope.get_text(ref_id)
 
-    def mark_active_param(self, ref_id: str, parameter_id: str) -> None:
+    def mark_active_param(self, ref_id: str) -> None:
+        parameter_id = self._idx.parameter_refs[ref_id].ref_id
         self._scope.mark_active_param(ref_id, parameter_id)
 
     def mark_active_com_object(self, ref_id: str) -> None:
@@ -57,8 +59,6 @@ class EvalContext:
         self, def_ref_id: str, alloc_id: str, arg_ref_id: str, base: int = 0
     ) -> int:
         """Allocate an address from the running pool, advance the scope position, and return the address."""
-        if self._idx is None:
-            raise RuntimeError("allocate() requires an ApplicationIndexer")
         alloc = self._idx.allocators[def_ref_id][alloc_id]
         arg_alloc_entry = self._idx.arg_alloc[def_ref_id][arg_ref_id]
         allocates, alignment = arg_alloc_entry
@@ -72,7 +72,7 @@ class EvalContext:
         return self._repeat_idx
 
     def repeat_ctx(self, repeat_idx: int) -> EvalContext:
-        return EvalContext(self._scope, repeat_idx, self._idx)
+        return EvalContext(self._scope, repeat_idx, idx=self._idx)
 
     def get_arg_value(self, ref_id: str) -> int:
         arg = self._scope.get_arg(ref_id)

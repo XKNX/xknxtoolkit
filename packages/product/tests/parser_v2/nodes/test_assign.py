@@ -2,6 +2,7 @@ import pytest
 
 from xknxmono.models.intermediate import Assign
 from xknxmono.product.errors import EncodingError
+from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.nodes import (
     AssignNode,
     ChooseWhenNode,
@@ -29,33 +30,33 @@ class UiLeaf(DynamicNode):
 
 
 class TestAssignNode:
-    def test_eval_returns_empty_list(self):
+    def test_eval_returns_empty_list(self, idx: ApplicationIndexer):
         node = AssignNode(Assign(target_param_ref_ref=_REF_TARGET, value="42"))
-        assert node.eval(EvalContext(GlobalState())) == []
+        assert node.eval(EvalContext(GlobalState(), idx=idx)) == []
 
-    def test_assign_literal_value_mutates_state(self):
+    def test_assign_literal_value_mutates_state(self, idx: ApplicationIndexer):
         node = AssignNode(Assign(target_param_ref_ref=_REF_TARGET, value="42"))
         state = GlobalState()
-        node.eval(EvalContext(state))
+        node.eval(EvalContext(state, idx=idx))
         assert state.parameter_instance_refs()[_REF_TARGET] == "42"
 
-    def test_assign_copies_source_param(self):
+    def test_assign_copies_source_param(self, idx: ApplicationIndexer):
         node = AssignNode(
             Assign(target_param_ref_ref=_REF_TARGET, source_param_ref_ref=_REF_SOURCE)
         )
         state = GlobalState({_REF_SOURCE: "7"})
-        node.eval(EvalContext(state))
+        node.eval(EvalContext(state, idx=idx))
         assert state.parameter_instance_refs()[_REF_TARGET] == "7"
 
-    def test_assign_source_missing_skips_write(self):
+    def test_assign_source_missing_skips_write(self, idx: ApplicationIndexer):
         node = AssignNode(
             Assign(target_param_ref_ref=_REF_TARGET, source_param_ref_ref=_REF_MISSING)
         )
         state = GlobalState()
-        node.eval(EvalContext(state))
+        node.eval(EvalContext(state, idx=idx))
         assert _REF_TARGET not in state.parameter_instance_refs()
 
-    def test_assign_value_takes_precedence_over_source(self):
+    def test_assign_value_takes_precedence_over_source(self, idx: ApplicationIndexer):
         node = AssignNode(
             Assign(
                 target_param_ref_ref=_REF_TARGET,
@@ -64,20 +65,24 @@ class TestAssignNode:
             )
         )
         state = GlobalState({_REF_OTHER: "should-be-ignored"})
-        node.eval(EvalContext(state))
+        node.eval(EvalContext(state, idx=idx))
         assert state.parameter_instance_refs()[_REF_TARGET] == "literal"
 
-    def test_assign_mutation_visible_to_subsequent_sibling_in_collection(self):
+    def test_assign_mutation_visible_to_subsequent_sibling_in_collection(
+        self, idx: ApplicationIndexer
+    ):
         # Assign fires before choose in eval order, so the leaf is reachable.
         assign = AssignNode(Assign(target_param_ref_ref=_REF_MODE, value="1"))
         leaf = UiLeaf()
         choose = ChooseWhenNode(_REF_MODE, {"1": [leaf]}, None)
         collection = GenericCollectionNode([assign, choose])
-        result = collection.eval(EvalContext(GlobalState()))
+        result = collection.eval(EvalContext(GlobalState(), idx=idx))
         assert result == [UiSeparator(id="leaf", text=None)]
 
-    def test_assign_raises_when_both_value_and_source_are_none(self):
+    def test_assign_raises_when_both_value_and_source_are_none(
+        self, idx: ApplicationIndexer
+    ):
         node = AssignNode(Assign(target_param_ref_ref=_REF_TARGET))
         state = GlobalState()
         with pytest.raises(EncodingError, match=_REF_TARGET):
-            node.eval(EvalContext(state))
+            node.eval(EvalContext(state, idx=idx))

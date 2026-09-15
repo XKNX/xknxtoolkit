@@ -1,3 +1,4 @@
+from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.nodes import (
     ChooseWhenNode,
     DynamicNode,
@@ -77,34 +78,48 @@ class TestSatisfies:
 
 
 class TestChooseWhenNode:
-    def test_eval_returns_empty_with_no_conditions_and_no_default(self):
+    def test_eval_returns_empty_with_no_conditions_and_no_default(
+        self, idx: ApplicationIndexer
+    ):
         node = ChooseWhenNode(_REF_MODE, {}, None)
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "1"}))) == []
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "1"}), idx=idx)) == []
 
-    def test_eval_returns_matching_branch(self):
+    def test_eval_returns_matching_branch(self, idx: ApplicationIndexer):
         node = ChooseWhenNode(_REF_MODE, {"1": [UiLeaf(_UI_A)]}, None)
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "1"}))) == [_UI_A]
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "1"}), idx=idx)) == [_UI_A]
 
-    def test_eval_falls_through_to_default(self):
+    def test_eval_falls_through_to_default(self, idx: ApplicationIndexer):
         node = ChooseWhenNode(_REF_MODE, {"1": [UiLeaf(_UI_A)]}, [UiLeaf(_UI_B)])
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}))) == [_UI_B]
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}), idx=idx)) == [
+            _UI_B
+        ]
 
-    def test_eval_default_branch_without_test_condition(self):
+    def test_eval_default_branch_without_test_condition(self, idx: ApplicationIndexer):
         node = ChooseWhenNode(_REF_MODE, {}, [UiLeaf(_UI_B)])
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "anything"}))) == [_UI_B]
+        assert node.eval(
+            EvalContext(GlobalState({_REF_MODE: "anything"}), idx=idx)
+        ) == [_UI_B]
 
-    def test_eval_returns_empty_when_no_match_and_no_default(self):
+    def test_eval_returns_empty_when_no_match_and_no_default(
+        self, idx: ApplicationIndexer
+    ):
         node = ChooseWhenNode(_REF_MODE, {"1": [UiLeaf(_UI_A)]}, None)
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}))) == []
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}), idx=idx)) == []
 
-    def test_eval_uses_empty_string_for_missing_param(self):
+    def test_eval_uses_empty_string_for_missing_param(self, idx: ApplicationIndexer):
         node = ChooseWhenNode(_REF_MODE, {"1": [UiLeaf(_UI_A)]}, None)
-        assert node.eval(EvalContext(GlobalState())) == []
+        assert node.eval(EvalContext(GlobalState(), idx=idx)) == []
 
-    def test_eval_matches_value_in_space_separated_condition(self):
+    def test_eval_matches_value_in_space_separated_condition(
+        self, idx: ApplicationIndexer
+    ):
         node = ChooseWhenNode(
             _REF_MODE, {"1 2 130 4 6 134 36 132": [UiLeaf(_UI_A)]}, None
         )
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "130"}))) == [_UI_A]
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "36"}))) == [_UI_A]
-        assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}))) == []
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "130"}), idx=idx)) == [
+            _UI_A
+        ]
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "36"}), idx=idx)) == [
+            _UI_A
+        ]
+        assert node.eval(EvalContext(GlobalState({_REF_MODE: "99"}), idx=idx)) == []
