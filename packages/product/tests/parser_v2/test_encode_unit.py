@@ -17,6 +17,15 @@ from xknxmono.models.intermediate.application_program_static_t_code import (
 from xknxmono.models.intermediate.application_program_static_t_code_absolute_segment import (
     ApplicationProgramStaticCodeAbsoluteSegment,
 )
+from xknxmono.models.intermediate.application_program_static_t_options import (
+    ApplicationProgramStaticOptions,
+)
+from xknxmono.models.intermediate.application_program_static_t_options_parameter_byte_order import (
+    ApplicationProgramStaticOptionsParameterByteOrder,
+)
+from xknxmono.models.intermediate.application_program_static_t_options_text_parameter_encoding_selector import (
+    TextEncodingSelector,
+)
 from xknxmono.models.intermediate.application_program_static_t_parameter_refs import (
     ApplicationProgramStaticParameterRefs,
 )
@@ -74,17 +83,44 @@ from xknxmono.models.intermediate.parameter_type_t_type_color import (
 from xknxmono.models.intermediate.parameter_type_t_type_color_space import (
     ParameterTypeTypeColorSpace,
 )
+from xknxmono.models.intermediate.parameter_type_t_type_date import (
+    ParameterTypeTypeDate,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_date_encoding import (
+    ParameterTypeTypeDateEncoding,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_float import (
     ParameterTypeTypeFloat,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_float_encoding import (
     ParameterTypeTypeFloatEncoding,
 )
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress import (
+    ParameterTypeTypeIpaddress,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress_address_type import (
+    ParameterTypeTypeIpaddressAddressType,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_ipaddress_version import (
+    ParameterTypeTypeIpaddressVersion,
+)
 from xknxmono.models.intermediate.parameter_type_t_type_number import (
     ParameterTypeTypeNumber,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_number_type import (
     ParameterTypeTypeNumberType,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_raw_data import (
+    ParameterTypeTypeRawData,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_restriction import (
+    ParameterTypeTypeRestriction,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_restriction_base import (
+    ParameterTypeTypeRestrictionBase,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_restriction_enumeration import (
+    ParameterTypeTypeRestrictionEnumeration,
 )
 from xknxmono.models.intermediate.parameter_type_t_type_text import (
     ParameterTypeTypeText,
@@ -97,12 +133,14 @@ from xknxmono.models.intermediate.parameter_type_t_type_time_unit import (
 )
 from xknxmono.models.intermediate.property_parameter_t import PropertyParameter
 from xknxmono.models.intermediate.property_union_t import PropertyUnion
+from xknxmono.models.intermediate.text_encoding_t import TextEncoding
 from xknxmono.models.intermediate.union_parameter_t import UnionParameter
 from xknxmono.product.errors import EncodingError
 from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.encode import (
     Writes,
     _encode_value,  # pyright: ignore[reportPrivateUsage]
+    _size_in_bit,  # pyright: ignore[reportPrivateUsage]
     build_memory_param_map,
     build_property_param_map,
     collect_writes,
@@ -157,6 +195,7 @@ def _union_param(
     value: str,
     default: bool = False,
     parameter_type: str = _PT_ID,
+    bit_offset: int = 0,
 ) -> UnionParameter:
     return UnionParameter(
         id=param_id,
@@ -165,7 +204,7 @@ def _union_param(
         parameter_type=parameter_type,
         value=value,
         offset=offset,
-        bit_offset=0,
+        bit_offset=bit_offset,
         default_union_parameter=default,
     )
 
@@ -181,6 +220,7 @@ def _app(
     extra_param_types: list[ParameterType] | None = None,
     module_defs: list[ModuleDef] | None = None,
     parameter_refs: list[ParameterRef] | None = None,
+    options: ApplicationProgramStaticOptions | None = None,
 ) -> tuple[ApplicationProgram, ApplicationIndexer]:
     app = ApplicationProgram(
         id="APP",
@@ -207,6 +247,7 @@ def _app(
                 if parameter_refs is not None
                 else None
             ),
+            options=options,
         ),
         module_defs=(
             ApplicationProgramModuleDefs(module_def=module_defs)
@@ -359,6 +400,46 @@ def test_collect_mem_union_active_override() -> None:
     assert w.mem[0].value == "99"
 
 
+def test_collect_mem_union_multiple_non_overlapping_alternatives_all_active() -> None:
+    # Mirrors a real Gira device's union: a 24-bit cell holding either one 24-bit Color
+    # value, or three non-overlapping Number fields (7+6+10 = 23 of the 24 bits) packed
+    # together - only *overlapping* alternatives may never be simultaneously active,
+    # not unions in general.
+    pt7 = ParameterType(id="PT7", name="m", choice=_num_type(7))
+    pt6 = ParameterType(id="PT6", name="s", choice=_num_type(6))
+    pt10 = ParameterType(id="PT10", name="ms", choice=_num_type(10))
+    union = ApplicationProgramStaticParametersUnion(
+        choice=MemoryUnion(code_segment=_SEG_ID, offset=0, bit_offset=0),
+        size_in_bit=24,
+        parameter=[
+            _union_param("MIN", 0, "0", parameter_type="PT7", bit_offset=1),
+            _union_param("SEC", 1, "0", parameter_type="PT6", bit_offset=0),
+            _union_param("MS", 1, "0", parameter_type="PT10", bit_offset=6),
+        ],
+    )
+    app, idx = _app([union], extra_param_types=[pt7, pt6, pt10])
+    w = collect_writes(app, idx, {"MIN": "5", "SEC": "30", "MS": "500"})
+    assert {mw.param_id: mw.value for mw in w.mem} == {
+        "MIN": "5",
+        "SEC": "30",
+        "MS": "500",
+    }
+
+
+def test_collect_mem_union_overlapping_active_alternatives_raises() -> None:
+    union = ApplicationProgramStaticParametersUnion(
+        choice=MemoryUnion(code_segment=_SEG_ID, offset=0, bit_offset=0),
+        size_in_bit=8,
+        parameter=[
+            _union_param("U1", 0, "10"),
+            _union_param("U2", 0, "20"),
+        ],
+    )
+    app, idx = _app([union])
+    with pytest.raises(EncodingError, match="overlapping active alternatives"):
+        collect_writes(app, idx, {"U1": "1", "U2": "2"})
+
+
 # ---------------------------------------------------------------------------
 # collect_writes — property union
 # ---------------------------------------------------------------------------
@@ -426,6 +507,42 @@ def test_encode_to_memory_sub_byte() -> None:
     )
     mem = encode_to_memory(app, idx, {"P1": "3"})
     assert mem[_SEG_ID][0] == 0x03  # bits 4-7 = 0b0011
+
+
+def test_encode_to_memory_big_endian_is_default() -> None:
+    app, idx = _app(
+        [_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))],
+        pt_size=16,
+    )
+    mem = encode_to_memory(app, idx, {"P1": "4660"})  # 0x1234
+    assert mem[_SEG_ID][0:2] == bytes([0x12, 0x34])
+
+
+def test_encode_to_memory_little_endian_reverses_multi_byte_number() -> None:
+    app, idx = _app(
+        [_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))],
+        pt_size=16,
+        options=ApplicationProgramStaticOptions(
+            parameter_byte_order=(
+                ApplicationProgramStaticOptionsParameterByteOrder.LITTLE_ENDIAN
+            )
+        ),
+    )
+    mem = encode_to_memory(app, idx, {"P1": "4660"})  # 0x1234
+    assert mem[_SEG_ID][0:2] == bytes([0x34, 0x12])
+
+
+def test_encode_to_memory_little_endian_does_not_reverse_single_byte() -> None:
+    app, idx = _app(
+        [_param("P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0))],
+        options=ApplicationProgramStaticOptions(
+            parameter_byte_order=(
+                ApplicationProgramStaticOptionsParameterByteOrder.LITTLE_ENDIAN
+            )
+        ),
+    )
+    mem = encode_to_memory(app, idx, {"P1": "255"})
+    assert mem[_SEG_ID][0] == 255
 
 
 # ---------------------------------------------------------------------------
@@ -594,6 +711,206 @@ def test_encode_value_color_rgb() -> None:
 def test_encode_value_color_non_hex_value_returns_none() -> None:
     tc = ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGB)
     assert _encode_value("not-a-color", 24, tc) is None
+
+
+def test_encode_value_color_rgbw() -> None:
+    tc = ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGBW)
+    assert _encode_value("#1A2B3C4D", 32, tc) == 0x1A2B3C4D
+
+
+def test_encode_value_color_hsv_from_pure_red() -> None:
+    tc = ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.HSV)
+    # Pure red -> hue 0, full saturation and value.
+    assert _encode_value("#FF0000", 24, tc) == 0x00FFFF
+
+
+def test_encode_value_color_too_short_returns_none() -> None:
+    tc = ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGB)
+    assert _encode_value("#1A2B", 24, tc) is None
+
+
+def test_encode_value_date() -> None:
+    tc = ParameterTypeTypeDate(encoding=ParameterTypeTypeDateEncoding.DPT_11)
+    assert _encode_value("2024-03-05", 24, tc) == (5 << 16) | (3 << 8) | 24
+
+
+def test_encode_value_date_hides_year_when_not_displayed() -> None:
+    tc = ParameterTypeTypeDate(
+        encoding=ParameterTypeTypeDateEncoding.DPT_11, display_the_year=False
+    )
+    assert _encode_value("2024-03-05", 24, tc) == (5 << 16) | (3 << 8)
+
+
+def test_encode_value_date_invalid_format_returns_none() -> None:
+    tc = ParameterTypeTypeDate(encoding=ParameterTypeTypeDateEncoding.DPT_11)
+    assert _encode_value("not-a-date", 24, tc) is None
+
+
+def test_encode_value_ipaddress_v4() -> None:
+    tc = ParameterTypeTypeIpaddress(
+        address_type=ParameterTypeTypeIpaddressAddressType.HOST_ADDRESS
+    )
+    assert _encode_value("192.168.1.10", 32, tc) == 0xC0A8010A
+
+
+def test_encode_value_ipaddress_invalid_returns_none() -> None:
+    tc = ParameterTypeTypeIpaddress(
+        address_type=ParameterTypeTypeIpaddressAddressType.HOST_ADDRESS
+    )
+    assert _encode_value("not-an-address", 32, tc) is None
+
+
+def test_encode_value_raw_data() -> None:
+    # "3q2+7w==" is base64 for the 4 bytes DE AD BE EF.
+    tc = ParameterTypeTypeRawData(max_size=4)
+    assert _encode_value("3q2+7w==", 64, tc) == 0x00000004DEADBEEF
+
+
+def test_encode_value_raw_data_pads_short_input() -> None:
+    # "qw==" is base64 for the single byte AB.
+    tc = ParameterTypeTypeRawData(max_size=4)
+    assert _encode_value("qw==", 64, tc) == 0x00000001AB000000
+
+
+def test_encode_value_raw_data_little_endian_length_prefix() -> None:
+    tc = ParameterTypeTypeRawData(max_size=4)
+    assert _encode_value("3q2+7w==", 64, tc, little_endian=True) == 0x04000000DEADBEEF
+
+
+def test_encode_value_raw_data_too_long_returns_none() -> None:
+    tc = ParameterTypeTypeRawData(max_size=2)
+    assert _encode_value("3q2+7w==", 48, tc) is None
+
+
+def test_encode_value_raw_data_invalid_base64_returns_none() -> None:
+    tc = ParameterTypeTypeRawData(max_size=4)
+    assert _encode_value("not-base64!!", 64, tc) is None
+
+
+def _restriction_tc(
+    base: ParameterTypeTypeRestrictionBase,
+) -> ParameterTypeTypeRestriction:
+    return ParameterTypeTypeRestriction(
+        base=base,
+        size_in_bit=8,
+        enumeration=[
+            ParameterTypeTypeRestrictionEnumeration(value=1, id="EN-1"),
+            ParameterTypeTypeRestrictionEnumeration(
+                value=2, id="EN-2", binary_value=b"\xaa\xbb"
+            ),
+        ],
+    )
+
+
+def test_encode_value_restriction_base_value_matches_number() -> None:
+    tc = _restriction_tc(ParameterTypeTypeRestrictionBase.VALUE)
+    assert _encode_value("1", 8, tc) == 1
+
+
+def test_encode_value_restriction_base_binary_value_writes_verbatim() -> None:
+    tc = _restriction_tc(ParameterTypeTypeRestrictionBase.BINARY_VALUE)
+    assert _encode_value("2", 16, tc) == 0xAABB
+
+
+def test_encode_value_restriction_base_binary_value_ignores_byte_order() -> None:
+    tc = _restriction_tc(ParameterTypeTypeRestrictionBase.BINARY_VALUE)
+    assert _encode_value("2", 16, tc, little_endian=True) == 0xAABB
+
+
+def test_encode_value_restriction_binary_value_missing_returns_none() -> None:
+    tc = _restriction_tc(ParameterTypeTypeRestrictionBase.BINARY_VALUE)
+    assert _encode_value("1", 8, tc) is None  # EN-1 has no BinaryValue
+
+
+def test_encode_value_restriction_no_matching_enumeration_returns_none() -> None:
+    tc = _restriction_tc(ParameterTypeTypeRestrictionBase.VALUE)
+    assert _encode_value("99", 8, tc) is None
+
+
+def test_encode_text_respects_utf8_option() -> None:
+    pt = ParameterType(
+        id="PT_TEXT", name="T", choice=ParameterTypeTypeText(size_in_bit=48)
+    )
+    p = ApplicationProgramStaticParametersParameter(
+        id="P1",
+        name="",
+        text="",
+        parameter_type="PT_TEXT",
+        value="",
+        choice=MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0),
+    )
+    app, idx = _app(
+        [p],
+        extra_param_types=[pt],
+        options=ApplicationProgramStaticOptions(
+            text_parameter_encoding=TextEncoding.UTF_8
+        ),
+    )
+    # Euro sign needs 3 bytes in UTF-8; "a\u20accd" is 6 bytes total.
+    value = "a\u20accd"
+    mem = encode_to_memory(app, idx, {"P1": value})
+    assert mem[_SEG_ID][0:6] == value.encode("utf-8")
+
+
+def test_encode_text_ignores_option_unless_selector_uses_it() -> None:
+    pt = ParameterType(
+        id="PT_TEXT", name="T", choice=ParameterTypeTypeText(size_in_bit=16)
+    )
+    p = ApplicationProgramStaticParametersParameter(
+        id="P1",
+        name="",
+        text="",
+        parameter_type="PT_TEXT",
+        value="",
+        choice=MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0),
+    )
+    app, idx = _app(
+        [p],
+        extra_param_types=[pt],
+        options=ApplicationProgramStaticOptions(
+            text_parameter_encoding=TextEncoding.UTF_8,
+            text_parameter_encoding_selector=TextEncodingSelector.USE_WINDOWS_ANSI_CODE_PAGE,
+        ),
+    )
+    mem = encode_to_memory(app, idx, {"P1": "AB"})
+    assert mem[_SEG_ID][0:2] == b"AB"  # falls back to iso-8859-1, not utf-8
+
+
+def test_size_in_bit_date() -> None:
+    tc = ParameterTypeTypeDate(encoding=ParameterTypeTypeDateEncoding.DPT_11)
+    assert _size_in_bit(tc) == 24
+
+
+def test_size_in_bit_ipaddress_v4_and_v6() -> None:
+    v4 = ParameterTypeTypeIpaddress(
+        address_type=ParameterTypeTypeIpaddressAddressType.HOST_ADDRESS,
+        version=ParameterTypeTypeIpaddressVersion.IPV4,
+    )
+    v6 = ParameterTypeTypeIpaddress(
+        address_type=ParameterTypeTypeIpaddressAddressType.HOST_ADDRESS,
+        version=ParameterTypeTypeIpaddressVersion.IPV6,
+    )
+    assert _size_in_bit(v4) == 32
+    assert _size_in_bit(v6) == 128
+
+
+def test_size_in_bit_color_rgb_rgbw_hsv() -> None:
+    assert (
+        _size_in_bit(ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGB))
+        == 24
+    )
+    assert (
+        _size_in_bit(ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.RGBW))
+        == 32
+    )
+    assert (
+        _size_in_bit(ParameterTypeTypeColor(space=ParameterTypeTypeColorSpace.HSV))
+        == 24
+    )
+
+
+def test_size_in_bit_raw_data_uses_max_size_plus_length_prefix() -> None:
+    assert _size_in_bit(ParameterTypeTypeRawData(max_size=10)) == 112
 
 
 def test_encode_value_unhandled_type_choice_returns_none() -> None:
