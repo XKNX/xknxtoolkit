@@ -45,20 +45,6 @@ class EvalContext:
     def get_text(self, ref_id: str) -> str | None:
         return self._scope.get_text(ref_id)
 
-    def get_param_ref_text(self, ref_id: str | None) -> str | None:
-        """The Text of the Parameter/UnionParameter `ref_id` (a ParameterRef id) points to.
-
-        Some manufacturers give a ParameterBlock/Channel a ParamRefId pointing at a
-        label-only Parameter (typically a "Page" type) instead of setting Text/Name
-        directly on the block itself - confirmed against a real product's dynamic
-        XML, where every ParameterBlock relies on this instead of its own Text.
-        Accepts `None` so callers can pass an optional ParamRefId straight through.
-        """
-        if ref_id is None:
-            return None
-        parameter = self._idx.resolve_parameter(ref_id)
-        return parameter.text if parameter is not None else None
-
     def mark_active_param(self, ref_id: str) -> None:
         parameter_id = self._idx.parameter_refs[ref_id].ref_id
         self._scope.mark_active_param(ref_id, parameter_id)

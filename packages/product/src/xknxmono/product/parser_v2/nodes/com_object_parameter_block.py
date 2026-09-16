@@ -14,13 +14,21 @@ from .base import DynamicNode
 class ComObjectParameterBlockNode(DynamicNode):
     """A parameter group box (ParameterBlock element in the dynamic XML)."""
 
-    __slots__ = ("_children", "_elem")
+    __slots__ = ("_children", "_elem", "_param_ref_text")
 
     def __init__(
-        self, elem: ComObjectParameterBlock, children: list[DynamicNode | None]
+        self,
+        elem: ComObjectParameterBlock,
+        children: list[DynamicNode | None],
+        param_ref_text: str | None = None,
     ) -> None:
         self._elem = elem
         self._children = children
+        # Resolved at build time (DynamicTreeBuilder._build(), like every other
+        # ParameterRef/ComObjectRef hop) rather than looked up here on every eval() -
+        # it's static data straight off the ApplicationIndexer, unrelated to the
+        # per-instance state EvalContext exists for.
+        self._param_ref_text = param_ref_text
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
         items = [u for c in self._children if c for u in c.eval(ctx)]
@@ -30,7 +38,7 @@ class ComObjectParameterBlockNode(DynamicNode):
         template = (
             ctx.get_text(self._elem.id)
             or self._elem.text
-            or ctx.get_param_ref_text(self._elem.param_ref_id)
+            or self._param_ref_text
             or self._elem.name
         )
         text = (

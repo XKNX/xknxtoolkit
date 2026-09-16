@@ -1,13 +1,23 @@
-"""Unit tests for ComObjectParameterBlockNode.eval()'s text resolution - in particular
-the ParamRefId -> Parameter.text fallback (EvalContext.get_param_ref_text /
-ApplicationIndexer.resolve_parameter), added after a real ABB product was found to
+"""Unit tests for ComObjectParameterBlockNode's text resolution - in particular the
+ParamRefId -> Parameter.text fallback, added after a real ABB product was found to
 give every ParameterBlock a ParamRefId pointing at a label-only "Page" Parameter
 instead of setting Text/Name directly, leaving the UI to show the block's internal
-Name (e.g. "Alg:_Seite Allgemein") instead of that Parameter's Text ("General")."""
+Name (e.g. "Alg:_Seite Allgemein") instead of that Parameter's Text ("General").
+
+That resolution happens once in DynamicTreeBuilder._build() (like every other
+ParameterRef/ComObjectRef hop there), not in eval() - so this file covers two
+different things: `TestBuildTimeResolution` exercises the build-time hop itself
+(including dangling-ref edge cases), and the rest exercise eval()'s priority
+between an already-resolved `param_ref_text` and the block's own Text/Name.
+"""
 
 from __future__ import annotations
 
-from xknxmono.models.intermediate import ApplicationProgram
+from xknxmono.models.intermediate import (
+    ApplicationProgram,
+    ApplicationProgramDynamic,
+    ChannelIndependentBlock,
+)
 from xknxmono.models.intermediate.application_program_channel_t import (
     ComObjectParameterBlock,
 )
@@ -29,7 +39,12 @@ from xknxmono.models.intermediate.application_program_type_t import (
 from xknxmono.models.intermediate.load_procedure_style_t import LoadProcedureStyle
 from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
-from xknxmono.product.parser_v2.nodes import EvalContext, GlobalState
+from xknxmono.product.parser_v2.dynamic import DynamicTreeBuilder
+from xknxmono.product.parser_v2.nodes import (
+    EvalContext,
+    GenericCollectionNode,
+    GlobalState,
+)
 from xknxmono.product.parser_v2.nodes.com_object_parameter_block import (
     ComObjectParameterBlockNode,
 )
@@ -40,11 +55,57 @@ _REF_PAGE = f"{_BASE}_P-1_R-1"
 _PARAM_PAGE = f"{_BASE}_P-1"
 
 
-def _indexer(
+def _eval_text(
+    node: ComObjectParameterBlockNode, idx: ApplicationIndexer
+) -> str | None:
+    ctx = EvalContext(GlobalState(), idx=idx)
+    result = node.eval(ctx)
+    assert isinstance(result[0], UiParameterBlock)
+    return result[0].text
+
+
+def test_param_ref_text_used_when_block_has_no_text_or_name(
+    idx: ApplicationIndexer,
+) -> None:
+    block = ComObjectParameterBlock(id=f"{_BASE}_PB-1")
+    node = ComObjectParameterBlockNode(block, children=[], param_ref_text="General")
+    assert _eval_text(node, idx) == "General"
+
+
+def test_own_text_takes_priority_over_param_ref_text(idx: ApplicationIndexer) -> None:
+    block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", text="Explicit")
+    node = ComObjectParameterBlockNode(block, children=[], param_ref_text="General")
+    assert _eval_text(node, idx) == "Explicit"
+
+
+def test_name_used_when_no_text_and_no_param_ref_text(idx: ApplicationIndexer) -> None:
+    """param_ref_text is None whenever the block had no ParamRefId, or the build-time
+    hop couldn't resolve it (see TestBuildTimeResolution) - either way, this is the
+    same last-resort Name fallback as before ParamRefId resolution existed."""
+    block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", name="Alg:_Seite Allgemein")
+    node = ComObjectParameterBlockNode(block, children=[], param_ref_text=None)
+    assert _eval_text(node, idx) == "Alg:_Seite Allgemein"
+
+
+def _built_block_node(app: ApplicationProgram) -> ComObjectParameterBlockNode:
+    builder = DynamicTreeBuilder(app)
+    # tree is _AppNode(GenericCollectionNode([ChannelNode(...)]), ...) - the
+    # ChannelIndependentBlock wrapping our block gets built into a ChannelNode
+    # (see DynamicTreeBuilder._build()), one level above our block's own node.
+    root = builder.tree._subtree  # pyright: ignore[reportAttributeAccessIssue]
+    assert isinstance(root, GenericCollectionNode)
+    channel_node = root._children[0]  # pyright: ignore[reportAttributeAccessIssue]
+    node = channel_node._children[0]  # pyright: ignore[reportAttributeAccessIssue]
+    assert isinstance(node, ComObjectParameterBlockNode)
+    return node
+
+
+def _app_with_block(
+    block: ComObjectParameterBlock,
     parameter_refs: list[ParameterRef] | None = None,
     parameters: list[ApplicationProgramStaticParametersParameter] | None = None,
-) -> ApplicationIndexer:
-    app = ApplicationProgram(
+) -> ApplicationProgram:
+    return ApplicationProgram(
         id="APP",
         name="",
         application_number=1,
@@ -66,8 +127,10 @@ def _indexer(
                 else None
             ),
         ),
+        dynamic=ApplicationProgramDynamic(
+            choice=[ChannelIndependentBlock(choice=[block])]
+        ),
     )
-    return ApplicationIndexer(app)
 
 
 def _page_param(text: str) -> ApplicationProgramStaticParametersParameter:
@@ -76,47 +139,36 @@ def _page_param(text: str) -> ApplicationProgramStaticParametersParameter:
     )
 
 
-def _eval_text(block: ComObjectParameterBlock, idx: ApplicationIndexer) -> str | None:
-    node = ComObjectParameterBlockNode(block, children=[])
-    ctx = EvalContext(GlobalState(), idx=idx)
-    result = node.eval(ctx)
-    assert isinstance(result[0], UiParameterBlock)
-    return result[0].text
+class TestBuildTimeResolution:
+    """DynamicTreeBuilder._build()'s ParamRefId -> Parameter.text hop, mirroring the
+    ParameterRefRef/ComObjectRefRef resolution right next to it in the same method."""
 
+    def test_resolves_param_ref_id_to_target_parameters_text(self) -> None:
+        block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", param_ref_id=_REF_PAGE)
+        app = _app_with_block(
+            block,
+            parameter_refs=[ParameterRef(id=_REF_PAGE, ref_id=_PARAM_PAGE)],
+            parameters=[_page_param("General")],
+        )
+        node = _built_block_node(app)
+        assert node._param_ref_text == "General"  # pyright: ignore[reportPrivateUsage]
 
-def test_text_resolves_via_param_ref_id_when_block_has_no_text_or_name() -> None:
-    block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", param_ref_id=_REF_PAGE)
-    idx = _indexer(
-        parameter_refs=[ParameterRef(id=_REF_PAGE, ref_id=_PARAM_PAGE)],
-        parameters=[_page_param("General")],
-    )
-    assert _eval_text(block, idx) == "General"
+    def test_no_param_ref_id_resolves_to_none(self) -> None:
+        block = ComObjectParameterBlock(id=f"{_BASE}_PB-1")
+        node = _built_block_node(_app_with_block(block))
+        assert node._param_ref_text is None  # pyright: ignore[reportPrivateUsage]
 
+    def test_dangling_param_ref_id_resolves_to_none(self) -> None:
+        """No ParameterRef at all matches param_ref_id - e.g. malformed manufacturer XML."""
+        block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", param_ref_id="MISSING")
+        node = _built_block_node(_app_with_block(block))
+        assert node._param_ref_text is None  # pyright: ignore[reportPrivateUsage]
 
-def test_own_text_takes_priority_over_param_ref_id() -> None:
-    block = ComObjectParameterBlock(
-        id=f"{_BASE}_PB-1", text="Explicit", param_ref_id=_REF_PAGE
-    )
-    idx = _indexer(
-        parameter_refs=[ParameterRef(id=_REF_PAGE, ref_id=_PARAM_PAGE)],
-        parameters=[_page_param("General")],
-    )
-    assert _eval_text(block, idx) == "Explicit"
-
-
-def test_falls_back_to_name_when_param_ref_id_is_dangling() -> None:
-    """No ParameterRef at all matches param_ref_id - e.g. malformed manufacturer XML."""
-    block = ComObjectParameterBlock(
-        id=f"{_BASE}_PB-1", name="Alg:_Seite Allgemein", param_ref_id="MISSING"
-    )
-    idx = _indexer()
-    assert _eval_text(block, idx) == "Alg:_Seite Allgemein"
-
-
-def test_falls_back_to_name_when_param_ref_target_parameter_is_missing() -> None:
-    """The ParameterRef exists but its target Parameter id isn't indexed."""
-    block = ComObjectParameterBlock(
-        id=f"{_BASE}_PB-1", name="Alg:_Seite Allgemein", param_ref_id=_REF_PAGE
-    )
-    idx = _indexer(parameter_refs=[ParameterRef(id=_REF_PAGE, ref_id=_PARAM_PAGE)])
-    assert _eval_text(block, idx) == "Alg:_Seite Allgemein"
+    def test_dangling_target_parameter_resolves_to_none(self) -> None:
+        """The ParameterRef exists but its target Parameter id isn't indexed."""
+        block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", param_ref_id=_REF_PAGE)
+        app = _app_with_block(
+            block, parameter_refs=[ParameterRef(id=_REF_PAGE, ref_id=_PARAM_PAGE)]
+        )
+        node = _built_block_node(app)
+        assert node._param_ref_text is None  # pyright: ignore[reportPrivateUsage]
