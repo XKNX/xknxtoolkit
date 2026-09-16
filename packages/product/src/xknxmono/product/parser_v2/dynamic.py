@@ -136,20 +136,13 @@ class DynamicTreeBuilder:
                 text_parameter_ref_id=elem.text_parameter_ref_id,
             )
         elif isinstance(elem, ComObjectParameterBlock):
-            # Some manufacturers give a block a ParamRefId pointing at a label-only
-            # "Page" Parameter instead of setting Text/Name directly - resolve that
-            # at build time, same as the ParameterRefRef/ComObjectRefRef hops below.
-            param_ref_param = (
+            param_ref = (
                 self.idx.resolve_parameter(elem.param_ref_id)
                 if elem.param_ref_id is not None
                 else None
             )
             return ComObjectParameterBlockNode(
-                elem,
-                [self._build(child) for child in elem.choice],
-                param_ref_text=(
-                    param_ref_param.text if param_ref_param is not None else None
-                ),
+                elem, [self._build(child) for child in elem.choice], param_ref=param_ref
             )
         elif isinstance(
             elem, (DependentChannelChoose, ChannelChoose, ComObjectParameterChoose)
