@@ -89,6 +89,14 @@ class ApplicationIndexer:
         if s.parameter_calculations is not None:
             self._index_calculations(s.parameter_calculations.parameter_calculation)
 
+    def resolve_parameter(self, ref_id: str) -> ParameterBase | None:
+        """The Parameter/UnionParameter a ParameterRef id points to, or None if either
+        leg of the hop is missing."""
+        param_ref = self.parameter_refs.get(ref_id)
+        if param_ref is None:
+            return None
+        return self.parameters.get(param_ref.ref_id)
+
     def segment_base_addr(self, seg_id: str) -> int:
         seg = self.code_segments.get(seg_id)
         if seg is None:

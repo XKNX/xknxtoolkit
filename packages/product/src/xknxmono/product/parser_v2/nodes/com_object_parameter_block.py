@@ -27,15 +27,10 @@ class ComObjectParameterBlockNode(DynamicNode):
         arg_defaults = ctx.get_arg_defaults()
         text_ref = self._elem.text_parameter_ref_id
         name_value = ctx.get(text_ref) if text_ref else None
-        param_ref_text = (
-            ctx.get_param_ref_text(self._elem.param_ref_id)
-            if self._elem.param_ref_id
-            else None
-        )
         template = (
             ctx.get_text(self._elem.id)
             or self._elem.text
-            or param_ref_text
+            or ctx.get_param_ref_text(self._elem.param_ref_id)
             or self._elem.name
         )
         text = (
