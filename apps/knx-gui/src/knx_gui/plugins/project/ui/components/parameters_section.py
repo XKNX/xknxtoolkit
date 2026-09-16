@@ -117,6 +117,13 @@ def _render_children(
         if isinstance(node, UiParameter):
             pending_params.append(node)
         elif isinstance(node, UiParameterBlock):
+            # Some manufacturers ship sections whose every parameter is
+            # Access="None" (never user-visible) - e.g. an internal bookkeeping
+            # block - leaving nothing to show once those are filtered out
+            # upstream (ParameterRefRefNode.eval()). Showing an empty header
+            # for one is worse than not showing the section at all.
+            if count_parameters(node.children) == 0:
+                continue
             flush()
             req = _render_block(device, node, on_change, deferred_enum, prefix)
             if req is not None:

@@ -43,7 +43,7 @@ from knx_gui.plugins.project.ui.configure import ConfigurePanel
 # Aliased: pytest's default discovery tries to collect any name starting with "Test"
 # as a test class, which fails noisily for TestContext (it has an __init__).
 from knx_gui.testing.harness import TestContext as _TestContext
-from xknxmono.product.parser_v2.ui import UiNode, UiParameter, UiTab
+from xknxmono.product.parser_v2.ui import UiNode, UiParameter, UiParameterBlock, UiTab
 from xknxmono.product.parser_v2.ui.parameter import TextWidget
 
 # Matches the Configure panel's real docked size (see apps/knx-gui/XKNX_Toolkit.ini) -
@@ -126,6 +126,69 @@ def _assert_no_horizontal_overflow(render: Callable[[], None]) -> None:
     imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
 
     assert result["scroll_max_x"] == 0.0
+
+
+def test_parameter_block_with_no_visible_parameters_is_not_rendered() -> None:
+    """A ParameterBlock whose every parameter is Access="None" (never user-visible -
+    e.g. a manufacturer's internal bookkeeping block) reaches here with an empty
+    `children` tuple, since `ParameterRefRefNode.eval()` already filtered them out.
+    Showing an empty section header for one (as a real ABB product's "DUMMY" block
+    did) is worse than not showing the section at all.
+
+    Compares against a baseline window with no nodes at all rather than asserting
+    on a specific pixel size (or on item presence - Dear ImGui Test Engine's
+    `item_exists`/`item_info`/`gather_items` all reported this section's own tree
+    node as absent even right after confirming via a screenshot that it was on
+    screen and `item_open` could reach it; the window-size delta these overflow
+    tests elsewhere in this file already rely on doesn't have that problem).
+    """
+    device = cast(Device, SimpleNamespace(node_id=1))
+    block = UiParameterBlock(id="pb-empty", children=(), text="DUMMY")
+
+    def gui_function() -> None:
+        imgui.begin("Baseline")
+        render_ui_tree(device, [], lambda d, p, v: None)
+        imgui.end()
+        imgui.begin("WithEmptyBlock")
+        render_ui_tree(device, [block], lambda d, p, v: None)
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//Baseline")
+        ctx.yield_()
+        baseline = ctx.get_window_by_ref("//Baseline")
+        with_block = ctx.get_window_by_ref("//WithEmptyBlock")
+        assert with_block.size.y == baseline.size.y
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+
+def test_parameter_block_with_visible_parameters_is_still_rendered() -> None:
+    """Sanity counterpart to the empty-block test above - a block that does have a
+    visible parameter must still grow the window with its section header, unlike
+    the empty case."""
+    device = cast(Device, SimpleNamespace(node_id=1))
+    param = UiParameter(
+        ref_id="p0", label="Parameter 0", value="0", widget=TextWidget()
+    )
+    block = UiParameterBlock(id="pb-full", children=(param,), text="General")
+
+    def gui_function() -> None:
+        imgui.begin("Baseline")
+        render_ui_tree(device, [], lambda d, p, v: None)
+        imgui.end()
+        imgui.begin("WithBlock")
+        render_ui_tree(device, [block], lambda d, p, v: None)
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//Baseline")
+        ctx.yield_()
+        baseline = ctx.get_window_by_ref("//Baseline")
+        with_block = ctx.get_window_by_ref("//WithBlock")
+        assert with_block.size.y > baseline.size.y
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
 
 
 def test_metadata_section_no_horizontal_overflow() -> None:
