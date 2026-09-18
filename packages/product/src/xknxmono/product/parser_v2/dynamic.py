@@ -137,7 +137,7 @@ class DynamicTreeBuilder:
             )
         elif isinstance(elem, ComObjectParameterBlock):
             param_ref = (
-                self.idx.resolve_parameter(elem.param_ref_id)
+                self.idx.resolve_param_for_param_ref(elem.param_ref_id)
                 if elem.param_ref_id is not None
                 else None
             )

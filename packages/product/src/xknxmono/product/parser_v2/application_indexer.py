@@ -89,7 +89,7 @@ class ApplicationIndexer:
         if s.parameter_calculations is not None:
             self._index_calculations(s.parameter_calculations.parameter_calculation)
 
-    def resolve_parameter(self, ref_id: str) -> ParameterBase | None:
+    def resolve_param_for_param_ref(self, ref_id: str) -> ParameterBase | None:
         """The Parameter/UnionParameter a ParameterRef id points to, or None if either
         leg of the hop is missing."""
         param_ref = self.parameter_refs.get(ref_id)
