@@ -3,6 +3,7 @@ from __future__ import annotations
 from xknxmono.models.intermediate.application_program_channel_t import (
     ComObjectParameterBlock,
 )
+from xknxmono.models.intermediate.parameter_base_t import ParameterBase
 
 from .._name import apply_text_args, fill_name
 from ..context import EvalContext
@@ -14,20 +15,30 @@ from .base import DynamicNode
 class ComObjectParameterBlockNode(DynamicNode):
     """A parameter group box (ParameterBlock element in the dynamic XML)."""
 
-    __slots__ = ("_children", "_elem")
+    __slots__ = ("_children", "_elem", "_param_ref")
 
     def __init__(
-        self, elem: ComObjectParameterBlock, children: list[DynamicNode | None]
+        self,
+        elem: ComObjectParameterBlock,
+        children: list[DynamicNode | None],
+        param_ref: ParameterBase | None = None,
     ) -> None:
         self._elem = elem
         self._children = children
+        self._param_ref = param_ref
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
         items = [u for c in self._children if c for u in c.eval(ctx)]
         arg_defaults = ctx.get_arg_defaults()
         text_ref = self._elem.text_parameter_ref_id
         name_value = ctx.get(text_ref) if text_ref else None
-        template = ctx.get_text(self._elem.id) or self._elem.text or self._elem.name
+        param_ref_text = self._param_ref.text if self._param_ref is not None else None
+        template = (
+            ctx.get_text(self._elem.id)
+            or self._elem.text
+            or param_ref_text
+            or self._elem.name
+        )
         text = (
             fill_name(apply_text_args(template or "", arg_defaults), name_value or "")
             or None
