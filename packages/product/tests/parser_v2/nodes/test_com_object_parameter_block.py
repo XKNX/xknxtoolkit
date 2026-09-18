@@ -18,6 +18,7 @@ from xknxmono.models.intermediate import (
     ApplicationProgramDynamic,
     ChannelIndependentBlock,
 )
+from xknxmono.models.intermediate import Module as DynModule
 from xknxmono.models.intermediate.application_program_channel_t import (
     ComObjectParameterBlock,
 )
@@ -33,10 +34,25 @@ from xknxmono.models.intermediate.application_program_static_t_parameters import
 from xknxmono.models.intermediate.application_program_static_t_parameters_parameter import (
     ApplicationProgramStaticParametersParameter,
 )
+from xknxmono.models.intermediate.application_program_t_module_defs import (
+    ApplicationProgramModuleDefs,
+)
 from xknxmono.models.intermediate.application_program_type_t import (
     ApplicationProgramType,
 )
 from xknxmono.models.intermediate.load_procedure_style_t import LoadProcedureStyle
+from xknxmono.models.intermediate.module_def_dynamic_t import ModuleDefDynamic
+from xknxmono.models.intermediate.module_def_static_t import ModuleDefStatic
+from xknxmono.models.intermediate.module_def_static_t_parameter_refs import (
+    ModuleDefStaticParameterRefs,
+)
+from xknxmono.models.intermediate.module_def_static_t_parameters import (
+    ModuleDefStaticParameters,
+)
+from xknxmono.models.intermediate.module_def_static_t_parameters_parameter import (
+    ModuleDefStaticParametersParameter,
+)
+from xknxmono.models.intermediate.module_def_t import ModuleDef
 from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
 from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.dynamic import DynamicTreeBuilder
@@ -175,3 +191,65 @@ class TestBuildTimeResolution:
         )
         node = _built_block_node(app)
         assert node._param_ref is None  # pyright: ignore[reportPrivateUsage]
+
+    def test_resolves_for_a_block_nested_inside_a_module(self) -> None:
+        """ComObjectParameterBlock is a valid ModuleDefDynamic child (see
+        module_def_dynamic_t.py) - ApplicationIndexer merges a module's own
+        parameters/parameter_refs into the same dicts as the app's own
+        (_index_module_def), so the same ParamRefId -> Parameter hop must
+        still work for a block living inside a module instead of at the
+        top level."""
+        block = ComObjectParameterBlock(id=f"{_BASE}_MD-1_PB-1", param_ref_id=_REF_PAGE)
+        module_def = ModuleDef(
+            id=f"{_BASE}_MD-1",
+            name="",
+            static=ModuleDefStatic(
+                parameters=ModuleDefStaticParameters(
+                    choice=[
+                        ModuleDefStaticParametersParameter(
+                            id=_PARAM_PAGE,
+                            name="",
+                            text="General",
+                            parameter_type="PT",
+                            value="",
+                        )
+                    ]
+                ),
+                parameter_refs=ModuleDefStaticParameterRefs(
+                    parameter_ref=[ParameterRef(id=_REF_PAGE, ref_id=_PARAM_PAGE)]
+                ),
+            ),
+            dynamic=ModuleDefDynamic(choice=[block]),
+        )
+        module_ref = DynModule(id="MOD-1", ref_id=module_def.id, choice=[])
+        app = ApplicationProgram(
+            id="APP",
+            name="",
+            application_number=1,
+            application_version=1,
+            program_type=ApplicationProgramType.APPLICATION_PROGRAM,
+            mask_version="BV20",
+            load_procedure_style=LoadProcedureStyle.DEFAULT_PROCEDURE,
+            pei_type=0,
+            default_language="en",
+            dynamic_table_management=False,
+            linkable=False,
+            static=ApplicationProgramStatic(),
+            module_defs=ApplicationProgramModuleDefs(module_def=[module_def]),
+            dynamic=ApplicationProgramDynamic(
+                choice=[ChannelIndependentBlock(choice=[module_ref])]
+            ),
+        )
+
+        builder = DynamicTreeBuilder(app)
+        root = builder.tree._subtree  # pyright: ignore[reportAttributeAccessIssue]
+        assert isinstance(root, GenericCollectionNode)
+        channel_node = root._children[0]  # pyright: ignore[reportAttributeAccessIssue]
+        module_node = channel_node._children[0]  # pyright: ignore[reportAttributeAccessIssue]
+        module_subtree = module_node._subtree  # pyright: ignore[reportAttributeAccessIssue]
+        assert isinstance(module_subtree, GenericCollectionNode)
+        node = module_subtree._children[0]  # pyright: ignore[reportAttributeAccessIssue]
+        assert isinstance(node, ComObjectParameterBlockNode)
+        param_ref = node._param_ref  # pyright: ignore[reportPrivateUsage]
+        assert param_ref is not None
+        assert param_ref.text == "General"
