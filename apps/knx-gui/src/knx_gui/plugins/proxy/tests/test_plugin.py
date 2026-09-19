@@ -27,11 +27,10 @@ import types
 from typing import cast
 
 import pytest
-from xknx.io import util
-
 from knx_gui.knxip_tunnelling_gateway import GatewayState, TunnellingGateway
 from knx_gui.plugins.base import API_VERSION, PluginAPI
 from knx_gui.plugins.proxy.plugin import ProxyPlugin
+from xknx.io import util
 
 
 class _LocalIpStub:
