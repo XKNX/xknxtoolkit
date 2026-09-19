@@ -40,7 +40,11 @@ def render_bounded_numeric_segment(
     def _filter(data: imgui.InputTextCallbackData) -> int:
         if data.event_flag == imgui.InputTextFlags_.callback_edit:
             text = str(data.buf)[: data.buf_text_len]
-            digits = "".join(c for c in text if c.isdigit())[:max_len]
+            # Filter on ASCII decimal digits explicitly: ``str.isdigit()`` also
+            # returns True for Unicode superscripts/subscripts (², ³, ¹, ₂, …)
+            # that ``int()`` rejects, which would raise ``ValueError`` out of
+            # this per-frame callback and crash the application.
+            digits = "".join(c for c in text if c in "0123456789")[:max_len]
             clamped = str(min(int(digits), max_value)) if digits else ""
             if clamped != text:
                 data.delete_chars(0, data.buf_text_len)

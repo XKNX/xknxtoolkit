@@ -43,6 +43,7 @@ from knx_gui.plugins.project.ui.configure import ConfigurePanel
 # Aliased: pytest's default discovery tries to collect any name starting with "Test"
 # as a test class, which fails noisily for TestContext (it has an __init__).
 from knx_gui.testing.harness import TestContext as _TestContext
+from knx_gui.widgets import render_bounded_numeric_segment
 from xknxmono.product.parser_v2.ui import UiNode, UiParameter, UiParameterBlock, UiTab
 from xknxmono.product.parser_v2.ui.parameter import TextWidget
 
@@ -679,6 +680,48 @@ def test_limit_serial_length_callback_caps_the_live_buffer() -> None:
     assert observed_lengths, "callback never fired - test isn't exercising typing"
     assert max(observed_lengths) == 12
     assert value == "00FA12345678"
+
+
+def test_ia_segment_strips_unicode_superscript_and_subscript_digits() -> None:
+    """Regression: ``str.isdigit()`` returns True for Unicode superscripts and
+    subscripts (² ³ ¹ ₂ …) that ``int()`` rejects, so ``render_bounded_numeric_segment``'s
+    ``callback_edit`` cleanup used to feed such a live buffer straight into
+    ``int(...)``, raising ``ValueError`` out of the per-frame imgui callback.
+    The exception fires mid-frame, so ``imgui.end()`` (and the rest of
+    ``ConfigurePanel.render``) is skipped; on the next frame Dear ImGui's
+    ``Begin()`` trips ``IM_ASSERT("Missing End()")`` and the process dies with
+    SIGSEGV (139) - the application is lost from a single keystroke/paste.
+
+    Typing those numerals must instead be silently stripped to ASCII digits
+    only, per the widget's docstring promise that "any non-digit character is
+    corrected live" - and must not raise.
+
+    Drives the real ``render_bounded_numeric_segment`` (the production code
+    path used by ``ConfigurePanel.render``) through a real
+    ``imgui.input_text_with_hint``; one char per ``key_chars`` call mirrors
+    ``test_limit_serial_length_callback_caps_the_live_buffer``.
+    """
+    value = ""
+
+    def gui_function() -> None:
+        nonlocal value
+        imgui.begin("TestPanel")
+        result = render_bounded_numeric_segment("##ia_area", value, 2, 15)
+        value = result.value
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click("##ia_area")
+        # Superscripts 2/3/1 and a subscript 2: isdigit()=True, int()-rejects.
+        for ch in "\u00b2\u00b3\u00b9\u2082":
+            ctx.key_chars(ch)
+        ctx.yield_()
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    assert value == ""
 
 
 def test_program_section_reports_request_and_marks_checklist_done_on_success() -> None:
