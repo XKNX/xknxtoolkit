@@ -8,7 +8,11 @@ _NAME_PLACEHOLDER = re.compile(r"\{\{0(?::[^}]*)?\}\}")
 def apply_text_args(text: str, text_args: dict[str, str]) -> str:
     """Substitute {{ArgName}} and {{ArgName:fmt}} placeholders from module text args."""
     for name, value in text_args.items():
-        text = re.sub(r"\{\{" + re.escape(name) + r"(?::[^}]*)?\}\}", value, text)
+        text = re.sub(
+            r"\{\{" + re.escape(name) + r"(?::[^}]*)?\}\}",
+            lambda _m, v=value: v,
+            text,
+        )
     return text
 
 
