@@ -15,6 +15,7 @@ from concurrent.futures import Future
 from types import SimpleNamespace
 from typing import cast
 
+import pytest
 from imgui_bundle import hello_imgui, imgui
 from imgui_bundle.immapp import testing as imgui_testing
 
@@ -43,9 +44,13 @@ from knx_gui.plugins.project.ui.configure import ConfigurePanel
 # Aliased: pytest's default discovery tries to collect any name starting with "Test"
 # as a test class, which fails noisily for TestContext (it has an __init__).
 from knx_gui.testing.harness import TestContext as _TestContext
-from knx_gui.widgets import render_bounded_numeric_segment
+from knx_gui.widgets import render_bounded_numeric_segment, render_param_widget
 from xknxmono.product.parser_v2.ui import UiNode, UiParameter, UiParameterBlock, UiTab
-from xknxmono.product.parser_v2.ui.parameter import TextWidget
+from xknxmono.product.parser_v2.ui.parameter import (
+    NumberSliderWidget,
+    NumberWidget,
+    TextWidget,
+)
 
 # Matches the Configure panel's real docked size (see apps/knx-gui/XKNX_Toolkit.ini) -
 # the overflows these tests guard against only show up at that width, not a wide window.
@@ -839,3 +844,198 @@ def test_program_section_no_horizontal_overflow() -> None:
     imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
 
     assert result["scroll_max_x"] == 0.0
+
+
+def _run_int_param_edit(
+    *,
+    widget: NumberWidget | NumberSliderWidget,
+    start_value: str,
+    type_text: str,
+) -> tuple[list[str], str]:
+    """Drive one edit cycle through the real `render_param_widget` int-field path,
+    in the same per-frame rebuild pattern the Configure panel uses: the live value
+    is kept in a holder dict that `on_change` writes back into, and the frozen
+    `UiParameter` is rebuilt from it each frame (so the controlled
+    `imgui.input_text` buffer resyncs to the prior value after a rejected edit on
+    the next frame - exactly as the panel does).
+
+    Focuses the field, replaces its buffer with `type_text`, blurs onto void
+    (firing `is_item_deactivated_after_edit`), and lets layout settle.
+
+    Returns the captured `on_change` calls and the holder's final value, the same
+    shape `ProjectPlugin._handle_param_change` would have observed.
+    """
+    holder: dict[str, str] = {"value": start_value}
+    calls: list[str] = []
+
+    def on_change(value: str) -> None:
+        calls.append(value)
+        holder["value"] = value
+
+    def gui_function() -> None:
+        param = UiParameter(
+            ref_id="p0", label="Param", value=holder["value"], widget=widget
+        )
+        imgui.begin("TestPanel")
+        render_param_widget(param, "1_p0", on_change)
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click("##1_p0")
+        ctx.yield_()
+        ctx.key_chars_replace(type_text)
+        ctx.yield_()
+        ctx.mouse_click_on_void()
+        ctx.yield_()
+        ctx.yield_()
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+    return calls, holder["value"]
+
+
+@pytest.mark.parametrize(
+    "bad_buffer",
+    ["5.5", "1+2", "3*4", "3/4", "0.", ""],
+    ids=["5.5", "1+2", "3*4", "3/4", "trailing-dot", "empty"],
+)
+def test_render_int_param_rejects_unparseable_input_keeps_prior_value(
+    bad_buffer: str,
+) -> None:
+    """Regression test for the silent-corruption bug: typing any buffer that
+    `int()` rejects - which `chars_decimal` nevertheless admits (`.` and `+`/`-`
+    mid-string, `*`, `/`) - must NOT call `on_change` and must NOT overwrite the
+    prior bound value. Before the fix the `except ValueError` branch fell back to
+    `min_value` (commonly `0`) and pushed that through `on_change` into the project
+    model via `ProjectService.set_parameter` -> `EventStore.append(SetParameter(...))`,
+    persisted to SQLite and replayed on reopen.
+
+    The bug report's reproduction (typing `5.5` into a `50`-valued parameter) reset
+    the value to `0` through the real Configure-panel render path.
+    """
+    calls, value = _run_int_param_edit(
+        widget=NumberWidget(min=0, max=100), start_value="50", type_text=bad_buffer
+    )
+    assert calls == [], "on_change must not fire for unparseable input"
+    assert value == "50", "prior value must be preserved on rejected edit"
+
+
+def test_render_int_param_clamps_valid_within_range() -> None:
+    """Typing a valid plain integer within `[min, max]` must still call `on_change`
+    with that integer (unchanged by the fix)."""
+    calls, value = _run_int_param_edit(
+        widget=NumberWidget(min=0, max=100), start_value="50", type_text="73"
+    )
+    assert calls == ["73"]
+    assert value == "73"
+
+
+def test_render_int_param_clamps_above_max() -> None:
+    """Typing a valid integer greater than `max` must still clamp to `max`."""
+    calls, value = _run_int_param_edit(
+        widget=NumberWidget(min=0, max=100), start_value="50", type_text="999"
+    )
+    assert calls == ["100"]
+    assert value == "100"
+
+
+def test_render_int_param_clamps_below_min() -> None:
+    """Typing a valid integer less than `min` must still clamp to `min` (including
+    a positive `min` so this also guards the `max(min_value, clamped)` arm)."""
+    calls, value = _run_int_param_edit(
+        widget=NumberWidget(min=10, max=100), start_value="50", type_text="3"
+    )
+    assert calls == ["10"]
+    assert value == "10"
+
+
+def test_render_int_param_accepts_signed_integer() -> None:
+    """A leading sign (`+5` / `-5`) is a valid `int()` parse and must still be
+    honored: the fix only narrows the `except ValueError` branch, so `int("+5")`
+    and `int("-5")` (which don't raise) still go through the normal clamp path.
+    `min=-50` admits both directions."""
+    calls, value = _run_int_param_edit(
+        widget=NumberWidget(min=-50, max=50), start_value="0", type_text="+5"
+    )
+    assert calls == ["5"]
+    assert value == "5"
+
+    calls, value = _run_int_param_edit(
+        widget=NumberWidget(min=-50, max=50), start_value="0", type_text="-5"
+    )
+    assert calls == ["-5"]
+    assert value == "-5"
+
+
+def test_render_int_param_number_slider_widget_rejects_invalid() -> None:
+    """The `NumberSliderWidget` arm (`NumberWidget() | NumberSliderWidget()` in
+    `render_param_widget`) routes through the same `_render_int_param`; the fix
+    must hold for both widget kinds, not just `NumberWidget`."""
+    calls, value = _run_int_param_edit(
+        widget=NumberSliderWidget(min=0, max=100), start_value="50", type_text="5.5"
+    )
+    assert calls == []
+    assert value == "50"
+
+
+def test_render_ui_tree_rejects_invalid_int_input() -> None:
+    """End-to-end through the real Configure-panel render path
+    (`render_ui_tree` -> `_render_children` -> `_render_param_table` ->
+    `render_param_widget` -> `_render_int_param`): typing `5.5` into a
+    `50`-valued `NumberWidget` field must NOT call the panel's outer
+    `on_change(device, ref_id, value)` callback, and the holder value stays `50`.
+
+    This is the bug report's exact reproduction (Evidence sec 2): previously
+    `on_change` fired once with `('p0', '0')` (min_value) and the live value
+    flipped to `'0'`. With the fix `on_change` never fires.
+
+    Notes on the test ref:
+    - `render_ui_tree` is the no-tab path here (passing a bare `UiParameter`,
+      not wrapped in a `UiTab`) - the same shape the bug report uses for its
+      reproduction. With a `UiTab` wrapper the field is buried inside a tab bar
+      the Test Engine can't reach via `item_click` from a sibling ref, while
+      the no-tab path routes straight into `_render_param_table`, so the test
+      exercises the panel's own render path (`render_ui_tree` -> `_render_children`
+      -> `_render_param_table` -> `render_param_widget` -> `_render_int_param`)
+      deterministically.
+    - `//**/##1_p0` is a deep-tree wildcard TestRef: the input is rendered inside
+      a `begin_table(...)` that adds intermediate IDs the bare `##1_p0` ref can't
+      address from a sibling scope, and the deep search locates the item by raw
+      ID anywhere under the current ref.
+    """
+    device = cast(Device, SimpleNamespace(node_id=1))
+    holder: dict[str, str] = {"value": "50"}
+    calls: list[tuple[str, str]] = []
+
+    def on_change(_device: Device, ref_id: str, value: str) -> None:
+        calls.append((ref_id, value))
+        holder["value"] = value
+
+    def gui_function() -> None:
+        param = UiParameter(
+            ref_id="p0",
+            label="Param",
+            value=holder["value"],
+            widget=NumberWidget(min=0, max=100),
+        )
+        imgui.begin("TestPanel")
+        render_ui_tree(device, [param], on_change)
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        for _ in range(4):
+            ctx.yield_()
+        ctx.item_click("//**/##1_p0")
+        ctx.yield_()
+        ctx.key_chars_replace("5.5")
+        ctx.yield_()
+        ctx.mouse_click_on_void()
+        for _ in range(2):
+            ctx.yield_()
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    assert calls == [], "on_change must not fire for unparseable input"
+    assert holder["value"] == "50", "prior value must be preserved on rejected edit"
