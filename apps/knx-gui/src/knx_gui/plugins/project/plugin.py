@@ -162,11 +162,15 @@ class ProjectPlugin:
         self, device: "Device", new_address: str
     ) -> None:
         old_address = device.individual_address
-        if old_address != new_address:
+        if old_address == new_address:
+            return
+        # Mutate only after persistence accepts the change, so a rejected address
+        # leaves the Device at its DB-backed value rather than desyncing the cache
+        # onto a value the project never stored.
+        if self._api.project.set_device_individual_address(
+            device.node_id, old_address, new_address
+        ):
             device.individual_address = new_address
-            self._api.project.set_device_individual_address(
-                device.node_id, old_address, new_address
-            )
 
     def _handle_name_change(self, device: "Device", new_name: str) -> None:
         old_name = device.name
