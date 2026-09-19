@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from pathlib import Path
 
 from sqlalchemy.engine import Engine
@@ -13,11 +14,14 @@ from xknxmono.catalog.models import (
     CatalogSection,
     CatalogSectionProduct,
     Hardware,
+    HardwareProduct,
     HardwareProgram,
     HardwareProgramMediumType,
     Manufacturer,
 )
 from xknxmono.product import DeviceProgram, Registry, load
+
+logger = logging.getLogger(__name__)
 
 
 def _ingest_manufacturers(session: Session, reg: Registry) -> None:
@@ -48,6 +52,17 @@ def _ingest_hardware(session: Session, reg: Registry, knxprod_path: str) -> None
             hw = reg.hardware[hardware_id]
             raw = hw.raw
             products = list(reg.products_for_hardware(hardware_id).values())
+            if len(products) > 1:
+                logger.warning(
+                    "hardware %s has %d products; ingesting all SKUs into the "
+                    "hardware_products table — the hardware row's display fields "
+                    "carry the first SKU (%s, order %s), other SKUs: %s",
+                    hw.id,
+                    len(products),
+                    products[0].id,
+                    products[0].order_number,
+                    [(p.id, p.order_number) for p in products[1:]],
+                )
             product = products[0] if products else None
             session.merge(
                 Hardware(
@@ -69,6 +84,19 @@ def _ingest_hardware(session: Session, reg: Registry, knxprod_path: str) -> None
                     no_download_without_plugin=raw.no_download_without_plugin,
                 )
             )
+            for p in products:
+                session.merge(
+                    HardwareProduct(
+                        id=p.id,
+                        hardware_id=hw.id,
+                        name=p.name,
+                        order_number=p.order_number,
+                        is_rail_mounted=p.rail_mounted,
+                        width_mm=p.width_mm,
+                        description=p.raw.visible_description,
+                        default_language=p.raw.default_language,
+                    )
+                )
             for program in reg.programs_for_hardware(hardware_id).values():
                 _ingest_program(session, hw.id, program, knxprod_path)
 

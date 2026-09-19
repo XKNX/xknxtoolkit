@@ -66,6 +66,41 @@ class Hardware(Base):
 
     manufacturer: Mapped["Manufacturer"] = relationship(back_populates="hardware")
     programs: Mapped[list["HardwareProgram"]] = relationship(back_populates="hardware")
+    products: Mapped[list["HardwareProduct"]] = relationship(
+        back_populates="hardware", cascade="all, delete-orphan"
+    )
+
+
+class HardwareProduct(Base):
+    """A product SKU of a :class:`Hardware` item — its own ``<Product>`` payload
+    (OrderNumber, WidthInMillimeter, IsRailMounted, ...).
+
+    A KNX ``<Hardware>`` may carry several ``<Product>`` children — the same device
+    sold under several order numbers / SKUs. The per-SKU display fields live here, one
+    row per ``Product.id``, while the hardware-level fields (serial number, bus current,
+    coupler/power-supply flags, ...) live on the parent :class:`Hardware` row.
+
+    ``CatalogSectionProduct.product_ref_id`` and ``project.Device.product_ref_id``
+    reference this table's ``id`` column — that is how a project device resolves the
+    correct SKU's ``order_number`` / ``width_mm`` / ``is_rail_mounted`` instead of the
+    hardware's first-SKU defaults.
+    """
+
+    __tablename__ = "hardware_products"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    hardware_id: Mapped[str] = mapped_column(
+        ForeignKey("hardware.id"), nullable=False, index=True
+    )
+
+    name: Mapped[str | None] = mapped_column(Text)
+    order_number: Mapped[str | None] = mapped_column(Text, index=True)
+    is_rail_mounted: Mapped[bool | None] = mapped_column(Boolean)
+    width_mm: Mapped[float | None] = mapped_column(Float)
+    description: Mapped[str | None] = mapped_column(Text)
+    default_language: Mapped[str | None] = mapped_column(String)
+
+    hardware: Mapped["Hardware"] = relationship(back_populates="products")
 
 
 class HardwareProgram(Base):
