@@ -425,13 +425,22 @@ def test_restart_section_non_destructive_mode_restarts_immediately() -> None:
     assert calls == [RestartRequest(master_reset=False, erase_code=0, channel_number=0)]
 
 
-def _fake_full_configure_device() -> Device:
+def _fake_full_device(
+    *,
+    node_id: int = 1,
+    name: str = "Test Device",
+    individual_address: str = "1.1.1",
+) -> Device:
     """Enough surface for `ConfigurePanel.render()` to complete a full frame:
     `MetadataSection` renders by default (open), so it needs the same app/hardware
     shape as `_fake_metadata_device()`; `app.load_procedures=None` short-circuits the
     Load Procedures section (covered separately above); `get_ui`/
     `get_visible_com_objects` return empty so the Parameters/Com Flags sections have
-    nothing to render - none of that is what this test is about."""
+    nothing to render - none of that is what this test is about.
+
+    Parameterized (`node_id`/`name`/`individual_address`) so the device-switch
+    regression tests below can build two distinct devices and drive the
+    `##device_select` combo between them."""
     program = SimpleNamespace(
         mask_version="MASK0701",
         pei_type=17,
@@ -456,15 +465,20 @@ def _fake_full_configure_device() -> Device:
     return cast(
         Device,
         SimpleNamespace(
-            node_id=1,
-            name="Test Device",
-            individual_address="1.1.1",
+            node_id=node_id,
+            name=name,
+            individual_address=individual_address,
             app=app,
             hardware=None,
             get_ui=lambda: cast(list[UiNode], []),
             get_visible_com_objects=lambda: cast(list[ComObject], []),
         ),
     )
+
+
+def _fake_full_configure_device() -> Device:
+    """Single-device default kept for the existing Preview Memory test."""
+    return _fake_full_device()
 
 
 def test_advanced_actions_section_contains_preview_memory_button() -> None:
@@ -796,3 +810,146 @@ def test_program_section_no_horizontal_overflow() -> None:
     imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
 
     assert result["scroll_max_x"] == 0.0
+
+
+def _program_section_of(panel: ConfigurePanel) -> ProgramSection:
+    """Reach the panel's ProgramSection for state assertions. It's only None
+    when `on_program_device` wasn't provided - these tests always provide it,
+    so the assert narrows the Optional without loosening the real type."""
+    ps = panel._program_section  # pyright: ignore[reportPrivateUsage]
+    assert ps is not None
+    return ps
+
+
+def _two_device_panel(
+    future: Future[None],
+    program_calls: list[tuple[Device, ProgramRequest]],
+) -> tuple[ConfigurePanel, Device, Device]:
+    """A ConfigurePanel over two distinct devices with a mutable
+    selected-device holder and an `on_program` that records the call and
+    returns the staged `future` - the real ConnectionService Future contract.
+    `DeviceA` is selected first, matching the bug's starting point."""
+    device_a = _fake_full_device(node_id=1, name="DeviceA", individual_address="1.1.4")
+    device_b = _fake_full_device(node_id=2, name="DeviceB", individual_address="2.2.7")
+    selected: list[Device] = [device_a]
+
+    def on_program(device: Device, request: ProgramRequest) -> Future[None] | None:
+        program_calls.append((device, request))
+        return future
+
+    panel = ConfigurePanel(
+        get_devices=lambda: [device_a, device_b],
+        get_selected_device=lambda: selected[0],
+        set_selected_device=lambda d: selected.__setitem__(0, d),
+        on_param_change=lambda _d, _ref, _v: None,
+        on_individual_address_change=lambda _d, _a: None,
+        on_name_change=lambda _d, _n: None,
+        set_flag=lambda _d, _co, _flag, _val: None,
+        on_program_device=on_program,
+    )
+    return panel, device_a, device_b
+
+
+def test_configure_panel_resets_program_section_when_device_switched_after_success() -> (
+    None
+):
+    """Regression for the stale-checklist bug in the post-program case: after a
+    program for DeviceA completes successfully, switching the `##device_select`
+    combo to DeviceB must reset the Program Device section to idle and clear
+    its checklist - not leave "Write Individual Address 1.1.4" (DeviceA's IA)
+    rendered under "Program Device: DeviceB".
+
+    Drives the real ConfigurePanel through the wizard (Next -> Program),
+    resolves the Future, then switches the combo - the exact path the bug
+    report describes. The per-Device IA label baked in at `_start` time is the
+    one row that goes stale on a switch; this asserts both the stale label
+    was present for DeviceA before the switch and is gone afterward.
+    """
+    future: Future[None] = Future()
+    program_calls: list[tuple[Device, ProgramRequest]] = []
+    panel, _device_a, device_b = _two_device_panel(future, program_calls)
+
+    def gui_function() -> None:
+        imgui.begin("TestPanel")
+        panel.render()
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.BTN_NEXT)
+        ctx.yield_()
+        ctx.item_click(S.BTN_PROGRAM)
+        ctx.yield_()
+        # DeviceA's program succeeds - the callback fires synchronously here
+        # (a plain Future's done_callbacks run on the calling thread), so the
+        # next frame renders the success checklist with DeviceA's IA.
+        future.set_result(None)
+        ctx.yield_()
+        ps = _program_section_of(panel)
+        assert ps._status == "success"  # pyright: ignore[reportPrivateUsage]
+        assert ps._checklist[1][0] == (  # pyright: ignore[reportPrivateUsage]
+            S.PROGRAM_CHECKLIST_WRITE_IA.format(address="1.1.4")
+        )
+        # Switch the selected device to DeviceB via the combo - the reported path.
+        # combo_click takes a "combo/item" path and opens+selects+closes in one go.
+        ctx.combo_click(
+            f"##device_select/{device_b.name} ({device_b.individual_address})"
+        )
+        ctx.yield_()
+        # The device-change branch must have reset ProgramSection to idle,
+        # clearing the stale DeviceA checklist.
+        assert ps._status == "idle"  # pyright: ignore[reportPrivateUsage]
+        assert ps._checklist == []  # pyright: ignore[reportPrivateUsage]
+        assert ps._error_message == ""  # pyright: ignore[reportPrivateUsage]
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    assert len(program_calls) == 1, "switching devices must not start a program"
+
+
+def test_configure_panel_resets_program_section_when_device_switched_mid_program() -> (
+    None
+):
+    """The most concerning variant from the report: switching the
+    `##device_select` combo *while DeviceA's program is still in flight* must
+    still reset ProgramSection to idle, and the in-flight Future's eventual
+    (stale) completion must NOT clobber that reset state - the per-Future
+    generation guard's job, exercised through the real ConfigurePanel."""
+    future: Future[None] = Future()
+    program_calls: list[tuple[Device, ProgramRequest]] = []
+    panel, _device_a, device_b = _two_device_panel(future, program_calls)
+
+    def gui_function() -> None:
+        imgui.begin("TestPanel")
+        panel.render()
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.BTN_NEXT)
+        ctx.yield_()
+        ctx.item_click(S.BTN_PROGRAM)
+        ctx.yield_()
+        # DeviceA's program is running (future still pending). Switch to
+        # DeviceB mid-program via the combo - the combo is always enabled.
+        ctx.combo_click(
+            f"##device_select/{device_b.name} ({device_b.individual_address})"
+        )
+        ctx.yield_()
+        ps = _program_section_of(panel)
+        assert ps._status == "idle"  # pyright: ignore[reportPrivateUsage]
+        assert ps._checklist == []  # pyright: ignore[reportPrivateUsage]
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    # DeviceA's slow bus operation finally completes *after* the switch. The
+    # generation guard must treat this as stale and leave the reset state
+    # intact - not flip _status back to success under DeviceB's selection.
+    ps = _program_section_of(panel)
+    future.set_result(None)
+    assert ps._status == "idle"  # pyright: ignore[reportPrivateUsage]
+    assert ps._checklist == []  # pyright: ignore[reportPrivateUsage]
+    assert ps._error_message == ""  # pyright: ignore[reportPrivateUsage]
+    assert len(program_calls) == 1, "the switch must not have started DeviceB"
