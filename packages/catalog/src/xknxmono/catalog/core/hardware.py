@@ -63,9 +63,9 @@ class HardwareFilters(BaseModel):
     """Filter by application mask version string."""
     search: str | None = None
     """Case-insensitive substring search across hardware name and order number."""
-    limit: int = 50
+    limit: int = Field(default=50, ge=0, le=200)
     """Maximum number of results to return (hard cap enforced by the HTTP layer)."""
-    offset: int = 0
+    offset: int = Field(default=0, ge=0)
     """Number of results to skip before returning (for pagination)."""
 
 
