@@ -95,17 +95,33 @@ class ProxyPlugin:
                     port = int(self._port_str)
                 except ValueError:
                     port = TunnellingGateway.DEFAULT_PORT
-                self._proxy = TunnellingGateway(
-                    name=_NAME,
-                    on_cemi=self._api.connection.dispatch_proxy_cemi,
-                    forward_cemi=self._forward_to_connection if self._forward else None,
-                    port=port,
-                    logger=self._log,
-                )
-                self._proxy.start()
+                self._start_proxy(port)
         else:
             if imgui.menu_item("Stop proxy", "", False)[0]:
                 self._proxy.stop()
+
+    def _start_proxy(self, port: int) -> None:
+        """Construct and start a fresh gateway on ``port``, first tearing down
+        any prior instance.
+
+        Required on the restart-after-failure path: a failed ``start()`` leaves
+        the old gateway's daemon thread and asyncio loop alive (and, if
+        ``create_server`` succeeded before the failure, a listening ``_server``
+        still bound to the old port), so reassigning ``self._proxy`` without
+        stopping it would orphan that loop/thread/port for the rest of the
+        process. ``stop_and_wait`` drives the old gateway's ``_stop_async`` to
+        completion (closing its ``_server``) and joins its thread before the new
+        instance is constructed.
+        """
+        self._proxy.stop_and_wait()
+        self._proxy = TunnellingGateway(
+            name=_NAME,
+            on_cemi=self._api.connection.dispatch_proxy_cemi,
+            forward_cemi=self._forward_to_connection if self._forward else None,
+            port=port,
+            logger=self._log,
+        )
+        self._proxy.start()
 
     def on_load(self) -> None:
         pass
