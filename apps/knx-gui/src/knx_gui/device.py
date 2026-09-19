@@ -141,6 +141,58 @@ def _collect_ui_com_objects(
     return result
 
 
+def _mint_com_object(ui_co: UiComObject) -> ComObject:
+    """Build a fresh ``ComObject`` (``db_id=None``) from a ``UiComObject`` snapshot."""
+    from knx_gui.dpt import DPT_UNKNOWN, lookup_or_make_dpt
+
+    supported = [lookup_or_make_dpt(code) for code in ui_co.dpt_codes]
+    seen: set[tuple[int, int]] = set()
+    unique_supported: list[DPT] = []
+    for dpt in supported:
+        key = (dpt.major, dpt.minor)
+        if key not in seen:
+            seen.add(key)
+            unique_supported.append(dpt)
+    primary = unique_supported[0] if unique_supported else DPT_UNKNOWN
+    return ComObject(
+        id=ui_co.ref_id,
+        name=ui_co.name,
+        dpt=primary,
+        number=ui_co.number,
+        flags=ComObjectFlags(
+            communication=ui_co.communication,
+            read=ui_co.read,
+            write=ui_co.write,
+            transmit=ui_co.transmit,
+            update=ui_co.update,
+            read_on_init=ui_co.read_on_init,
+            read_locked=ui_co.read_locked,
+            write_locked=ui_co.write_locked,
+            transmit_locked=ui_co.transmit_locked,
+            update_locked=ui_co.update_locked,
+            read_on_init_locked=ui_co.read_on_init_locked,
+        ),
+        supported_dpts=unique_supported,
+    )
+
+
+def _sync_com_object_from_ui(co: ComObject, ui_co: UiComObject) -> None:
+    """Re-sync display fields and flags on an existing ``ComObject`` from a ``UiComObject``."""
+    co.name = ui_co.name
+    co.number = ui_co.number
+    co.flags.communication = ui_co.communication
+    co.flags.read = ui_co.read
+    co.flags.write = ui_co.write
+    co.flags.transmit = ui_co.transmit
+    co.flags.update = ui_co.update
+    co.flags.read_on_init = ui_co.read_on_init
+    co.flags.read_locked = ui_co.read_locked
+    co.flags.write_locked = ui_co.write_locked
+    co.flags.transmit_locked = ui_co.transmit_locked
+    co.flags.update_locked = ui_co.update_locked
+    co.flags.read_on_init_locked = ui_co.read_on_init_locked
+
+
 @dataclass
 class Device:
     node_id: int
@@ -184,42 +236,34 @@ class Device:
     def _create_com_objects_from_app(self) -> list[ComObject]:
         if self._dynamic_ui is None:
             return []
-        from knx_gui.dpt import DPT_UNKNOWN, lookup_or_make_dpt
+        ui_cos = _collect_ui_com_objects(self._dynamic_ui.ui())
+        return [_mint_com_object(ui_co) for ui_co in ui_cos]
 
+    def _refresh_com_objects_with_db_id_preserved(self) -> list[ComObject]:
+        """Rebuild ``com_objects`` from the freshly-evaluated UI tree after a parameter edit.
+
+        Merges with the prior snapshot by com-object ref-id: com objects that persist
+        across the edit (the common case — a non-topology edit keeps the same ref-ids)
+        reuse their existing ``ComObject`` instance and keep its ``db_id`` (which is
+        only ever patched post-construction by the project layer). Com objects newly
+        revealed by a ``<choose>`` branch switch are minted fresh (``db_id=None``,
+        matching the constructor's behaviour); com objects no longer emitted by ``ui()``
+        are dropped. Without this merge, a bare regeneration would discard ``db_id``
+        for *every* com object on *any* parameter edit (``set_param`` skips the
+        cache-rebuilding ``_bump()``), silently no-op'ing later flag edits.
+        """
+        if self._dynamic_ui is None:
+            return list(self.com_objects)
+        prior = {co.id: co for co in self.com_objects}
         ui_cos = _collect_ui_com_objects(self._dynamic_ui.ui())
         result: list[ComObject] = []
         for ui_co in ui_cos:
-            supported = [lookup_or_make_dpt(code) for code in ui_co.dpt_codes]
-            seen: set[tuple[int, int]] = set()
-            unique_supported: list[DPT] = []
-            for dpt in supported:
-                key = (dpt.major, dpt.minor)
-                if key not in seen:
-                    seen.add(key)
-                    unique_supported.append(dpt)
-            primary = unique_supported[0] if unique_supported else DPT_UNKNOWN
-            result.append(
-                ComObject(
-                    id=ui_co.ref_id,
-                    name=ui_co.name,
-                    dpt=primary,
-                    number=ui_co.number,
-                    flags=ComObjectFlags(
-                        communication=ui_co.communication,
-                        read=ui_co.read,
-                        write=ui_co.write,
-                        transmit=ui_co.transmit,
-                        update=ui_co.update,
-                        read_on_init=ui_co.read_on_init,
-                        read_locked=ui_co.read_locked,
-                        write_locked=ui_co.write_locked,
-                        transmit_locked=ui_co.transmit_locked,
-                        update_locked=ui_co.update_locked,
-                        read_on_init_locked=ui_co.read_on_init_locked,
-                    ),
-                    supported_dpts=unique_supported,
-                )
-            )
+            existing = prior.get(ui_co.ref_id)
+            if existing is not None:
+                _sync_com_object_from_ui(existing, ui_co)
+                result.append(existing)
+            else:
+                result.append(_mint_com_object(ui_co))
         return result
 
     @property
@@ -283,6 +327,7 @@ class Device:
     def set_param_value(self, ref_id: str, value: str) -> None:
         if self._dynamic_ui is not None:
             self._dynamic_ui.set_parameter_ref(ref_id, value)
+            self.com_objects = self._refresh_com_objects_with_db_id_preserved()
             self._cached_visible_cos = None
             self._cached_rows = None
 
