@@ -22,7 +22,6 @@ from typing import Any
 from unittest.mock import patch
 
 from imgui_bundle import imgui_node_editor as ed
-
 from knx_gui.plugins.node_editor.ui import NodeEditorPanel
 from knx_gui.plugins.project.service import Assignment, GroupAddress
 
