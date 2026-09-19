@@ -43,7 +43,12 @@ def eval_inline(
         interp.evaljs(f"var {name} = {_to_js_literal(val)};")  # type: ignore[union-attr]
     for name in output_names:
         if name not in inputs:
-            interp.evaljs(f"var {name};")  # type: ignore[union-attr]
+            # Pre-initialise to JS `null` (marshals to Python `None`) so an output the
+            # script leaves unset reads back as `None` and is excluded from the result —
+            # matching eval_named_func's `{k: None}` output object. A bare `var {name};`
+            # leaves the value JS `undefined`, which dukpy marshals to a Python `dict()`
+            # that `_read_js_var`'s `str(v)` fallback stringifies as the literal "{}".
+            interp.evaljs(f"var {name} = null;")  # type: ignore[union-attr]
     interp.evaljs(code)  # type: ignore[union-attr]
     return {n: v for n in output_names if (v := _read_js_var(interp, n)) is not None}
 

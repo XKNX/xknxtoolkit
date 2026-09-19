@@ -77,13 +77,32 @@ def test_eval_inline_fractional_float_stays_fractional() -> None:
     assert result == {"y": "3.75"}
 
 
-def test_eval_inline_declared_but_unset_output_reads_back_as_empty_object() -> None:
-    # Unlike eval_named_func's outputs (real JS `undefined`, filtered out below),
-    # a bare `var y;` hoisted declaration evaluated on its own reads back through
-    # dukpy as `{}`, not `None` - so it is *not* excluded. Documenting the actual
-    # behavior rather than the (wrong) assumption that it would be.
+def test_eval_inline_declared_but_unset_output_is_excluded() -> None:
+    # A declared-but-unset inline output is excluded from the result (matching
+    # eval_named_func, whose outputs are pre-initialised to JS `null`). Inline
+    # outputs are likewise pre-initialised to `null` so that an output the script
+    # leaves unset reads back as `None` and is omitted, which lets the caller
+    # (`DynamicUI.set_parameter_ref`) clear the parameter and revert it to its
+    # static default via its existing `else: clear_instance_ref(...)` branch.
     result = eval_inline("var unused = 1;", {}, ["y"])
+    assert result == {}
+
+
+def test_eval_inline_explicit_empty_object_assignment_is_preserved() -> None:
+    # Inline outputs are pre-initialised to JS `null` (which marshals to Python
+    # `None`), but a script that *deliberately* assigns the empty object literal
+    # must still round-trip as the string "{}" — a `dict() -> None` filter in
+    # `_read_js_var` would drop this legitimate value, so the fix pre-initialises
+    # to `null` rather than filtering empty objects at read time.
+    result = eval_inline("y = {};", {}, ["y"])
     assert result == {"y": "{}"}
+
+
+def test_eval_inline_explicit_null_assignment_is_excluded() -> None:
+    # An inline output explicitly assigned `null` marshals to Python `None` and
+    # is excluded, exactly like the declared-but-unset case above.
+    result = eval_inline("y = null;", {}, ["y"])
+    assert result == {}
 
 
 def test_eval_inline_multiple_outputs() -> None:
