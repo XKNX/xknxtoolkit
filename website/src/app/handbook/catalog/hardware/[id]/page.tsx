@@ -104,7 +104,7 @@ export default async function HardwarePage({ params }: { params: Promise<{ id: s
   return (
     <DocsPage footer={{ enabled: false }} breadcrumb={{ enabled: false }} toc={toc}>
       <Link
-        href="/handbook/catalog/browse-hardware"
+        href="/handbook/catalog/hardware"
         className="text-sm text-fd-muted-foreground hover:text-fd-foreground transition-colors"
       >
         ← Back to catalog
