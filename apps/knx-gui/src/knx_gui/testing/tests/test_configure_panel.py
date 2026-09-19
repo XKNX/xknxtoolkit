@@ -502,6 +502,197 @@ def test_advanced_actions_section_contains_preview_memory_button() -> None:
     assert opened == [device]
 
 
+def _make_ia_panel(
+    device: Device,
+    on_individual_address_change: Callable[[Device, str], None],
+) -> ConfigurePanel:
+    """A ConfigurePanel wired up just enough to drive the segmented Individual
+    Address input in isolation.
+
+    Pre-seeds the three segment buffers to ``"0"`` and the device's address to
+    ``"0.0.0"`` (and pins ``_buffer_device_id`` so the panel's per-device one-shot
+    re-sync doesn't overwrite them on the first render frame): the input starts
+    each segment at ``"0"``, so typing a single digit appends to ``"0d"`` and the
+    segment's clamping callback rewrites that to ``"d"`` deterministically
+    regardless of where in the field the cursor lands after ``item_click`` -
+    avoiding the ``"1" + "d" = "1d" -> clamp(1d, 15) = 15`` ambiguity of a
+    ``1.1.1`` start, where the result depends on cursor position. The
+    ``"0.0.0"`` baseline matches the segment buffers so the panel's "re-sync
+    when nothing is active and the assembled address differs" branch isn't
+    triggered before the user starts typing.
+    """
+    device.individual_address = "0.0.0"
+    panel = ConfigurePanel(
+        get_devices=lambda: [device],
+        get_selected_device=lambda: device,
+        set_selected_device=lambda _device: None,
+        on_param_change=lambda _device, _ref_id, _value: None,
+        on_individual_address_change=on_individual_address_change,
+        on_name_change=lambda _device, _name: None,
+        set_flag=lambda _device, _co_id, _flag, _value: None,
+    )
+    panel._ia_area = "0"  # pyright: ignore[reportPrivateUsage]
+    panel._ia_line = "0"  # pyright: ignore[reportPrivateUsage]
+    panel._ia_device = "0"  # pyright: ignore[reportPrivateUsage]
+    panel._buffer_device_id = device.node_id  # pyright: ignore[reportPrivateUsage]
+    return panel
+
+
+def _run_ia_panel_driving_test(
+    panel: ConfigurePanel,
+    test_function: Callable[[_TestContext], None],
+) -> None:
+    def gui_function() -> None:
+        imgui.begin("TestPanel")
+        panel.render()
+        imgui.end()
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+
+def test_individual_address_chained_edit_commits_once() -> None:
+    """A chained Area -> Line -> Device edit of the segmented Individual Address
+    must produce a single ``on_individual_address_change`` call carrying the
+    *final* assembled address, not one per-segment deactivation.
+
+    Regression test for commit 1ab42e3's segmented IA input, which committed on
+    ``area.deactivated or line.deactivated or dev.deactivated`` instead of
+    waiting until no segment remained active. The per-segment ``deactivated``
+    flag (a thin wrapper around ``imgui.is_item_deactivated_after_edit()``)
+    fires on every segment boundary during the chaining click Area -> click
+    Line -> click Device -> click elsewhere edit flow, so a one-shot edit of
+    ``0.0.0`` to ``8.5.9`` previously produced three callbacks -
+    ``(1, "8.0.0"), (1, "8.5.0"), (1, "8.5.9")`` - the first two being
+    *intermediate* partial addresses built from the just-typed segment plus the
+    other two still holding the old address. Each callback drives the project
+    plugin's optimistic ``device.individual_address = new_address`` mutation and
+    (topology-dependent) one ``EventStore`` append per intermediate, so an
+    intended one-keystroke edit could need multiple undo presses to revert and
+    made the per-frame dropdown label flicker through intermediate addresses.
+
+    Drives the real ``ConfigurePanel.render`` through the real Dear ImGui Test
+    Engine harness, recording ``on_individual_address_change`` invocations via
+    a stub callback - it measures UI-layer commit attempts, which is what the
+    buggy ``or``-of-``deactivated`` condition directly controls.
+    """
+    device = _fake_full_configure_device()
+    calls: list[tuple[int, str]] = []
+
+    panel = _make_ia_panel(
+        device, lambda dev, address: calls.append((dev.node_id, address))
+    )
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        # Click each segment, type one digit, advance to the next by clicking
+        # the following segment - the click-through flow the widget was designed
+        # for. Final click on ##name moves focus out of the whole composite.
+        for label, ch in [("##ia_area", "8"), ("##ia_line", "5"), ("##ia_device", "9")]:
+            ctx.item_click(label)
+            ctx.yield_()
+            ctx.key_chars(ch)
+            ctx.yield_()
+        ctx.item_click("##name")
+        ctx.yield_()
+        ctx.yield_()
+
+    _run_ia_panel_driving_test(panel, test_function)
+
+    assert calls == [(1, "8.5.9")], (
+        f"chained IA edit must fire exactly one final commit, got {calls}"
+    )
+
+
+def test_individual_address_single_segment_edit_commits_once() -> None:
+    """A single-segment edit (Area only, then deactivate by clicking another
+    focusable item) must still commit exactly once - regression guard that the
+    fix's "and no segment is still active" guard does NOT also suppress the
+    classic single-octet commit-on-blur behaviour the segmented widget inherited
+    from the single-field IA input it replaced (commit ``1ab42e3``).
+
+    Per-segment commit-on-blur is what a user gets when they, e.g., only meant
+    to fix the Area part of an address - skipping it would silently swallow that
+    edit. The fix only suppresses *intermediate* commits during a chained
+    multi-segment edit, where on the boundary frame the next segment is already
+    active; here nothing else takes over as a segment, so the single commit
+    fires identically under the buggy code and the fix. The bug report scopes
+    that out as an orthogonal design question; this test pins its current
+    behaviour against the fix changing it.
+    """
+    device = _fake_full_configure_device()
+    calls: list[tuple[int, str]] = []
+
+    panel = _make_ia_panel(
+        device, lambda dev, address: calls.append((dev.node_id, address))
+    )
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click("##ia_area")
+        ctx.yield_()
+        ctx.key_chars("8")  # 0 + 8 -> clamped to "8"
+        ctx.yield_()
+        # Click another focusable item to deactivate the area segment without
+        # activating the line or device segments.
+        ctx.item_click("##name")
+        ctx.yield_()
+        ctx.yield_()
+
+    _run_ia_panel_driving_test(panel, test_function)
+
+    assert calls == [(1, "8.0.0")], (
+        f"single-segment IA edit must still commit once on blur, got {calls}"
+    )
+
+
+def test_individual_address_external_change_resyncs_buffers_when_idle() -> None:
+    """When none of the three segments is being edited and the device's
+    ``individual_address`` changes from outside the widget (e.g. an undo
+    jump, a drag-to-a-new-line in the Devices panel, or a successful
+    Individual Address programming), the panel must re-sync its three segment
+    buffers to the new address on the next frame.
+
+    Regression guard for the ``elif`` half of the fix: switching the commit
+    condition to "segment deactivated AND no segment still active" must not
+    silently drop the existing re-sync-from-outside path - the two were always
+    mutually exclusive (one fires on edit completion, the other on idle-state
+    drift), and they remain so after the fix just with a tighter commit guard.
+    """
+    device = _fake_full_configure_device()  # individual_address == "1.1.1"
+    panel = ConfigurePanel(
+        get_devices=lambda: [device],
+        get_selected_device=lambda: device,
+        set_selected_device=lambda _device: None,
+        on_param_change=lambda _device, _ref_id, _value: None,
+        on_individual_address_change=lambda _device, _address: None,
+        on_name_change=lambda _device, _name: None,
+        set_flag=lambda _device, _co_id, _flag, _value: None,
+    )
+
+    def gui_function() -> None:
+        imgui.begin("TestPanel")
+        panel.render()
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()  # first frame: per-device one-shot sync -> buffers = "1","1","1"
+        # Simulate an external change (undo / drag / programming completion):
+        # nothing the test does touches the IA segments, so the panel should
+        # notice the drift and re-sync.
+        device.individual_address = "5.5.5"
+        ctx.yield_()  # else-branch fires -> _sync_address_buffers("5.5.5")
+        ctx.yield_()  # let layout settle one more frame
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    assert panel._ia_area == "5"  # pyright: ignore[reportPrivateUsage]
+    assert panel._ia_line == "5"  # pyright: ignore[reportPrivateUsage]
+    assert panel._ia_device == "5"  # pyright: ignore[reportPrivateUsage]
+
+
 def test_load_procedures_section_renders_each_procedures_steps() -> None:
     """`LoadProceduresSection` must render every procedure as an openable tree node
     and not raise while rendering its steps table.
