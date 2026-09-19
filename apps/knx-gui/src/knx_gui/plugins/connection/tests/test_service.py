@@ -40,7 +40,6 @@ from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
-
 from knx_gui.device import Device
 from knx_gui.plugins.connection.service import ConnectionService
 
