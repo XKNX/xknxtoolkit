@@ -43,9 +43,11 @@ class CatalogService:
         return self._service.get_manufacturer(manufacturer_id)
 
     def get_hardware_by_program(
-        self, hardware2program_ref_id: str
+        self, hardware2program_ref_id: str, product_ref_id: str | None = None
     ) -> HardwareInfo | None:
-        return self._service.get_hardware_by_program(hardware2program_ref_id)
+        return self._service.get_hardware_by_program(
+            hardware2program_ref_id, product_ref_id
+        )
 
     def refresh(self) -> None:
         self._products = None
