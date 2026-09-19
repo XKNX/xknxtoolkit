@@ -1,3 +1,4 @@
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +22,8 @@ from knx_gui.plugins.proxy import ProxyPlugin
 from knx_gui.plugins.tasks import TaskService, TasksPlugin
 from knx_gui.plugins.virtual import VirtualPlugin
 from knx_gui.strings import S, set_locale
-from xknxmono.product.errors import ArchiveError
+from xknxmono.models.schema import VersionError
+from xknxmono.product.errors import ArchiveError, ParseError
 
 
 class KnxGuiApp:
@@ -171,6 +173,9 @@ class KnxGuiApp:
             self._log.error("archive error", path=path, error=str(e))
             self._task_service.update(task_id, status="error", detail=str(e))
         except (OSError, ValueError) as e:
+            self._log.error("import error", path=path, error=f"{type(e).__name__}: {e}")
+            self._task_service.update(task_id, status="error", detail=str(e))
+        except (VersionError, ParseError, zipfile.BadZipFile) as e:
             self._log.error("import error", path=path, error=f"{type(e).__name__}: {e}")
             self._task_service.update(task_id, status="error", detail=str(e))
 
