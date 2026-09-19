@@ -208,6 +208,7 @@ def _render_grid_block(
     all_cols = {c for _, c in cells_by_pos} | {c for _, c in labels_by_pos}
     max_row = max(all_rows, default=1)
     max_col = max(all_cols, default=1)
+    declared_rows = max(max_row, len(block.row_labels))
 
     is_table = block.layout == ParameterBlockLayout.TABLE
     table_flags = (
@@ -233,7 +234,7 @@ def _render_grid_block(
             imgui.table_headers_row()
         elif is_table:
             imgui.table_headers_row()
-        for row in range(1, max_row + 1):
+        for row in range(1, declared_rows + 1):
             imgui.table_next_row()
             if has_row_labels:
                 imgui.table_set_column_index(0)
