@@ -138,13 +138,17 @@ class TestEvalContext:
         self, idx: ApplicationIndexer
     ):
         state = GlobalState()
-        mctx = EvalContext(state, idx=idx).module_ctx(_MODULE_ID)
+        mctx = EvalContext(state, idx=idx).module_ctx(_MODULE_ID, ref_id=_DEF_PREFIX)
         mctx.set(_LOCAL_REF, "5")
         assert state.parameter_instance_refs() == {_QUALIFIED_REF: "5"}
 
     def test_repeat_ctx_sets_instance_idx_for_module(self, idx: ApplicationIndexer):
         state = GlobalState()
-        mctx = EvalContext(state, idx=idx).repeat_ctx(3).module_ctx(_MODULE_ID)
+        mctx = (
+            EvalContext(state, idx=idx)
+            .repeat_ctx(3)
+            .module_ctx(_MODULE_ID, ref_id=_DEF_PREFIX)
+        )
         mctx.set(_LOCAL_REF, "5")
         expected_ref = f"{_BASE}_MD-1_M-C8_MI-3_P-96_R-F3"
         assert state.parameter_instance_refs() == {expected_ref: "5"}
@@ -285,7 +289,7 @@ class TestTrimToActive:
 
     def test_active_param_refs_qualified_in_module_scope(self):
         state = GlobalState()
-        ms = state.module_child(_MODULE_ID)
+        ms = state.module_child(_MODULE_ID, ref_id=_DEF_PREFIX)
         ms.mark_active_param(_LOCAL_REF, _LOCAL_REF)
 
         assert state.active_param_refs() == {_QUALIFIED_REF}
