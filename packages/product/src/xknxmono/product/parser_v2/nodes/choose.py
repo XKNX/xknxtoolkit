@@ -4,11 +4,11 @@ from ..context import EvalContext
 from ..ui import UiNode
 from .base import DynamicNode
 
-_OPERATORS = (">=", "<=", ">", "<")
+_OPERATORS = ("!=", ">=", "<=", ">", "<", "=")
 
 
 def _token_matches(value: str, token: str) -> bool:
-    """A ``<when Test=...>`` token: an exact value, or a comparison like ``>0`` / ``<=5``."""
+    """A ``<when Test=...>`` token: an exact value, or a comparison like ``>0`` / ``<=5`` / ``!=2``."""
     for op in _OPERATORS:
         if token.startswith(op):
             try:
@@ -21,7 +21,11 @@ def _token_matches(value: str, token: str) -> bool:
                 return left <= right
             if op == ">":
                 return left > right
-            return left < right
+            if op == "<":
+                return left < right
+            if op == "!=":
+                return left != right
+            return left == right
     return value == token
 
 
