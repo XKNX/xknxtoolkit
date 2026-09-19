@@ -6,14 +6,6 @@ from typing import ClassVar, Protocol
 from knx_gui.plugins.base.api import PluginAPI
 
 
-class Panel(Protocol):
-    def render(self) -> None: ...
-
-
-class Service(Protocol):
-    def refresh(self) -> None: ...
-
-
 @dataclass
 class PanelDefinition:
     name: str
