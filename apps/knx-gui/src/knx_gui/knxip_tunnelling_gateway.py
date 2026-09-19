@@ -304,6 +304,41 @@ class TunnellingGateway:
         else:
             self._state = GatewayState.STOPPED
 
+    def stop_and_wait(self, timeout: float = 2.0) -> bool:
+        """Stop the gateway and block until its loop/thread have exited.
+
+        Counterpart to ``start()`` for the restart-after-failure path. A
+        failed ``_start_async`` leaves the loop and daemon thread running, and
+        (when ``create_server`` succeeded before the failure) a listening
+        ``_server`` bound to ``self._port``. Fire-and-forget ``stop()``
+        schedules teardown on that loop but returns before it lands, so a
+        caller that immediately replaces this gateway - see ``ProxyPlugin``
+        retrying "Start proxy" from the ERROR state - would otherwise orphan
+        the old loop, thread and any bound port for the rest of the process.
+
+        Returns True if the thread exited within ``timeout``. On a timeout
+        the call logs a warning and returns False without raising, so the
+        caller is no worse off than the existing fire-and-forget ``stop()``
+        and may still replace this gateway. The common case (a cleanly failed
+        start with an idle loop) returns within milliseconds.
+        """
+        thread = self._thread
+        self.stop()
+        if (
+            thread is not None
+            and thread is not threading.current_thread()
+            and thread.is_alive()
+        ):
+            thread.join(timeout=timeout)
+            if thread.is_alive():
+                if self._logger is not None:
+                    self._logger.warning(
+                        "gateway thread still alive after stop_and_wait",
+                        timeout=timeout,
+                    )
+                return False
+        return True
+
     async def _stop_async(self) -> None:
         try:
             if self._transport is not None:
