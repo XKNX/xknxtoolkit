@@ -425,6 +425,157 @@ def test_restart_section_non_destructive_mode_restarts_immediately() -> None:
     assert calls == [RestartRequest(master_reset=False, erase_code=0, channel_number=0)]
 
 
+def test_restart_section_confirm_targets_open_time_device_not_per_frame_device() -> (
+    None
+):
+    """Regression: the destructive "Confirm Reset" popup must dispatch its reset
+    against the device it was opened for, not whatever `render()`'s per-frame
+    `device` resolves to on the confirm frame.
+
+    While the modal is open, an out-of-band selected-device change (e.g. the
+    app-level Ctrl+Z shortcut handler in `main.py:_handle_shortcuts` firing
+    `ProjectService.undo()`, which can leave the selected device as None and
+    trip `ConfigurePanel.render`'s ``device is None -> devices[0]`` fallback to
+    a *different* device) must not silently re-target the confirm button.
+    `RestartSection` snapshots `device` (and the selected mode) at open_popup
+    time and reads from that snapshot for the lifetime of the modal; this test
+    flips the per-frame ``device`` from A to B between open and confirm and
+    asserts the reset still fires on A.
+
+    Reaches into ``_reset_mode_index`` directly (see
+    `test_restart_section_destructive_mode_requires_confirmation` for the same
+    trade-off) since the combo interaction itself isn't what this test is about.
+    """
+    device_a = cast(
+        Device, SimpleNamespace(individual_address="1.1.2", name="Device A")
+    )
+    device_b = cast(
+        Device, SimpleNamespace(individual_address="1.1.3", name="Device B")
+    )
+    state: dict[str, object] = {"current": device_a}
+    calls: list[tuple[Device, RestartRequest]] = []
+    section = RestartSection(lambda d, request: calls.append((d, request)))
+    section._reset_mode_index = 2  # pyright: ignore[reportPrivateUsage]  # Factory Reset - destructive
+
+    def gui_function() -> None:
+        imgui.begin("TestPanel")
+        section.render(cast(Device, state["current"]))
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.item_click("Reset")  # open the confirm popup for device A
+        ctx.yield_()
+        assert calls == [], "destructive mode must not restart on first click"
+        ctx.set_ref("//Confirm Reset")
+        ctx.yield_()
+        # Simulate the per-frame re-resolution flipping A -> B (the production
+        # trigger is ProjectService.undo() leaving selected_device as None, then
+        # ConfigurePanel.render falling back to devices[0]).
+        state["current"] = device_b
+        ctx.yield_()
+        ctx.item_click("Reset")  # confirm inside the still-open popup
+        ctx.yield_()
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    assert len(calls) == 1
+    fired_device, _request = calls[0]
+    assert fired_device is device_a, (
+        "confirm must target the open-time device, not the post-flip device"
+    )
+
+
+def test_restart_section_confirm_uses_open_time_mode_not_per_frame_mode() -> None:
+    """Parallel to the device-snapshot test: the destructive reset *mode* shown
+    in the confirm text and dispatched on confirm must be the one selected when
+    the popup was opened, even if `_reset_mode_index` is mutated while the modal
+    is open. Snapshotting the mode alongside the device closes this hazard too -
+    the user confirms the mode they were shown.
+
+    The combo is normally blocked from interaction by the modal grab; this test
+    mutates `_reset_mode_index` directly to stand in for any out-of-band change
+    (and to keep the assertion deterministic instead of fighting the combo).
+    """
+    device = _fake_restart_device()
+    calls: list[RestartRequest] = []
+    section = RestartSection(lambda _device, request: calls.append(request))
+    section._reset_mode_index = 2  # pyright: ignore[reportPrivateUsage]  # Factory Reset (0x02)
+
+    def gui_function() -> None:
+        imgui.begin("TestPanel")
+        section.render(device)
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.item_click("Reset")  # open the confirm popup with Factory Reset
+        ctx.yield_()
+        assert calls == []
+        ctx.set_ref("//Confirm Reset")
+        ctx.yield_()
+        section._reset_mode_index = 3  # pyright: ignore[reportPrivateUsage]  # would be Reset IA (0x03)
+        ctx.yield_()
+        ctx.item_click("Reset")  # confirm inside the still-open popup
+        ctx.yield_()
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    # Erase Code 0x02 (Factory Reset, the open-time mode) - not 0x03 (Reset IA).
+    assert calls == [RestartRequest(master_reset=True, erase_code=2, channel_number=0)]
+
+
+def test_restart_section_cancel_clears_snapshot_for_next_open() -> None:
+    """Cancelling the confirm popup must clear the open-time snapshot so the next
+    open of the same popup targets whatever device is current then, not the one
+    the cancelled popup was opened for. Guards against the snapshot leaking
+    across popup lifetimes (which would re-introduce a stale-target bug -
+    the mirror image of the device-flip race)."""
+    device_a = cast(
+        Device, SimpleNamespace(individual_address="1.1.2", name="Device A")
+    )
+    device_b = cast(
+        Device, SimpleNamespace(individual_address="1.1.3", name="Device B")
+    )
+    state: dict[str, object] = {"current": device_a}
+    calls: list[tuple[Device, RestartRequest]] = []
+    section = RestartSection(lambda d, request: calls.append((d, request)))
+    section._reset_mode_index = 2  # pyright: ignore[reportPrivateUsage]  # Factory Reset - destructive
+
+    def gui_function() -> None:
+        imgui.begin("TestPanel")
+        section.render(cast(Device, state["current"]))
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.item_click("Reset")  # open the confirm popup for device A
+        ctx.yield_()
+        ctx.set_ref("//Confirm Reset")
+        ctx.yield_()
+        ctx.item_click("Cancel")  # dismiss without firing
+        ctx.yield_()
+        ctx.yield_()  # let the modal fully close before the next open
+        assert calls == [], "cancel must not fire a restart"
+        state["current"] = device_b  # a different device is now selected
+        ctx.yield_()
+        ctx.set_ref("//TestPanel")
+        ctx.item_click("Reset")  # open a fresh popup for device B
+        ctx.yield_()
+        ctx.set_ref("//Confirm Reset")
+        ctx.yield_()
+        ctx.item_click("Reset")  # confirm
+        ctx.yield_()
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    assert len(calls) == 1, "only the second (post-cancel) confirm should fire"
+    fired_device, _request = calls[0]
+    assert fired_device is device_b, (
+        "after cancelling, the next open must target the then-current device"
+    )
+
+
 def _fake_full_configure_device() -> Device:
     """Enough surface for `ConfigurePanel.render()` to complete a full frame:
     `MetadataSection` renders by default (open), so it needs the same app/hardware
