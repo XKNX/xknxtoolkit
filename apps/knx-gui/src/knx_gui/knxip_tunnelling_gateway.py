@@ -389,6 +389,26 @@ class TunnellingGateway:
                     self._logger.warning(
                         "could not parse frame", error=str(e), hex=data.hex(" ")
                     )
+                # Re-sync: skip just the bad frame when its KNX/IP header was
+                # well-formed enough to give us a usable total_length. This
+                # covers the forward-compat case (unknown KNXIPServiceType,
+                # wrong protocol version, body ValueError on an unknown enum)
+                # -- the "unfamiliar frame" group the broad-except exists for.
+                # KNXIPHeader.from_knx raises CouldNotParseKNXIP *before*
+                # setting total_length only when data[0] != 0x06 (genuine
+                # stream corruption); that case keeps the existing drop-and-
+                # return behaviour unchanged.
+                if len(data) >= 6 and data[0] == 0x06:
+                    total_length = data[4] * 256 + data[5]
+                    if 6 <= total_length <= len(data):
+                        data = data[total_length:]
+                        continue
+                # No usable total_length: either genuine stream corruption
+                # (data[0] != 0x06) or a declared total_length that exceeds
+                # the bytes actually received. Do not re-buffer -- the bytes
+                # are not a known-good frame prefix and re-buffering them
+                # would misalign the next segment. Drop the rest of this
+                # segment (as today) and keep the transport open (as today).
                 return
             if self._logger:
                 self._logger.debug(
