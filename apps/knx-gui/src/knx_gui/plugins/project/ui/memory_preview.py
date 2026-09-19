@@ -29,6 +29,9 @@ class MemoryPreviewWindow:
         self._last_encode_error: str | None = None
 
     def open(self, device: Device) -> None:
+        if self._device is not None and self._device.node_id != device.node_id:
+            self._hex_views = {}
+            self._ref_data = {}
         self._device = device
         self._show = True
 
