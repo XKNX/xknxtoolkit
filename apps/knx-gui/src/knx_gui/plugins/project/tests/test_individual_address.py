@@ -22,11 +22,11 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
-
 from knx_gui.plugins.base import Logger, PluginAPI
 from knx_gui.plugins.catalog.service import CatalogService
 from knx_gui.plugins.project.plugin import ProjectPlugin
 from knx_gui.plugins.project.service import ProjectService
+
 from xknxmono.product import Application
 from xknxmono.project import ProjectService as _ProjectService
 
