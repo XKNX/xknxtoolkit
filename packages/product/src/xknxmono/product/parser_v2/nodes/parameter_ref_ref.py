@@ -45,7 +45,13 @@ class ParameterRefRefNode(DynamicNode):
         label = (ctx.get(text_ref) if text_ref else None) or static_label
         raw_suffix = self._param_ref.suffix_text or self._param.suffix_text
         suffix = apply_text_args(raw_suffix, arg_defaults) if raw_suffix else raw_suffix
-        value = ctx.get(local_ref_id) or self._param_ref.value or self._param.value
+        override = ctx.get(local_ref_id)
+        if override is not None:
+            value = override
+        elif self._param_ref.value is not None:
+            value = self._param_ref.value
+        else:
+            value = self._param.value
         return [
             UiParameter(
                 ref_id=ctx.qualify(local_ref_id),
