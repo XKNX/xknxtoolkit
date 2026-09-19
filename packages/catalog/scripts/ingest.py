@@ -15,7 +15,8 @@ from xknxmono.catalog.db import (  # noqa: E402
     knxprod_dir_for,
     make_engine,
 )
-from xknxmono.product.errors import ArchiveError  # noqa: E402
+from xknxmono.models.schema import VersionError as SchemaVersionError  # noqa: E402
+from xknxmono.product.errors import ArchiveError, ParseError  # noqa: E402
 
 
 def main() -> None:
@@ -40,7 +41,7 @@ def main() -> None:
             print(f"  [{i}/{total}] {fp.name}")
         try:
             upload_knxprod(fp.read_bytes(), dest_dir, engine)
-        except ArchiveError as e:
+        except (ArchiveError, ParseError, SchemaVersionError) as e:
             print(f"  SKIP {fp.name}: {e}", file=sys.stderr)
             errors += 1
         except Exception as e:
