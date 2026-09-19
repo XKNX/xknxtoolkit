@@ -68,11 +68,12 @@ class CatFollower:
 
         io = imgui.get_io()
         mx, my = io.mouse_pos.x, io.mouse_pos.y
-        mouse_moved = (
+        _valid = abs(mx) < 100_000 and abs(my) < 100_000
+        mouse_moved = _valid and (
             abs(mx - self._last_mouse_x) > _MOUSE_MOVE_THRESHOLD
             or abs(my - self._last_mouse_y) > _MOUSE_MOVE_THRESHOLD
         )
-        if abs(mx) < 100_000 and abs(my) < 100_000:
+        if _valid:
             self._last_mouse_x, self._last_mouse_y = mx, my
 
         if mouse_moved and (self._wandering or self._returning) and not self._sprinting:
