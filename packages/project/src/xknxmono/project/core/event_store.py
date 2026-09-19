@@ -39,10 +39,7 @@ class EventStore:
         return row if row is not None else 0
 
     def append(self, event: Event) -> Event:
-        if self._cursor > 0:
-            self._session.execute(
-                delete(EventModel).where(EventModel.id > self._cursor)
-            )
+        self._session.execute(delete(EventModel).where(EventModel.id > self._cursor))
 
         event.apply(self._session)
 
