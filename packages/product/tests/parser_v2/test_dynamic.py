@@ -88,3 +88,30 @@ def test_set_parameter_ref_propagates_r_to_l_calculation(dui: DynamicUI) -> None
     new_value = "0" if before == "1" else "1"
     dui.set_parameter_ref(_R_CALC_REF_ID, new_value)
     assert dui._state.get(_R_CALC_REF_ID) == new_value  # pyright: ignore[reportPrivateUsage]
+
+
+def test_r_to_l_noop_inline_calc_clears_l_params_to_static_default(
+    dui: DynamicUI,
+) -> None:
+    """The 'Kanäle kombinieren' calc (PC-3) has a no-op inline RLTransformation
+    ('/* */') and declares three L-side outputs (P-15_R-14, P-170_R-182, P-106_R-153).
+    Driving one of those L-side outputs off its static default and then triggering the
+    no-op R->L calc (by setting an R-side input) must clear the L-side output back to
+    its static default — not write the literal string "{}" that a declared-but-unset
+    inline output marshals to under dukpy (the inline-path clear-to-default contract,
+    commit 3033b83). The R-side inputs are active but not UI-presented, so this is
+    reachable through the public set_parameter_ref API rather than GUI interaction."""
+    l_output = "M-0008_A-7072-21-5CC3-O000A_P-15_R-14"
+    static_default = dui._state.get(l_output)  # pyright: ignore[reportPrivateUsage]
+    assert static_default is not None
+    # Drive the L-side output off its static default.
+    dui.set_parameter_ref(l_output, "7")
+    assert dui._state.get(l_output) == "7"  # pyright: ignore[reportPrivateUsage]
+    # Trigger the no-op inline R->L calc via its R-side input.
+    dui.set_parameter_ref(_R_CALC_REF_ID, "1")
+    # The L-side output must have reverted to its static default (not "{}").
+    assert dui._state.get(l_output) == static_default  # pyright: ignore[reportPrivateUsage]
+    assert dui._state.get(l_output) != "{}"  # pyright: ignore[reportPrivateUsage]
+    # No spurious "{}" override must persist for the cleared L-side output.
+    overrides = dict(dui._state.relative_param_values())  # pyright: ignore[reportPrivateUsage]
+    assert overrides.get(l_output) != "{}"
