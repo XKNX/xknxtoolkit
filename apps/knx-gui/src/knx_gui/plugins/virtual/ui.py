@@ -1,4 +1,3 @@
-import contextlib
 from collections.abc import Callable
 
 from imgui_bundle import imgui
@@ -6,6 +5,32 @@ from imgui_bundle import imgui
 from knx_gui.knxip_tunnelling_gateway import GatewayState, TunnellingGateway
 from knx_gui.plugins.virtual.strings import S
 from knx_gui.plugins.virtual.virtual_device import VirtualDevice
+
+_SERIAL_HEX_LENGTH = 12  # 6 bytes, KNX serial number width
+_WARNING_COLOR = imgui.ImVec4(0.9, 0.5, 0.3, 1.0)
+
+
+def _limit_serial_length(data: imgui.InputTextCallbackData) -> int:
+    """A focused input_text() keeps its own internal edit buffer and ignores
+    the string passed back in on later frames (see `segmented_input.py`), so
+    the 12-char cap has to be enforced here, live, rather than by truncating
+    the returned value."""
+    text = str(data.buf)[: data.buf_text_len]
+    if len(text) > _SERIAL_HEX_LENGTH:
+        data.delete_chars(_SERIAL_HEX_LENGTH, len(text) - _SERIAL_HEX_LENGTH)
+    return 0
+
+
+def _parse_serial(serial_hex: str) -> bytes | None:
+    """A KNX serial number is 6 bytes - `serial_hex` must be exactly 12 hex chars
+    (whitespace-insensitive, so "00 FA 12 34 56 78" and "00FA12345678" both work)."""
+    compact = "".join(serial_hex.split())
+    if len(compact) != _SERIAL_HEX_LENGTH:
+        return None
+    try:
+        return bytes.fromhex(compact)
+    except ValueError:
+        return None
 
 
 class VirtualPanel:
@@ -102,11 +127,18 @@ class VirtualPanel:
         imgui.text(S.LABEL_SERIAL_NUMBER)
         imgui.set_next_item_width(-1)
         changed, self._device_serial_hex = imgui.input_text(
-            "##device-serial", self._device_serial_hex
+            "##device-serial",
+            self._device_serial_hex,
+            flags=imgui.InputTextFlags_.chars_hexadecimal
+            | imgui.InputTextFlags_.callback_edit,
+            callback=_limit_serial_length,
         )
         if changed:
-            with contextlib.suppress(ValueError):
-                device.serial_number = bytes.fromhex(self._device_serial_hex)
+            parsed = _parse_serial(self._device_serial_hex)
+            if parsed is not None:
+                device.serial_number = parsed
+        if _parse_serial(self._device_serial_hex) is None and self._device_serial_hex:
+            imgui.text_colored(_WARNING_COLOR, S.SERIAL_FIELD_INVALID)
 
         changed, programming_mode = imgui.checkbox(
             S.LABEL_PROGRAMMING_MODE, device.programming_mode
