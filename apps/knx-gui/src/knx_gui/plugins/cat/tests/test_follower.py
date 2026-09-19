@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import pytest
-
 from knx_gui.plugins.cat import follower
 
 # Dear ImGui's GLFW backend reports io.MousePos == (-FLT_MAX, -FLT_MAX) every
