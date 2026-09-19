@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from xknxmono.models.adapters.convert import (
@@ -595,3 +597,76 @@ def test_default_logger_is_noop():
     ctx = Context(version="v10")
     assert isinstance(ctx.logger, _NullLogger)
     assert ctx.logger.info("ignored", x=1) is None  # no-op
+
+
+# --- Union[Enum, Enum] coercion: source enum -> IR enum in Union-of-enums fields ------
+#
+# `procedure_sub_type` is the only IR field annotated as a Union composed entirely of Enum
+# members (`LdCtrlProcType | HawkConfigurationDataProceduresProcedureValue`). Before the fix,
+# such fields fell through to `kwargs[f.name] = src_val`, leaking the source-version enum into
+# the IR-typed field unchanged (breaking isinstance/==/dict-key dispatch keyed by IR enums).
+
+
+def _v14_proc(src_sub_type: Any) -> Any:
+    from xknxmono.models.files.v14.hawk_configuration_data_t_procedures_procedure import (
+        HawkConfigurationDataProceduresProcedure as V14Proc,
+    )
+    from xknxmono.models.files.v14.procedure_type_t import ProcedureType as V14ProcType
+
+    return V14Proc(procedure_type=V14ProcType.LOAD, procedure_sub_type=src_sub_type)
+
+
+def _ir_proc_cls() -> type:
+    from xknxmono.models.intermediate.hawk_configuration_data_t_procedures_procedure import (
+        HawkConfigurationDataProceduresProcedure as IRProc,
+    )
+
+    return IRProc
+
+
+def test_union_enum_coerces_to_ir_enum_first_member():
+    """A Union[Enum, Enum] field coerces the source enum into the matching IR enum instead of
+    leaking the source-version enum instance. First union member (LdCtrlProcType)."""
+    from xknxmono.models.files.v14.ld_ctrl_proc_type_t import (
+        LdCtrlProcType as V14SubType,
+    )
+    from xknxmono.models.intermediate.ld_ctrl_proc_type_t import (
+        LdCtrlProcType as IRSubType,
+    )
+
+    out = convert(Context(version="v14"), _v14_proc(V14SubType.FULL), _ir_proc_cls())
+    assert type(out.procedure_sub_type) is IRSubType  # not the source enum
+    assert out.procedure_sub_type is IRSubType.FULL
+    assert isinstance(out.procedure_sub_type, IRSubType)
+    # dict-keyed dispatch keyed by IR enum members now resolves (the original failure mode)
+    assert {IRSubType.FULL: "ok"}[out.procedure_sub_type] == "ok"
+
+
+def test_union_enum_coerces_to_ir_enum_second_member():
+    """Second union member (HawkConfigurationDataProceduresProcedureValue) coerces to its IR
+    counterpart — confirms first-accept-wins picks the right member across both enums."""
+    from xknxmono.models.files.v14.hawk_configuration_data_t_procedures_procedure_value import (
+        HawkConfigurationDataProceduresProcedureValue as V14SubType,
+    )
+    from xknxmono.models.intermediate.hawk_configuration_data_t_procedures_procedure_value import (
+        HawkConfigurationDataProceduresProcedureValue as IRSubType,
+    )
+
+    for src_member, ir_member in (
+        (V14SubType.AP1, IRSubType.AP1),
+        (V14SubType.CFG, IRSubType.CFG),
+    ):
+        out = convert(Context(version="v14"), _v14_proc(src_member), _ir_proc_cls())
+        assert type(out.procedure_sub_type) is IRSubType
+        assert out.procedure_sub_type is ir_member  # IR member, not source
+
+
+def test_union_enum_rejects_unknown_value():
+    """A value no IR enum in the union accepts raises ConversionError rather than leaking the
+    raw value through."""
+    with pytest.raises(ConversionError, match="procedure_sub_type"):
+        convert(
+            Context(version="v14"),
+            _v14_proc("no-such-value"),
+            _ir_proc_cls(),
+        )
