@@ -403,10 +403,9 @@ class ModuleState(ParameterState):
         return (self, self.ref_id + suffix)
 
     def _qualify(self, ref_id: str) -> str:
-        i, n = 0, min(len(self.module_instance_id), len(ref_id))
-        while i < n and self.module_instance_id[i] == ref_id[i]:
-            i += 1
-        return self.module_instance_id + ref_id[i - 1 :]
+        if self.ref_id is None or not ref_id.startswith(self.ref_id):
+            return ref_id
+        return self.module_instance_id + ref_id[len(self.ref_id) :]
 
     def active_param_refs(self) -> set[str]:
         result = {self.qualify(ref) for ref in self._active_param_refs}
