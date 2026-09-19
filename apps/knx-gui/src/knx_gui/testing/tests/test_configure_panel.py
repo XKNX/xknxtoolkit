@@ -13,7 +13,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from concurrent.futures import Future
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
+from unittest.mock import MagicMock
 
 from imgui_bundle import hello_imgui, imgui
 from imgui_bundle.immapp import testing as imgui_testing
@@ -548,6 +549,16 @@ def _fake_program_device() -> Device:
     return cast(Device, SimpleNamespace(individual_address="1.1.4", name="Test Device"))
 
 
+def _fake_program_device_no_ia() -> Device:
+    """A freshly-added device with no Individual Address yet - the exact shape
+    that triggers the ProgramSection bug: `assign_individual_address_for_device`
+    returns `None` for an empty IA *regardless of connection state*, colliding
+    with the `None`-means-disconnected sentinel `_start` reports as
+    `PROGRAM_LOG_NOT_CONNECTED`. The UI fix disables the Program button for
+    this case; the e2e tests below verify that guard."""
+    return cast(Device, SimpleNamespace(individual_address="", name="Fresh Device"))
+
+
 def _run_program_section(
     section: ProgramSection,
     device: Device,
@@ -758,6 +769,176 @@ def test_program_section_reports_not_connected_when_on_program_returns_none() ->
     immediately, with no `Future` to wait on."""
     device = _fake_program_device()
     section = ProgramSection(lambda _device, _request: None)
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.BTN_NEXT)
+        ctx.yield_()
+        ctx.item_click(S.BTN_PROGRAM)
+        ctx.yield_()
+
+    _run_program_section(section, device, test_function)
+
+    assert section._status == "error"  # pyright: ignore[reportPrivateUsage]
+    assert section._error_message == S.PROGRAM_LOG_NOT_CONNECTED  # pyright: ignore[reportPrivateUsage]
+
+
+def test_program_section_disables_program_button_when_ia_scope_active_and_device_has_no_ia_button_trigger() -> (
+    None
+):
+    """Regression test for the misleading "Not connected" error: when the
+    Individual Address scope is active (Full scope, the default) and the device
+    has no Individual Address, the Program button must be disabled so the
+    button-trigger path through `assign_individual_address_for_device` (which
+    returns `None` for an empty IA *regardless of connection state*, colliding
+    with the `None`-means-disconnected sentinel) can never be reached.
+
+    Clicking a disabled button is a no-op in Dear ImGui, so `on_program` must
+    not fire and the section must stay idle - mirroring the assertion style of
+    `test_restart_section_destructive_mode_requires_confirmation` (click Reset,
+    assert `calls == []`).
+    """
+    device = _fake_program_device_no_ia()
+    calls: list[ProgramRequest] = []
+
+    def on_program(_device: Device, request: ProgramRequest) -> Future[Any] | None:
+        calls.append(request)
+        return None
+
+    section = ProgramSection(on_program)
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.BTN_NEXT)
+        ctx.yield_()
+        ctx.item_click(S.BTN_PROGRAM)
+        ctx.yield_()
+
+    _run_program_section(section, device, test_function)
+
+    assert calls == [], "Program must not fire when IA scope is active and IA is empty"
+    assert section._status == "idle"  # pyright: ignore[reportPrivateUsage]
+
+
+def test_program_section_disables_program_button_when_ia_scope_active_and_device_has_no_ia_serial_trigger() -> (
+    None
+):
+    """The Program button must also be disabled for the Serial Number trigger
+    when the IA scope is active and the device has no IA. Writing an empty IA
+    over serial is semantically meaningless, and disabling keeps the UX
+    consistent with the button trigger (the serial path itself isn't subject to
+    the `None`-sentinel collision - see the connection service unit tests - but
+    there's no reason to let the user attempt a write that can only fail).
+
+    Pre-seeds the serial buffer with a valid 12-hex-char value so Step 1's Next
+    is enabled without driving the field char-by-char (the capping interaction
+    is covered separately by `test_program_section_serial_field_caps_at_twelve_hex_chars`).
+    """
+    device = _fake_program_device_no_ia()
+    calls: list[ProgramRequest] = []
+
+    def on_program(_device: Device, request: ProgramRequest) -> Future[Any] | None:
+        calls.append(request)
+        return None
+
+    section = ProgramSection(on_program)
+    serial = "00FA12345678"  # valid 6-byte serial, 12 hex chars
+
+    def gui_function() -> None:
+        nonlocal serial
+        imgui.begin("TestPanel")
+        serial = section.render(device, serial)
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.PROGRAM_TRIGGER_SERIAL)
+        ctx.yield_()
+        ctx.item_click(S.BTN_NEXT)
+        ctx.yield_()
+        ctx.item_click(S.BTN_PROGRAM)
+        ctx.yield_()
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+    assert calls == [], "Program must not fire when IA scope is active and IA is empty"
+    assert section._status == "idle"  # pyright: ignore[reportPrivateUsage]
+
+
+def test_program_section_keeps_program_button_enabled_when_ia_scope_inactive_and_device_has_no_ia() -> (
+    None
+):
+    """The IA-empty disable guard must be scoped to *only* the IA scope: with
+    Partial scope, IA unchecked and Group Addresses checked (so a scope is
+    active but IA isn't), the Program button must stay enabled even when the
+    device has no IA - because the button trigger's
+    `assign_individual_address_for_device` is never called for an IA-less
+    request (`_handle_program_device`'s "nothing to do for IA" branch).
+
+    Drives the scope state directly rather than operating the radio/checkboxes
+    (see `test_restart_section_destructive_mode_requires_confirmation` for the
+    same trade-off with `_reset_mode_index`): the checkbox interaction isn't
+    what this test is about, the gating logic is.
+    """
+    device = _fake_program_device_no_ia()
+    calls: list[ProgramRequest] = []
+    future: Future[None] = Future()
+
+    def on_program(_device: Device, request: ProgramRequest) -> Future[None] | None:
+        calls.append(request)
+        return future
+
+    section = ProgramSection(on_program)
+    section._scope_full = False  # pyright: ignore[reportPrivateUsage]
+    section._scope_ia = False  # pyright: ignore[reportPrivateUsage]
+    section._scope_ga = True  # pyright: ignore[reportPrivateUsage]
+    section._scope_params = False  # pyright: ignore[reportPrivateUsage]
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        ctx.yield_()
+        ctx.item_click(S.BTN_NEXT)
+        ctx.yield_()
+        ctx.item_click(S.BTN_PROGRAM)
+        ctx.yield_()
+
+    _run_program_section(section, device, test_function)
+
+    assert len(calls) == 1, "Program must fire when a non-IA scope is active"
+    assert calls[0].program_individual_address is False
+    assert calls[0].program_group_addresses is True
+    assert section._status == "running"  # pyright: ignore[reportPrivateUsage]
+
+
+def test_program_section_reports_not_connected_for_real_disconnected_service_with_ia_set() -> (
+    None
+):
+    """The legitimate "not connected" path the UI guard must NOT break: a
+    device that *has* an IA, programmed via the button trigger against a real
+    `ConnectionService` with no `xknx` wired (disconnected). The Program button
+    is enabled (IA is set), `assign_individual_address_for_device` consults
+    `self._xknx` (which is `None`), returns `None` for the *disconnected*
+    reason, and `_start` reports `PROGRAM_LOG_NOT_CONNECTED`.
+
+    Counterpart to the stub-based
+    `test_program_section_reports_not_connected_when_on_program_returns_none`
+    above - this one wires the real service so it exercises the actual
+    disconnected branch of `assign_individual_address_for_device`, confirming
+    the empty-IA guard added to `ProgramSection._render_mode` doesn't suppress
+    the real disconnected error.
+    """
+    from knx_gui.plugins.connection.service import ConnectionService
+
+    cs = ConnectionService()
+    cs.set_logger(MagicMock())
+    device = _fake_program_device()  # has IA = "1.1.4"
+
+    section = ProgramSection(
+        lambda _device, _request: cs.assign_individual_address_for_device(_device)
+    )
 
     def test_function(ctx: _TestContext) -> None:
         ctx.set_ref("//TestPanel")

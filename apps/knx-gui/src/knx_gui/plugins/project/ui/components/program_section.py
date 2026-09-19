@@ -165,14 +165,23 @@ class ProgramSection:
             or self._active_scope_ga()
             or self._active_scope_params()
         )
+        # IA scope writes device.individual_address; an empty one makes the
+        # button trigger's assign_individual_address_for_device return None
+        # before consulting self._xknx - colliding with the None-means-
+        # disconnected sentinel _start reports as PROGRAM_LOG_NOT_CONNECTED.
+        # Disable the button instead, mirroring RestartSection's Reset guard
+        # (enabled = bool(device.individual_address)).
+        ia_missing = self._active_scope_ia() and not device.individual_address
         if scope_empty:
             imgui.text_colored(_WARNING_COLOR, S.PROGRAM_SCOPE_NONE_SELECTED)
+        elif ia_missing:
+            imgui.text_colored(_WARNING_COLOR, S.PROGRAM_INDIVIDUAL_ADDRESS_MISSING)
 
         imgui.spacing()
         if imgui.button(S.BTN_BACK, _ACTION_BUTTON_SIZE):
             self._step = "find_device"
         imgui.same_line()
-        imgui.begin_disabled(scope_empty)
+        imgui.begin_disabled(scope_empty or ia_missing)
         if imgui.button(S.BTN_PROGRAM, _ACTION_BUTTON_SIZE):
             self._start(device, serial_hex)
         imgui.end_disabled()
