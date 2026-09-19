@@ -133,9 +133,10 @@ class NetworkPanel:
 
         imgui.same_line()
         imgui.set_next_item_width(150)
-        _, self._filter_text = imgui.input_text_with_hint(
+        _, filter_text = imgui.input_text_with_hint(
             "##filter", "Filter...", self._filter_text
         )
+        self._set_filter_text(filter_text)
 
         imgui.same_line()
         records = self._get_cemi_records() if self._show_cemi else self._get_telegrams()
@@ -166,18 +167,29 @@ class NetworkPanel:
             self._selected.clear()
             self._last_count = 0
 
-    def _render_table(self) -> None:
+    def _filtered_telegrams(self) -> list[TelegramRecord]:
         telegrams = self._get_telegrams()
-        if self._filter_text:
-            filter_lower = self._filter_text.lower()
-            telegrams = [
-                t
-                for t in telegrams
-                if filter_lower in t.source.lower()
-                or filter_lower in t.destination.lower()
-                or filter_lower in t.value.lower()
-                or filter_lower in t.service.lower()
-            ]
+        if not self._filter_text:
+            return telegrams
+        filter_lower = self._filter_text.lower()
+        return [
+            t
+            for t in telegrams
+            if filter_lower in t.source.lower()
+            or filter_lower in t.destination.lower()
+            or filter_lower in t.value.lower()
+            or filter_lower in t.service.lower()
+        ]
+
+    def _set_filter_text(self, text: str) -> None:
+        if text == self._filter_text:
+            return
+        self._filter_text = text
+        self._selected.clear()
+        self._last_selected = -1
+
+    def _render_table(self) -> None:
+        telegrams = self._filtered_telegrams()
 
         avail = imgui.get_content_region_avail()
         flags = (
@@ -411,7 +423,7 @@ class NetworkPanel:
         self._on_focus_source(telegram.source)
 
     def _copy_telegrams(self) -> None:
-        telegrams = self._get_telegrams()
+        telegrams = self._filtered_telegrams()
         if self._selected:
             indices = sorted(self._selected)
         else:
