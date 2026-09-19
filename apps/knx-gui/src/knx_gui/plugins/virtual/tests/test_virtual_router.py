@@ -18,11 +18,10 @@ from concurrent.futures import Future
 from typing import Any, cast
 
 import pytest
+from knx_gui.plugins.virtual.virtual_router import VirtualRouter, VirtualRouterState
 from xknx.cemi.cemi_frame import CEMIFrame
 from xknx.cemi.const import CEMIMessageCode
 from xknx.io.routing import Routing
-
-from knx_gui.plugins.virtual.virtual_router import VirtualRouter, VirtualRouterState
 
 
 class _FakeLogger:
