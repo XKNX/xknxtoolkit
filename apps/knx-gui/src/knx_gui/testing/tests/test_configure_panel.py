@@ -12,8 +12,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from concurrent.futures import Future
+from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 
 from imgui_bundle import hello_imgui, imgui
 from imgui_bundle.immapp import testing as imgui_testing
@@ -43,7 +44,13 @@ from knx_gui.plugins.project.ui.configure import ConfigurePanel
 # Aliased: pytest's default discovery tries to collect any name starting with "Test"
 # as a test class, which fails noisily for TestContext (it has an __init__).
 from knx_gui.testing.harness import TestContext as _TestContext
-from xknxmono.product.parser_v2.ui import UiNode, UiParameter, UiParameterBlock, UiTab
+from xknxmono.models.intermediate.parameter_block_layout_t import ParameterBlockLayout
+from xknxmono.product.parser_v2.ui import (
+    UiNode,
+    UiParameter,
+    UiParameterBlock,
+    UiTab,
+)
 from xknxmono.product.parser_v2.ui.parameter import TextWidget
 
 # Matches the Configure panel's real docked size (see apps/knx-gui/XKNX_Toolkit.ini) -
@@ -796,3 +803,167 @@ def test_program_section_no_horizontal_overflow() -> None:
     imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
 
     assert result["scroll_max_x"] == 0.0
+
+
+@dataclass
+class _GridSpyResult:
+    rows_per_table: list[int]
+    labels: list[str]
+    setup_columns: list[str]
+    headers_row: int
+
+
+def _render_grid_spy(
+    device: Device, block: UiParameterBlock, frames: int
+) -> _GridSpyResult:
+    """Drive `render_ui_tree` for one grid/table block under the Test Engine with
+    the grid block's own table calls spied on.
+
+    The spies are gated to the `##grid_*` table via a depth counter, so nested
+    tables emitted by image widgets inside cells (which call `table_next_row`/
+    `text_disabled` themselves) don't pollute the counts. Returns the per-rendered-
+    grid-table row count plus the `text_disabled`/`table_setup_column` calls and
+    `table_headers_row` count captured at the grid block's depth-1 table, so the
+    result is independent of how many frames the harness happens to run.
+
+    Restores the wrapped imgui functions in a `finally` so the spies don't leak
+    across tests (or later tests) in the same process.
+    """
+    result = _GridSpyResult(
+        rows_per_table=[], labels=[], setup_columns=[], headers_row=0
+    )
+    # `depth`: 0 = outside any grid table; >=1 = inside the grid table, incremented
+    # for nested tables begun while inside it (image widgets' own tables).
+    state: dict[str, int] = {"depth": 0, "rows": 0}
+    orig_tnr = imgui.table_next_row
+    orig_td = imgui.text_disabled
+    orig_bt = imgui.begin_table
+    orig_et = imgui.end_table
+    orig_tsc = imgui.table_setup_column
+    orig_thr = imgui.table_headers_row
+
+    def spy_bt(label: Any, *args: Any, **kwargs: Any) -> Any:
+        res = orig_bt(label, *args, **kwargs)
+        if res and isinstance(label, str):
+            if state["depth"] == 0 and label.startswith("##grid_"):
+                state["depth"] = 1
+                state["rows"] = 0
+            elif state["depth"] >= 1:
+                state["depth"] += 1
+        return res
+
+    def spy_tnr(*args: Any, **kwargs: Any) -> None:
+        if state["depth"] == 1:
+            state["rows"] += 1
+        orig_tnr(*args, **kwargs)
+
+    def spy_td(text: Any, *args: Any, **kwargs: Any) -> None:
+        if state["depth"] == 1 and isinstance(text, str):
+            result.labels.append(text)
+        orig_td(text, *args, **kwargs)
+
+    def spy_tsc(label: Any, *args: Any, **kwargs: Any) -> None:
+        if state["depth"] == 1 and isinstance(label, str):
+            result.setup_columns.append(label)
+        orig_tsc(label, *args, **kwargs)
+
+    def spy_thr(*args: Any, **kwargs: Any) -> None:
+        if state["depth"] == 1:
+            result.headers_row += 1
+        orig_thr(*args, **kwargs)
+
+    def spy_et(*args: Any, **kwargs: Any) -> None:
+        orig_et(*args, **kwargs)
+        if state["depth"] >= 2:
+            state["depth"] -= 1
+        elif state["depth"] == 1:
+            result.rows_per_table.append(state["rows"])
+            state["depth"] = 0
+
+    def gui_function() -> None:
+        imgui.begin("TestPanel")
+        render_ui_tree(device, [block], lambda d, p, v: None)
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//TestPanel")
+        for _ in range(frames):
+            ctx.yield_()
+
+    imgui.begin_table = spy_bt
+    imgui.end_table = spy_et
+    imgui.table_next_row = spy_tnr
+    imgui.text_disabled = spy_td
+    imgui.table_setup_column = spy_tsc
+    imgui.table_headers_row = spy_thr
+    try:
+        imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+    finally:
+        imgui.begin_table = orig_bt
+        imgui.end_table = orig_et
+        imgui.table_next_row = orig_tnr
+        imgui.text_disabled = orig_td
+        imgui.table_setup_column = orig_tsc
+        imgui.table_headers_row = orig_thr
+    return result
+
+
+def test_render_grid_block_renders_all_declared_row_labels() -> None:
+    """Regression: a GRID block with declared `row_labels` beyond the last
+    positioned cell/separator must iterate every declared row, not just up to
+    `max(cell/separator row)`.
+
+    Before the fix `max_row` ignored `len(block.row_labels)`, so trailing
+    declared rows were silently dropped. This synthetic block puts a non-empty
+    label on the unreferenced row 3 - the upper bound of the drop that the one
+    in-repo fixture (`PB-6`) only exercises with an empty label. Asserts
+    per-rendered-grid-table row count (one `table_next_row` per declared row)
+    rather than a frame total, so the result is independent of frame count.
+    """
+    device = cast(Device, SimpleNamespace(node_id=1))
+    block = UiParameterBlock(
+        id="pb-grid",
+        layout=ParameterBlockLayout.GRID,
+        row_labels=("Row 1", "Row 2", "Row 3 LABEL DROPPED"),
+        column_headers=(),
+        children=(
+            UiParameter(
+                ref_id="p1", label="P1", value="0", widget=TextWidget(), cell="1,1"
+            ),
+        ),
+    )
+    result = _render_grid_spy(device, block, frames=5)
+    assert result.rows_per_table, "grid table never rendered"
+    assert all(r == 3 for r in result.rows_per_table), result.rows_per_table
+    assert "Row 1" in result.labels
+    assert "Row 2" in result.labels
+    assert "Row 3 LABEL DROPPED" in result.labels
+
+
+def test_render_table_block_renders_all_declared_row_labels() -> None:
+    """The buggy loop bound is shared by GRID and TABLE layouts, so the same fix
+    applies to both. Also a no-regression guard for the column side
+    (`declared_cols` / `table_setup_column` / `table_headers_row`), which the
+    fix must not alter - the row-side `declared_rows` is computed symmetrically
+    to the existing `declared_cols`.
+    """
+    device = cast(Device, SimpleNamespace(node_id=1))
+    block = UiParameterBlock(
+        id="pb-table",
+        layout=ParameterBlockLayout.TABLE,
+        text="Grid T",
+        row_labels=("Row 1", "Row 2", "Row 3 LABEL DROPPED"),
+        column_headers=("Col A",),
+        children=(
+            UiParameter(
+                ref_id="p1", label="P1", value="0", widget=TextWidget(), cell="1,1"
+            ),
+        ),
+    )
+    result = _render_grid_spy(device, block, frames=5)
+    assert result.rows_per_table, "table never rendered"
+    assert all(r == 3 for r in result.rows_per_table), result.rows_per_table
+    assert "Row 3 LABEL DROPPED" in result.labels
+    assert result.headers_row >= 1, result.headers_row
+    assert "Col A" in result.setup_columns, result.setup_columns
+    assert "Grid T" in result.setup_columns, result.setup_columns
