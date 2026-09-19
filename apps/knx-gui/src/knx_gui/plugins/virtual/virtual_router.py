@@ -5,6 +5,7 @@ import contextlib
 import socket
 import threading
 from collections.abc import Callable
+from concurrent.futures import Future
 from enum import Enum
 from typing import Any
 
@@ -202,8 +203,24 @@ class VirtualRouter:
 
     def send_cemi(self, cemi: CEMIFrame) -> None:
         if self._loop is None or self._routing is None:
+            if self._logger:
+                self._logger.warning("send_cemi called while router not running")
             return
-        asyncio.run_coroutine_threadsafe(self._routing.send_cemi(cemi), self._loop)
+        fut = asyncio.run_coroutine_threadsafe(
+            self._routing.send_cemi(cemi), self._loop
+        )
+        fut.add_done_callback(self._on_send_done)
+
+    def _on_send_done(self, fut: Future[None]) -> None:
+        if fut.cancelled():
+            return
+        exc = fut.exception()
+        if exc is None:
+            if self._logger:
+                self._logger.debug("send_cemi ok")
+            return
+        if self._logger:
+            self._logger.error("send_cemi failed", error=str(exc))
 
     def stop(self) -> None:
         if self._state == VirtualRouterState.STOPPED:
