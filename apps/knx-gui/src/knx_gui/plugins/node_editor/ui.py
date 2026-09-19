@@ -102,6 +102,13 @@ class NodeEditorPanel:
         self._ga_nodes_positioned: set[int] = set()
         self._ga_position_offsets: dict[tuple[int, ...], int] = {}
 
+        # Maps each visual LinkId submitted to the editor back to the GA that
+        # owns the assignment(s) it represents, so link deletion can find the
+        # right GA. A single GA yields one visual link per sender x receiver
+        # pair, so the LinkId is not the GA id itself. Rebuilt every frame in
+        # _render_links (the only place links are submitted to the editor).
+        self._visual_link_id_to_ga_id: dict[int, int] = {}
+
         self._co_indices_cache: dict[int, dict[str, int]] = {}
         self._node_layout_cache: dict[int, NodeLayout] = {}
         self._node_layout_rows_id: dict[int, int] = {}
@@ -206,7 +213,7 @@ class NodeEditorPanel:
 
     def find_links_for_com_objects(
         self, device: Device, cos: list[ComObject]
-    ) -> list[tuple[int, int, int]]:
+    ) -> list[tuple[int, int, int, int]]:
         co_to_idx = {id(co): idx for idx, co in enumerate(device.com_objects)}
         pin_ids: set[int] = set()
         for co in cos:
@@ -216,9 +223,9 @@ class NodeEditorPanel:
                     key = (device.node_id, idx, direction)
                     if key in self._pin_ids:
                         pin_ids.add(self._pin_ids[key])
-        affected: list[tuple[int, int, int]] = []
+        affected: list[tuple[int, int, int, int]] = []
         for link in self._compute_visual_links():
-            _link_id, start, end = link
+            _link_id, start, end, _ga_id = link
             if start in pin_ids or end in pin_ids:
                 affected.append(link)
         return affected
@@ -576,7 +583,7 @@ class NodeEditorPanel:
         return self._pins_match_quality(pin_a, pin_b) != DPTMatch.NONE
 
     def _link_exists(self, pin_a: int, pin_b: int) -> bool:
-        for _, start, end in self._compute_visual_links():
+        for _, start, end, _ in self._compute_visual_links():
             if (start == pin_a and end == pin_b) or (start == pin_b and end == pin_a):
                 return True
         return False
@@ -663,7 +670,9 @@ class NodeEditorPanel:
             link_id = ed.LinkId()
             while ed.query_deleted_link(link_id):
                 if ed.accept_deleted_item():
-                    self._remove_link(link_id.id())
+                    ga_id = self._visual_link_id_to_ga_id.get(link_id.id())
+                    if ga_id is not None:
+                        self._remove_link(ga_id)
             ed.end_delete()
 
     def _calc_ga_node_position(self, ga: GroupAddress) -> imgui.ImVec2 | None:
@@ -749,8 +758,15 @@ class NodeEditorPanel:
         ed.pop_style_color()
         ed.end_node()
 
-    def _compute_visual_links(self) -> list[tuple[int, int, int]]:
-        links: list[tuple[int, int, int]] = []
+    def _compute_visual_links(self) -> list[tuple[int, int, int, int]]:
+        # Each tuple is (link_id, start_pin, end_pin, ga_id). The link_id is the
+        # unique visual LinkId submitted to imgui_node_editor; ga_id is the
+        # underlying group address used by deletion logic to remove the right
+        # GA. A single GA can yield several visual links (one per
+        # sender x receiver pair), so the LinkId must be unique per pair -
+        # reusing ga.id as the LinkId makes ed.link() collapse every pair onto
+        # one editor link record (bug: only the last pair would render).
+        links: list[tuple[int, int, int, int]] = []
         show_ga_nodes = self._show_ga_nodes
 
         for ga in self._get_group_addresses():
@@ -777,19 +793,24 @@ class NodeEditorPanel:
                 ga_in_pin, ga_out_pin = self._ga_pins[ga.id]
                 link_id_base = ga.id * 10000
                 for idx, send_pin in enumerate(sending_pins):
-                    links.append((link_id_base + idx, send_pin, ga_in_pin))
+                    links.append((link_id_base + idx, send_pin, ga_in_pin, ga.id))
                 for idx, recv_pin in enumerate(receiving_pins):
-                    links.append((link_id_base + 5000 + idx, ga_out_pin, recv_pin))
+                    links.append(
+                        (link_id_base + 5000 + idx, ga_out_pin, recv_pin, ga.id)
+                    )
             else:
                 if len(assignments) < 2:
                     continue
-                for send_pin in sending_pins:
-                    for recv_pin in receiving_pins:
-                        links.append((ga.id, send_pin, recv_pin))
+                for idx, send_pin in enumerate(sending_pins):
+                    for jdx, recv_pin in enumerate(receiving_pins):
+                        link_id = ga.id * 1_000_000 + idx * 1000 + jdx
+                        links.append((link_id, send_pin, recv_pin, ga.id))
         return links
 
     def _render_links(self) -> None:
-        for ga_id, start_pin, end_pin in self._compute_visual_links():
+        self._visual_link_id_to_ga_id.clear()
+        for link_id, start_pin, end_pin, ga_id in self._compute_visual_links():
+            self._visual_link_id_to_ga_id[link_id] = ga_id
             match = self._pins_match_quality(start_pin, end_pin)
             color = LINK_LOOSE_COLOR if match == DPTMatch.LOOSE else LINK_COLOR
-            ed.link(ed.LinkId(ga_id), ed.PinId(start_pin), ed.PinId(end_pin), color)
+            ed.link(ed.LinkId(link_id), ed.PinId(start_pin), ed.PinId(end_pin), color)
