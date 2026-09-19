@@ -45,8 +45,6 @@ class NetworkService:
     def start(self) -> None:
         if self._state == CaptureState.CAPTURING:
             return
-        self._telegrams.clear()
-        self._cemi_records.clear()
         self._state = CaptureState.CAPTURING
         self._emit("capture_state_changed", self._state)
 
