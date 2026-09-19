@@ -92,6 +92,38 @@ def test_module_def_with_empty_id_is_not_registered() -> None:
     md = ModuleDef(id="", name="", static=ModuleDefStatic())
     idx = ApplicationIndexer(_app(module_defs=[md]))
     assert idx.module_defs == {}
+    assert idx.allocators == {}
+    assert idx.arg_alloc == {}
+
+
+def test_module_def_with_empty_id_and_allocators_or_arguments_is_not_registered() -> (
+    None
+):
+    md = ModuleDef(
+        id="",
+        name="",
+        static=ModuleDefStatic(
+            allocators=ModuleDefStaticAllocators(
+                allocator=[
+                    IrAllocator(id="L-1", name="Alloc", start=100, max_inclusive=199)
+                ]
+            )
+        ),
+        arguments=ModuleDefArguments(
+            argument=[
+                ModuleDefArgumentsArgument(
+                    id="A-1",
+                    name="Arg",
+                    allocates=3,
+                    alignment=ModuleDefArgumentsArgumentAlignment.VALUE_4,
+                )
+            ]
+        ),
+    )
+    idx = ApplicationIndexer(_app(module_defs=[md]))
+    assert idx.module_defs == {}
+    assert idx.allocators == {}
+    assert idx.arg_alloc == {}
 
 
 def test_module_def_allocators_and_arguments_are_indexed() -> None:
