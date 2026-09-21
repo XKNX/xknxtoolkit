@@ -1,14 +1,23 @@
 """Unit tests for ComObjectParameterBlockNode's text resolution - in particular the
-ParamRefId -> Parameter.text fallback, added after a real ABB product was found to
-give every ParameterBlock a ParamRefId pointing at a label-only "Page" Parameter
-instead of setting Text/Name directly, leaving the UI to show the block's internal
-Name (e.g. "Alg:_Seite Allgemein") instead of that Parameter's Text ("General").
+ParamRefId -> ParameterRef -> Parameter fallback, added after a real ABB product was
+found to give every ParameterBlock a ParamRefId pointing at a label-only "Page"
+Parameter instead of setting Text/Name directly, leaving the UI to show the block's
+internal Name (e.g. "Alg:_Seite Allgemein") instead of that Parameter's Text
+("General").
 
 That resolution happens once in DynamicTreeBuilder._build() (like every other
 ParameterRef/ComObjectRef hop there), not in eval() - so this file covers two
 different things: `TestBuildTimeResolution` exercises the build-time hop itself
 (including dangling-ref edge cases), and the rest exercise eval()'s priority
-between an already-resolved `param_ref` and the block's own Text/Name.
+between an already-resolved `param_ref`/`param` pair and the block's own
+Text/Name.
+
+The ParamRefId -> ParameterRef -> Parameter hop mirrors ParameterRefRefNode's
+resolver for the same hop (see parameter_ref_ref.py): ParameterRef.text wins and
+Parameter.text is the fallback. The block header previously read only
+Parameter.text because the intermediate ParameterRef was discarded at build
+time, so a block header and a leaf widget pointing at the same ParameterRef
+could render two different labels on the same panel.
 """
 
 from __future__ import annotations
@@ -17,6 +26,7 @@ from xknxmono.models.intermediate import (
     ApplicationProgram,
     ApplicationProgramDynamic,
     ChannelIndependentBlock,
+    ParameterRefRef,
 )
 from xknxmono.models.intermediate import Module as DynModule
 from xknxmono.models.intermediate.application_program_channel_t import (
@@ -27,6 +37,9 @@ from xknxmono.models.intermediate.application_program_static_t import (
 )
 from xknxmono.models.intermediate.application_program_static_t_parameter_refs import (
     ApplicationProgramStaticParameterRefs,
+)
+from xknxmono.models.intermediate.application_program_static_t_parameter_types import (
+    ApplicationProgramStaticParameterTypes,
 )
 from xknxmono.models.intermediate.application_program_static_t_parameters import (
     ApplicationProgramStaticParameters,
@@ -54,6 +67,13 @@ from xknxmono.models.intermediate.module_def_static_t_parameters_parameter impor
 )
 from xknxmono.models.intermediate.module_def_t import ModuleDef
 from xknxmono.models.intermediate.parameter_ref_t import ParameterRef
+from xknxmono.models.intermediate.parameter_type_t import ParameterType
+from xknxmono.models.intermediate.parameter_type_t_type_number import (
+    ParameterTypeTypeNumber,
+)
+from xknxmono.models.intermediate.parameter_type_t_type_number_type import (
+    ParameterTypeTypeNumberType,
+)
 from xknxmono.product.parser_v2.application_indexer import ApplicationIndexer
 from xknxmono.product.parser_v2.dynamic import DynamicTreeBuilder
 from xknxmono.product.parser_v2.nodes import (
@@ -64,11 +84,15 @@ from xknxmono.product.parser_v2.nodes import (
 from xknxmono.product.parser_v2.nodes.com_object_parameter_block import (
     ComObjectParameterBlockNode,
 )
-from xknxmono.product.parser_v2.ui import UiParameterBlock
+from xknxmono.product.parser_v2.ui import UiParameter, UiParameterBlock, UiTab
 
 _BASE = "M-0002_A-A075-20-4647"
 _REF_PAGE = f"{_BASE}_P-1_R-1"
 _PARAM_PAGE = f"{_BASE}_P-1"
+
+
+def _indexer(app: ApplicationProgram) -> ApplicationIndexer:
+    return ApplicationIndexer(app)
 
 
 def _eval_text(
@@ -86,27 +110,73 @@ def _page_param(text: str) -> ApplicationProgramStaticParametersParameter:
     )
 
 
-def test_param_ref_text_used_when_block_has_no_text_or_name(
+def _page_ref(text: str | None = None) -> ParameterRef:
+    return ParameterRef(id=_REF_PAGE, ref_id=_PARAM_PAGE, text=text)
+
+
+def _uint_pt(pt_id: str = "PT") -> ParameterType:
+    return ParameterType(
+        id=pt_id,
+        name="T",
+        choice=ParameterTypeTypeNumber(
+            size_in_bit=8,
+            type_value=ParameterTypeTypeNumberType.UNSIGNED_INT,
+            min_inclusive=0,
+            max_inclusive=255,
+        ),
+    )
+
+
+def test_param_text_used_when_block_has_no_text_or_name(
     idx: ApplicationIndexer,
 ) -> None:
     block = ComObjectParameterBlock(id=f"{_BASE}_PB-1")
     node = ComObjectParameterBlockNode(
-        block, children=[], param_ref=_page_param("General")
+        block, children=[], param_ref=_page_ref(None), param=_page_param("General")
     )
     assert _eval_text(node, idx) == "General"
+
+
+def test_param_ref_text_overrides_param_text(idx: ApplicationIndexer) -> None:
+    """For the ParamRefId -> ParameterRef -> Parameter hop, ParameterRef.text wins
+    over Parameter.text - matching ParameterRefRefNode.eval()'s
+    `self._param_ref.text or self._param.text` precedence for the same hop."""
+    block = ComObjectParameterBlock(id=f"{_BASE}_PB-1")
+    node = ComObjectParameterBlockNode(
+        block,
+        children=[],
+        param_ref=_page_ref("RefOverride"),
+        param=_page_param("ParamText"),
+    )
+    assert _eval_text(node, idx) == "RefOverride"
 
 
 def test_own_text_takes_priority_over_param_ref_text(idx: ApplicationIndexer) -> None:
     block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", text="Explicit")
     node = ComObjectParameterBlockNode(
-        block, children=[], param_ref=_page_param("General")
+        block,
+        children=[],
+        param_ref=_page_ref("RefOverride"),
+        param=_page_param("ParamText"),
     )
     assert _eval_text(node, idx) == "Explicit"
 
 
 def test_name_used_when_no_text_and_no_param_ref(idx: ApplicationIndexer) -> None:
     block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", name="Alg:_Seite Allgemein")
-    node = ComObjectParameterBlockNode(block, children=[], param_ref=None)
+    node = ComObjectParameterBlockNode(block, children=[], param_ref=None, param=None)
+    assert _eval_text(node, idx) == "Alg:_Seite Allgemein"
+
+
+def test_name_used_when_param_ref_text_and_param_text_both_unset(
+    idx: ApplicationIndexer,
+) -> None:
+    """A resolved hop whose ParameterRef.text and Parameter.text are both empty
+    falls through to the block Name, instead of rendering an empty header."""
+    block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", name="Alg:_Seite Allgemein")
+    node = ComObjectParameterBlockNode(
+        block, children=[], param_ref=_page_ref(None), param=_page_param("")
+    )
     assert _eval_text(node, idx) == "Alg:_Seite Allgemein"
 
 
@@ -127,6 +197,7 @@ def _app_with_block(
     block: ComObjectParameterBlock,
     parameter_refs: list[ParameterRef] | None = None,
     parameters: list[ApplicationProgramStaticParametersParameter] | None = None,
+    parameter_types: list[ParameterType] | None = None,
 ) -> ApplicationProgram:
     return ApplicationProgram(
         id="APP",
@@ -149,6 +220,13 @@ def _app_with_block(
                 if parameter_refs is not None
                 else None
             ),
+            parameter_types=(
+                ApplicationProgramStaticParameterTypes(
+                    parameter_type=list(parameter_types)
+                )
+                if parameter_types is not None
+                else None
+            ),
         ),
         dynamic=ApplicationProgramDynamic(
             choice=[ChannelIndependentBlock(choice=[block])]
@@ -157,8 +235,11 @@ def _app_with_block(
 
 
 class TestBuildTimeResolution:
-    """DynamicTreeBuilder._build()'s ParamRefId -> Parameter hop, mirroring the
-    ParameterRefRef/ComObjectRefRef resolution right next to it in the same method."""
+    """DynamicTreeBuilder._build()'s ParamRefId -> ParameterRef -> Parameter hop,
+    mirroring the ParameterRefRef/ComObjectRefRef resolution right next to it in the
+    same method. The ParameterRef and the resolved Parameter are both retained on
+    the node, so eval() can apply ParameterRefRefNode's `param_ref.text or param.text`
+    precedence for the same hop (see parameter_ref_ref.py)."""
 
     def test_resolves_param_ref_id_to_target_parameter(self) -> None:
         block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", param_ref_id=_REF_PAGE)
@@ -169,28 +250,94 @@ class TestBuildTimeResolution:
         )
         node = _built_block_node(app)
         param_ref = node._param_ref  # pyright: ignore[reportPrivateUsage]
+        param = node._param  # pyright: ignore[reportPrivateUsage]
         assert param_ref is not None
-        assert param_ref.text == "General"
+        assert isinstance(param_ref, ParameterRef)
+        assert param is not None
+        assert param.text == "General"
+        # ParameterRef has no Text override here, so eval() falls back to Parameter.text.
+        assert _eval_text(node, _indexer(app)) == "General"
+
+    def test_param_ref_text_override_wins_at_eval(self) -> None:
+        """The build-time hop retains the ParameterRef whose .text ParameterRefRefNode
+        treats as authoritative for this hop - so a ParameterRef with a distinct Text
+        override drives the block header, instead of silently falling through to
+        Parameter.text. Regression coverage for the half-completed port that stored
+        only the Parameter and dropped the precedence-winning ParameterRef."""
+        block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", param_ref_id=_REF_PAGE)
+        app = _app_with_block(
+            block,
+            parameter_refs=[
+                ParameterRef(id=_REF_PAGE, ref_id=_PARAM_PAGE, text="RefOverride")
+            ],
+            parameters=[_page_param("ParamText")],
+        )
+        node = _built_block_node(app)
+        param_ref = node._param_ref  # pyright: ignore[reportPrivateUsage]
+        assert param_ref is not None
+        assert param_ref.text == "RefOverride"
+        assert _eval_text(node, _indexer(app)) == "RefOverride"
 
     def test_no_param_ref_id_resolves_to_none(self) -> None:
         block = ComObjectParameterBlock(id=f"{_BASE}_PB-1")
         node = _built_block_node(_app_with_block(block))
         assert node._param_ref is None  # pyright: ignore[reportPrivateUsage]
+        assert node._param is None  # pyright: ignore[reportPrivateUsage]
 
     def test_dangling_param_ref_id_resolves_to_none(self) -> None:
         """No ParameterRef at all matches param_ref_id - e.g. malformed manufacturer XML."""
         block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", param_ref_id="MISSING")
         node = _built_block_node(_app_with_block(block))
         assert node._param_ref is None  # pyright: ignore[reportPrivateUsage]
+        assert node._param is None  # pyright: ignore[reportPrivateUsage]
 
-    def test_dangling_target_parameter_resolves_to_none(self) -> None:
-        """The ParameterRef exists but its target Parameter id isn't indexed."""
+    def test_dangling_target_parameter_keeps_param_ref_and_drops_param(self) -> None:
+        """The ParameterRef exists but its target Parameter id isn't indexed - the
+        ParameterRef is still retained (its own .text override can drive the header
+        on its own, just like ParameterRefRefNode's `param_ref.text or ""`), while the
+        Parameter slot is None so eval() degrades gracefully past an empty hop."""
         block = ComObjectParameterBlock(id=f"{_BASE}_PB-1", param_ref_id=_REF_PAGE)
         app = _app_with_block(
             block, parameter_refs=[ParameterRef(id=_REF_PAGE, ref_id=_PARAM_PAGE)]
         )
         node = _built_block_node(app)
-        assert node._param_ref is None  # pyright: ignore[reportPrivateUsage]
+        param_ref = node._param_ref  # pyright: ignore[reportPrivateUsage]
+        assert param_ref is not None
+        assert isinstance(param_ref, ParameterRef)
+        assert node._param is None  # pyright: ignore[reportPrivateUsage]
+
+    def test_block_header_and_leaf_widget_agree_on_same_param_ref_label(self) -> None:
+        """End-to-end regression: a ComObjectParameterBlock (header) and a
+        ParameterRefRef inside it (leaf widget) both pointing at the same
+        ParameterRef carrying its own Text override used to render two different
+        labels on one panel (header read Parameter.text, leaf read
+        ParameterRef.text). After the fix the header and the leaf agree."""
+        block = ComObjectParameterBlock(
+            id=f"{_BASE}_PB-1",
+            param_ref_id=_REF_PAGE,
+            choice=[ParameterRefRef(ref_id=_REF_PAGE)],
+        )
+        app = _app_with_block(
+            block,
+            parameter_refs=[
+                ParameterRef(id=_REF_PAGE, ref_id=_PARAM_PAGE, text="RefOverride")
+            ],
+            parameters=[_page_param("ParamText")],
+            parameter_types=[_uint_pt()],
+        )
+        ctx = EvalContext(GlobalState(), idx=_indexer(app))
+        nodes = DynamicTreeBuilder(app).tree.eval(ctx)
+        # The ChannelIndependentBlock wrapping the block evals to a UiTab whose
+        # first child is the block - see DynamicTreeBuilder._build()
+        # (ChannelIndependentBlock -> ChannelNode -> UiTab).
+        tab = nodes[0]
+        assert isinstance(tab, UiTab)
+        block_ui = tab.children[0]
+        assert isinstance(block_ui, UiParameterBlock)
+        assert block_ui.text == "RefOverride"
+        leaf = block_ui.children[0]
+        assert isinstance(leaf, UiParameter)
+        assert leaf.label == "RefOverride"
 
     def test_resolves_for_a_block_nested_inside_a_module(self) -> None:
         """ComObjectParameterBlock is a valid ModuleDefDynamic child (see
@@ -251,5 +398,8 @@ class TestBuildTimeResolution:
         node = module_subtree._children[0]  # pyright: ignore[reportAttributeAccessIssue]
         assert isinstance(node, ComObjectParameterBlockNode)
         param_ref = node._param_ref  # pyright: ignore[reportPrivateUsage]
+        param = node._param  # pyright: ignore[reportPrivateUsage]
         assert param_ref is not None
-        assert param_ref.text == "General"
+        assert isinstance(param_ref, ParameterRef)
+        assert param is not None
+        assert param.text == "General"

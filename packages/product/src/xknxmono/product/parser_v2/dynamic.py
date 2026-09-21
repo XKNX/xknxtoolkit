@@ -137,12 +137,20 @@ class DynamicTreeBuilder:
             )
         elif isinstance(elem, ComObjectParameterBlock):
             param_ref = (
-                self.idx.resolve_param_for_param_ref(elem.param_ref_id)
+                self.idx.parameter_refs.get(elem.param_ref_id)
                 if elem.param_ref_id is not None
                 else None
             )
+            param = (
+                self.idx.parameters.get(param_ref.ref_id)
+                if param_ref is not None
+                else None
+            )
             return ComObjectParameterBlockNode(
-                elem, [self._build(child) for child in elem.choice], param_ref=param_ref
+                elem,
+                [self._build(child) for child in elem.choice],
+                param_ref=param_ref,
+                param=param,
             )
         elif isinstance(
             elem, (DependentChannelChoose, ChannelChoose, ComObjectParameterChoose)
