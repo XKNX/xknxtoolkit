@@ -168,6 +168,39 @@ def _convert_choice(
     return [one(v) for v in value] if is_list else one(value)
 
 
+def _union_enum_members(hint: Any) -> list[type]:
+    """The Enum members of a Union hint (Union[EnumA, EnumB]), or [] if not such a union."""
+    if get_origin(hint) in (typing.Union, types.UnionType):
+        return [
+            a for a in get_args(hint) if isinstance(a, type) and issubclass(a, Enum)
+        ]
+    return []
+
+
+def _convert_union_enum(
+    value: Any, enum_targets: list[type], is_list: bool, where: str
+) -> Any:
+    """Coerce a source value into the first IR enum (annotation order) whose membership accepts
+    it, mirroring the single-enum branch: the source enum's ``.value`` (or the raw value) is
+    offered to each IR enum in turn; the first that reconstructs wins. A value that is already an
+    instance of one of the IR enums passes through untouched (keeps the converter idempotent).
+    Raises ``ConversionError`` if no IR enum accepts the value."""
+    targets = tuple(enum_targets)
+
+    def coerce(v: Any) -> Any:
+        if isinstance(v, Enum) and type(v) in targets:
+            return v
+        raw = v.value if isinstance(v, Enum) else v
+        for t in enum_targets:
+            try:
+                return t(raw)
+            except ValueError:
+                continue
+        raise ConversionError(f"{where}: no IR enum accepts {v!r}")
+
+    return [coerce(v) for v in value] if is_list else coerce(value)
+
+
 def convert(ctx: Context, src: Any, target_cls: type) -> Any:
     """Build a `target_cls` instance from `src`: overrides first, then copy same-named fields."""
     hints = _hints(target_cls)
@@ -195,6 +228,11 @@ def convert(ctx: Context, src: Any, target_cls: type) -> Any:
         members = _union_dataclass_members(base)
         if members:  # xs:choice — convert each member to its matching IR union type
             kwargs[f.name] = _convert_choice(ctx, src_val, members, is_list)
+        elif enum_targets := _union_enum_members(base):
+            # Union[EnumA, EnumB] — coerce the source enum into the first matching IR enum
+            kwargs[f.name] = _convert_union_enum(
+                src_val, enum_targets, is_list, f"{key}.{f.name}"
+            )
         elif isinstance(base, type) and is_dataclass(base):
             kwargs[f.name] = (
                 [convert(ctx, v, base) for v in src_val]
