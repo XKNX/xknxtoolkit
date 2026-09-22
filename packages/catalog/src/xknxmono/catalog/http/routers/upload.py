@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
 from xknxmono.catalog.core.service import CatalogService
 from xknxmono.catalog.http.deps import get_service
+from xknxmono.catalog.http.routers import catalog_sections
 from xknxmono.product.errors import ArchiveError
 
 router = APIRouter(prefix="/upload", tags=["Upload"])
@@ -28,4 +29,5 @@ async def upload_knxprod(file: UploadFile, service: ServiceDep):
         raise HTTPException(422, str(e)) from e
     except Exception as e:
         raise HTTPException(500, str(e)) from e
+    catalog_sections.invalidate_cache()
     return {"filename": saved.name}

@@ -28,6 +28,18 @@ def _node_to_out(node: CatalogSectionNode) -> CatalogSectionResponse:
     )
 
 
+def invalidate_cache() -> None:
+    """Drop every cached catalog-section tree.
+
+    The upload router calls this after a successful ``.knxprod`` ingestion: ingestion
+    upserts :class:`~xknxmono.catalog.models.CatalogSection` rows the cached trees were
+    built from, so any previously-cached manufacturer would otherwise be served stale
+    for the lifetime of the worker. Clearing the whole cache is safe (one DB read per
+    manufacturer rebuilds it lazily) and covers uploads that span multiple manufacturers.
+    """
+    _cache.clear()
+
+
 @router.get(
     "/{manufacturer_id}/catalog-sections", response_model=list[CatalogSectionResponse]
 )
