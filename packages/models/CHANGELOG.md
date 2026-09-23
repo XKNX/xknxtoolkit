@@ -5,6 +5,18 @@ All notable changes to `xknx-models` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.1.0 (2026-09-23)
+
+
+### Bug Fixes
+
+* **models:** coerce Union[Enum, Enum] fields to IR enums in file-to-IR conversion ([#138](https://github.com/XKNX/xknxtoolkit/issues/138)) ([d4851a5](https://github.com/XKNX/xknxtoolkit/commit/d4851a5a3ed98501863ea0c3df29d6e771f6dbf4))
+
+
+### Documentation
+
+* mark all changelogs unreleased, add changelog-format CI check ([#3](https://github.com/XKNX/xknxtoolkit/issues/3)) ([08ae6ef](https://github.com/XKNX/xknxtoolkit/commit/08ae6ef90e972bf99dd73d685f091b2326064d51))
+
 ## [Unreleased]
 
 ### Added
