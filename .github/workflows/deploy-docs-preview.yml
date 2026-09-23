@@ -54,7 +54,7 @@ jobs:
         run: npm run generate:docs
 
       - name: Install Vercel CLI
-        run: npm install -g vercel@59.23.2
+        run: npm install -g vercel@59.25.4
 
       - name: Pull Vercel project settings
         working-directory: website
