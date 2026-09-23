@@ -111,7 +111,6 @@ def test_send_cemi_failure_is_observable_not_swallowed(
 
     router.send_cemi(_make_cemi())
 
-    # The decisive regression assertion: the bug was that call_count stayed 0.
     assert _wait_until(lambda: any(call[0] == "error" for call in logger.calls))
     assert any(call[1] == "send_cemi failed" for call in logger.calls)
     # The fix mirrors connection/service.py: it only logs, it does not
