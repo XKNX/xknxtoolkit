@@ -170,7 +170,7 @@ class TunnellingGateway:
         self._state = GatewayState.STOPPED
         self._error: str | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
-        # False when running on a shared loop we don't own (start_on_loop) -
+        # False when running on a shared loop we don't own -
         # stop() must then leave that loop running for its actual owner.
         self._owns_loop = True
         self._thread: threading.Thread | None = None
@@ -225,23 +225,6 @@ class TunnellingGateway:
         loop_ready.wait()
         assert self._loop is not None
         asyncio.run_coroutine_threadsafe(self._start_async(), self._loop)
-
-    async def start_on_loop(self, loop: asyncio.AbstractEventLoop) -> None:
-        """
-        Run on an already-running event loop instead of spinning up our
-        own dedicated thread - for embedding in something that already
-        owns one (see VirtualRouter). `stop()`/`stop_on_loop()` then
-        won't stop that shared loop out from under its actual owner.
-        """
-        self._owns_loop = False
-        self._loop = loop
-        self._state = GatewayState.STARTING
-        self._error = None
-        await self._start_async()
-
-    async def stop_on_loop(self) -> None:
-        """Counterpart to `start_on_loop` - stop in place on the caller's own loop."""
-        await self._stop_async()
 
     async def _start_async(self) -> None:
         try:
