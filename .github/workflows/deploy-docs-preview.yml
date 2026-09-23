@@ -1,0 +1,99 @@
+name: Deploy docs preview
+
+on:
+  pull_request:
+    paths:
+      - "website/**"
+      - "packages/*/docs/**"
+      - "packages/*/src/**"
+      - "packages/*/CHANGELOG.md"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/deploy-docs-preview.yml"
+
+concurrency:
+  group: deploy-docs-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  deploy:
+    name: Build and deploy preview to Vercel
+    runs-on: ubuntu-latest
+    # Secrets aren't available to workflow runs triggered by fork PRs - skip
+    # rather than fail loudly.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+
+      # Plain `uv sync` (not --all-packages): fumapy-generate only introspects
+      # packages/*, so there's no need to install apps/knx-gui (imgui-bundle etc).
+      - run: uv sync
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install website dependencies
+        working-directory: website
+        # postinstall pip-installs fumadocs-python into ../.venv, so uv sync
+        # above must run first.
+        run: npm ci
+
+      - name: Generate docs from Python API
+        working-directory: website
+        run: npm run generate:docs
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@59.23.2
+
+      - name: Pull Vercel project settings
+        working-directory: website
+        run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build for Vercel
+        working-directory: website
+        run: vercel build --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy prebuilt output
+        id: deploy
+        working-directory: website
+        run: |
+          url=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Comment preview URL on PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          marker="<!-- docs-preview-comment -->"
+          body="$marker
+          📖 Docs preview: $PREVIEW_URL"
+          comment_id=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n1)
+          if [ -n "$comment_id" ]; then
+            gh api "repos/$REPO/issues/comments/$comment_id" -X PATCH -f body="$body"
+          else
+            gh pr comment "$PR_NUMBER" --body "$body"
+          fi
