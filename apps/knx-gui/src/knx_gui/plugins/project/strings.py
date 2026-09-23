@@ -117,6 +117,10 @@ class ProjectStrings(BaseStrings):
         return _("Select at least one part to program")
 
     @property
+    def PROGRAM_INDIVIDUAL_ADDRESS_MISSING(self) -> str:
+        return _("Enter an Individual Address before programming")
+
+    @property
     def PROGRAM_NOT_YET_SUPPORTED(self) -> str:
         return _(
             "Group Addresses and Parameters download aren't implemented yet - "
