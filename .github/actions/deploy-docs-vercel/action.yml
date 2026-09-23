@@ -53,6 +53,14 @@ runs:
       working-directory: website
       run: npm run generate:docs
 
+    # The catalog's OpenAPI pages (src/lib/openapi.ts) read
+    # packages/catalog/openapi.json - the build fails at page-data collection
+    # without it.
+    - name: Generate OpenAPI spec
+      shell: bash
+      working-directory: website
+      run: npm run generate:openapi
+
     - name: Install Vercel CLI
       shell: bash
       run: npm install -g vercel@59.25.4
