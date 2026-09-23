@@ -87,7 +87,7 @@ def _render_int_param(
         try:
             clamped = int(new_text)
         except ValueError:
-            clamped = min_value if min_value is not None else 0
+            return
         if min_value is not None:
             clamped = max(min_value, clamped)
         if max_value is not None:
