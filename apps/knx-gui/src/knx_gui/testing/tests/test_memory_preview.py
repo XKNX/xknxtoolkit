@@ -94,13 +94,10 @@ def test_open_preview_for_different_device_does_not_leak_reference() -> None:
         win.open(a)
         ctx.yield_()
         ctx.yield_()
-        # Simulate 'Diff...' -> Load reference file for A's shared segment.
         win._ref_data[SEG] = b"\x01\x02\x03\x04"  # pyright: ignore[reportPrivateUsage]
         ctx.yield_()
-        # Close the window (only flips `_show`; the instance and caches persist).
         win._show = False  # pyright: ignore[reportPrivateUsage]
         ctx.yield_()
-        # Re-open for a different device of the same product type (same SEG).
         win.open(b)
         ctx.yield_()
         ctx.yield_()
