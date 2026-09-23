@@ -189,10 +189,8 @@ def test_start_proxy_tears_down_prior_failed_gateway_before_replacing_it(
     plugin._start_proxy(port)  # pyright: ignore[reportPrivateUsage]
     _wait_state(plugin._proxy, {GatewayState.RUNNING, GatewayState.ERROR})  # pyright: ignore[reportPrivateUsage]
 
-    # the prior failed gateway was torn down, not orphaned
     assert failed.state == GatewayState.STOPPED
     assert old_thread is not None and not old_thread.is_alive()
-    # a fresh gateway replaced it and is now running on the now-free port
     assert plugin._proxy is not failed  # pyright: ignore[reportPrivateUsage]
     assert plugin._proxy.state == GatewayState.RUNNING  # pyright: ignore[reportPrivateUsage]
 
@@ -295,7 +293,6 @@ def test_start_proxy_same_port_retry_recovers_after_case_b_failure(
     _wait_state(failed, {GatewayState.ERROR, GatewayState.RUNNING})
     assert failed.state == GatewayState.ERROR
     assert failed._server is not None  # pyright: ignore[reportPrivateUsage]
-    # the orphaned listener keeps holding the original port
     plugin._proxy = failed  # pyright: ignore[reportPrivateUsage]
 
     # Second phase: skip discovery so the replacement reaches RUNNING on the

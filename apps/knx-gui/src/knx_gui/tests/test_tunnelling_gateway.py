@@ -164,7 +164,6 @@ def test_stop_and_wait_tears_down_gateway_that_failed_to_start_case_a() -> None:
         _wait_state(gw, {GatewayState.ERROR, GatewayState.RUNNING})
         assert gw.state == GatewayState.ERROR
         assert gw._server is None  # pyright: ignore[reportPrivateUsage]
-        # the failure left the loop + daemon thread alive
         assert gw._loop is not None and gw._loop.is_running()  # pyright: ignore[reportPrivateUsage]
         thread = gw._thread  # pyright: ignore[reportPrivateUsage]
         assert thread is not None and thread.is_alive()
@@ -199,9 +198,7 @@ def test_stop_and_wait_after_case_b_failure_releases_original_port(
     gw.start()
     _wait_state(gw, {GatewayState.ERROR, GatewayState.RUNNING})
     assert gw.state == GatewayState.ERROR
-    # the failure happened *after* create_server succeeded
     assert gw._server is not None  # pyright: ignore[reportPrivateUsage]
-    # so the orphaned listener still holds the original port
     assert not _can_bind_tcp(port)
 
     result = gw.stop_and_wait()
@@ -209,7 +206,6 @@ def test_stop_and_wait_after_case_b_failure_releases_original_port(
     assert result is True
     assert gw.state == GatewayState.STOPPED
     assert gw._server is None  # pyright: ignore[reportPrivateUsage]
-    # the port is released - a same-port retry can now rebind and reach RUNNING
     assert _can_bind_tcp(port)
     retry = TunnellingGateway(port=port, enable_discovery=False)
     retry.start()
