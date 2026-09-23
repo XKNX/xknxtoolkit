@@ -120,9 +120,20 @@ def _render_children(
             # Some manufacturers ship sections whose every parameter is
             # Access="None" (never user-visible) - e.g. an internal bookkeeping
             # block - leaving nothing to show once those are filtered out
-            # upstream (ParameterRefRefNode.eval()). Showing an empty header
-            # for one is worse than not showing the section at all.
-            if count_parameters(node.children) == 0:
+            # upstream (ParameterRefRefNode.eval()). For a non-inline LIST block
+            # that means the only thing we'd render is the empty tree header
+            # "<name> (0)" - which is worse than not showing the section at all,
+            # so skip it here. The guard is intentionally limited to that one
+            # case: GRID/TABLE blocks dispatch straight to `_render_grid_block`,
+            # which never emits a tree header and can still render non-parameter
+            # content (cell-bearing `UiSeparator` labels, `row_labels`), so
+            # `_render_grid_block`'s own `if not cells_by_pos and not labels_by_pos`
+            # early return is the right emptiness test for them, not this one.
+            if (
+                node.layout == ParameterBlockLayout.LIST
+                and not node.inline
+                and count_parameters(node.children) == 0
+            ):
                 continue
             flush()
             req = _render_block(device, node, on_change, deferred_enum, prefix)

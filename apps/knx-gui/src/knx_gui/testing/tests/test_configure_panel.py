@@ -43,7 +43,14 @@ from knx_gui.plugins.project.ui.configure import ConfigurePanel
 # Aliased: pytest's default discovery tries to collect any name starting with "Test"
 # as a test class, which fails noisily for TestContext (it has an __init__).
 from knx_gui.testing.harness import TestContext as _TestContext
-from xknxmono.product.parser_v2.ui import UiNode, UiParameter, UiParameterBlock, UiTab
+from xknxmono.models.intermediate.parameter_block_layout_t import ParameterBlockLayout
+from xknxmono.product.parser_v2.ui import (
+    UiNode,
+    UiParameter,
+    UiParameterBlock,
+    UiSeparator,
+    UiTab,
+)
 from xknxmono.product.parser_v2.ui.parameter import TextWidget
 
 # Matches the Configure panel's real docked size (see apps/knx-gui/XKNX_Toolkit.ini) -
@@ -187,6 +194,119 @@ def test_parameter_block_with_visible_parameters_is_still_rendered() -> None:
         baseline = ctx.get_window_by_ref("//Baseline")
         with_block = ctx.get_window_by_ref("//WithBlock")
         assert with_block.size.y > baseline.size.y
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+
+def test_grid_block_with_only_separator_label_is_still_rendered() -> None:
+    """Regression test for a skip-guard in `_render_children` that was applied to
+    every layout, including GRID/TABLE. A GRID block whose every `ParameterRefRef`
+    resolves to `Access="None"` upstream (so it arrives here with zero `UiParameter`
+    children) but still carries a cell-bearing `UiSeparator` label - e.g. the `"ms"`
+    units label a manufacturer places beside an invisible numeric parameter - must
+    still render that label. `_render_grid_block` renders cell-positioned separator
+    labels unconditionally, and its own `if not cells_by_pos and not labels_by_pos`
+    early return is the right emptiness test for it, not a global
+    `count_parameters == 0` skip that runs before it.
+
+    Same window-size delta technique as the empty-block tests above: Test Engine's
+    item-reference APIs falsely report the section absent even when it's visibly on
+    screen (see `test_parameter_block_with_no_visible_parameters_is_not_rendered`'s
+    docstring), so compare against a baseline window with no nodes instead.
+    """
+    device = cast(Device, SimpleNamespace(node_id=1))
+    block = UiParameterBlock(
+        id="pb-grid-label-only",
+        children=(UiSeparator(id="sep-ms", text="ms", cell="1,3"),),
+        text="Grid",
+        layout=ParameterBlockLayout.GRID,
+    )
+
+    def gui_function() -> None:
+        imgui.begin("Baseline")
+        render_ui_tree(device, [], lambda d, p, v: None)
+        imgui.end()
+        imgui.begin("WithBlock")
+        render_ui_tree(device, [block], lambda d, p, v: None)
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//Baseline")
+        ctx.yield_()
+        baseline = ctx.get_window_by_ref("//Baseline")
+        with_block = ctx.get_window_by_ref("//WithBlock")
+        assert with_block.size.y > baseline.size.y
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+
+def test_table_block_with_only_labels_and_headers_is_still_rendered() -> None:
+    """A TABLE-layout block (not just GRID) must also still render when it carries
+    only labels: a cell-bearing `UiSeparator`, `row_labels` and `column_headers`.
+    `column_headers` are only rendered by the `is_table`-gated branch in
+    `_render_grid_block` (`if is_table and (has_row_labels or has_col_headers):`),
+    so this also guards that TABLE-specific header path against the over-broad
+    `count_parameters == 0` skip.
+    """
+    device = cast(Device, SimpleNamespace(node_id=1))
+    block = UiParameterBlock(
+        id="pb-table-labels",
+        children=(UiSeparator(id="sep-ms", text="ms", cell="1,3"),),
+        text="Table",
+        layout=ParameterBlockLayout.TABLE,
+        row_labels=("Row 1",),
+        column_headers=("", "", ""),
+    )
+
+    def gui_function() -> None:
+        imgui.begin("Baseline")
+        render_ui_tree(device, [], lambda d, p, v: None)
+        imgui.end()
+        imgui.begin("WithBlock")
+        render_ui_tree(device, [block], lambda d, p, v: None)
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//Baseline")
+        ctx.yield_()
+        baseline = ctx.get_window_by_ref("//Baseline")
+        with_block = ctx.get_window_by_ref("//WithBlock")
+        assert with_block.size.y > baseline.size.y
+
+    imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
+
+
+def test_grid_block_genuinely_empty_is_not_rendered() -> None:
+    """A GRID block with no visible parameters and *also* no cell-bearing separator
+    labels / row / column content must still stay hidden. The fix narrows the
+    `count_parameters == 0` skip to non-inline LIST blocks, so a genuinely-empty
+    GRID block now falls through to `_render_grid_block`, whose own
+    `if not cells_by_pos and not labels_by_pos` early return then renders nothing
+    (no tree header is ever produced for a GRID block). This guards that narrowing
+    the skip didn't reintroduce an empty grid block.
+    """
+    device = cast(Device, SimpleNamespace(node_id=1))
+    block = UiParameterBlock(
+        id="pb-grid-empty",
+        children=(),
+        text="EmptyGrid",
+        layout=ParameterBlockLayout.GRID,
+    )
+
+    def gui_function() -> None:
+        imgui.begin("Baseline")
+        render_ui_tree(device, [], lambda d, p, v: None)
+        imgui.end()
+        imgui.begin("WithBlock")
+        render_ui_tree(device, [block], lambda d, p, v: None)
+        imgui.end()
+
+    def test_function(ctx: _TestContext) -> None:
+        ctx.set_ref("//Baseline")
+        ctx.yield_()
+        baseline = ctx.get_window_by_ref("//Baseline")
+        with_block = ctx.get_window_by_ref("//WithBlock")
+        assert with_block.size.y == baseline.size.y
 
     imgui_testing.run(gui_function, test_function, window_size=_WINDOW_SIZE)
 
