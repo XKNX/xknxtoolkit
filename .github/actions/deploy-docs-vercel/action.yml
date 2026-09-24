@@ -96,6 +96,8 @@ runs:
       run: |
         flag=""
         [ "${{ inputs.production }}" != "true" ] || flag="--prod"
-        url=$(vercel deploy --prebuilt $flag --token="$VERCEL_TOKEN")
+        # The generated Python API docs produce enough static pages that the prebuilt
+        # output exceeds Vercel's 15000-file direct-upload cap - archive it instead.
+        url=$(vercel deploy --prebuilt --archive=tgz $flag --token="$VERCEL_TOKEN")
         echo "url=$url" >> "$GITHUB_OUTPUT"
         echo "Deployed: $url" >> "$GITHUB_STEP_SUMMARY"
