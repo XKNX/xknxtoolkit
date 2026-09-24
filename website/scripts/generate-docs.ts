@@ -55,6 +55,11 @@ const packages = [
     apiOutDir: "content/docs/models/api",
     docsOutDir: "content/docs/models",
     apiBaseUrl: "/docs/models/api",
+    // files/v10..v23 are xsdata-generated KNX XML schema bindings (one
+    // class per submodule, ~3000 of them) - internal plumbing, not the
+    // public surface. Skip them and document only the version-agnostic
+    // intermediate representation consumers actually use.
+    skipModules: ["files"],
   },
   {
     name: "product",
@@ -136,6 +141,7 @@ for (const pkg of packages) {
   // and hrefs like: <baseUrl>/<namespace>/<moduleName>/...
   // writeStrip2 places files at: apiOutDir/...  (served at apiBaseUrl/...)
   const mod = JSON.parse(readFileSync(jsonPath, "utf-8"));
+  for (const name of pkg.skipModules ?? []) delete mod.modules[name];
   const files = convert(mod, { baseUrl: pkg.apiBaseUrl });
   writeStrip2(files, {
     outDir: apiOutDir,
