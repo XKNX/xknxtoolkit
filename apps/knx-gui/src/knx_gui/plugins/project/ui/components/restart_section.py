@@ -68,6 +68,18 @@ class RestartSection:
     ) -> None:
         self._on_restart_device = on_restart_device
         self._reset_mode_index: int = 0
+        # Snapshot of the device (and destructive reset mode) the "Confirm
+        # Reset" popup was opened for, taken at open_popup time so the popup's
+        # target is fixed for its lifetime - not re-derived from the per-frame
+        # `device` argument every frame. Without this, an out-of-band selected-
+        # device change while the modal is open (e.g. the app-level Ctrl+Z
+        # shortcut handler firing ProjectService.undo(), which can leave the
+        # selected device as None and trip ConfigurePanel.render's `devices[0]`
+        # fallback to a different device) would silently re-target the confirm
+        # button at that other device - a destructive master-reset dispatched to
+        # the wrong individual address.
+        self._pending_device: Device | None = None
+        self._pending_mode: _ResetMode | None = None
 
     def render(self, device: Device) -> None:
         modes = _reset_modes()
@@ -91,6 +103,8 @@ class RestartSection:
         imgui.begin_disabled(not enabled)
         if imgui.button(S.BTN_RESET, button_size):
             if selected.destructive:
+                self._pending_device = device
+                self._pending_mode = selected
                 imgui.open_popup(S.POPUP_CONFIRM_RESET_TITLE)
             else:
                 self._do_restart(device, selected)
@@ -98,15 +112,23 @@ class RestartSection:
 
         imgui.unindent()
 
-        # Called right after the button so a same-frame open_popup() (above)
-        # is seen by this begin_popup_modal() before the frame ends - no
-        # need to defer opening it to the next frame.
-        self._render_reset_confirm_popup(device, selected)
+        # The popup reads from the open-time snapshot (set above), not the
+        # per-frame `device`/`selected`, so its target stays fixed for the
+        # lifetime of the modal even if the selected device changes underneath
+        # it. Called right after the button so a same-frame open_popup() (above)
+        # is seen by this begin_popup_modal() before the frame ends - no need to
+        # defer opening it to the next frame.
+        pending_device = (
+            device if self._pending_device is None else self._pending_device
+        )
+        pending_mode = selected if self._pending_mode is None else self._pending_mode
+        self._render_reset_confirm_popup(pending_device, pending_mode)
 
     def _render_reset_confirm_popup(self, device: Device, selected: _ResetMode) -> None:
-        if imgui.begin_popup_modal(
+        opened = imgui.begin_popup_modal(
             S.POPUP_CONFIRM_RESET_TITLE, flags=imgui.WindowFlags_.always_auto_resize
-        )[0]:
+        )[0]
+        if opened:
             imgui.text(
                 S.POPUP_CONFIRM_RESET_TEXT.format(
                     mode=selected.label, device=device.name
@@ -115,11 +137,31 @@ class RestartSection:
             imgui.separator()
             if imgui.button(S.BTN_RESET, imgui.ImVec2(75, 0)):
                 self._do_restart(device, selected)
+                self._clear_pending_reset()
                 imgui.close_current_popup()
             imgui.same_line()
             if imgui.button(S.BTN_CANCEL, imgui.ImVec2(75, 0)):
+                self._clear_pending_reset()
                 imgui.close_current_popup()
             imgui.end_popup()
+        elif self._pending_device is not None and not imgui.is_popup_open(
+            S.POPUP_CONFIRM_RESET_TITLE, imgui.PopupFlags_.any_popup_id
+        ):
+            # The popup closed without our Reset/Cancel buttons (Escape, the
+            # parent window closing, etc.): drop the snapshot so it can't leak
+            # into the next open of the same popup. `any_popup_id` checks the
+            # popup's open state globally (not just the current popup-stack
+            # level), so the guard stays accurate from outside the popup's own
+            # begin/end. It also covers the same-frame open_popup() case: even
+            # if a begin_popup_modal() on the open-click frame returned False on
+            # some config, `any_popup_id` would already report the popup as
+            # open, keeping the snapshot for the next frame's render - so the
+            # snapshot is only dropped once the popup is genuinely closed.
+            self._clear_pending_reset()
+
+    def _clear_pending_reset(self) -> None:
+        self._pending_device = None
+        self._pending_mode = None
 
     def _do_restart(self, device: Device, mode: _ResetMode) -> None:
         self._on_restart_device(
