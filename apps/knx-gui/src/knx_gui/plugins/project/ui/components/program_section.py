@@ -65,6 +65,35 @@ class ProgramSection:
         self._error_message: str = ""
         self._checklist: list[tuple[str, _ItemStatus]] = []
         self._ia_checklist_index: int | None = None
+        # Generation token: reset() bumps _generation so a Future callback
+        # registered by a previous _start() (for a now-deselected device) is
+        # rejected in _handle_future_done. Capturing the generation per
+        # Future at _start() time (rather than as a single _start_generation
+        # field) keeps this correct even once a new _start() for the
+        # switched-to device has overwritten the "current" start - otherwise
+        # a late completion of the old device's Future would still pass the
+        # check and clobber the new device's in-flight result.
+        self._generation: int = 0
+
+    def reset(self) -> None:
+        """Return to the idle/find_device baseline. Called by `ConfigurePanel`
+        when the selected device changes, so the previous device's programming
+        checklist - notably the per-device "Write Individual Address {address}"
+        row baked in at `_start` time - is not left rendered under the new
+        device's name. Bumping `_generation` also invalidates any Future
+        callback registered by the previous `_start`, so a stale completion
+        cannot clobber this reset (or a new device's in-flight result)."""
+        self._generation += 1
+        self._status = "idle"
+        self._step = "find_device"
+        self._trigger_serial = False
+        self._scope_full = True
+        self._scope_ia = True
+        self._scope_ga = True
+        self._scope_params = True
+        self._checklist = []
+        self._ia_checklist_index = None
+        self._error_message = ""
 
     def render(self, device: Device, serial_hex: str) -> str:
         """Returns `serial_hex`, or the value it was just edited to - Step 1 also
@@ -228,13 +257,30 @@ class ProgramSection:
         if future is None:
             self._finish(error=S.PROGRAM_LOG_NOT_CONNECTED)
             return
-        future.add_done_callback(self._handle_future_done)
+        # Capture the generation at registration time so a completion that
+        # fires after a reset() (device switch) is rejected - per-Future
+        # capture, not a single _start_generation field, is what keeps a
+        # stale completion of the old device's Future correctly ignored even
+        # after a new _start() for the switched-to device.
+        start_generation = self._generation
 
-    def _handle_future_done(self, future: Future[Any]) -> None:
+        def on_done(fut: Future[Any]) -> None:
+            self._handle_future_done(fut, start_generation)
+
+        future.add_done_callback(on_done)
+
+    def _handle_future_done(self, future: Future[Any], start_generation: int) -> None:
         # Runs on the asyncio loop's thread (see ConnectionService.run_async),
         # not the render thread - same list-mutation-from-a-callback pattern
         # already used for restart results, no lock (fine under the GIL).
         if future.cancelled():
+            return
+        if self._generation != start_generation:
+            # The selected device was switched (ConfigurePanel called
+            # reset()) since this Future was registered, so its completion
+            # belongs to a previously selected device - ignore it rather
+            # than clobber the reset state or a new device's in-flight
+            # result.
             return
         exc = future.exception()
         self._finish(error=str(exc) if exc is not None else None)

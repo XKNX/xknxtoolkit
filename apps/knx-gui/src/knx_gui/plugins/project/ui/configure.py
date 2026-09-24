@@ -109,6 +109,13 @@ class ConfigurePanel:
             # so it's a per-session scratch pad, not a persisted device property.
             self._serial_buffer = ""
             self._buffer_device_id = device.node_id
+            # ProgramSection holds its own accumulated state (status, checklist)
+            # baked in with the previous device's individual_address at _start
+            # time - without resetting it, switching the ##device_select combo
+            # leaves "Write Individual Address <old IA>" under the new device's
+            # name. reset() also invalidates any in-flight Future callback.
+            if self._program_section is not None:
+                self._program_section.reset()
 
         imgui.align_text_to_frame_padding()
         imgui.text_disabled(S.CONFIGURE_NAME)
