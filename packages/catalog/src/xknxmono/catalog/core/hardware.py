@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, aliased, selectinload
 
 from xknxmono.catalog.core.catalog_sections import collect_section_ids
 from xknxmono.catalog.models import (
@@ -100,19 +100,6 @@ def list_hardware(
 
     q = _base_query()
 
-    needs_program_join = bool(
-        filters.medium_type
-        or filters.is_secure_enabled is not None
-        or filters.mask_version is not None
-        or filters.registration_status is not None
-        or filters.registration_number is not None
-        or filters.registration_date_from is not None
-        or filters.registration_date_to is not None
-        or filters.section_id is not None
-    )
-    if needs_program_join:
-        q = q.join(Hardware.programs)
-
     if filters.manufacturer_id:
         q = q.where(Hardware.manufacturer_id.in_(filters.manufacturer_id))
     if filters.is_rail_mounted is not None:
@@ -132,37 +119,89 @@ def list_hardware(
     if filters.search:
         term = f"%{filters.search}%"
         q = q.where(Hardware.name.ilike(term) | Hardware.order_number.ilike(term))
+
     if filters.medium_type:
-        q = q.join(HardwareProgram.medium_types).where(
-            HardwareProgramMediumType.medium_type.in_(filters.medium_type)
+        p = aliased(HardwareProgram)
+        mt = aliased(HardwareProgramMediumType)
+        q = q.where(
+            Hardware.id.in_(
+                select(p.hardware_id)
+                .join(mt, mt.hardware_program_id == p.id)
+                .where(mt.medium_type.in_(filters.medium_type))
+            )
         )
-    if filters.is_secure_enabled is not None or filters.mask_version is not None:
-        q = q.join(HardwareProgram.application, isouter=True)
-        if filters.is_secure_enabled is not None:
-            q = q.where(Application.is_secure_enabled == filters.is_secure_enabled)
-        if filters.mask_version is not None:
-            q = q.where(Application.mask_version == filters.mask_version)
+    if filters.is_secure_enabled is not None:
+        p = aliased(HardwareProgram)
+        app = aliased(Application)
+        q = q.where(
+            Hardware.id.in_(
+                select(p.hardware_id)
+                .join(app, app.id == p.application_id, isouter=True)
+                .where(app.is_secure_enabled == filters.is_secure_enabled)
+            )
+        )
+    if filters.mask_version is not None:
+        p = aliased(HardwareProgram)
+        app = aliased(Application)
+        q = q.where(
+            Hardware.id.in_(
+                select(p.hardware_id)
+                .join(app, app.id == p.application_id, isouter=True)
+                .where(app.mask_version == filters.mask_version)
+            )
+        )
     if filters.registration_status is not None:
-        q = q.where(HardwareProgram.registration_status == filters.registration_status)
+        p = aliased(HardwareProgram)
+        q = q.where(
+            Hardware.id.in_(
+                select(p.hardware_id).where(
+                    p.registration_status == filters.registration_status
+                )
+            )
+        )
     if filters.registration_number is not None:
-        q = q.where(HardwareProgram.registration_number == filters.registration_number)
+        p = aliased(HardwareProgram)
+        q = q.where(
+            Hardware.id.in_(
+                select(p.hardware_id).where(
+                    p.registration_number == filters.registration_number
+                )
+            )
+        )
     if filters.registration_date_from is not None:
-        q = q.where(HardwareProgram.registration_date >= filters.registration_date_from)
+        p = aliased(HardwareProgram)
+        q = q.where(
+            Hardware.id.in_(
+                select(p.hardware_id).where(
+                    p.registration_date >= filters.registration_date_from
+                )
+            )
+        )
     if filters.registration_date_to is not None:
-        q = q.where(HardwareProgram.registration_date <= filters.registration_date_to)
+        p = aliased(HardwareProgram)
+        q = q.where(
+            Hardware.id.in_(
+                select(p.hardware_id).where(
+                    p.registration_date <= filters.registration_date_to
+                )
+            )
+        )
     if filters.section_id is not None:
         ids = collect_section_ids(db, filters.section_id)
-        q = (
-            q.join(
-                CatalogSectionProduct,
-                CatalogSectionProduct.hardware_program_id == HardwareProgram.id,
+        p = aliased(HardwareProgram)
+        csp = aliased(CatalogSectionProduct)
+        cs = aliased(CatalogSection)
+        q = q.where(
+            Hardware.id.in_(
+                select(p.hardware_id)
+                .join(csp, csp.hardware_program_id == p.id)
+                .join(cs, cs.id == csp.section_id)
+                .where(cs.id.in_(ids))
             )
-            .join(CatalogSection, CatalogSection.id == CatalogSectionProduct.section_id)
-            .where(CatalogSection.id.in_(ids))
         )
 
-    q = q.distinct().offset(filters.offset).limit(filters.limit)
-    return db.scalars(q).unique().all()
+    q = q.offset(filters.offset).limit(filters.limit)
+    return db.scalars(q).all()
 
 
 def get_hardware(db: Session, hardware_id: str) -> Hardware | None:
