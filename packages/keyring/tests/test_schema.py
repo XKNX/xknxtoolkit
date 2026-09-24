@@ -10,7 +10,7 @@ from xknxmono.keyring.files.knx_keyring import (
     InterfaceType,
     Keyring,
 )
-from xknxmono.keyring.schema import load_keyring, serialize_keyring
+from xknxmono.keyring.keyring import load_keyring, serialize_keyring
 
 MINIMAL_KEYRING_XML = b"""\
 <?xml version="1.0" encoding="UTF-8"?>
