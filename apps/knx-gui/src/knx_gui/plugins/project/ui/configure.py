@@ -141,13 +141,23 @@ class ConfigurePanel:
         )
         self._ia_device = dev.value
 
-        if area.deactivated or line.deactivated or dev.deactivated:
+        # Commit only when a segment deactivated *and* no segment is now active:
+        # advancing Area -> Line (or Line -> Device) via Tab/auto-advance/click
+        # deactivates the just-left segment on the same frame it activates the
+        # next one, so committing on a bare `or` of the deactivated flags fires
+        # a chain of *intermediate* partial addresses (built from the
+        # just-edited segment plus the other two still holding the old IA).
+        # Requiring nothing to still be active limits the commit to the frame
+        # the *whole* composite address edit finished.
+        any_just_deactivated = area.deactivated or line.deactivated or dev.deactivated
+        any_still_active = area.active or line.active or dev.active
+        if any_just_deactivated and not any_still_active:
             self._commit_address(device)
         # Re-sync if the address changed from outside this widget (undo,
         # drag-to-a-new-line, a successful Individual Address programming) while
         # none of the three segments is being edited right now.
         elif (
-            not (area.active or line.active or dev.active)
+            not any_still_active
             and self._assembled_address() != device.individual_address
         ):
             self._sync_address_buffers(device.individual_address)
