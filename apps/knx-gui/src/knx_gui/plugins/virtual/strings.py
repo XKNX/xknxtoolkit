@@ -62,6 +62,10 @@ class VirtualStrings(BaseStrings):
         return _("Serial Number")
 
     @property
+    def SERIAL_FIELD_INVALID(self) -> str:
+        return _("Serial number must be 12 hex characters (6 bytes)")
+
+    @property
     def LABEL_PROGRAMMING_MODE(self) -> str:
         return _("Programming Mode")
 
