@@ -43,11 +43,11 @@ Writing logic against nine separate schema versions means either re-implementing
 ```python
 from xknxmono.models import load_xml
 from xknxmono.models.adapters.convert import Context, convert
-from xknxmono.models.intermediate.knx import Knx
+from xknxmono.models.intermediate.knx import Knx as IR
 
 version = "20"
 model = load_xml(xml_bytes, version)  # version-specific model (v20.Knx)
-knx = convert(Context(version=version), model, Knx)  # unified IR
+knx = convert(Context(version=version), model, IR)  # unified IR
 ```
 
 `convert()` isn't limited to the root `Knx` object — pass any version-specific dataclass instance together with its `intermediate` counterpart to convert just that subtree.
