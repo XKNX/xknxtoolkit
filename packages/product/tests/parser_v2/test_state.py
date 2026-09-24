@@ -248,6 +248,75 @@ def test_find_scope_for_qualified_recurses_into_nested_child() -> None:
 
 
 # ---------------------------------------------------------------------------
+# ModuleState._qualify / qualify — nested-submodule regression
+# ---------------------------------------------------------------------------
+# _qualify must produce a fully-qualified UI ref id that is the exact inverse of
+# find_scope_for_qualified, so set_instance_ref/clear_instance_ref (the path used
+# by DynamicUI.set_parameter_ref) round-trip back to the canonical def-relative
+# key the read path and encoder both use.
+
+_NESTED_BASE = "M-0008_A-7072-21-5CC3-O000A"
+_NESTED_LOCAL = f"{_NESTED_BASE}_MD-1_SM-1_P-96_R-F3"
+_NESTED_QUALIFIED = f"{_NESTED_BASE}_MD-1_M-64_MI-1_SM-1_M-C8_MI-1_P-96_R-F3"
+
+
+@pytest.fixture()
+def nested_module_tree() -> tuple[GlobalState, ModuleState, ModuleState]:
+    root = GlobalState()
+    m1 = root.module_child(
+        f"{_NESTED_BASE}_MD-1_M-64", repeat_idx=1, ref_id=f"{_NESTED_BASE}_MD-1"
+    )
+    child = m1.module_child(
+        f"{_NESTED_BASE}_MD-1_M-64_MI-1_SM-1_M-C8",
+        repeat_idx=1,
+        ref_id=f"{_NESTED_BASE}_MD-1_SM-1",
+    )
+    return root, m1, child
+
+
+def test_qualify_nested_submodule_emits_single_submodule_segment(
+    nested_module_tree: tuple[GlobalState, ModuleState, ModuleState],
+) -> None:
+    _root, _m1, child = nested_module_tree
+    qualified = child.qualify(_NESTED_LOCAL)
+    assert qualified == _NESTED_QUALIFIED
+    # the duplication signature of the old LCP bug is `…_SM-1_SM-1_…`
+    assert "_SM-1_SM-1" not in qualified
+    assert qualified.count("_SM-1") == 1
+
+
+def test_qualify_round_trips_through_find_scope_for_nested_submodule(
+    nested_module_tree: tuple[GlobalState, ModuleState, ModuleState],
+) -> None:
+    root, _m1, child = nested_module_tree
+    qualified = child.qualify(_NESTED_LOCAL)
+    assert root.find_scope_for_qualified(qualified) == (child, _NESTED_LOCAL)
+    assert child.find_scope_for_qualified(qualified) == (child, _NESTED_LOCAL)
+
+
+def test_qualify_round_trips_for_top_level_module() -> None:
+    root = GlobalState()
+    m1 = root.module_child("APP_MD-1_M-100", ref_id="APP_MD-1")
+    local = "APP_MD-1_P-5_R-1"
+    qualified = m1.qualify(local)
+    assert qualified == "APP_MD-1_M-100_MI-1_P-5_R-1"
+    assert root.find_scope_for_qualified(qualified) == (m1, local)
+
+
+def test_set_instance_ref_on_nested_qualified_id_writes_canonical_key(
+    nested_module_tree: tuple[GlobalState, ModuleState, ModuleState],
+) -> None:
+    root, _m1, child = nested_module_tree
+    child.set(_NESTED_LOCAL, "INIT")
+    stale_local = f"{_NESTED_BASE}_MD-1_SM-1_SM-1_P-96_R-F3"
+    root.set_instance_ref(child.qualify(_NESTED_LOCAL), "42")
+    # the GUI edit lands on the def-relative key the read path uses, not an orphan
+    assert child.param_ref_id_to_value == {_NESTED_LOCAL: "42"}
+    assert stale_local not in child.param_ref_id_to_value
+    assert child.get(_NESTED_LOCAL) == "42"
+
+
+# ---------------------------------------------------------------------------
 # module_instances (base ParameterState + ModuleState override)
 # ---------------------------------------------------------------------------
 
