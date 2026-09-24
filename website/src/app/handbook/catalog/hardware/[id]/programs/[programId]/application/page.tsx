@@ -2,24 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DocsPage } from "fumadocs-ui/layouts/docs/page";
 import { SegmentHexViewer } from "@/components/catalog/ApplicationHexViewer";
+import type { IrComObject, IrComObjectRef } from "@/lib/comObjects";
+import { resolveComRows } from "@/lib/comObjects";
 
 const API = process.env.CATALOG_API_URL ?? "http://localhost:8000";
 
 // ─── IR types (PascalCase, matching xsdata JSON output) ──────────────────────
-
-interface IrComObject {
-  Id: string;
-  Name: string;
-  Text: string;
-  Number: number;
-  DatapointType: string[];
-  CommunicationFlag: string;
-  ReadFlag: string;
-  WriteFlag: string;
-  TransmitFlag: string;
-  UpdateFlag: string;
-  ReadOnInitFlag: string;
-}
 
 interface IrParameter {
   Id: string;
@@ -83,6 +71,7 @@ interface IrModuleDefStatic {
   Parameters?: { choice: (IrParameter | IrUnion)[] };
   ParameterRefs?: { ParameterRef: IrParameterRef[] };
   ComObjects?: { ComObject: IrComObject[] };
+  ComObjectRefs?: { ComObjectRef: IrComObjectRef[] };
 }
 
 interface IrModuleDef {
@@ -101,6 +90,7 @@ interface IrApp {
   IsSecureEnabled: boolean;
   Static: {
     ComObjectTable?: { ComObject: IrComObject[] };
+    ComObjectRefs?: { ComObjectRef: IrComObjectRef[] };
     Parameters?: { choice: (IrParameter | IrUnion)[] };
     ParameterRefs?: { ParameterRef: IrParameterRef[] };
     ParameterTypes?: { ParameterType: IrParameterType[] };
@@ -121,10 +111,6 @@ function flatParams(choice: (IrParameter | IrUnion)[]): IrParameter[] {
     else if ("Parameter" in item) out.push(...item.Parameter);
   }
   return out;
-}
-
-function enabled(flag: string) {
-  return flag === "Enabled";
 }
 
 function describeType(choice: IrParamTypeChoice | null): string {
@@ -187,7 +173,9 @@ export default async function ApplicationPage({
 
   const app: IrApp = await res.json();
 
-  const comObjects = app.Static.ComObjectTable?.ComObject ?? [];
+  const comObjectTemplates = app.Static.ComObjectTable?.ComObject ?? [];
+  const comObjectRefs = app.Static.ComObjectRefs?.ComObjectRef ?? [];
+  const comRows = resolveComRows(comObjectRefs, comObjectTemplates);
   const absSegs = app.Static.Code?.AbsoluteSegment ?? [];
   const relSegs = app.Static.Code?.RelativeSegment ?? [];
   const allParams = flatParams(app.Static.Parameters?.choice ?? []);
@@ -203,8 +191,8 @@ export default async function ApplicationPage({
 
   const toc = [
     ...(totalSegs > 0 ? [{ title: `Code Segments (${totalSegs})`, url: "#code", depth: 2 }] : []),
-    ...(comObjects.length > 0
-      ? [{ title: `Communication Objects (${comObjects.length})`, url: "#com-objects", depth: 2 }]
+    ...(comRows.length > 0
+      ? [{ title: `Communication Objects (${comRows.length})`, url: "#com-objects", depth: 2 }]
       : []),
     ...(paramRefs.length > 0
       ? [{ title: `Parameters (${paramRefs.length})`, url: "#parameters", depth: 2 }]
@@ -289,9 +277,9 @@ export default async function ApplicationPage({
       )}
 
       {/* ── Com Objects ───────────────────────────────────────────────── */}
-      {comObjects.length > 0 && (
+      {comRows.length > 0 && (
         <div id="com-objects" className="mt-8">
-          <SectionHeader id="com-objects-h" title="Communication Objects" count={comObjects.length} />
+          <SectionHeader id="com-objects-h" title="Communication Objects" count={comRows.length} />
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
@@ -307,16 +295,16 @@ export default async function ApplicationPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-fd-border/50">
-                {comObjects.map((co) => (
-                  <tr key={co.Id} className="hover:bg-fd-muted/30 transition-colors">
+                {comRows.map((row) => (
+                  <tr key={row.key} className="hover:bg-fd-muted/30 transition-colors">
                     <td className="py-2 pr-4 text-fd-muted-foreground font-mono text-xs">
-                      {co.Number}
+                      {row.number ?? "—"}
                     </td>
-                    <td className="py-2 pr-4 text-fd-foreground">{co.Name}</td>
+                    <td className="py-2 pr-4 text-fd-foreground">{row.name}</td>
                     <td className="py-2 pr-4">
                       <div className="flex flex-wrap gap-1">
-                        {co.DatapointType.length > 0 ? (
-                          co.DatapointType.map((d, i) => <DptBadge key={`${d}-${i}`} code={d} />)
+                        {row.dpts.length > 0 ? (
+                          row.dpts.map((d, i) => <DptBadge key={`${d}-${i}`} code={d} />)
                         ) : (
                           <span className="text-xs text-fd-muted-foreground/40">—</span>
                         )}
@@ -324,12 +312,12 @@ export default async function ApplicationPage({
                     </td>
                     <td className="py-2">
                       <div className="flex gap-0.5">
-                        <FlagCell active={enabled(co.CommunicationFlag)} label="Communication" abbr="C" />
-                        <FlagCell active={enabled(co.ReadFlag)} label="Read" abbr="R" />
-                        <FlagCell active={enabled(co.WriteFlag)} label="Write" abbr="W" />
-                        <FlagCell active={enabled(co.TransmitFlag)} label="Transmit" abbr="T" />
-                        <FlagCell active={enabled(co.UpdateFlag)} label="Update" abbr="U" />
-                        <FlagCell active={enabled(co.ReadOnInitFlag)} label="Read on Init" abbr="I" />
+                        <FlagCell active={row.flags.C} label="Communication" abbr="C" />
+                        <FlagCell active={row.flags.R} label="Read" abbr="R" />
+                        <FlagCell active={row.flags.W} label="Write" abbr="W" />
+                        <FlagCell active={row.flags.T} label="Transmit" abbr="T" />
+                        <FlagCell active={row.flags.U} label="Update" abbr="U" />
+                        <FlagCell active={row.flags.I} label="Read on Init" abbr="I" />
                       </div>
                     </td>
                   </tr>
@@ -400,7 +388,9 @@ export default async function ApplicationPage({
             {moduleDefs.map((md) => {
               const mdParams = flatParams(md.Static.Parameters?.choice ?? []);
               const mdRefs = md.Static.ParameterRefs?.ParameterRef ?? [];
-              const mdCos = md.Static.ComObjects?.ComObject ?? [];
+              const mdComObjectTemplates = md.Static.ComObjects?.ComObject ?? [];
+              const mdComObjectRefs = md.Static.ComObjectRefs?.ComObjectRef ?? [];
+              const mdComRows = resolveComRows(mdComObjectRefs, mdComObjectTemplates);
               const mdArgs = md.Arguments?.Argument ?? [];
               const mdParamById = new Map(mdParams.map((p) => [p.Id, p]));
 
@@ -416,7 +406,7 @@ export default async function ApplicationPage({
                   <div className="flex gap-4 text-xs text-fd-muted-foreground mb-3 flex-wrap">
                     {mdArgs.length > 0 && <span>{mdArgs.length} argument{mdArgs.length !== 1 ? "s" : ""}</span>}
                     {mdRefs.length > 0 && <span>{mdRefs.length} parameter ref{mdRefs.length !== 1 ? "s" : ""}</span>}
-                    {mdCos.length > 0 && <span>{mdCos.length} com object{mdCos.length !== 1 ? "s" : ""}</span>}
+                    {mdComRows.length > 0 && <span>{mdComRows.length} com object{mdComRows.length !== 1 ? "s" : ""}</span>}
                   </div>
 
                   {mdArgs.length > 0 && (
@@ -435,7 +425,7 @@ export default async function ApplicationPage({
                     </div>
                   )}
 
-                  {mdCos.length > 0 && (
+                  {mdComRows.length > 0 && (
                     <div className="mb-3">
                       <div className="text-xs font-medium text-fd-muted-foreground mb-1">Com Objects</div>
                       <table className="w-full text-xs border-collapse">
@@ -448,27 +438,31 @@ export default async function ApplicationPage({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-fd-border/30">
-                          {mdCos.map((co) => (
-                            <tr key={co.Id}>
-                              <td className="py-1 pr-3 font-mono text-fd-muted-foreground">{co.Number}</td>
-                              <td className="py-1 pr-3 text-fd-foreground">{co.Name}</td>
+                          {mdComRows.map((row) => (
+                            <tr key={row.key}>
+                              <td className="py-1 pr-3 font-mono text-fd-muted-foreground">
+                                {row.number ?? "—"}
+                              </td>
+                              <td className="py-1 pr-3 text-fd-foreground">{row.name}</td>
                               <td className="py-1 pr-3">
                                 <div className="flex flex-wrap gap-1">
-                                  {co.DatapointType.length > 0
-                                    ? co.DatapointType.map((d, i) => (
-                                        <DptBadge key={`${d}-${i}`} code={d} />
-                                      ))
-                                    : <span className="opacity-40">—</span>}
+                                  {row.dpts.length > 0 ? (
+                                    row.dpts.map((d, i) => (
+                                      <DptBadge key={`${d}-${i}`} code={d} />
+                                    ))
+                                  ) : (
+                                    <span className="opacity-40">—</span>
+                                  )}
                                 </div>
                               </td>
                               <td className="py-1">
                                 <div className="flex gap-0.5">
-                                  <FlagCell active={enabled(co.CommunicationFlag)} label="Communication" abbr="C" />
-                                  <FlagCell active={enabled(co.ReadFlag)} label="Read" abbr="R" />
-                                  <FlagCell active={enabled(co.WriteFlag)} label="Write" abbr="W" />
-                                  <FlagCell active={enabled(co.TransmitFlag)} label="Transmit" abbr="T" />
-                                  <FlagCell active={enabled(co.UpdateFlag)} label="Update" abbr="U" />
-                                  <FlagCell active={enabled(co.ReadOnInitFlag)} label="Read on Init" abbr="I" />
+                                  <FlagCell active={row.flags.C} label="Communication" abbr="C" />
+                                  <FlagCell active={row.flags.R} label="Read" abbr="R" />
+                                  <FlagCell active={row.flags.W} label="Write" abbr="W" />
+                                  <FlagCell active={row.flags.T} label="Transmit" abbr="T" />
+                                  <FlagCell active={row.flags.U} label="Update" abbr="U" />
+                                  <FlagCell active={row.flags.I} label="Read on Init" abbr="I" />
                                 </div>
                               </td>
                             </tr>
