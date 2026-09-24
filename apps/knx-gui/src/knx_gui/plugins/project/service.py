@@ -442,17 +442,29 @@ class ProjectService:
 
     def set_device_individual_address(
         self, node_id: int, old_address: str, new_address: str
-    ) -> None:
+    ) -> bool:
+        """Persist a device's individual address change.
+
+        Returns ``True`` when the project accepted ``new_address`` (the
+        version-gated device cache is invalidated, so the next ``devices`` read
+        rebuilds from the DB), or ``False`` when no project is open, the address
+        was unchanged, or the underlying project rejected the address (e.g. the
+        target ``(area, line)`` doesn't exist in this installation). The
+        in-memory ``Device`` is never mutated here; callers should only update
+        it once this returns ``True`` so the cache and the project DB can't
+        desync onto a rejected address.
+        """
         if self._pid is None or old_address == new_address:
-            return
+            return False
         try:
             self._svc.set_individual_address(self._pid, node_id, new_address)
         except (KeyError, ValueError) as e:
             self._log.warning(
                 "could not set individual address", address=new_address, error=str(e)
             )
-            return
+            return False
         self._bump()
+        return True
 
     def set_flag(self, device: Device, co_id: str, flag_name: str, value: bool) -> None:
         if self._pid is None:
