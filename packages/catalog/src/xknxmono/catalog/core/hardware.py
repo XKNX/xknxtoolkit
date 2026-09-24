@@ -14,6 +14,7 @@ from xknxmono.catalog.models import (
     CatalogSection,
     CatalogSectionProduct,
     Hardware,
+    HardwareProduct,
     HardwareProgram,
     HardwareProgramMediumType,
 )
@@ -231,7 +232,7 @@ class HardwareInfo:
 
 
 def get_hardware_by_program(
-    db: Session, hardware2program_ref_id: str
+    db: Session, hardware2program_ref_id: str, product_ref_id: str | None = None
 ) -> HardwareInfo | None:
     """Return the hardware item a Hardware2Program entry belongs to.
 
@@ -241,10 +242,24 @@ def get_hardware_by_program(
     ``HardwareProgram.hardware`` relationship (see :func:`get_hardware_program`
     for the same relationship used the other way round).
 
+    When ``product_ref_id`` is also supplied (the SKU the project device was added
+    from — :class:`HardwareProduct.id`), the returned snapshot's per-SKU display
+    fields (``order_number``, ``is_rail_mounted``, ``width_mm``, ``name``) are
+    sourced from that SKU's row rather than from the hardware's first-SKU defaults.
+    This keeps a multi-SKU hardware from surfacing another SKU's order number /
+    width in the configure panel when the operator added a non-first SKU. When
+    ``product_ref_id`` is ``None`` or no :class:`HardwareProduct` row matches it,
+    the hardware row's display fields are used as a fallback (preserving the prior
+    single-SKU behavior).
+
     Args:
       db: An active SQLAlchemy session.
       hardware2program_ref_id: The Hardware2Program entry's primary-key
         identifier (``HardwareProgram.id``).
+      product_ref_id: Optional SKU id (``HardwareProduct.id`` / the value stored
+        on ``CatalogSectionProduct.product_ref_id`` and
+        ``project.Device.product_ref_id``). When given, per-SKU display fields
+        are resolved from the matching :class:`HardwareProduct` row.
 
     Returns:
       A :class:`HardwareInfo` snapshot, or ``None`` if no such
@@ -258,15 +273,30 @@ def get_hardware_by_program(
     if program is None:
         return None
     hardware = program.hardware
+
+    order_number = hardware.order_number
+    is_rail_mounted = hardware.is_rail_mounted
+    width_mm = hardware.width_mm
+    name = hardware.name
+    if product_ref_id is not None:
+        sku = db.scalars(
+            select(HardwareProduct).where(HardwareProduct.id == product_ref_id)
+        ).first()
+        if sku is not None:
+            order_number = sku.order_number
+            is_rail_mounted = sku.is_rail_mounted
+            width_mm = sku.width_mm
+            name = sku.name
+
     return HardwareInfo(
         id=hardware.id,
-        name=hardware.name,
-        order_number=hardware.order_number,
+        name=name,
+        order_number=order_number,
         serial_number=hardware.serial_number,
         version_number=hardware.version_number,
         bus_current=hardware.bus_current,
-        is_rail_mounted=hardware.is_rail_mounted,
-        width_mm=hardware.width_mm,
+        is_rail_mounted=is_rail_mounted,
+        width_mm=width_mm,
         is_coupler=hardware.is_coupler,
         is_power_supply=hardware.is_power_supply,
         is_ip_enabled=hardware.is_ip_enabled,

@@ -143,7 +143,7 @@ class ProjectService:
         self._log: Logger
         self._listeners: dict[str, list[Callable[..., Any]]] = {}
         self._app_cache: dict[str, Application] = {}
-        self._hardware_cache: dict[str, HardwareInfo | None] = {}
+        self._hardware_cache: dict[tuple[str, str | None], HardwareInfo | None] = {}
         self._program_to_app: dict[str, str] | None = None
         self._devices_cache: list[Device] | None = None
         self._areas_cache: list[_Area] | None = None
@@ -237,14 +237,17 @@ class ProjectService:
             self._app_cache[program_ref] = app
         return app
 
-    def _resolve_hardware(self, program_ref: str | None) -> "HardwareInfo | None":
+    def _resolve_hardware(
+        self, program_ref: str | None, product_ref_id: str | None
+    ) -> "HardwareInfo | None":
         if program_ref is None:
             return None
-        if program_ref not in self._hardware_cache:
-            self._hardware_cache[program_ref] = self._catalog.get_hardware_by_program(
-                program_ref
+        cache_key = (program_ref, product_ref_id)
+        if cache_key not in self._hardware_cache:
+            self._hardware_cache[cache_key] = self._catalog.get_hardware_by_program(
+                program_ref, product_ref_id
             )
-        return self._hardware_cache[program_ref]
+        return self._hardware_cache[cache_key]
 
     def _build_device(self, row: Any) -> Device | None:
         app = self._resolve_app(row.hardware2program_ref_id)
@@ -272,7 +275,9 @@ class ProjectService:
             name=row.name,
             app=app,
             individual_address=ia,
-            hardware=self._resolve_hardware(row.hardware2program_ref_id),
+            hardware=self._resolve_hardware(
+                row.hardware2program_ref_id, row.product_ref_id
+            ),
             parameter_instance_refs=pirs,
             module_instances=mis,
             com_object_instance_refs=coirs,

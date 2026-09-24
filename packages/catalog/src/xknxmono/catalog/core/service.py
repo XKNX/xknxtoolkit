@@ -94,10 +94,10 @@ class CatalogService:
             return get_hardware_program(db, hardware_id, program_id)
 
     def get_hardware_by_program(
-        self, hardware2program_ref_id: str
+        self, hardware2program_ref_id: str, product_ref_id: str | None = None
     ) -> HardwareInfo | None:
         with Session(self._engine) as db:
-            return get_hardware_by_program(db, hardware2program_ref_id)
+            return get_hardware_by_program(db, hardware2program_ref_id, product_ref_id)
 
     def get_application_xml(self, program_id: str) -> tuple[bytes, str] | None:
         with Session(self._engine) as db:
