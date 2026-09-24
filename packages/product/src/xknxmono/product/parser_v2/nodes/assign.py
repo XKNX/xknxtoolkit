@@ -16,10 +16,12 @@ class AssignNode(DynamicNode):
 
     def eval(self, ctx: EvalContext) -> list[UiNode]:
         if self._elem.value is not None:
+            ctx.mark_active_param(self._elem.target_param_ref_ref)
             ctx.set(self._elem.target_param_ref_ref, self._elem.value)
         elif self._elem.source_param_ref_ref is not None:
             value = ctx.get(self._elem.source_param_ref_ref)
             if value is not None:
+                ctx.mark_active_param(self._elem.target_param_ref_ref)
                 ctx.set(self._elem.target_param_ref_ref, value)
         else:
             raise EncodingError(

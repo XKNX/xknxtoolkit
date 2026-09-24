@@ -584,9 +584,10 @@ def _is_parameter_active(
     A Parameter/UnionParameter with no ParameterRef pointing at it anywhere is never
     reachable through the dynamic tree at all, so activity gating doesn't apply to it -
     it's always written, matching the case with no resolved dynamic state (scope=None)
-    at all. Otherwise, it's active only if a ParameterRefRef targeting it was evaluated
-    in this specific scope during the last traversal (marked directly via
-    EvalContext.mark_active_param - see ParameterRefRefNode.eval()).
+    at all. Otherwise, it's active only if a node targeting it was evaluated in this
+    specific scope during the last traversal (marked directly via
+    EvalContext.mark_active_param - see ParameterRefRefNode.eval() and
+    AssignNode.eval()).
     """
     if parameter_id not in idx.referenced_parameter_ids or scope is None:
         return True
