@@ -1,6 +1,6 @@
 import { source } from "@/lib/source/docs";
 import { createFromSource } from "fumadocs-core/search/server";
-import type { SortedResult } from "fumadocs-core/server";
+import type { SortedResult } from "fumadocs-core/search";
 
 const docsSearch = createFromSource(source, { language: "english" });
 

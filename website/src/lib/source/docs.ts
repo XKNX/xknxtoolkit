@@ -10,7 +10,7 @@ export const source = loader(
     openapi: await openapi.staticSource({
       baseDir: "catalog/(generated)",
       meta: {
-        folderStyle: "folderStyle",
+        folderStyle: "folder",
       },
       groupBy: "tag",
     }),
@@ -38,6 +38,9 @@ export function getPageMarkdownUrl(page: (typeof source)["$inferPage"]) {
 }
 
 export async function getLLMText(page: (typeof source)["$inferPage"]) {
-  const processed = await page.data.getText("processed");
+  const processed =
+    "getText" in page.data
+      ? await page.data.getText("processed")
+      : page.data.structuredData.contents.map((c) => c.content).join("\n\n");
   return `# ${page.data.title} (${page.url})\n\n${processed}`;
 }

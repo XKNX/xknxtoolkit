@@ -6,7 +6,7 @@ export const revalidate = false;
 export async function GET() {
   const scanned = await Promise.all([
     ...handbook.source.getPages().map(handbook.getLLMText),
-    ...docs.source.getPages().map(handbook.getLLMText),
+    ...docs.source.getPages().map(docs.getLLMText),
   ]);
 
   return new Response(scanned.join("\n\n"));

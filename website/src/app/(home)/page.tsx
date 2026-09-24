@@ -3,23 +3,19 @@ import Link from "next/link";
 const packages = [
   {
     name: "xknx-models",
-    description:
-      "KNX XML schema bindings generated from official XSD files for versions 10–14 and 20–23. Includes version detection and XML load/serialize helpers.",
+    description: "Every version of KNX's data model, unified into one representation.",
   },
   {
     name: "xknx-product",
-    description:
-      "Read and validate .knxprod archives (ZIP files). Parses manufacturer, catalog, hardware, and application program XMLs.",
+    description: "Everything inside a KNX product archive, ready to explore.",
   },
   {
     name: "xknx-project",
-    description:
-      "Project state management for KNX installations. Load, inspect, and manipulate ETS project data.",
+    description: "Inspect and edit KNX project files with a clean, typed API.",
   },
   {
     name: "xknx-keys",
-    description:
-      "Parse and serialize KNX keyring XML files. Manage security keys for KNX IP secure and data secure.",
+    description: "Read, write, and manage your KNX Secure keyring.",
   },
 ];
 
@@ -34,13 +30,13 @@ export default function HomePage() {
         </p>
         <div className="flex gap-3 flex-wrap justify-center">
           <Link
-            href="/docs/home"
+            href="/docs"
             className="rounded-md bg-fd-primary text-fd-primary-foreground px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
           >
             Read the docs
           </Link>
           <a
-            href="https://github.com/xknx-org/xknxtoolkit"
+            href="https://github.com/XKNX/xknxtoolkit"
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-md border border-fd-border px-5 py-2.5 text-sm font-medium hover:bg-fd-accent transition-colors"

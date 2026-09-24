@@ -1,0 +1,57 @@
+name: Deploy docs preview
+
+on:
+  pull_request:
+    paths:
+      - "website/**"
+      - "packages/*/docs/**"
+      - "packages/*/src/**"
+      - "packages/*/CHANGELOG.md"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/deploy-docs-preview.yml"
+      - ".github/actions/deploy-docs-vercel/**"
+
+concurrency:
+  group: deploy-docs-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  deploy:
+    name: Build and deploy preview to Vercel
+    runs-on: ubuntu-latest
+    # Secrets aren't available to workflow runs triggered by fork PRs - skip
+    # rather than fail loudly.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - id: deploy
+        uses: ./.github/actions/deploy-docs-vercel
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          production: "false"
+
+      - name: Comment preview URL on PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          marker="<!-- docs-preview-comment -->"
+          body="$marker
+          📖 Docs preview: $PREVIEW_URL"
+          comment_id=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n1)
+          if [ -n "$comment_id" ]; then
+            gh api "repos/$REPO/issues/comments/$comment_id" -X PATCH -f body="$body"
+          else
+            gh pr comment "$PR_NUMBER" --body "$body"
+          fi

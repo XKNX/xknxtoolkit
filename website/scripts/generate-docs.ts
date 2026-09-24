@@ -7,6 +7,7 @@ import {
   readdirSync,
   copyFileSync,
   rmSync,
+  renameSync,
 } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -55,6 +56,11 @@ const packages = [
     apiOutDir: "content/docs/models/api",
     docsOutDir: "content/docs/models",
     apiBaseUrl: "/docs/models/api",
+    // files/v10..v23 are xsdata-generated KNX XML schema bindings (one
+    // class per submodule, ~3000 of them) - internal plumbing, not the
+    // public surface. Skip them and document only the version-agnostic
+    // intermediate representation consumers actually use.
+    skipModules: ["files"],
   },
   {
     name: "product",
@@ -98,6 +104,26 @@ const packages = [
   },
 ];
 
+// convert() writes every module - leaf or not - as its own <name>/index.mdx, so a leaf
+// module (one with no sub-modules of its own, only classes/functions inlined in its index)
+// ends up as a directory containing solely index.mdx. Fumadocs' sidebar still renders that
+// directory as an expandable folder even though it has nothing to expand into. Flatten it
+// to a sibling <name>.mdx instead - same URL slug, no dangling empty-expand arrow.
+function flattenLeafModuleFolders(dir) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const sub = join(dir, entry.name);
+    flattenLeafModuleFolders(sub);
+    const subEntries = readdirSync(sub, { withFileTypes: true });
+    const onlyIndex =
+      subEntries.length === 1 && subEntries[0].isFile() && subEntries[0].name === "index.mdx";
+    if (onlyIndex) {
+      renameSync(join(sub, "index.mdx"), join(dir, `${entry.name}.mdx`));
+      rmSync(sub, { recursive: true });
+    }
+  }
+}
+
 // Derive changelog output path from the api output dir (sibling of api/)
 function changelogOutPath(pkg) {
   return join(websiteRoot, pkg.apiOutDir, "../changelog.mdx");
@@ -136,6 +162,7 @@ for (const pkg of packages) {
   // and hrefs like: <baseUrl>/<namespace>/<moduleName>/...
   // writeStrip2 places files at: apiOutDir/...  (served at apiBaseUrl/...)
   const mod = JSON.parse(readFileSync(jsonPath, "utf-8"));
+  for (const name of pkg.skipModules ?? []) delete mod.modules[name];
   const files = convert(mod, { baseUrl: pkg.apiBaseUrl });
   writeStrip2(files, {
     outDir: apiOutDir,
@@ -158,6 +185,8 @@ for (const pkg of packages) {
   }
   if (generated.length > 0)
     console.log(`  fixed hrefs in ${generated.length} files`);
+
+  flattenLeafModuleFolders(apiOutDir);
 
   // Copy hand-written .mdx files from packages/<pkg>/docs/ to content/<pkg>/
   // (not for catalog - its browser is served via the app route)

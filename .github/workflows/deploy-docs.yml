@@ -1,0 +1,33 @@
+name: Deploy docs
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "website/**"
+      - "packages/*/docs/**"
+      - "packages/*/src/**"
+      - "packages/*/CHANGELOG.md"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/deploy-docs.yml"
+      - ".github/actions/deploy-docs-vercel/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and deploy to Vercel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: ./.github/actions/deploy-docs-vercel
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          production: "true"

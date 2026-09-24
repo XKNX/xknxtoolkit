@@ -1,4 +1,4 @@
-from xknxmono.keyring.schema import load_keyring, serialize_keyring
+from xknxmono.keyring.keyring import load_keyring, serialize_keyring
 
 __version__ = "0.1.0"
 
