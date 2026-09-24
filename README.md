@@ -56,11 +56,11 @@ The application is built on a set of standalone, typed Python libraries (the `xk
 
 | Package | Import | Description |
 |---------|--------|-------------|
-| `xknx-models` | `xknxmono.models` | KNX XML schema bindings and version detection (foundation for the rest) |
-| `xknx-product` | `xknxmono.product` | Reads and validates `.knxprod` product archives |
+| `xknx-models` | `xknxmono.models` | Every version of KNX's data model, unified into one representation (foundation for the rest) |
+| `xknx-product` | `xknxmono.product` | Everything inside a KNX product archive, ready to explore |
 | `xknx-catalog` | `xknxmono.catalog` | Product catalog built from imported `.knxprod` archives |
-| `xknx-project` | `xknxmono.project` | Project state management for KNX installations |
-| `xknx-keyring` | `xknxmono.keyring` | Parses and serializes KNX keyring XML (KNX IP Secure keys) |
+| `xknx-project` | `xknxmono.project` | Inspect and edit KNX project files with a clean, typed API |
+| `xknx-keyring` | `xknxmono.keyring` | Read, write, and manage your KNX Secure keyring |
 
 ```bash
 pip install xknx-models xknx-product xknx-catalog xknx-project xknx-keyring
