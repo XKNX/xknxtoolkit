@@ -135,16 +135,22 @@ class ApplicationIndexer:
             self._index_calculations(
                 md.static.parameter_calculations.parameter_calculation
             )
-        if md.static.allocators is not None:
-            self.allocators[md.id] = {
-                a.id: Allocator(id=a.id, start=a.start, max_inclusive=a.max_inclusive)
-                for a in md.static.allocators.allocator
-            }
-        if md.arguments is not None:
-            self.arg_alloc[md.id] = {
-                a.id: (a.allocates if a.allocates is not None else 1, a.alignment.value)
-                for a in md.arguments.argument
-            }
+        if md.id:
+            if md.static.allocators is not None:
+                self.allocators[md.id] = {
+                    a.id: Allocator(
+                        id=a.id, start=a.start, max_inclusive=a.max_inclusive
+                    )
+                    for a in md.static.allocators.allocator
+                }
+            if md.arguments is not None:
+                self.arg_alloc[md.id] = {
+                    a.id: (
+                        a.allocates if a.allocates is not None else 1,
+                        a.alignment.value,
+                    )
+                    for a in md.arguments.argument
+                }
         if md.sub_module_defs is not None:
             for sub in md.sub_module_defs.module_def:
                 self._index_module_def(sub)
