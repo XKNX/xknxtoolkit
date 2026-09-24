@@ -320,6 +320,69 @@ def test_collect_mem_param_override() -> None:
 
 
 # ---------------------------------------------------------------------------
+# collect_writes — empty-string override ("" is a first-class value, not "unset")
+#
+# _collect_param resolves the value via `overrides.get(item.id) or item.value`.
+# The `or` collapses an explicitly-stored "" override to the declared default,
+# diverging from the storage layer (ParameterState.get uses `is None`) and the
+# union encoder path (_pick_union_params preserves "" verbatim). The fix uses
+# `is None` so "" is honoured: an empty override is written verbatim (and for
+# non-text types surfaces as EncodingError instead of silently masking the default).
+# ---------------------------------------------------------------------------
+
+
+def test_collect_mem_param_empty_override_is_not_collapsed_to_default() -> None:
+    # The fix: `""` is a first-class override. Before the fix `or` made this "42".
+    p = _param(
+        "P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0), value="42"
+    )
+    app, idx = _app([p])
+    w = collect_writes(app, idx, {"P1": ""})
+    assert w.mem[0].value == ""
+
+
+def test_collect_mem_param_missing_override_falls_back_to_default() -> None:
+    # No override at all (key absent → overrides.get returns None) → declared default.
+    p = _param(
+        "P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0), value="42"
+    )
+    app, idx = _app([p])
+    w = collect_writes(app, idx, {})
+    assert w.mem[0].value == "42"
+
+
+def test_encode_to_memory_empty_override_numeric_raises_not_silently_default() -> None:
+    # Numeric "" is unencodable; the fix surfaces it as EncodingError instead of
+    # silently writing the declared default — mirroring the union encoder path,
+    # which already raised here, so UI and encoder now agree on the failure.
+    p = _param(
+        "P1", MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0), value="42"
+    )
+    app, idx = _app([p])
+    with pytest.raises(EncodingError, match="P1"):
+        encode_to_memory(app, idx, {"P1": ""})
+
+
+def test_encode_to_memory_empty_override_text_writes_zero_bytes_not_default() -> None:
+    # Text "" is encodable (all-zero bytes). The fix writes the empty text instead
+    # of silently writing the declared default "Hi".
+    pt = ParameterType(
+        id="PT_TEXT", name="T", choice=ParameterTypeTypeText(size_in_bit=16)
+    )
+    p = ApplicationProgramStaticParametersParameter(
+        id="P1",
+        name="",
+        text="",
+        parameter_type="PT_TEXT",
+        value="Hi",
+        choice=MemoryParameter(code_segment=_SEG_ID, offset=0, bit_offset=0),
+    )
+    app, idx = _app([p], extra_param_types=[pt])
+    mem = encode_to_memory(app, idx, {"P1": ""})
+    assert mem[_SEG_ID][0:2] == b"\x00\x00"  # empty text, not "Hi"
+
+
+# ---------------------------------------------------------------------------
 # collect_writes — property parameter
 # ---------------------------------------------------------------------------
 

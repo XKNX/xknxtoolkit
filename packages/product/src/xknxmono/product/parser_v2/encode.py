@@ -610,7 +610,9 @@ def _collect_param(
     ):
         return
     choice = item.choice
-    value = overrides.get(item.id) or item.value
+    value = overrides.get(item.id)
+    if value is None:
+        value = item.value
     # base_value on a module parameter shifts the encoded value by an arg-resolved offset.
     if (
         isinstance(item, ModuleDefStaticParametersParameter)
