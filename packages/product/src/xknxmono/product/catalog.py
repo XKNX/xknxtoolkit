@@ -56,6 +56,10 @@ def parse_catalog_xml(xml_bytes: bytes) -> CatalogDoc:
     section_to_item: dict[str, list[str]] = {}
 
     def walk(section: ir.CatalogSection, parent_id: str | None) -> None:
+        if section.id in sections:
+            raise ParseError(
+                f"duplicate CatalogSection Id {section.id!r} in catalog XML"
+            )
         sections[section.id] = CatalogSection(
             id=section.id,
             name=section.name,
@@ -65,6 +69,8 @@ def parse_catalog_xml(xml_bytes: bytes) -> CatalogDoc:
         section_to_subsection[section.id] = [s.id for s in section.catalog_section]
         section_to_item[section.id] = [item.id for item in section.catalog_item]
         for item in section.catalog_item:
+            if item.id in items:
+                raise ParseError(f"duplicate CatalogItem Id {item.id!r} in catalog XML")
             items[item.id] = CatalogItem(
                 id=item.id,
                 name=item.name,
