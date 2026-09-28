@@ -34,22 +34,6 @@ class NodeEditorStrings(BaseStrings):
         return _("(modified)")
 
     @property
-    def NODE_COM_FLAGS(self) -> str:
-        return _("Com Flags")
-
-    @property
-    def NODE_PARAMETERS(self) -> str:
-        return _("Parameters")
-
-    @property
-    def LINK_WARNING_HIDE_COM_OBJECTS(self) -> str:
-        return _("This change will hide the following communication objects:")
-
-    @property
-    def LINK_WARNING_REMOVED(self) -> str:
-        return _("{count} link(s) will be removed.")
-
-    @property
     def LINK_CANNOT_CONNECT_OUTPUTS(self) -> str:
         return _("Cannot connect two outputs")
 
@@ -76,10 +60,6 @@ class NodeEditorStrings(BaseStrings):
     @property
     def LINK_TO_DPT(self) -> str:
         return _("To:   DPT {code} - {name}")
-
-    @property
-    def BTN_REMOVE_LINKS(self) -> str:
-        return _("Remove Links")
 
 
 S = NodeEditorStrings()
