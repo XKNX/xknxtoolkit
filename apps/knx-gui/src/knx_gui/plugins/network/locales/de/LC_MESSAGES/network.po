@@ -7,12 +7,6 @@ msgstr ""
 msgid "Network"
 msgstr "Netzwerk"
 
-msgid "Telegrams"
-msgstr "Telegramme"
-
-msgid "({count} selected)"
-msgstr "({count} ausgewählt)"
-
 msgid "Record"
 msgstr "Aufnehmen"
 

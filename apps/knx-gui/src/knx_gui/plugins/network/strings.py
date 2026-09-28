@@ -14,14 +14,6 @@ class NetworkStrings(BaseStrings):
         return _("Network")
 
     @property
-    def TELEGRAMS_TITLE(self) -> str:
-        return _("Telegrams")
-
-    @property
-    def TELEGRAMS_SELECTED(self) -> str:
-        return _("({count} selected)")
-
-    @property
     def BTN_RECORD(self) -> str:
         return _("Record")
 
