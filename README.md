@@ -109,4 +109,4 @@ Revert both files (`git checkout apps/knx-gui/pyproject.toml uv.lock`) before co
 
 ## License
 
-GPL-2.0-only. See [LICENSE](LICENSE).
+GPL-3.0-or-later. See [LICENSE](LICENSE).
